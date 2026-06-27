@@ -2,7 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
   getFirestore,
   doc,
-  setDoc
+  setDoc,
+  collection,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -22,6 +24,7 @@ const department = document.getElementById("department");
 const major = document.getElementById("major");
 const grade = document.getElementById("grade");
 const button = document.getElementById("subscribe");
+const newsList = document.getElementById("newsList");
 const registered = localStorage.getItem("registered");
 
 if (registered === "true") {
@@ -66,6 +69,7 @@ grade.addEventListener("change", () => {
 });
 
 updateState();
+loadNews();
 
 function updateState() {
 
@@ -151,6 +155,33 @@ try {
 
 }
 });
+
+async function loadNews() {
+
+    const snapshot = await getDocs(collection(db, "news"));
+
+    newsList.innerHTML = "";
+
+    snapshot.forEach((doc) => {
+
+        const news = doc.data();
+
+        newsList.innerHTML += `
+            <div style="margin-bottom:20px">
+                <b>${news.date}</b><br>
+                ${news.title}<br>
+                ${news.body}<br><br>
+
+                <a href="${news.pdf}" target="_blank">
+                    PDFを見る
+                </a>
+            </div>
+            <hr>
+        `;
+
+    });
+
+}
 
 function urlBase64ToUint8Array(base64String) {
 
