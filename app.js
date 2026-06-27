@@ -145,7 +145,7 @@ try {
     major.disabled = true;
     grade.disabled = true;
 
-    alert("登録完了が完了しました。一度アプリを終了してください。");
+    alert("登録が完了しました。一度アプリを終了してください。");
 
 } catch (e) {
 
