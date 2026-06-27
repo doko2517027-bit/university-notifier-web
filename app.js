@@ -3,8 +3,7 @@ import {
   getFirestore,
   doc,
   setDoc,
-  collection,
-  getDocs
+  getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -158,29 +157,39 @@ try {
 
 async function loadNews() {
 
-    const snapshot = await getDocs(collection(db, "news"));
+    const department = localStorage.getItem("department");
+    const grade = localStorage.getItem("grade");
 
-    newsList.innerHTML = "";
+    if (!department || !grade) {
+        return;
+    }
 
-    snapshot.forEach((doc) => {
+    let id = "";
 
-        const news = doc.data();
+    if (department === "看護学科") {
+        id = "NS" + grade.replace("年", "");
+    }
 
-        newsList.innerHTML += `
-            <div style="margin-bottom:20px">
-                <b>${news.date}</b><br>
-                ${news.title}<br>
-                ${news.body}<br><br>
+    const snapshot = await getDoc(doc(db, "notices", id));
 
-                <a href="${news.pdf}" target="_blank">
-                    PDFを見る
-                </a>
-            </div>
-            <hr>
-        `;
+    if (!snapshot.exists()) {
+        return;
+    }
 
-    });
+    const notice = snapshot.data();
 
+    newsList.innerHTML = `
+        <div>
+            <b>${notice.date}</b><br><br>
+
+            ${notice.text.replace(/\n/g, "<br>")}
+            <br><br>
+
+            <a href="${notice.pdf}" target="_blank">
+                PDFを見る
+            </a>
+        </div>
+    `;
 }
 
 function urlBase64ToUint8Array(base64String) {
