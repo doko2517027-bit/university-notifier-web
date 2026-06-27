@@ -137,7 +137,7 @@ try {
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
-    
+
     alert(localStorage.getItem("department"));
     alert(localStorage.getItem("grade"));
 
@@ -177,6 +177,9 @@ async function loadNews() {
     }
 
     const snapshot = await getDoc(doc(db, "notices", id));
+
+    alert(id);
+    alert(snapshot.exists());
 
     if (!snapshot.exists()) {
         return;
