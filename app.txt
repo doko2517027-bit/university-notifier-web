@@ -22,6 +22,22 @@ const department = document.getElementById("department");
 const major = document.getElementById("major");
 const grade = document.getElementById("grade");
 const button = document.getElementById("subscribe");
+const registered = localStorage.getItem("registered");
+
+if (registered === "true") {
+
+    department.value = localStorage.getItem("department");
+    major.value = localStorage.getItem("major");
+    grade.value = localStorage.getItem("grade");
+
+    department.disabled = true;
+    major.disabled = true;
+    grade.disabled = true;
+
+    button.textContent = "登録済み";
+    button.disabled = true;
+
+}
 
 grade.disabled = true;
 button.disabled = true;
@@ -112,6 +128,11 @@ try {
    		subscription: JSON.parse(JSON.stringify(subscription))
 	}
     );
+
+    localStorage.setItem("registered", "true");
+    localStorage.setItem("department", selectedDepartment);
+    localStorage.setItem("major", selectedMajor);
+    localStorage.setItem("grade", selectedGrade);
 
     alert("登録完了！");
 
