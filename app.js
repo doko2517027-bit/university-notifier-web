@@ -187,6 +187,25 @@ async function loadNews() {
         alert("⑤ Firestore取得");
         alert(snapshot.exists());
 
+        const notice = snapshot.data();
+
+        alert(JSON.stringify(notice));
+        alert(newsList);
+        alert("表示します");
+
+        newsList.innerHTML = `
+            <div>
+                <b>${notice.date}</b><br><br>
+
+                ${notice.text.replace(/\n/g, "<br>")}
+                <br><br>
+
+                <a href="${notice.pdf}" target="_blank">
+                    PDFを見る
+                </a>
+            </div>
+        `;
+
     } catch (e) {
 
         alert("エラー発生");
