@@ -170,10 +170,7 @@ async function loadNews() {
         alert(department);
         alert(grade);
 
-        alert("② localStorage取得");
-
         if (!department || !grade) {
-            alert("③ return");
             return;
         }
 
@@ -192,12 +189,11 @@ async function loadNews() {
 
     } catch (e) {
 
-        alert("エラー");
+        alert("エラー発生");
         alert(e.message);
         console.error(e);
 
     }
-
 }
 
 function urlBase64ToUint8Array(base64String) {
