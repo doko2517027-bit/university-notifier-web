@@ -28,8 +28,6 @@ button.disabled = true;
 
 department.addEventListener("change", () => {
 
-   department.addEventListener("change", () => {
-
     if (department.value !== "") {
         major.value = "";
     }
@@ -38,21 +36,11 @@ department.addEventListener("change", () => {
 
 });
 
-      updateState();
-
-});
-
 major.addEventListener("change", () => {
-
-    major.addEventListener("change", () => {
 
     if (major.value !== "") {
         department.value = "";
     }
-
-    updateState();
-
-});
 
     updateState();
 
@@ -74,12 +62,15 @@ function updateState() {
 
     grade.disabled = !selected;
 
+    if (!selected) {
+        grade.value = "";
+    }
+
     button.disabled =
         !selected ||
         grade.value === "";
 
 }
-
 
 button.addEventListener("click", async () => {
 
