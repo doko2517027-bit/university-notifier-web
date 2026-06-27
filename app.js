@@ -138,9 +138,6 @@ try {
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
 
-    alert(localStorage.getItem("department"));
-    alert(localStorage.getItem("grade"));
-
     button.textContent = "登録済み";
     button.disabled = true;
 
@@ -162,13 +159,8 @@ async function loadNews() {
 
     try {
 
-        alert("① loadNews開始");
-
         const department = localStorage.getItem("department");
         const grade = localStorage.getItem("grade");
-
-        alert(department);
-        alert(grade);
 
         if (!department || !grade) {
             return;
@@ -180,18 +172,9 @@ async function loadNews() {
             id = "NS" + grade.replace("年", "");
         }
 
-        alert("④ id=" + id);
-
         const snapshot = await getDoc(doc(db, "notices", id));
 
-        alert("⑤ Firestore取得");
-        alert(snapshot.exists());
-
         const notice = snapshot.data();
-
-        alert(JSON.stringify(notice));
-        alert(newsList);
-        alert("表示します");
 
         newsList.innerHTML = `
             <div>
@@ -207,9 +190,6 @@ async function loadNews() {
         `;
 
     } catch (e) {
-
-        alert("エラー発生");
-        alert(e.message);
         console.error(e);
 
     }
