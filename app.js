@@ -157,6 +157,9 @@ try {
 
 async function loadNews() {
 
+    alert(localStorage.getItem("department"));
+    alert(localStorage.getItem("grade"));
+
     const department = localStorage.getItem("department");
     const grade = localStorage.getItem("grade");
 
