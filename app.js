@@ -23,7 +23,9 @@ button.addEventListener("click", async () => {
 
     });
 
-    console.log(JSON.stringify(subscription));
+   document.body.innerHTML += `
+   <pre>${JSON.stringify(subscription, null, 2)}</pre>
+   `;
 
     alert("登録完了！");
 
