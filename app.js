@@ -1,3 +1,21 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
+  authDomain: "universitynotifier-67517.firebaseapp.com",
+  projectId: "universitynotifier-67517",
+  storageBucket: "universitynotifier-67517.firebasestorage.app",
+  messagingSenderId: "908622250178",
+  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 
 const button = document.getElementById("subscribe");
@@ -23,11 +41,17 @@ button.addEventListener("click", async () => {
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
 
-   document.body.innerHTML += `
-   <pre>${JSON.stringify(subscription, null, 2)}</pre>
-   `;
+   const department = prompt("学科を入力してください\n例：看護1年");
 
-    alert("登録完了！");
+await setDoc(
+    doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
+    {
+        department: department,
+        subscription: JSON.parse(JSON.stringify(subscription))
+    }
+);
+
+alert("登録完了！");
 
 });
 
