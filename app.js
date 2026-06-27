@@ -160,13 +160,18 @@ try {
 
 async function loadNews() {
 
+    alert("① loadNews開始");
+
     alert(localStorage.getItem("department"));
     alert(localStorage.getItem("grade"));
 
     const department = localStorage.getItem("department");
     const grade = localStorage.getItem("grade");
 
+    alert("② localStorage取得");
+
     if (!department || !grade) {
+        alert("③ return");
         return;
     }
 
@@ -176,8 +181,12 @@ async function loadNews() {
         id = "NS" + grade.replace("年", "");
     }
 
+    alert("④ id=" + id);
+
     const snapshot = await getDoc(doc(db, "notices", id));
 
+    alert("⑤ Firestore取得");
+    alert(snapshot.exists());
     alert(id);
     alert(snapshot.exists());
 
