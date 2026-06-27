@@ -43,16 +43,24 @@ button.addEventListener("click", async () => {
 
    const department = prompt("学科を入力してください\n例：看護1年");
 
-await setDoc(
-    doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
-    {
-        department: department,
-        subscription: JSON.parse(JSON.stringify(subscription))
-    }
-);
+try {
 
-alert("登録完了！");
+    await setDoc(
+        doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
+        {
+            department: department,
+            subscription: JSON.parse(JSON.stringify(subscription))
+        }
+    );
 
+    alert("登録完了！");
+
+} catch (e) {
+
+    console.error(e);
+    alert(e);
+
+}
 });
 
 function urlBase64ToUint8Array(base64String) {
