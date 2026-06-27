@@ -137,6 +137,9 @@ try {
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
+    
+    alert(localStorage.getItem("department"));
+    alert(localStorage.getItem("grade"));
 
     button.textContent = "登録済み";
     button.disabled = true;
