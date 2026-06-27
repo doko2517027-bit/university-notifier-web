@@ -28,12 +28,15 @@ button.disabled = true;
 
 department.addEventListener("change", () => {
 
+   department.addEventListener("change", () => {
+
     if (department.value !== "") {
         major.value = "";
-        major.disabled = true;
-    } else {
-        major.disabled = false;
     }
+
+    updateState();
+
+});
 
       updateState();
 
@@ -41,12 +44,15 @@ department.addEventListener("change", () => {
 
 major.addEventListener("change", () => {
 
+    major.addEventListener("change", () => {
+
     if (major.value !== "") {
         department.value = "";
-        department.disabled = true;
-    } else {
-        department.disabled = false;
     }
+
+    updateState();
+
+});
 
     updateState();
 
