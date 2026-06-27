@@ -15,13 +15,13 @@ button.addEventListener("click", async () => {
 
     await navigator.serviceWorker.ready;
 
-    const subscription = await registration.pushManager.subscribe({
+    const subscription =
 
-        userVisibleOnly: true,
-
-        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
-
-    });
+        await registration.pushManager.getSubscription() ||
+        await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+        });
 
    document.body.innerHTML += `
    <pre>${JSON.stringify(subscription, null, 2)}</pre>
