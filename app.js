@@ -39,9 +39,6 @@ if (registered === "true") {
 
 }
 
-grade.disabled = true;
-button.disabled = true;
-
 department.addEventListener("change", () => {
 
     if (department.value !== "") {
@@ -71,6 +68,10 @@ grade.addEventListener("change", () => {
 updateState();
 
 function updateState() {
+
+    if (registered === "true") {
+        return;
+    }
 
     const selected =
         department.value !== "" ||
@@ -133,6 +134,13 @@ try {
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
+
+    button.textContent = "登録済み";
+    button.disabled = true;
+
+    department.disabled = true;
+    major.disabled = true;
+    grade.disabled = true;
 
     alert("登録完了！");
 
