@@ -160,54 +160,44 @@ try {
 
 async function loadNews() {
 
-    alert("① loadNews開始");
+    try {
 
-    alert(localStorage.getItem("department"));
-    alert(localStorage.getItem("grade"));
+        alert("① loadNews開始");
 
-    const department = localStorage.getItem("department");
-    const grade = localStorage.getItem("grade");
+        const department = localStorage.getItem("department");
+        const grade = localStorage.getItem("grade");
 
-    alert("② localStorage取得");
+        alert(department);
+        alert(grade);
 
-    if (!department || !grade) {
-        alert("③ return");
-        return;
+        alert("② localStorage取得");
+
+        if (!department || !grade) {
+            alert("③ return");
+            return;
+        }
+
+        let id = "";
+
+        if (department === "看護学科") {
+            id = "NS" + grade.replace("年", "");
+        }
+
+        alert("④ id=" + id);
+
+        const snapshot = await getDoc(doc(db, "notices", id));
+
+        alert("⑤ Firestore取得");
+        alert(snapshot.exists());
+
+    } catch (e) {
+
+        alert("エラー");
+        alert(e.message);
+        console.error(e);
+
     }
 
-    let id = "";
-
-    if (department === "看護学科") {
-        id = "NS" + grade.replace("年", "");
-    }
-
-    alert("④ id=" + id);
-
-    const snapshot = await getDoc(doc(db, "notices", id));
-
-    alert("⑤ Firestore取得");
-    alert(snapshot.exists());
-    alert(id);
-    alert(snapshot.exists());
-
-    if (!snapshot.exists()) {
-        return;
-    }
-
-    const notice = snapshot.data();
-
-    newsList.innerHTML = `
-        <div>
-            <b>${notice.date}</b><br><br>
-
-            ${notice.text.replace(/\n/g, "<br>")}
-            <br><br>
-
-            <a href="${notice.pdf}" target="_blank">
-                PDFを見る
-            </a>
-        </div>
-    `;
 }
 
 function urlBase64ToUint8Array(base64String) {
