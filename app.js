@@ -18,7 +18,62 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 
+const department = document.getElementById("department");
+const major = document.getElementById("major");
+const grade = document.getElementById("grade");
 const button = document.getElementById("subscribe");
+
+grade.disabled = true;
+button.disabled = true;
+
+department.addEventListener("change", () => {
+
+    if (department.value !== "") {
+        major.value = "";
+        major.disabled = true;
+    } else {
+        major.disabled = false;
+    }
+
+      updateState();
+
+});
+
+major.addEventListener("change", () => {
+
+    if (major.value !== "") {
+        department.value = "";
+        department.disabled = true;
+    } else {
+        department.disabled = false;
+    }
+
+    updateState();
+
+});
+
+grade.addEventListener("change", () => {
+
+    updateState();
+
+});
+
+updateState();
+
+function updateState() {
+
+    const selected =
+        department.value !== "" ||
+        major.value !== "";
+
+    grade.disabled = !selected;
+
+    button.disabled =
+        !selected ||
+        grade.value === "";
+
+}
+
 
 button.addEventListener("click", async () => {
 
@@ -41,16 +96,20 @@ button.addEventListener("click", async () => {
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
 
-   const department = prompt("学科を入力してください\n例：看護1年");
+	const selectedDepartment = department.value;
+	const selectedMajor = major.value;
+	const selectedGrade = grade.value;
 
 try {
 
     await setDoc(
         doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
         {
-            department: department,
-            subscription: JSON.parse(JSON.stringify(subscription))
-        }
+    		department: selectedDepartment,
+   		major: selectedMajor,
+   		grade: selectedGrade,
+   		subscription: JSON.parse(JSON.stringify(subscription))
+	}
     );
 
     alert("登録完了！");
