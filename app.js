@@ -13,6 +13,8 @@ button.addEventListener("click", async () => {
 
     const registration = await navigator.serviceWorker.register("sw.js");
 
+    await navigator.serviceWorker.ready;
+
     const subscription = await registration.pushManager.subscribe({
 
         userVisibleOnly: true,
