@@ -198,8 +198,18 @@ async function loadNews() {
 
             const notice = doc.data();
 
+            const posted = notice.postedAt.toDate();
+
+            const postedText =
+                `${posted.getFullYear()}/` +
+                `${posted.getMonth() + 1}/` +
+                `${posted.getDate()} ` +
+                `${String(posted.getHours()).padStart(2, "0")}:` +
+                `${String(posted.getMinutes()).padStart(2, "0")}`;
+
             newsList.innerHTML += `
                 <div style="margin-bottom:20px;">
+                    <b>${postedText}</b>
 
                     ${notice.body.replace(/\n/g, "<br>")}
                     <br><br>
