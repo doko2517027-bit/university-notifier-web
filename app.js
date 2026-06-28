@@ -164,11 +164,12 @@ async function loadNews() {
 
         const department = localStorage.getItem("department");
         const grade = localStorage.getItem("grade");
+        console.log("検索する学年 =", grade.replace("年", ""));
         const major = localStorage.getItem("major");
 
         console.log("department =", department);
         console.log("major =", major);
-        console.log("grade =", grade);
+        console.log("grade =", grade.replace("年", ""));
 
         if (!department || !grade) {
             return;
