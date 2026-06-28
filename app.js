@@ -171,7 +171,7 @@ async function loadNews() {
         console.log("major =", major);
         console.log("grade =", grade.replace("年", ""));
 
-        if (!department || !grade) {
+        if ((!department && !major) || !grade) {
             return;
         }
 
