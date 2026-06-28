@@ -197,7 +197,13 @@ async function loadNews() {
 
         const snapshot = await getDocs(q);
 
-        console.log("件数 =", snapshot.size);
+        if (snapshot.empty) {
+
+            newsList.innerHTML = "まだお知らせはありません";
+
+            return;
+
+        }
 
         newsList.innerHTML = "";
 
