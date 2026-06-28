@@ -200,6 +200,7 @@ async function loadNews() {
 
             newsList.innerHTML += `
                 <div style="margin-bottom:20px;">
+                    <b>${notice.date}</b><br><br>
 
                     ${notice.body.replace(/\n/g, "<br>")}
                     <br><br>
