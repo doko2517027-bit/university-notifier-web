@@ -166,6 +166,10 @@ async function loadNews() {
         const grade = localStorage.getItem("grade");
         const major = localStorage.getItem("major");
 
+        console.log("department =", department);
+        console.log("major =", major);
+        console.log("grade =", grade);
+
         if (!department || !grade) {
             return;
         }
@@ -192,20 +196,32 @@ async function loadNews() {
 
         const snapshot = await getDocs(q);
 
+        console.log("件数 =", snapshot.size);
+
         newsList.innerHTML = "";
 
         snapshot.forEach((doc) => {
 
             const notice = doc.data();
 
-            const posted = notice.postedAt.toDate();
+            let postedText = "";
 
-            const postedText =
-                `${posted.getFullYear()}/` +
-                `${posted.getMonth() + 1}/` +
-                `${posted.getDate()} ` +
-                `${String(posted.getHours()).padStart(2, "0")}:` +
-                `${String(posted.getMinutes()).padStart(2, "0")}`;
+            if (notice.postedAt) {
+
+                const posted = notice.postedAt.toDate();
+
+                postedText =
+                    `${posted.getFullYear()}/` +
+                    `${posted.getMonth() + 1}/` +
+                    `${posted.getDate()} ` +
+                    `${String(posted.getHours()).padStart(2, "0")}:` +
+                    `${String(posted.getMinutes()).padStart(2, "0")}`;
+
+            } else {
+
+                postedText = notice.date;
+
+            }
 
             newsList.innerHTML += `
                 <div style="margin-bottom:20px;">
