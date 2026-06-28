@@ -3,7 +3,10 @@ import {
   getFirestore,
   doc,
   setDoc,
-  getDoc
+  collection,
+  query,
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -161,33 +164,54 @@ async function loadNews() {
 
         const department = localStorage.getItem("department");
         const grade = localStorage.getItem("grade");
+        const major = localStorage.getItem("major");
 
         if (!department || !grade) {
             return;
         }
 
-        let id = "";
+        let q;
 
-        if (department === "看護学科") {
-            id = "NS" + grade.replace("年", "");
+        if (department !== "") {
+
+            q = query(
+                collection(db, "news"),
+                where("department", "==", department),
+                where("grade", "==", grade.replace("年", ""))
+            );
+
+        } else {
+
+            q = query(
+                collection(db, "news"),
+                where("major", "==", major),
+                where("grade", "==", grade.replace("年", ""))
+            );
+
         }
 
-        const snapshot = await getDoc(doc(db, "notices", id));
+        const snapshot = await getDocs(q);
 
-        const notice = snapshot.data();
+        newsList.innerHTML = "";
 
-        newsList.innerHTML = `
-            <div>
-                <b>${notice.date}</b><br><br>
+        snapshot.forEach((doc) => {
 
-                ${notice.text.replace(/\n/g, "<br>")}
-                <br><br>
+            const notice = doc.data();
 
-                <a href="${notice.pdf}" target="_blank">
-                    PDFを見る
-                </a>
-            </div>
-        `;
+            newsList.innerHTML += `
+                <div style="margin-bottom:20px;">
+                    <b>${notice.date}</b><br><br>
+
+                    ${notice.body.replace(/\n/g, "<br>")}
+                    <br><br>
+
+                    <a href="${notice.pdf}" target="_blank">
+                        PDFを見る
+                    </a>
+                </div>
+                <hr>
+            `;
+        });
 
     } catch (e) {
         console.error(e);
