@@ -6,6 +6,7 @@ import {
   collection,
   query,
   where,
+  orderBy,
   getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -177,7 +178,8 @@ async function loadNews() {
             q = query(
                 collection(db, "news"),
                 where("department", "==", department),
-                where("grade", "==", grade.replace("年", ""))
+                where("grade", "==", grade.replace("年", "")),
+                orderBy("date", "desc")
             );
 
         } else {
@@ -185,7 +187,8 @@ async function loadNews() {
             q = query(
                 collection(db, "news"),
                 where("major", "==", major),
-                where("grade", "==", grade.replace("年", ""))
+                where("grade", "==", grade.replace("年", "")),
+                orderBy("date", "desc")
             );
 
         }
@@ -200,7 +203,6 @@ async function loadNews() {
 
             newsList.innerHTML += `
                 <div style="margin-bottom:20px;">
-                    <b>${notice.date}</b><br><br>
 
                     ${notice.body.replace(/\n/g, "<br>")}
                     <br><br>
