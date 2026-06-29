@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
   getFirestore,
   doc,
+  getDoc,
   setDoc,
   collection,
   query,
@@ -257,20 +258,22 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
-    const today = new Date();
+    const scheduleRef = doc(db, "today", "test");
+    const scheduleSnap = await getDoc(scheduleRef);
 
-    const week = ["日", "月", "火", "水", "木", "金", "土"];
+    if (!scheduleSnap.exists()) {
 
-    const todayText =
-        `${today.getFullYear()}年` +
-        `${today.getMonth() + 1}月` +
-        `${today.getDate()}日（${week[today.getDay()]}）`;
+        todaySchedule.innerHTML = "データがありません。";
+        return;
+
+    }
+
+    const data = scheduleSnap.data();
 
     todaySchedule.innerHTML = `
-        <b>${todayText}</b><br><br>
+        <b>${data.date}</b><br><br>
 
-        今日の授業はまだ取得できません。<br>
-        （開発中）
+        ${data.message}
     `;
 
 }
