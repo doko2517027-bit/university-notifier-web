@@ -118,3 +118,23 @@ body.dark h3,
 body.dark p {
     color: white;
 }
+
+body.dark #newsList div {
+    background: #2d2d2d;
+    color: white;
+}
+
+body.dark #newsList a {
+    color: #66b3ff;
+}
+
+body.dark select {
+    background: #2d2d2d;
+    color: white;
+    border: 1px solid #555;
+}
+
+body.dark #themeButton {
+    background: #2d2d2d;
+    color: white;
+}
