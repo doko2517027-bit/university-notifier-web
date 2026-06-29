@@ -296,5 +296,11 @@ const splash = document.getElementById("splash");
 splash.style.display = "flex";
 
 setTimeout(() => {
-    splash.style.display = "none";
+
+    splash.classList.add("hide");
+
+    setTimeout(() => {
+        splash.style.display = "none";
+    }, 500);
+
 }, 1200);
