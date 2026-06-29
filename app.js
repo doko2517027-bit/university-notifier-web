@@ -272,9 +272,9 @@ const themeButton = document.getElementById("themeButton");
 // 前回の設定を読み込む
 if (localStorage.getItem("theme") === "dark") {
     document.body.classList.add("dark");
-    themeButton.textContent = "🌙";
-} else {
     themeButton.textContent = "☀️";
+} else {
+    themeButton.textContent = "🌙";
 }
 
 themeButton.addEventListener("click", () => {
@@ -283,10 +283,10 @@ themeButton.addEventListener("click", () => {
 
     if (document.body.classList.contains("dark")) {
         localStorage.setItem("theme", "dark");
-        themeButton.textContent = "🌙";
+        themeButton.textContent = "☀️";
     } else {
         localStorage.setItem("theme", "light");
-        themeButton.textContent = "☀️";
+        themeButton.textContent = "🌙";
     }
 
 });
