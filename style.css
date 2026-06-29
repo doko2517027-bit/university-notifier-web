@@ -28,7 +28,8 @@ h3 {
     margin-bottom: 8px;
 }
 
-select {
+select,
+button {
     width: 100%;
     padding: 14px;
     font-size: 16px;
@@ -37,11 +38,7 @@ select {
     box-sizing: border-box;
 }
 
-#subscribe {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border-radius: 10px;
+button {
     margin-top: 20px;
     background: #2563eb;
     color: white;
@@ -90,47 +87,5 @@ a {
     margin-top: 5px;
 }
 
-.theme-toggle {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 15px;
-}
 
-#themeButton {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    font-size: 22px;
-    background: white;
-    color: #333;
-    border: 1px solid #ddd;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,.15);
-}
 
-body.dark {
-    background: #181818;
-    color: white;
-}
-
-body.dark h1,
-body.dark h2,
-body.dark h3,
-body.dark p {
-    color: white;
-}
-
-body.dark select {
-    background: #2d2d2d;
-    color: white;
-    border: 1px solid #555;
-}
-
-body.dark #newsList div {
-    background: #2d2d2d;
-}
-
-body.dark #themeButton {
-    background: #2d2d2d;
-    color: white;
-}
