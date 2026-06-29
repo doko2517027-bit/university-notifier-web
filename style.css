@@ -106,3 +106,15 @@ a {
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
+
+body.dark {
+    background: #181818;
+    color: white;
+}
+
+body.dark h1,
+body.dark h2,
+body.dark h3,
+body.dark p {
+    color: white;
+}
