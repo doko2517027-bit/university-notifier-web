@@ -257,8 +257,17 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
+    const today = new Date();
+
+    const week = ["日", "月", "火", "水", "木", "金", "土"];
+
+    const todayText =
+        `${today.getFullYear()}年` +
+        `${today.getMonth() + 1}月` +
+        `${today.getDate()}日（${week[today.getDay()]}）`;
+
     todaySchedule.innerHTML = `
-        <b>2026年6月29日（月）</b><br><br>
+        <b>${todayText}</b><br><br>
 
         今日の授業はまだ取得できません。<br>
         （開発中）
