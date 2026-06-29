@@ -102,28 +102,40 @@ function updateState() {
 
 button.addEventListener("click", async () => {
 
+    console.log("ボタン押された");
+
     const permission = await Notification.requestPermission();
 
-if (permission !== "granted") {
+    console.log(permission);
 
-    alert(
-        "通知が拒否されています。\n\n設定 → 通知 → University Notifier から通知を許可してください。"
-    );
+    if (permission !== "granted") {
 
-    return;
-}
+        alert(
+            "通知が拒否されています。\n\n設定 → 通知 → University Notifier から通知を許可してください。"
+        );
+
+        return;
+    }
+
+    console.log("通知許可OK");
 
     const registration = await navigator.serviceWorker.register("sw.js");
 
+    console.log("service worker登録");
+
     await navigator.serviceWorker.ready;
 
-    const subscription =
+    console.log("ready");
+
+   const subscription =
 
         await registration.pushManager.getSubscription() ||
         await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
+
+    console.log(subscription);
 
 	const selectedDepartment = department.value;
 	const selectedMajor = major.value;
@@ -134,12 +146,14 @@ try {
     await setDoc(
         doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
         {
-    		department: selectedDepartment,
-   		major: selectedMajor,
-   		grade: selectedGrade,
-   		subscription: JSON.parse(JSON.stringify(subscription))
-	}
+            department: selectedDepartment,
+            major: selectedMajor,
+            grade: selectedGrade,
+            subscription: JSON.parse(JSON.stringify(subscription))
+        }
     );
+
+    console.log("Firestore保存成功");
 
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);
@@ -153,8 +167,9 @@ try {
     major.disabled = true;
     grade.disabled = true;
 
-    alert("登録が完了しました。一度アプリを終了してください。");
+    console.log("alert表示");
 
+    alert("登録が完了しました。一度アプリを終了してください。");
 } catch (e) {
 
     console.error(e);
