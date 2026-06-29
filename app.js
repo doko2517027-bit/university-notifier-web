@@ -191,6 +191,15 @@ async function loadNews() {
         }
 
         const snapshot = await getDocs(q);
+        const notices = [];
+
+        snapshot.forEach((doc) => {
+            notices.push(doc.data());
+        });
+
+        notices.sort((a, b) => {
+            return b.postedAt.seconds - a.postedAt.seconds;
+        });
 
         if (snapshot.empty) {
 
@@ -202,10 +211,7 @@ async function loadNews() {
 
         newsList.innerHTML = "";
 
-        snapshot.forEach((doc) => {
-
-            const notice = doc.data();
-
+        notices.forEach((notice) => {
             let postedText = "";
 
             if (notice.postedAt) {
