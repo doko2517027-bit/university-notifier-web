@@ -222,3 +222,47 @@ body.dark #splash h1 {
 body.dark #version {
     color: #888;
 }
+
+.schedule-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    font-size:17px;
+}
+
+.schedule-table th{
+    background:#2563eb;
+    color:white;
+    padding:12px;
+    text-align:center;
+}
+
+.schedule-table td{
+    padding:14px;
+    border-bottom:1px solid #ddd;
+    vertical-align:middle;
+}
+
+.schedule-table tr:nth-child(even){
+    background:#f8f8f8;
+}
+
+.schedule-table tr:hover{
+    background:#eef5ff;
+}
+
+body.dark .schedule-table th{
+    background:#3b82f6;
+}
+
+body.dark .schedule-table td{
+    border-bottom:1px solid #444;
+}
+
+body.dark .schedule-table tr:nth-child(even){
+    background:#242424;
+}
+
+body.dark .schedule-table tr:hover{
+    background:#333;
+}

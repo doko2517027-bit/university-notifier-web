@@ -331,46 +331,40 @@ async function loadTodaySchedule() {
 
     }
 
-    let html = "";
+    let html = `
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th>時限</th>
+                <th>科目名</th>
+                <th>区分</th>
+                <th>建物</th>
+                <th>講義室</th>
+                <th>教員名</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
 
     result.forEach(item => {
 
         html += `
-        <div class="schedule-card">
-
-            <div class="period">
-                ${item.period}
-            </div>
-
-            <div class="schedule-row">
-                <span class="label">区分</span>
-                <span>${item.kubun}</span>
-            </div>
-
-            <div class="schedule-row">
-                <span class="label">科目名</span>
-                <span>${item.subject}</span>
-            </div>
-
-            <div class="schedule-row">
-                <span class="label">建物</span>
-                <span>${item.building}</span>
-            </div>
-
-            <div class="schedule-row">
-                <span class="label">講義室</span>
-                <span>${item.room}</span>
-            </div>
-
-            <div class="schedule-row">
-                <span class="label">教員名</span>
-                <span>${item.teacher}</span>
-            </div>
-
-        </div>
+        <tr>
+            <td>${item.period}</td>
+            <td>${item.subject}</td>
+            <td>${item.kubun}</td>
+            <td>${item.building}</td>
+            <td>${item.room}</td>
+            <td>${item.teacher}</td>
+        </tr>
         `;
 
     });
+
+    html += `
+        </tbody>
+    </table>
+    `;
 
     todaySchedule.innerHTML = html;
 
