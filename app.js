@@ -10,6 +10,8 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+console.log("app.js読み込み成功");
+
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -256,39 +258,94 @@ async function loadNews() {
     }
 }
 
+console.log("loadTodayScheduleを呼びます");
+
 async function loadTodaySchedule() {
 
-    const scheduleRef = doc(db, "today", "ns_yamate");
-    const scheduleSnap = await getDoc(scheduleRef);
+    console.log("loadTodaySchedule開始");
 
-    if (!scheduleSnap.exists()) {
+    const department = localStorage.getItem("department");
+    const major = localStorage.getItem("major");
+    const grade = localStorage.getItem("grade");
 
-        todaySchedule.innerHTML = "データがありません。";
+    if ((!department && !major) || !grade) {
+
+        todaySchedule.innerHTML = "学科・学年を登録してください。";
         return;
 
     }
 
-    const data = scheduleSnap.data();
+    let docId = "";
 
-    todaySchedule.innerHTML = `
-        <b>${data.date}</b><br><br>
+    if (department === "看護学科") {
+        docId = "ns_yamate";
+    }
+    else if (major === "理学療法学専攻") {
+        docId = "pt";
+    }
+    else if (major === "作業療法学専攻") {
+        docId = "ot";
+    }
 
-        ${data.message}
-    `;
+    const ref = doc(db, "schedule", docId);
 
-}
+    const snap = await getDoc(ref);
 
-function urlBase64ToUint8Array(base64String) {
+    if (!snap.exists()) {
 
-    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+        todaySchedule.innerHTML = "時間割がありません。";
+        return;
 
-    const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
+    }
 
-    const rawData = atob(base64);
+    const schedules = snap.data().data;
 
-    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+    const week = ["日","月","火","水","木","金","土"];
+
+    const today = new Date();
+
+    const todayDay = week[today.getDay()];
+
+    const result = schedules.filter(item =>
+
+        item.grade === grade &&
+        item.day === todayDay
+
+    );
+
+    console.log(grade);
+    console.log(todayDay);
+    console.log(schedules);
+    console.log(result);
+
+    result.sort((a,b)=>{
+
+        return parseInt(a.period) - parseInt(b.period);
+
+    });
+
+    if(result.length===0){
+
+        todaySchedule.innerHTML="今日は授業がありません。";
+        return;
+
+    }
+
+    let html = "";
+
+    result.forEach(item=>{
+
+        html += `
+        <div style="margin-bottom:20px">
+            <b>${item.period}</b><br>
+            ${item.subject}<br>
+            ${item.room}
+        </div>
+        `;
+
+    });
+
+    todaySchedule.innerHTML = html;
 
 }
 
