@@ -271,7 +271,7 @@ async function loadTodaySchedule() {
     if ((!department && !major) || !grade) {
 
         todaySchedule.innerHTML = "学科・学年を登録してください。";
-        return;
+        console.log("学科・学年を登録してください。");
 
     }
 
