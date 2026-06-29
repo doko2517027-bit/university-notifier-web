@@ -294,3 +294,7 @@ themeButton.addEventListener("click", () => {
 const splash = document.getElementById("splash");
 
 splash.style.display = "flex";
+
+setTimeout(() => {
+    splash.style.display = "none";
+}, 1200);
