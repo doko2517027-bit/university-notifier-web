@@ -27,6 +27,7 @@ const major = document.getElementById("major");
 const grade = document.getElementById("grade");
 const button = document.getElementById("subscribe");
 const newsList = document.getElementById("newsList");
+const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
 
 if (registered === "true") {
@@ -72,6 +73,7 @@ grade.addEventListener("change", () => {
 
 updateState();
 loadNews();
+loadTodaySchedule();
 
 function updateState() {
 
@@ -251,6 +253,17 @@ async function loadNews() {
         alert(e);
 
     }
+}
+
+async function loadTodaySchedule() {
+
+    todaySchedule.innerHTML = `
+        <b>2026年6月29日（月）</b><br><br>
+
+        今日の授業はまだ取得できません。<br>
+        （開発中）
+    `;
+
 }
 
 function urlBase64ToUint8Array(base64String) {
