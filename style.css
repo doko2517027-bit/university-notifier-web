@@ -184,3 +184,12 @@ p {
 #splash.hide {
     opacity: 0;
 }
+
+body.dark #splash {
+    background: #181818;
+    color: white;
+}
+
+body.dark #splash h1 {
+    color: white;
+}
