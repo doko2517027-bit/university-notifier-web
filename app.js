@@ -437,3 +437,12 @@ function urlBase64ToUint8Array(base64String) {
         [...rawData].map(c => c.charCodeAt(0))
     );
 }
+
+const settingButton =
+document.getElementById("settingButton");
+
+settingButton.addEventListener("click",()=>{
+
+    location.href="settings.html";
+
+});
