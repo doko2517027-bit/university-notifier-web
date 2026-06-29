@@ -5,6 +5,10 @@ body {
     max-width: 700px;
     margin: 0 auto;
     padding: 20px;
+
+    transition:
+        background-color 0.35s ease,
+        color 0.35s ease;
 }
 
 h1 {
@@ -137,4 +141,21 @@ body.dark select {
 body.dark #themeButton {
     background: #2d2d2d;
     color: white;
+}
+
+#newsList div,
+select,
+#subscribe,
+#themeButton,
+a,
+hr,
+h1,
+h2,
+h3,
+p {
+    transition:
+        background-color 0.35s ease,
+        color 0.35s ease,
+        border-color 0.35s ease,
+        box-shadow 0.35s ease;
 }
