@@ -333,13 +333,40 @@ async function loadTodaySchedule() {
 
     let html = "";
 
-    result.forEach(item=>{
+    result.forEach(item => {
 
         html += `
-        <div style="margin-bottom:20px">
-            <b>${item.period}</b><br>
-            ${item.subject}<br>
-            ${item.room}
+        <div class="schedule-card">
+
+            <div class="period">
+                ${item.period}
+            </div>
+
+            <div class="schedule-row">
+                <span class="label">区分</span>
+                <span>${item.kubun}</span>
+            </div>
+
+            <div class="schedule-row">
+                <span class="label">科目名</span>
+                <span>${item.subject}</span>
+            </div>
+
+            <div class="schedule-row">
+                <span class="label">建物</span>
+                <span>${item.building}</span>
+            </div>
+
+            <div class="schedule-row">
+                <span class="label">講義室</span>
+                <span>${item.room}</span>
+            </div>
+
+            <div class="schedule-row">
+                <span class="label">教員名</span>
+                <span>${item.teacher}</span>
+            </div>
+
         </div>
         `;
 
