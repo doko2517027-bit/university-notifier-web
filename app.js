@@ -266,3 +266,11 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 
 }
+
+const themeButton = document.getElementById("themeButton");
+
+themeButton.addEventListener("click", () => {
+
+    document.body.classList.toggle("dark");
+
+});
