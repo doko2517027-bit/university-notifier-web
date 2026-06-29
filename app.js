@@ -269,6 +269,19 @@ function urlBase64ToUint8Array(base64String) {
 
 const themeButton = document.getElementById("themeButton");
 
+// 前回の設定を読み込む
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark");
+}
+
 themeButton.addEventListener("click", () => {
+
     document.body.classList.toggle("dark");
+
+    if (document.body.classList.contains("dark")) {
+        localStorage.setItem("theme", "dark");
+    } else {
+        localStorage.setItem("theme", "light");
+    }
+
 });
