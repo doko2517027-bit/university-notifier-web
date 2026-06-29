@@ -258,7 +258,7 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
-    const scheduleRef = doc(db, "today", "test");
+    const scheduleRef = doc(db, "today", "ns_yamate");
     const scheduleSnap = await getDoc(scheduleRef);
 
     if (!scheduleSnap.exists()) {
