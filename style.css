@@ -1,0 +1,73 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    background: #f5f7fb;
+    color: #222;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #2563eb;
+    margin-bottom: 10px;
+}
+
+p {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+h2 {
+    margin-top: 40px;
+}
+
+h3 {
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+
+select,
+button {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+button {
+    margin-top: 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:disabled {
+    background: #b5b5b5;
+    cursor: not-allowed;
+}
+
+hr {
+    margin: 40px 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+#newsList div {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    margin-bottom: 20px;
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: bold;
+}
