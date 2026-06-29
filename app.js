@@ -290,3 +290,7 @@ themeButton.addEventListener("click", () => {
     }
 
 });
+
+const splash = document.getElementById("splash");
+
+splash.style.display = "flex";
