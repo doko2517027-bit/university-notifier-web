@@ -31,20 +31,18 @@ document
 .getElementById("register")
 .addEventListener("click", async () => {
 
-    alert("押された");
-
     const value = studentNumber.value.trim();
 
         if (value === "") {
 
-        alert("学生番号を入力してください。");
+        alert("学籍番号を入力してください。");
         return;
 
     }
 
     if (!/^\d{7}$/.test(value)) {
 
-        alert("学生番号は7桁の数字で入力してください。");
+        alert("学籍番号は7桁の数字で入力してください。");
         return;
 
     }
@@ -58,7 +56,7 @@ document
         year !== "26"
     ) {
 
-        alert("学生番号が正しくありません。");
+        alert("学籍番号が正しくありません。");
         return;
 
     }
@@ -69,7 +67,7 @@ document
         department !== "30"
     ) {
 
-        alert("学生番号が正しくありません。");
+        alert("学籍番号が正しくありません。");
         return;
 
     }
@@ -79,7 +77,7 @@ document
         (number < 1 || number > 200)
     ) {
 
-        alert("学生番号が正しくありません。");
+        alert("学籍番号が正しくありません。");
         return;
 
     }
@@ -89,7 +87,7 @@ document
         (number < 1 || number > 60)
     ) {
 
-        alert("学生番号が正しくありません。");
+        alert("学籍番号が正しくありません。");
         return;
 
     }
@@ -99,7 +97,7 @@ document
         (number < 1 || number > 60)
     ) {
 
-        alert("学生番号が正しくありません。");
+        alert("学籍番号が正しくありません。");
         return;
 
     }
