@@ -111,6 +111,8 @@ document
     const subscription =
         await registration.pushManager.getSubscription();
 
+        console.log(subscription.endpoint);
+
     if (!subscription) {
 
         alert("通知情報が取得できません。");
@@ -121,6 +123,10 @@ document
 
     const encryptedPassword =
         await encrypt(manabaPassword.value);
+
+        console.log(
+            subscription.endpoint.replace(/\//g, "_")
+        );
 
     await setDoc(
         doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
