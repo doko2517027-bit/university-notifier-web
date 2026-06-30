@@ -28,6 +28,12 @@ const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
 const studentNumber = localStorage.getItem("studentNumber");
 
+if (!registered) {
+
+    location.href = "register.html";
+
+}
+
 if (
     registered === "true" &&
     !studentNumber
