@@ -27,19 +27,23 @@ const newsList = document.getElementById("newsList");
 const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
 const studentNumber = localStorage.getItem("studentNumber");
+const manabaId = localStorage.getItem("manabaId");
+
+if (
+
+    registered === "true" &&
+
+    (!studentNumber || !manabaId)
+
+) {
+
+    location.href = "student-update.html";
+
+}
 
 if (!registered) {
 
     location.href = "register.html";
-
-}
-
-if (
-    registered === "true" &&
-    !studentNumber
-) {
-
-    location.href = "student-update.html";
 
 }
 
