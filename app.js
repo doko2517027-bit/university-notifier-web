@@ -336,11 +336,46 @@ async function loadTodaySchedule() {
 
                 e.preventDefault();
 
-                const subject =
+                let subject =
                     e.target.dataset.subject;
 
-                const courseId =
+                subject = subject
+                    .replace(/[（(].*?[）)]/g, "")
+                    .trim();
+
+                let courseId =
                     courseLinks[subject];
+
+                if (!courseId) {
+
+                    for (const key in courseLinks) {
+
+                        if (
+                            subject.includes(key) ||
+                            key.includes(subject)
+                        ) {
+
+                            courseId = courseLinks[key];
+                            break;
+
+                        }
+
+                    }
+
+                }
+
+                if (!courseId) {
+
+                    alert("この授業はまだ対応していません");
+
+                    return;
+
+                }
+
+                window.open(
+                    "https://sums.manaba.jp/ct/" + courseId,
+                    "_blank"
+                );
 
                 if(!courseId){
 
