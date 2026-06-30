@@ -309,3 +309,45 @@ body.dark .setting-card{
     background:#2d2d2d;
 
 }
+
+.primary-button{
+
+    width:100%;
+
+    padding:14px;
+
+    font-size:16px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#2563eb;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+}
+
+body.dark .primary-button{
+
+    background:#3b82f6;
+
+}
+
+#versionText{
+
+    text-align:center;
+    color:#999;
+    margin:0;
+
+}
+
+body.dark #versionText{
+
+    color:#888;
+
+}
