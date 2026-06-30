@@ -228,6 +228,8 @@ button.addEventListener("click", async () => {
     const selectedDepartment = department.value;
     const selectedMajor = major.value;
     const selectedGrade = grade.value;
+    const encryptedPassword =
+        await encrypt(manabaPassword.value);
 
 try {
 
@@ -239,7 +241,7 @@ try {
             major: selectedMajor,
             grade: selectedGrade,
             manabaId: manabaId.value,
-            manabaPasswordEncrypted: manabaPassword.value,
+            manabaPasswordEncrypted: encryptedPassword,
             subscription: JSON.parse(JSON.stringify(subscription))
         }
     );
@@ -280,4 +282,39 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from(
         [...rawData].map(c => c.charCodeAt(0))
     );
+}
+
+const SECRET = "UniversityNotifier2026";
+
+async function encrypt(text) {
+
+    const encoder = new TextEncoder();
+
+    const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(SECRET.padEnd(32, "0")),
+        "AES-GCM",
+        false,
+        ["encrypt"]
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv
+        },
+        key,
+        encoder.encode(text)
+    );
+
+    const result = new Uint8Array(iv.length + encrypted.byteLength);
+
+    result.set(iv);
+
+    result.set(new Uint8Array(encrypted), iv.length);
+
+    return btoa(String.fromCharCode(...result));
+
 }
