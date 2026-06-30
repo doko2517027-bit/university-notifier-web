@@ -289,3 +289,23 @@ body.dark .schedule-table tr:hover{
     font-size:22px;
 
 }
+
+.setting-card{
+
+    background:white;
+
+    border-radius:12px;
+
+    padding:18px;
+
+    margin-bottom:20px;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+
+}
+
+body.dark .setting-card{
+
+    background:#2d2d2d;
+
+}
