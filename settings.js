@@ -10,6 +10,9 @@ document.getElementById("majorText").textContent =
 document.getElementById("gradeText").textContent =
     localStorage.getItem("grade") || "未登録";
 
+document.getElementById("studentNumberText").textContent =
+    localStorage.getItem("studentNumber") || "未登録";
+
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
 
