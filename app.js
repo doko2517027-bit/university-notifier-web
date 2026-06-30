@@ -193,6 +193,23 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
+    const courseRef = doc(
+        db,
+        "courseLinks",
+        studentNumber
+    );
+
+    const courseSnap = await getDoc(courseRef);
+
+    let courseLinks = {};
+
+    if (courseSnap.exists()) {
+
+        courseLinks =
+            courseSnap.data().courses;
+
+    }
+
     const department = localStorage.getItem("department");
     const major = localStorage.getItem("major");
     const grade = localStorage.getItem("grade");
@@ -280,7 +297,19 @@ async function loadTodaySchedule() {
         html += `
         <tr>
             <td>${item.period}</td>
-            <td>${item.subject}</td>
+            <td>
+
+<a
+    href="#"
+    class="course-link"
+    data-subject="${item.subject}"
+>
+
+${item.subject}
+
+</a>
+
+</td>
             <td>${item.kubun}</td>
             <td>${item.building}</td>
             <td>${item.room}</td>
