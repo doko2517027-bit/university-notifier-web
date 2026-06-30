@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>初回登録 | University Notifier</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<header class="header">
+
+    <div class="logo">🎓</div>
+
+    <h1>University Notifier</h1>
+
+    <p>初回登録</p>
+
+</header>
+
+<div class="setting-card">
+
+    <h3>学科</h3>
+
+    <select id="department">
+        <option value="">選択してください</option>
+        <option>看護学科</option>
+    </select>
+
+    <h3>専攻</h3>
+
+    <select id="major">
+        <option value="">選択してください</option>
+        <option>理学療法学専攻</option>
+        <option>作業療法学専攻</option>
+    </select>
+
+    <h3>学年</h3>
+
+    <select id="grade" disabled>
+        <option value="">選択してください</option>
+        <option>1年</option>
+        <option>2年</option>
+        <option>3年</option>
+        <option>4年</option>
+    </select>
+
+    <h3>学籍番号</h3>
+
+    <input
+        id="studentNumber"
+        type="text"
+        maxlength="7"
+        placeholder="例：2510044">
+
+    <h3>manaba ID</h3>
+
+    <input
+        id="manabaId"
+        type="text"
+        placeholder="manabaのログインID">
+
+    <h3>manaba パスワード</h3>
+
+    <input
+        id="manabaPassword"
+        type="password"
+        placeholder="manabaのパスワード">
+
+    <button id="subscribe" class="primary-button">
+        通知を許可
+    </button>
+
+</div>
+
+<footer id="version">
+
+    Version 3.0.0
+
+</footer>
+
+<script type="module" src="register.js"></script>
+
+</body>
+
+</html>
