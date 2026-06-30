@@ -32,6 +32,16 @@ const newsList = document.getElementById("newsList");
 const todaySchedule = document.getElementById("todaySchedule");
 const registerArea = document.getElementById("registerArea");
 const registered = localStorage.getItem("registered");
+const studentNumber = localStorage.getItem("studentNumber");
+
+if (
+    registered === "true" &&
+    !studentNumber
+) {
+
+    location.href = "student-update.html";
+
+}
 
 if (registered === "true") {
 
