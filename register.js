@@ -193,6 +193,38 @@ button.addEventListener("click", async () => {
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
 
+        // 学科・専攻と学生番号の照合
+
+        if (
+            department.value === "看護学科" &&
+            value.substring(2, 4) !== "10"
+        ) {
+
+            alert("学生番号と学科が一致していません。");
+            return;
+
+        }
+
+        if (
+            major.value === "理学療法学専攻" &&
+            value.substring(2, 4) !== "20"
+        ) {
+
+            alert("学生番号と専攻が一致していません。");
+            return;
+
+        }
+
+        if (
+            major.value === "作業療法学専攻" &&
+            value.substring(2, 4) !== "30"
+        ) {
+
+            alert("学生番号と専攻が一致していません。");
+            return;
+
+        }
+
     const selectedDepartment = department.value;
     const selectedMajor = major.value;
     const selectedGrade = grade.value;
