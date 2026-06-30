@@ -226,7 +226,11 @@ button.addEventListener("click", async () => {
 try {
 
     await setDoc(
-        doc(db, "users", studentNumber.value),
+        doc(
+            db,
+            "users",
+            subscription.endpoint.replace(/\//g, "_")
+        ),
         {
             studentNumber: studentNumber.value,
             department: selectedDepartment,
