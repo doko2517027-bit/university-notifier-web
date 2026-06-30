@@ -31,6 +31,7 @@ const grade = document.getElementById("grade");
 const button = document.getElementById("subscribe");
 const newsList = document.getElementById("newsList");
 const todaySchedule = document.getElementById("todaySchedule");
+const registerArea = document.getElementById("registerArea");
 const registered = localStorage.getItem("registered");
 
 if (registered === "true") {
@@ -45,6 +46,7 @@ if (registered === "true") {
 
     button.textContent = "登録済み";
     button.disabled = true;
+    registerArea.style.display = "none";
 
 }
 
