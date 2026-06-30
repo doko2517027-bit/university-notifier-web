@@ -326,6 +326,40 @@ ${item.subject}
 
     todaySchedule.innerHTML = html;
 
+    document
+    .querySelectorAll(".course-link")
+    .forEach(link => {
+
+        link.addEventListener(
+            "click",
+            (e)=>{
+
+                e.preventDefault();
+
+                const subject =
+                    e.target.dataset.subject;
+
+                const courseId =
+                    courseLinks[subject];
+
+                if(!courseId){
+
+                    alert("この授業はまだ対応していません");
+
+                    return;
+
+                }
+
+                window.open(
+                    "https://sums.manaba.jp/ct/" + courseId,
+                    "_blank"
+                );
+
+            }
+        );
+
+    });
+
 }
 
 const themeButton = document.getElementById("themeButton");
