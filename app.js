@@ -233,6 +233,11 @@ async function loadTodaySchedule() {
 
     const today = new Date();
 
+    // 18時以降は翌日の時間割を表示
+    if (today.getHours() >= 18) {
+        today.setDate(today.getDate() + 1);
+    }
+
     const todayDay = week[today.getDay()];
 
     const result = schedules.filter(item =>
