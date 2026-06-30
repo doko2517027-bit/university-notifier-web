@@ -45,8 +45,59 @@ if (!registered) {
 
 }
 
-loadNews();
-loadTodaySchedule();
+async function checkMaintenance() {
+
+    const ref = doc(db, "system", "app");
+
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        return;
+    }
+
+    const system = snap.data();
+
+    if (!system.maintenance) {
+        return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+
+    const subscription =
+        await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+        location.href = "maintenance.html";
+        return;
+    }
+
+    const userRef = doc(
+        db,
+        "users",
+        subscription.endpoint.replace(/\//g, "_")
+    );
+
+    const userSnap = await getDoc(userRef);
+
+    if (
+        userSnap.exists() &&
+        userSnap.data().role === "developer"
+    ) {
+
+        return;
+
+    }
+
+    location.href = "maintenance.html";
+
+}
+
+checkMaintenance().then(() => {
+
+    loadNews();
+    loadTodaySchedule();
+
+});
 
 async function loadNews() {
 
