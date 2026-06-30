@@ -160,6 +160,7 @@ body.dark #settingButton {
 
 #newsList div,
 select,
+input,
 #subscribe,
 #themeButton,
 #settingButton,
@@ -384,36 +385,3 @@ body.dark .danger-button{
 
 }
 
-#updateArea{
-
-    background:white;
-
-    border-radius:12px;
-
-    padding:22px;
-
-    margin-bottom:30px;
-
-    box-shadow:0 2px 8px rgba(0,0,0,.08);
-
-}
-
-#updateArea h2{
-
-    margin-top:0;
-
-    text-align:center;
-
-}
-
-#updateArea p{
-
-    margin-bottom:24px;
-
-}
-
-body.dark #updateArea{
-
-    background:#2d2d2d;
-
-}
