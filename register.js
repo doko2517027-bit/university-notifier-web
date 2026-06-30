@@ -25,37 +25,19 @@ const PUBLIC_KEY =
 const department = document.getElementById("department");
 const major = document.getElementById("major");
 const grade = document.getElementById("grade");
+const studentNumber = document.getElementById("studentNumber");
+const manabaId = document.getElementById("manabaId");
+const manabaPassword = document.getElementById("manabaPassword");
 const button = document.getElementById("subscribe");
-const newsList = document.getElementById("newsList");
-const todaySchedule = document.getElementById("todaySchedule");
-const registerArea = document.getElementById("registerArea");
 const registered = localStorage.getItem("registered");
-const studentNumber = localStorage.getItem("studentNumber");
-
-if (
-    registered === "true" &&
-    !studentNumber
-) {
-
-    location.href = "student-update.html";
-
-}
 
 if (registered === "true") {
 
-    department.value = localStorage.getItem("department");
-    major.value = localStorage.getItem("major");
-    grade.value = localStorage.getItem("grade");
-
-    department.disabled = true;
-    major.disabled = true;
-    grade.disabled = true;
-
-    button.textContent = "登録済み";
-    button.disabled = true;
-    registerArea.style.display = "none";
+    location.href = "index.html";
 
 }
+
+
 
 department.addEventListener("change", () => {
 
@@ -89,9 +71,20 @@ studentNumber.addEventListener("input", () => {
 
 });
 
+manabaId.addEventListener("input", () => {
+
+    updateState();
+
+});
+
+manabaPassword.addEventListener("input", () => {
+
+    updateState();
+
+});
+
 updateState();
-loadNews();
-loadTodaySchedule();
+
 
 function updateState() {
 
@@ -112,11 +105,70 @@ function updateState() {
     button.disabled =
         !selected ||
         grade.value === "" ||
-        studentNumber.value === "";
+        studentNumber.value.trim() === "" ||
+        manabaId.value.trim() === "" ||
+        manabaPassword.value.trim() === "";
 
 }
 
 button.addEventListener("click", async () => {
+
+        const value = studentNumber.value.trim();
+
+        if (!/^\d{7}$/.test(value)) {
+
+            alert("学生番号は7桁の数字で入力してください。");
+            return;
+
+        }
+
+        const year = value.substring(0, 2);
+        const departmentCode = value.substring(2, 4);
+        const number = parseInt(value.substring(4));
+
+        if (
+            year !== "25" &&
+            year !== "26"
+        ) {
+
+            alert("学生番号が正しくありません。");
+            return;
+
+        }
+
+        if (
+            departmentCode !== "10" &&
+            departmentCode !== "20" &&
+            departmentCode !== "30"
+        ) {
+
+            alert("学生番号が正しくありません。");
+            return;
+
+        }
+
+        if (
+            departmentCode === "10" &&
+            (number < 1 || number > 200)
+        ) {
+
+            alert("学生番号が正しくありません。");
+            return;
+
+        }
+
+        if (
+            (
+                departmentCode === "20" ||
+                departmentCode === "30"
+            ) &&
+            (number < 1 || number > 60)
+        ) {
+
+            alert("学生番号が正しくありません。");
+            return;
+
+        }
 
     const permission = await Notification.requestPermission();
 
@@ -148,11 +200,14 @@ button.addEventListener("click", async () => {
 try {
 
     await setDoc(
-        doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
+        doc(db, "users", studentNumber.value),
         {
+            studentNumber: studentNumber.value,
             department: selectedDepartment,
             major: selectedMajor,
             grade: selectedGrade,
+            manabaId: manabaId.value,
+            manabaPasswordEncrypted: manabaPassword.value,
             subscription: JSON.parse(JSON.stringify(subscription))
         }
     );
@@ -161,6 +216,8 @@ try {
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
+    localStorage.setItem("studentNumber", studentNumber.value);
+    localStorage.setItem("manabaId", manabaId.value);
 
     button.textContent = "登録済み";
     button.disabled = true;
@@ -169,10 +226,26 @@ try {
     major.disabled = true;
     grade.disabled = true;
 
-    alert("登録が完了しました。一度アプリを終了してください。");
-} catch (e) {
+    alert("登録が完了しました。");
+    location.href = "index.html";
+    } catch (e) {
 
     alert(e);
 
 }
 });
+
+function urlBase64ToUint8Array(base64String) {
+
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const rawData = atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(c => c.charCodeAt(0))
+    );
+}
