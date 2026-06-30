@@ -1,4 +1,4 @@
-console.log("settings.js 読み込み成功");
+
 const VERSION = "3.0.0";
 
 document.getElementById("departmentText").textContent =
@@ -25,8 +25,6 @@ document
 // ダークモード
 const themeButton = document.getElementById("themeButton");
 
-console.log(themeButton);
-
 // 前回の設定を反映
 if (localStorage.getItem("theme") === "dark") {
 
@@ -41,8 +39,6 @@ if (localStorage.getItem("theme") === "dark") {
 
 // ボタンを押した時
 themeButton.addEventListener("click", () => {
-
-    console.log("themeボタン押された");
 
     document.body.classList.toggle("dark");
 

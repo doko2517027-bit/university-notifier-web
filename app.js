@@ -10,8 +10,6 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-console.log("app.js読み込み成功");
-
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -104,11 +102,7 @@ function updateState() {
 
 button.addEventListener("click", async () => {
 
-    console.log("ボタン押された");
-
     const permission = await Notification.requestPermission();
-
-    console.log(permission);
 
     if (permission !== "granted") {
 
@@ -119,15 +113,9 @@ button.addEventListener("click", async () => {
         return;
     }
 
-    console.log("通知許可OK");
-
     const registration = await navigator.serviceWorker.register("sw.js");
 
-    console.log("service worker登録");
-
     await navigator.serviceWorker.ready;
-
-    console.log("ready");
 
    const subscription =
 
@@ -136,8 +124,6 @@ button.addEventListener("click", async () => {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
-
-    console.log(subscription);
 
 	const selectedDepartment = department.value;
 	const selectedMajor = major.value;
@@ -155,8 +141,6 @@ try {
         }
     );
 
-    console.log("Firestore保存成功");
-
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
@@ -169,12 +153,9 @@ try {
     major.disabled = true;
     grade.disabled = true;
 
-    console.log("alert表示");
-
     alert("登録が完了しました。一度アプリを終了してください。");
 } catch (e) {
 
-    console.error(e);
     alert(e);
 
 }
@@ -269,17 +250,13 @@ async function loadNews() {
         });
 
     } catch (e) {
-        console.error("エラー:", e);
+
         alert(e);
 
     }
 }
 
-console.log("loadTodayScheduleを呼びます");
-
 async function loadTodaySchedule() {
-
-    console.log("loadTodaySchedule開始");
 
     const department = localStorage.getItem("department");
     const major = localStorage.getItem("major");
@@ -329,11 +306,6 @@ async function loadTodaySchedule() {
         item.day === todayDay
 
     );
-
-    console.log(grade);
-    console.log(todayDay);
-    console.log(schedules);
-    console.log(result);
 
     result.sort((a,b)=>{
 
