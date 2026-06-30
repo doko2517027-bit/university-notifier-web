@@ -299,17 +299,17 @@ async function loadTodaySchedule() {
             <td>${item.period}</td>
             <td>
 
-<a
-    href="#"
-    class="course-link"
-    data-subject="${item.subject}"
->
+            <a
+                href="#"
+                class="course-link"
+                data-subject="${item.subject}"
+            >
 
-${item.subject}
+            ${item.subject}
 
-</a>
+            </a>
 
-</td>
+            </td>
             <td>${item.kubun}</td>
             <td>${item.building}</td>
             <td>${item.room}</td>
