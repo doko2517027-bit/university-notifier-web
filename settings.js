@@ -12,12 +12,16 @@ document.getElementById("gradeText").textContent =
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
 
+// 戻るボタン
 document
-.getElementById("back")
-.addEventListener("click",()=>{
+    .getElementById("back")
+    .addEventListener("click", () => {
 
-    history.back();
+        history.back();
 
+    });
+
+// ダークモード
 const themeButton = document.getElementById("themeButton");
 
 // 前回の設定を反映
@@ -48,7 +52,5 @@ themeButton.addEventListener("click", () => {
         themeButton.textContent = "🌙";
 
     }
-
-});
 
 });
