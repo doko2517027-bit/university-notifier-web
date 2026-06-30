@@ -1,3 +1,4 @@
+console.log("settings.js 読み込み成功");
 const VERSION = "3.0.0";
 
 document.getElementById("departmentText").textContent =
