@@ -309,6 +309,7 @@ if (localStorage.getItem("theme") === "dark") {
     themeButton.textContent = "🌙";
 }
 
+//ボタンを押した時
 themeButton.addEventListener("click", () => {
 
     document.body.classList.toggle("dark");
