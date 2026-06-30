@@ -353,3 +353,31 @@ body.dark #versionText{
     color:#888;
 
 }
+
+.danger-button{
+
+    width:100%;
+
+    padding:14px;
+
+    font-size:16px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#ef4444;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+}
+
+body.dark .danger-button{
+
+    background:#dc2626;
+
+}
