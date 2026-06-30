@@ -36,7 +36,22 @@
     <p>大学時間割変更通知アプリ</p>
 </header>
 
-<div id="registerArea">
+<div id="updateArea">
+
+    <h2>アップデートが必要です。</h2>
+
+    <p>
+        学生番号を登録してください。<br>
+        約30秒で完了します。
+    </p>
+
+    <button id="startUpdate" class="primary-button">
+        登録する
+    </button>
+
+</div>
+
+<div id="registerArea" style="display:none;">
 
 <h3>学科</h3>
 
@@ -62,6 +77,14 @@
   <option>3年</option>
   <option>4年</option>
 </select>
+
+<h3>学籍番号</h3>
+
+<input
+    id="studentNumber"
+    type="text"
+    maxlength="7"
+    placeholder="例：2510044">
 
 <button id="subscribe">
   通知を許可

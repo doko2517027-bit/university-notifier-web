@@ -19,6 +19,7 @@ const firebaseConfig = {
   appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
 };
 
+const studentNumber = document.getElementById("studentNumber");
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
@@ -74,6 +75,12 @@ grade.addEventListener("change", () => {
 
 });
 
+studentNumber.addEventListener("input", () => {
+
+    updateState();
+
+});
+
 updateState();
 loadNews();
 loadTodaySchedule();
@@ -96,7 +103,8 @@ function updateState() {
 
     button.disabled =
         !selected ||
-        grade.value === "";
+        grade.value === "" ||
+        studentNumber.value === "";
 
 }
 
