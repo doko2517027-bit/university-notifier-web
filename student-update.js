@@ -31,6 +31,8 @@ document
 .getElementById("register")
 .addEventListener("click", async () => {
 
+    alert("押された");
+
     const value = studentNumber.value.trim();
 
         if (value === "") {
