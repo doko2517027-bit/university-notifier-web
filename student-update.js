@@ -102,10 +102,23 @@ document
 
     }
 
-    localStorage.setItem(
-        "studentNumber",
-        value
+    const encryptedPassword =
+        await encrypt(manabaPassword.value);
+
+    await setDoc(
+        doc(db, "users", value),
+        {
+            studentNumber: value,
+            manabaId: manabaId.value,
+            manabaPasswordEncrypted: encryptedPassword
+        },
+        {
+            merge: true
+        }
     );
+
+    localStorage.setItem("studentNumber", value);
+    localStorage.setItem("manabaId", manabaId.value);
 
     alert("登録が完了しました。");
 

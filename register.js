@@ -225,6 +225,29 @@ button.addEventListener("click", async () => {
 
         }
 
+    const code = studentNumber.value.substring(2, 4);
+
+    if (code === "10" && selectedDepartment !== "看護学科") {
+
+        alert("学生番号は看護学科のものです。");
+        return;
+
+     }
+
+    if (code === "20" && selectedMajor !== "理学療法学専攻") {
+
+        alert("学生番号は理学療法学専攻のものです。");
+        return;
+
+    }
+
+    if (code === "30" && selectedMajor !== "作業療法学専攻") {
+
+        alert("学生番号は作業療法学専攻のものです。");
+        return;
+
+    }
+
     const selectedDepartment = department.value;
     const selectedMajor = major.value;
     const selectedGrade = grade.value;
