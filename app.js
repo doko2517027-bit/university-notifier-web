@@ -71,17 +71,14 @@ async function checkMaintenance() {
         return;
     }
 
-    const userRef = doc(
-        db,
-        "users",
-        subscription.endpoint.replace(/\//g, "_")
-    );
+    const devRef = doc(db, "system", "developer");
 
-    const userSnap = await getDoc(userRef);
+    const devSnap = await getDoc(devRef);
 
     if (
-        userSnap.exists() &&
-        userSnap.data().role === "developer"
+        devSnap.exists() &&
+        devSnap.data().endpoint ===
+            subscription.endpoint.replace(/\//g, "_")
     ) {
 
         return;
