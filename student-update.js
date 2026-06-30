@@ -15,6 +15,9 @@ const firebaseConfig = {
   appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
 };
 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const studentNumber =
     document.getElementById("studentNumber");
 
