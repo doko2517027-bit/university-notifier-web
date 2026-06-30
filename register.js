@@ -249,6 +249,8 @@ try {
     localStorage.setItem("studentNumber", studentNumber.value);
     localStorage.setItem("manabaId", manabaId.value);
 
+    localStorage.setItem("migrated", "true");
+
     button.textContent = "登録済み";
     button.disabled = true;
 
