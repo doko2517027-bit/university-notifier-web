@@ -29,6 +29,12 @@ const registered = localStorage.getItem("registered");
 const studentNumber = localStorage.getItem("studentNumber");
 const manabaId = localStorage.getItem("manabaId");
 
+if (!registered) {
+
+    location.href = "register.html";
+
+}
+
 if (
 
     registered === "true" &&
@@ -38,12 +44,6 @@ if (
 ) {
 
     location.href = "student-update.html";
-
-}
-
-if (!registered) {
-
-    location.href = "register.html";
 
 }
 
