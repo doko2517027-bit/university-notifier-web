@@ -28,22 +28,20 @@ const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
 const studentNumber = localStorage.getItem("studentNumber");
 const manabaId = localStorage.getItem("manabaId");
+const migrated = localStorage.getItem("migrated");
+
+if (
+    registered === "true" &&
+    migrated !== "true"
+) {
+
+    location.href = "student-update.html";
+
+}
 
 if (!registered) {
 
     location.href = "register.html";
-
-}
-
-if (
-
-    registered === "true" &&
-
-    (!studentNumber || !manabaId)
-
-) {
-
-    location.href = "student-update.html";
 
 }
 

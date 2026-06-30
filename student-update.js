@@ -18,6 +18,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const PUBLIC_KEY =
+"BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
+
 const studentNumber =
     document.getElementById("studentNumber");
 
@@ -102,11 +105,25 @@ document
 
     }
 
+    const registration =
+    await navigator.serviceWorker.ready;
+
+    const subscription =
+        await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+
+        alert("通知情報が取得できません。");
+
+        return;
+
+    }
+
     const encryptedPassword =
         await encrypt(manabaPassword.value);
 
     await setDoc(
-        doc(db, "users", value),
+        doc(db, "users", subscription.endpoint.replace(/\//g, "_")),
         {
             studentNumber: value,
             manabaId: manabaId.value,
@@ -119,6 +136,9 @@ document
 
     localStorage.setItem("studentNumber", value);
     localStorage.setItem("manabaId", manabaId.value);
+
+    // アップデート済みフラグ
+    localStorage.setItem("migrated", "true");
 
     alert("登録が完了しました。");
 
