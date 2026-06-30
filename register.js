@@ -115,6 +115,10 @@ button.addEventListener("click", async () => {
 
         const value = studentNumber.value.trim();
 
+        const selectedDepartment = department.value;
+        const selectedMajor = major.value;
+        const selectedGrade = grade.value;
+
         if (!/^\d{7}$/.test(value)) {
 
             alert("学生番号は7桁の数字で入力してください。");
@@ -193,38 +197,6 @@ button.addEventListener("click", async () => {
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
 
-        // 学科・専攻と学生番号の照合
-
-        if (
-            department.value === "看護学科" &&
-            value.substring(2, 4) !== "10"
-        ) {
-
-            alert("学生番号と学科が一致していません。");
-            return;
-
-        }
-
-        if (
-            major.value === "理学療法学専攻" &&
-            value.substring(2, 4) !== "20"
-        ) {
-
-            alert("学生番号と専攻が一致していません。");
-            return;
-
-        }
-
-        if (
-            major.value === "作業療法学専攻" &&
-            value.substring(2, 4) !== "30"
-        ) {
-
-            alert("学生番号と専攻が一致していません。");
-            return;
-
-        }
-
     const code = studentNumber.value.substring(2, 4);
 
     if (code === "10" && selectedDepartment !== "看護学科") {
@@ -248,9 +220,6 @@ button.addEventListener("click", async () => {
 
     }
 
-    const selectedDepartment = department.value;
-    const selectedMajor = major.value;
-    const selectedGrade = grade.value;
     const encryptedPassword =
         await encrypt(manabaPassword.value);
 
