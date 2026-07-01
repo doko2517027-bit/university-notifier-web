@@ -92,6 +92,8 @@ async function checkMaintenance() {
 
 checkMaintenance().then(() => {
 
+    console.log("ここまで来た");
+
     loadUserName();
     loadNews();
     loadTodaySchedule();
@@ -99,6 +101,17 @@ checkMaintenance().then(() => {
 });
 
 async function loadUserName() {
+    
+    console.log("loadUserName開始");
+
+    const studentNumber = localStorage.getItem("studentNumber");
+
+    console.log(studentNumber);
+
+    const snapshot = await getDocs(q);
+
+    console.log(snapshot.empty);
+    console.log(snapshot.size);
 
     const q = query(
         collection(db, "users"),
