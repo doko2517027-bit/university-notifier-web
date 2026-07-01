@@ -34,6 +34,17 @@ if (devSnap.exists()) {
 
 }
 
+const studentNumber =
+    localStorage.getItem("studentNumber");
+
+const devSnap = await getDoc(
+    doc(db, "developers", studentNumber)
+);
+
+if (devSnap.exists()) {
+    location.href = "index.html";
+}
+
 const snap = await getDoc(doc(db, "system", "app"));
 
 if (snap.exists()) {
