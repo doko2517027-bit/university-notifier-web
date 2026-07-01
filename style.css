@@ -55,9 +55,9 @@ input,
 
     margin-top:20px;
 
-    background:var(--accent);
+    background:#2563eb;
 
-    color:#222;
+    color:white;
 
     border:none;
 
@@ -88,7 +88,7 @@ hr {
 
 a{
 
-    color:var(--accent);
+    color:#1d4ed8;
 
     text-decoration:none;
 
