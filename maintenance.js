@@ -23,21 +23,38 @@ const message = document.getElementById("message");
 const studentNumber =
     localStorage.getItem("studentNumber");
 
-const devSnap = await getDoc(
-    doc(db, "developers", studentNumber)
-);
+console.log("student:", studentNumber);
 
-if (
-    devSnap.exists() &&
-    devSnap.data().enabled
-) {
+let devSnap;s
+let snap;
 
-    location.href = "index.html";
-    return;
+try {
+
+    const devSnap = await getDoc(
+        doc(db, "developers", studentNumber)
+    );
+
+    console.log("developers OK", devSnap.exists());
+
+} catch (e) {
+
+    console.log("developers NG", e);
 
 }
 
-const snap = await getDoc(doc(db, "system", "app"));
+try {
+
+    const snap = await getDoc(
+        doc(db, "system", "app")
+    );
+
+    console.log("system/app OK", snap.exists());
+
+} catch (e) {
+
+    console.log("system/app NG", e);
+
+}
 
 if (snap.exists()) {
 
