@@ -63,7 +63,19 @@ if (
 ) {
 
     location.href = "index.html";
-    return;
+
+} else if (snap && snap.exists()) {
+
+    const data = snap.data();
+
+    if (data.message) {
+        message.innerHTML =
+            data.message.replace(/\n/g, "<br>");
+    }
+
+    if (!data.maintenance) {
+        location.href = "index.html";
+    }
 
 }
 
