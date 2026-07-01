@@ -30,7 +30,7 @@ let snap;
 
 try {
 
-    const devSnap = await getDoc(
+    devSnap = await getDoc(
         doc(db, "developers", studentNumber)
     );
 
@@ -44,7 +44,7 @@ try {
 
 try {
 
-    const snap = await getDoc(
+    snap = await getDoc(
         doc(db, "system", "app")
     );
 
@@ -56,12 +56,24 @@ try {
 
 }
 
-if (snap.exists()) {
+if (
+    devSnap &&
+    devSnap.exists() &&
+    devSnap.data().enabled
+) {
+
+    location.href = "index.html";
+    return;
+
+}
+
+if (snap && snap.exists()) {
 
     const data = snap.data();
 
     if (data.message) {
-        message.innerHTML = data.message.replace(/\n/g, "<br>");
+        message.innerHTML =
+            data.message.replace(/\n/g, "<br>");
     }
 
     if (!data.maintenance) {
