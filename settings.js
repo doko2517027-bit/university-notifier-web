@@ -3,6 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
     getFirestore,
     doc,
+    getDoc,
     deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -18,6 +19,35 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+const studentNumber =
+    localStorage.getItem("studentNumber");
+
+loadUserName();
+
+async function loadUserName() {
+
+    if (!studentNumber) {
+        return;
+    }
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) {
+
+        document.getElementById("userName").textContent =
+            "Unknownさん";
+
+        return;
+
+    }
+
+    document.getElementById("userName").textContent =
+        snap.data().name + "さん";
+
+}
 
 const VERSION = "3.4.0";
 
