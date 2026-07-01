@@ -25,7 +25,7 @@ const studentNumber =
 
 console.log("student:", studentNumber);
 
-let devSnap;s
+let devSnap;
 let snap;
 
 try {
