@@ -20,6 +20,20 @@ const db = getFirestore(app);
 
 const message = document.getElementById("message");
 
+const studentNumber =
+    localStorage.getItem("studentNumber");
+
+const devSnap = await getDoc(
+    doc(db, "developers", studentNumber)
+);
+
+if (devSnap.exists()) {
+
+    // 開発者なのでメンテ画面を表示
+    return;
+
+}
+
 const snap = await getDoc(doc(db, "system", "app"));
 
 if (snap.exists()) {

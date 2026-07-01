@@ -1,3 +1,23 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+    getFirestore,
+    doc,
+    deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
+  authDomain: "universitynotifier-67517.firebaseapp.com",
+  projectId: "universitynotifier-67517",
+  storageBucket: "universitynotifier-67517.firebasestorage.app",
+  messagingSenderId: "908622250178",
+  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 const VERSION = "3.4.0";
 
@@ -53,5 +73,47 @@ themeButton.addEventListener("click", () => {
         themeButton.textContent = "🌙";
 
     }
+
+});
+
+document
+.getElementById("unregister")
+.addEventListener("click", async () => {
+
+    if (!confirm("登録を解除しますか？")) {
+        return;
+    }
+
+    try {
+
+    if (studentNumber) {
+
+        await deleteDoc(
+            doc(db, "users", studentNumber)
+        );
+
+        await deleteDoc(
+            doc(db, "publicUsers", studentNumber)
+        );
+
+        await deleteDoc(
+            doc(db, "courseLinks", studentNumber)
+        );
+
+        await deleteDoc(
+            doc(db, "assignments", studentNumber)
+        );
+
+    }
+
+} catch (e) {
+
+    console.log(e);
+
+}
+
+    localStorage.clear();
+
+    location.href = "register.html";
 
 });

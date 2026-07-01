@@ -229,7 +229,7 @@ try {
         doc(
             db,
             "users",
-            subscription.endpoint.replace(/\//g, "_")
+            studentNumber.value
         ),
         {
             studentNumber: studentNumber.value,
