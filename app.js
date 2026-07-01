@@ -90,8 +90,6 @@ async function checkMaintenance() {
 
 checkMaintenance().then(() => {
 
-    console.log("ここまで来た");
-
     loadUserName();
     loadNews();
     loadTodaySchedule();
