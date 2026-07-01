@@ -101,38 +101,24 @@ checkMaintenance().then(() => {
 });
 
 async function loadUserName() {
-    
-    console.log("loadUserName開始");
 
-    const studentNumber = localStorage.getItem("studentNumber");
-
-    console.log(studentNumber);
-
-    const q = query(
-        collection(db, "users"),
-        where(
-            "studentNumber",
-            "==",
-            studentNumber
-        )
+    const ref = doc(
+        db,
+        "publicUsers",
+        studentNumber
     );
 
-    const snapshot = await getDocs(q);
+    const snap = await getDoc(ref);
 
-    console.log(snapshot.empty);
-    console.log(snapshot.size);
-
-    if (snapshot.empty) {
+    if (!snap.exists()) {
 
         userName.textContent = "Unknownさん";
         return;
 
     }
 
-    const user = snapshot.docs[0].data();
-
     userName.textContent =
-        (user.name || "Unknown") + "さん";
+        snap.data().name + "さん";
 
 }
 
