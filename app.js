@@ -23,6 +23,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
@@ -91,10 +92,38 @@ async function checkMaintenance() {
 
 checkMaintenance().then(() => {
 
+    loadUserName();
     loadNews();
     loadTodaySchedule();
 
 });
+
+async function loadUserName() {
+
+    const q = query(
+        collection(db, "users"),
+        where(
+            "studentNumber",
+            "==",
+            studentNumber
+        )
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+
+        userName.textContent = "Unknownさん";
+        return;
+
+    }
+
+    const user = snapshot.docs[0].data();
+
+    userName.textContent =
+        (user.name || "Unknown") + "さん";
+
+}
 
 async function loadNews() {
 
