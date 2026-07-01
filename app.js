@@ -108,11 +108,6 @@ async function loadUserName() {
 
     console.log(studentNumber);
 
-    const snapshot = await getDocs(q);
-
-    console.log(snapshot.empty);
-    console.log(snapshot.size);
-
     const q = query(
         collection(db, "users"),
         where(
@@ -123,6 +118,9 @@ async function loadUserName() {
     );
 
     const snapshot = await getDocs(q);
+
+    console.log(snapshot.empty);
+    console.log(snapshot.size);
 
     if (snapshot.empty) {
 
