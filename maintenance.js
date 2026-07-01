@@ -27,8 +27,14 @@ const devSnap = await getDoc(
     doc(db, "developers", studentNumber)
 );
 
-if (devSnap.exists()) {
+if (
+    devSnap.exists() &&
+    devSnap.data().enabled
+) {
+
     location.href = "index.html";
+    return;
+
 }
 
 const snap = await getDoc(doc(db, "system", "app"));
