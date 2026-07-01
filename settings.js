@@ -68,7 +68,7 @@ document
     .getElementById("back")
     .addEventListener("click", () => {
 
-        history.back();
+        location.href = "index.html";
 
     });
 
