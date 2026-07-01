@@ -23,6 +23,12 @@ h1 {
     text-align: center;
     color: var(--accent);
     margin-bottom: 10px;
+
+    text-shadow:
+        -1px -1px 0 #444,
+         1px -1px 0 #444,
+        -1px  1px 0 #444,
+         1px  1px 0 #444;
 }
 
 p {
@@ -55,9 +61,14 @@ input,
     margin-top: 20px;
     background:var(--accent);
     color: white;
-    border: none;
     cursor: pointer;
     font-weight: bold;
+    border:2px solid #444;
+    text-shadow:
+        -1px -1px 0 #444,
+        1px -1px 0 #444,
+        -1px  1px 0 #444,
+        1px  1px 0 #444;
 }
 
 #subscribe:disabled {
@@ -79,10 +90,16 @@ hr {
     margin-bottom: 20px;
 }
 
-a {
+a{
+
     color:var(--accent);
-    text-decoration: none;
-    font-weight: bold;
+
+    text-shadow:
+        -0.5px -0.5px 0 #444,
+         0.5px -0.5px 0 #444,
+        -0.5px  0.5px 0 #444,
+         0.5px  0.5px 0 #444;
+
 }
 
 .header {
@@ -256,10 +273,17 @@ body.dark #version {
 }
 
 .schedule-table th{
+
     background:var(--accent);
+
     color:white;
+
     padding:12px;
+
     text-align:center;
+
+    border:2px solid #444;
+
 }
 
 .schedule-table td{
@@ -277,7 +301,11 @@ body.dark #version {
 }
 
 body.dark .schedule-table th{
-    background:#3b82f6;
+
+    background:var(--accent);
+
+    border:2px solid #444;
+
 }
 
 body.dark .schedule-table td{
@@ -311,15 +339,25 @@ body.dark .schedule-table tr:hover{
 
     padding:18px;
 
+    max-width:500px;
+
+    margin:60px auto;
+
     margin-bottom:20px;
 
+    text-align:center;
+
     box-shadow:0 2px 8px rgba(0,0,0,.08);
+
+    border-left:6px solid var(--accent);
 
 }
 
 body.dark .setting-card{
 
     background:#2d2d2d;
+
+    border-left:6px solid var(--accent);
 
 }
 
@@ -331,8 +369,6 @@ body.dark .setting-card{
 
     font-size:16px;
 
-    border:none;
-
     border-radius:10px;
 
     background:var(--accent);
@@ -343,12 +379,22 @@ body.dark .setting-card{
 
     font-weight:bold;
 
+    border:2px solid #444;
+
+    text-shadow:
+        -1px -1px 0 #444,
+        1px -1px 0 #444,
+        -1px  1px 0 #444,
+        1px  1px 0 #444;
+
 }
 
 body.dark .primary-button{
 
     background:var(--accent);
-    
+
+    border:2px solid #444;
+
 }
 
 #versionText{
@@ -393,11 +439,7 @@ body.dark .danger-button{
 
 }
 
-.setting-card{
-    max-width:500px;
-    margin:60px auto;
-    text-align:center;
-}
+
 
 #message{
     font-size:18px;
@@ -483,6 +525,12 @@ body.dark .danger-button{
 
     font-weight:bold;
 
+    text-shadow:
+        -0.5px -0.5px 0 #444,
+         0.5px -0.5px 0 #444,
+        -0.5px  0.5px 0 #444,
+         0.5px  0.5px 0 #444;
+
 }
 
 body.dark .bottom-nav{
@@ -501,13 +549,25 @@ body.dark .bottom-nav a{
 
 body.dark .bottom-nav a.active{
 
-    color:#4ea1ff;
+    color:var(--accent);
+
+    text-shadow:
+        -0.5px -0.5px 0 #444,
+         0.5px -0.5px 0 #444,
+        -0.5px  0.5px 0 #444,
+         0.5px  0.5px 0 #444;
 
 }
 
 .bottom-nav a div{
 
     font-size:24px;
+
+    text-shadow:
+        -0.5px -0.5px 0 #444,
+         0.5px -0.5px 0 #444,
+        -0.5px  0.5px 0 #444,
+         0.5px  0.5px 0 #444;
 
 }
 
