@@ -19,6 +19,33 @@ const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 
+function updateAccentColor() {
+
+    const root = document.documentElement;
+
+    if (department.value === "看護学科") {
+
+        root.style.setProperty("--accent", "#F7EAC5");
+
+    }
+    else if (major.value === "理学療法学専攻") {
+
+        root.style.setProperty("--accent", "#DDEBF7");
+
+    }
+    else if (major.value === "作業療法学専攻") {
+
+        root.style.setProperty("--accent", "#E2EFDA");
+
+    }
+    else {
+
+        root.style.setProperty("--accent", "#2563eb");
+
+    }
+
+}
+
 const PUBLIC_KEY =
 "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 
@@ -46,6 +73,7 @@ department.addEventListener("change", () => {
     }
 
     updateState();
+    updateAccentColor();
 
 });
 
@@ -56,6 +84,7 @@ major.addEventListener("change", () => {
     }
 
     updateState();
+    updateAccentColor();
 
 });
 
@@ -84,6 +113,7 @@ manabaPassword.addEventListener("input", () => {
 });
 
 updateState();
+updateAccentColor();
 
 
 function updateState() {

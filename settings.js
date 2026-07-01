@@ -20,6 +20,39 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const root = document.documentElement;
+
+const department =
+    localStorage.getItem("department");
+
+const major =
+    localStorage.getItem("major");
+
+if (department === "看護学科") {
+
+    root.style.setProperty(
+        "--accent",
+        "#F7EAC5"
+    );
+
+}
+else if (major === "理学療法学専攻") {
+
+    root.style.setProperty(
+        "--accent",
+        "#DDEBF7"
+    );
+
+}
+else if (major === "作業療法学専攻") {
+
+    root.style.setProperty(
+        "--accent",
+        "#E2EFDA"
+    );
+
+}
+
 const studentNumber =
     localStorage.getItem("studentNumber");
 

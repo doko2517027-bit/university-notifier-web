@@ -1,10 +1,18 @@
+:root{
+
+    --accent:#2563eb;
+
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     background: #f5f7fb;
     color: #222;
     max-width: 700px;
     margin: 0 auto;
+
     padding: 20px;
+    padding-bottom: 90px;
 
     transition:
         background-color 0.35s ease,
@@ -13,7 +21,7 @@ body {
 
 h1 {
     text-align: center;
-    color: #2563eb;
+    color: var(--accent);
     margin-bottom: 10px;
 }
 
@@ -45,7 +53,7 @@ input,
 
 #subscribe {
     margin-top: 20px;
-    background: #2563eb;
+    background:var(--accent);
     color: white;
     border: none;
     cursor: pointer;
@@ -72,7 +80,7 @@ hr {
 }
 
 a {
-    color: #2563eb;
+    color:var(--accent);
     text-decoration: none;
     font-weight: bold;
 }
@@ -248,7 +256,7 @@ body.dark #version {
 }
 
 .schedule-table th{
-    background:#2563eb;
+    background:var(--accent);
     color:white;
     padding:12px;
     text-align:center;
@@ -327,7 +335,7 @@ body.dark .setting-card{
 
     border-radius:10px;
 
-    background:#2563eb;
+    background:var(--accent);
 
     color:white;
 
@@ -339,8 +347,8 @@ body.dark .setting-card{
 
 body.dark .primary-button{
 
-    background:#3b82f6;
-
+    background:var(--accent);
+    
 }
 
 #versionText{
@@ -418,5 +426,93 @@ body.dark .danger-button{
 
     font-size:18px;
     font-weight:bold;
+
+}
+
+.bottom-nav{
+
+    position:fixed;
+
+    bottom:0;
+
+    left:50%;
+    transform:translateX(-50%);
+
+    width:100%;
+    max-width:700px;
+
+    height:70px;
+
+    background:white;
+
+    display:flex;
+
+    border-top:1px solid #ddd;
+
+    box-shadow:0 -2px 10px rgba(0,0,0,.0);
+
+    z-index:1000;
+
+}
+
+.bottom-nav a{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:4px;
+
+    color:#666;
+
+    text-decoration:none;
+
+    font-size:13px;
+
+}
+
+.bottom-nav a.active{
+
+    color:var(--accent);
+
+    font-weight:bold;
+
+}
+
+body.dark .bottom-nav{
+
+    background:#222;
+
+    border-top:1px solid #444;
+
+}
+
+body.dark .bottom-nav a{
+
+    color:#bbb;
+
+}
+
+body.dark .bottom-nav a.active{
+
+    color:#4ea1ff;
+
+}
+
+.bottom-nav a div{
+
+    font-size:24px;
+
+}
+
+.bottom-nav a span{
+
+    font-size:12px;
 
 }
