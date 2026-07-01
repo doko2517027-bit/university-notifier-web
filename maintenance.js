@@ -28,20 +28,6 @@ const devSnap = await getDoc(
 );
 
 if (devSnap.exists()) {
-
-    // 開発者なのでメンテ画面を表示
-    return;
-
-}
-
-const studentNumber =
-    localStorage.getItem("studentNumber");
-
-const devSnap = await getDoc(
-    doc(db, "developers", studentNumber)
-);
-
-if (devSnap.exists()) {
     location.href = "index.html";
 }
 
