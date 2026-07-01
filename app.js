@@ -72,18 +72,16 @@ async function checkMaintenance() {
         return;
     }
 
-    const devRef = doc(db, "system", "developer");
+    const devRef = doc(
+        db,
+        "developers",
+        studentNumber
+    );
 
     const devSnap = await getDoc(devRef);
 
-    if (
-        devSnap.exists() &&
-        devSnap.data().endpoint ===
-            subscription.endpoint.replace(/\//g, "_")
-    ) {
-
+    if (devSnap.exists()) {
         return;
-
     }
 
     location.href = "maintenance.html";
