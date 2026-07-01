@@ -21,7 +21,7 @@ body {
 
 h1 {
     text-align: center;
-    color: var(--accent);
+    color:#222;
     margin-bottom: 10px;
 }
 
@@ -57,7 +57,7 @@ input,
 
     background:var(--accent);
 
-    color:white;
+    color:#222;
 
     border:none;
 
@@ -270,7 +270,7 @@ body.dark #version {
 
     background:var(--accent);
 
-    color:white;
+    color:#222;
 
     padding:12px;
 
@@ -323,7 +323,7 @@ body.dark .schedule-table tr:hover{
 
 .setting-card{
 
-    background:white;
+    background:var(--accent);
 
     border-radius:12px;
 
@@ -331,23 +331,21 @@ body.dark .schedule-table tr:hover{
 
     max-width:500px;
 
-    margin:60px auto;
-
-    margin-bottom:20px;
+    margin:60px auto 20px;
 
     text-align:center;
 
     box-shadow:0 2px 8px rgba(0,0,0,.08);
 
-    border-left:6px solid var(--accent);
+    color:#222;
 
 }
 
 body.dark .setting-card{
 
-    background:#2d2d2d;
+    background:var(--accent);
 
-    border-left:6px solid var(--accent);
+    color:#222;
 
 }
 
@@ -365,7 +363,7 @@ body.dark .setting-card{
 
     background:var(--accent);
 
-    color:white;
+    color:#222;
 
     cursor:pointer;
 
@@ -503,9 +501,13 @@ body.dark .danger-button{
 
 .bottom-nav a.active{
 
-    color:var(--accent);
+    background:var(--accent);
 
-    font-weight:bold;
+    color:#222;
+
+    border-radius:12px;
+
+    margin:8px;
 
 }
 
@@ -525,7 +527,9 @@ body.dark .bottom-nav a{
 
 body.dark .bottom-nav a.active{
 
-    color:var(--accent);
+    background:var(--accent);
+
+    color:#222;
 
 }
 
