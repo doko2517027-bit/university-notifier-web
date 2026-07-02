@@ -253,3 +253,29 @@ select:focus{
     color:var(--subtext);
     font-size:13px;
 }
+
+.setting-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:16px 0;
+    border-bottom:1px solid var(--border);
+    text-align:left;
+}
+
+.setting-row:last-child{
+    border-bottom:none;
+}
+
+.setting-row small{
+    color:var(--subtext);
+    font-size:13px;
+}
+
+.setting-row input[type="checkbox"]{
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+    accent-color:var(--primary);
+}
