@@ -1,10 +1,12 @@
+import { VERSION } from "./version.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
     getFirestore,
     doc,
     getDoc,
-    deleteDoc
+    deleteDoc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -15,7 +17,6 @@ const firebaseConfig = {
   messagingSenderId: "908622250178",
   appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
 };
-
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -53,8 +54,10 @@ else if (major === "作業療法学専攻") {
 
 }
 
-const studentNumber =
-    localStorage.getItem("studentNumber");
+const studentNumber = localStorage.getItem("studentNumber");
+const notifySchedule = document.getElementById("notifySchedule");
+const notifyAssignment = document.getElementById("notifyAssignment");
+const notifyReminder = document.getElementById("notifyReminder");
 
 loadUserName();
 
@@ -82,8 +85,6 @@ async function loadUserName() {
 
 }
 
-import { VERSION } from "./version.js";
-
 document.getElementById("departmentText").textContent =
     localStorage.getItem("department") || "未登録";
 
@@ -95,6 +96,9 @@ document.getElementById("gradeText").textContent =
 
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
+
+loadNotificationSettings();
+setupNotificationEvents();
 
 // ダークモード
 const themeButton = document.getElementById("themeButton");
@@ -185,3 +189,54 @@ document
     location.href = "login.html";
 
 });
+
+async function loadNotificationSettings() {
+
+    if (!studentNumber) return;
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const settings =
+        snap.data().notificationSettings || {};
+
+    notifySchedule.checked =
+        settings.schedule ?? true;
+
+    notifyAssignment.checked =
+        settings.assignment ?? true;
+
+    notifyReminder.checked =
+        settings.reminder ?? true;
+
+}
+
+function setupNotificationEvents() {
+
+    [notifySchedule, notifyAssignment, notifyReminder].forEach(input => {
+
+        input.addEventListener("change", saveNotificationSettings);
+
+    });
+
+}
+
+async function saveNotificationSettings() {
+
+    if (!studentNumber) return;
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        {
+            notificationSettings: {
+                schedule: notifySchedule.checked,
+                assignment: notifyAssignment.checked,
+                reminder: notifyReminder.checked
+            }
+        }
+    );
+
+}
