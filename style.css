@@ -285,7 +285,16 @@ select:focus{
     gap:16px;
     overflow-x:auto;
     scroll-snap-type:x mandatory;
+    scroll-padding:20px;
     padding-bottom:10px;
+}
+
+.schedule-scroll::-webkit-scrollbar{
+    display:none;
+}
+
+.schedule-scroll{
+    scrollbar-width:none;
 }
 
 .day-card{
