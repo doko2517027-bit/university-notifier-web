@@ -232,14 +232,14 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
+    const department = localStorage.getItem("department");
+    const major = localStorage.getItem("major");
+    const grade = localStorage.getItem("grade");
+
     console.log("時間割読み込み開始");
     console.log("department:", department);
     console.log("major:", major);
     console.log("grade:", grade);
-
-    const department = localStorage.getItem("department");
-    const major = localStorage.getItem("major");
-    const grade = localStorage.getItem("grade");
 
     let docId = "";
 
