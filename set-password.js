@@ -24,7 +24,10 @@ const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const savePassword = document.getElementById("savePassword");
 
 const studentNumber =
-    localStorage.getItem("pendingStudentNumber");
+    document.getElementById("studentNumber");
+
+const value =
+    studentNumber.value.trim();
 
 if (!studentNumber) {
     location.href = "login.html";

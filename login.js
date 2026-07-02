@@ -51,16 +51,6 @@ loginButton.addEventListener("click", async () => {
 
     const user = userSnap.data();
 
-    if (!user.appPasswordHash) {
-
-        localStorage.setItem("pendingStudentNumber", value);
-
-        location.href = "set-password.html";
-
-        return;
-
-    }
-
     const inputHash = await hashPassword(appPassword.value);
 
     if (inputHash !== user.appPasswordHash) {
