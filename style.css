@@ -1,6 +1,6 @@
 :root{
 
-    --accent:#2563eb;
+    --accent:#BEE9E8;
 
 }
 
@@ -21,13 +21,13 @@ body {
 
 h1 {
     text-align: center;
-    color:#222;
+    color:#0F172A;
     margin-bottom: 10px;
 }
 
 p {
     text-align: center;
-    color: #666;
+    color:#475569;
     margin-bottom: 30px;
 }
 
@@ -38,6 +38,7 @@ h2 {
 h3 {
     margin-top: 20px;
     margin-bottom: 8px;
+    color:#1E293B;
 }
 
 select,
@@ -46,8 +47,10 @@ input,
     width: 100%;
     padding: 14px;
     font-size: 16px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
+    border-radius: 14px;
+    border:2px solid #8FD4CE;
+    background:white;
+    color:#111827;
     box-sizing: border-box;
 }
 
@@ -335,9 +338,9 @@ body.dark .schedule-table tr:hover{
 
     text-align:center;
 
-    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    color:#111827;
 
-    color:#222;
+    box-shadow:0 8px 24px rgba(0,0,0,.10);
 
 }
 
@@ -359,21 +362,27 @@ body.dark .setting-card{
 
     border:none;
 
-    border-radius:10px;
+    border-radius:14px;
 
-    background:var(--accent);
+    background:#0F9D8A;
 
-    color:#222;
+    color:white;
+
+    font-weight:700;
 
     cursor:pointer;
 
-    font-weight:bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,.12);
+
+    transition: .2s;
 
 }
 
 body.dark .primary-button{
 
-    background:var(--accent);
+    background:#14B8A6;
+
+    color:white;
 
 }
 
@@ -501,9 +510,9 @@ body.dark .danger-button{
 
 .bottom-nav a.active{
 
-    background:var(--accent);
+    background:#0F9D8A;
 
-    color:#222;
+    color:white;
 
     border-radius:12px;
 
@@ -527,9 +536,9 @@ body.dark .bottom-nav a{
 
 body.dark .bottom-nav a.active{
 
-    background:var(--accent);
+    background:#14B8A6;
 
-    color:#222;
+    color:white;
 
 }
 
@@ -542,5 +551,22 @@ body.dark .bottom-nav a.active{
 .bottom-nav a span{
 
     font-size:12px;
+
+}
+
+input:focus,
+select:focus{
+
+    outline:none;
+
+    border-color:#14B8A6;
+
+    box-shadow:0 0 0 4px rgba(20,184,166,.18);
+
+}
+
+.primary-button:active{
+
+    transform:scale(.98);
 
 }
