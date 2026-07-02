@@ -82,7 +82,7 @@ async function loadUserName() {
 
 }
 
-const VERSION = "3.4.0";
+import { VERSION } from "./version.js";
 
 document.getElementById("departmentText").textContent =
     localStorage.getItem("department") || "未登録";

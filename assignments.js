@@ -103,7 +103,7 @@ async function loadAssignments() {
         const url =
             rawUrl.startsWith("http")
                 ? rawUrl
-                : "https://sums.manaba.jp/ct/" + rawUrl;
+                : "https://sums.manaba.jp/" + rawUrl;
 
         assignmentList.innerHTML += `
             <div class="setting-card">

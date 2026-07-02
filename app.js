@@ -10,6 +10,10 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { VERSION } from "./version.js";
+
+document.getElementById("version").textContent = `Version ${VERSION}`;
+
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -423,13 +427,6 @@ async function loadTodaySchedule() {
 
                     alert("この授業はまだ対応していません");
 
-                    return;
-
-                }
-
-                if (!courseId) {
-
-                    alert("この授業はまだ対応していません");
                     return;
 
                 }
