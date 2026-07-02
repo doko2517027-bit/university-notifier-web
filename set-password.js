@@ -24,22 +24,8 @@ const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const savePassword = document.getElementById("savePassword");
 const studentNumber = document.getElementById("studentNumber");
 
-const value =
-    studentNumber.value.trim();
-
 savePassword.addEventListener("click", async () => {
 
-    if (appPassword.value.length < 6) {
-        alert("アプリ用パスワードは6文字以上で入力してください。");
-        return;
-    }
-
-    if (appPassword.value !== appPasswordConfirm.value) {
-        alert("アプリ用パスワードが一致しません。");
-        return;
-    }
-
-    const userRef = doc(db, "users", value);
     const value = studentNumber.value.trim();
 
     if (!/^\d{7}$/.test(value)) {
@@ -48,6 +34,22 @@ savePassword.addEventListener("click", async () => {
         return;
 
     }
+
+    if (appPassword.value.length < 6) {
+
+        alert("アプリ用パスワードは6文字以上で入力してください。");
+        return;
+
+    }
+
+    if (appPassword.value !== appPasswordConfirm.value) {
+
+        alert("アプリ用パスワードが一致しません。");
+        return;
+
+    }
+
+    const userRef = doc(db, "users", value);
 
     const userSnap = await getDoc(userRef);
 
