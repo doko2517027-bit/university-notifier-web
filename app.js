@@ -56,15 +56,6 @@ else if (major === "作業療法学専攻") {
 
 }
 
-if (
-    registered === "true" &&
-    migrated !== "true"
-) {
-
-    location.href = "student-update.html";
-
-}
-
 const loggedIn =
     localStorage.getItem("loggedIn");
 
@@ -228,8 +219,8 @@ async function loadNews() {
 
                     <br>
 
-                    <a href="${notice.pdf}" target="_blank">
-                        📄 PDFを見る
+                    <a href="${notice.pdf || notice.url}" target="_blank">
+                        ${notice.pdf ? "📄 PDFを見る" : "📢 コースを見る"}
                     </a>
                 </div>
             `;
@@ -378,11 +369,11 @@ if (!localStorage.getItem("splashShown")) {
 
 }
 
-const switchButton =
-document.getElementById("switchButton");
+const settingButton =
+document.getElementById("settingButton");
 
-switchButton.addEventListener("click",()=>{
+settingButton.addEventListener("click",()=>{
 
-    location.href="switchs.html";
+    location.href="settings.html";
 
 });
