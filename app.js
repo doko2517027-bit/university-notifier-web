@@ -66,19 +66,6 @@ if (loggedIn !== "true") {
 
 async function checkMaintenance() {
 
-    checkMaintenance()
-    .then(() => {
-        loadUserName();
-        loadNews();
-        loadTodaySchedule();
-    })
-    .catch((e) => {
-        console.error(e);
-        loadUserName();
-        loadNews();
-        loadTodaySchedule();
-    });
-
     const ref = doc(db, "system", "app");
 
     const snap = await getDoc(ref);
@@ -103,11 +90,7 @@ async function checkMaintenance() {
         return;
     }
 
-    const devRef = doc(
-        db,
-        "developers",
-        studentNumber
-    );
+    const devRef = doc(db, "developers", studentNumber);
 
     const devSnap = await getDoc(devRef);
 
@@ -116,8 +99,20 @@ async function checkMaintenance() {
     }
 
     location.href = "maintenance.html";
-
 }
+
+checkMaintenance()
+.then(() => {
+    loadUserName();
+    loadNews();
+    loadTodaySchedule();
+})
+.catch((e) => {
+    console.error(e);
+    loadUserName();
+    loadNews();
+    loadTodaySchedule();
+});
 
 async function loadUserName() {
 
