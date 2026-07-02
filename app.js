@@ -149,27 +149,9 @@ async function loadNews() {
             return;
         }
 
-        let q;
-
-        if (department !== "") {
-
-            q = query(
-                collection(db, "news"),
-                where("department", "==", department),
-                where("grade", "==", grade.replace("年", ""))
-            );
-
-        } else {
-
-            q = query(
-                collection(db, "news"),
-                where("major", "==", major),
-                where("grade", "==", grade.replace("年", ""))
-            );
-
-        }
-
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(
+            collection(db, "news")
+        );
         const notices = [];
 
         snapshot.forEach((doc) => {
@@ -289,7 +271,7 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
 
     const list = schedules
         .filter(item =>
-            item.grade === grade &&
+            item.grade === grade.replace("年", "") &&
             item.day === day
         )
         .sort((a, b) =>
