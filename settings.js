@@ -96,15 +96,6 @@ document.getElementById("gradeText").textContent =
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
 
-// 戻るボタン
-document
-    .getElementById("back")
-    .addEventListener("click", () => {
-
-        location.href = "index.html";
-
-    });
-
 // ダークモード
 const themeButton = document.getElementById("themeButton");
 
