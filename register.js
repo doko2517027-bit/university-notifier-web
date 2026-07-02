@@ -61,14 +61,6 @@ const appPasswordConfirm =document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
 
-if (registered === "true") {
-
-    location.href = "index.html";
-
-}
-
-
-
 department.addEventListener("change", () => {
 
     if (department.value !== "") {

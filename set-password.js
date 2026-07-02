@@ -3,7 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
     getFirestore,
     doc,
-    getDoc
+    getDoc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -18,64 +19,59 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const studentNumber = document.getElementById("studentNumber");
 const appPassword = document.getElementById("appPassword");
-const loginButton = document.getElementById("loginButton");
-const registerButton = document.getElementById("registerButton");
+const appPasswordConfirm = document.getElementById("appPasswordConfirm");
+const savePassword = document.getElementById("savePassword");
 
-registerButton.addEventListener("click", () => {
-    location.href = "register.html";
-});
+const studentNumber =
+    localStorage.getItem("pendingStudentNumber");
 
-loginButton.addEventListener("click", async () => {
+if (!studentNumber) {
+    location.href = "login.html";
+}
 
-    const value = studentNumber.value.trim();
+savePassword.addEventListener("click", async () => {
 
-    if (!/^\d{7}$/.test(value)) {
-        alert("学籍番号は7桁の数字で入力してください。");
+    if (appPassword.value.length < 6) {
+        alert("アプリ用パスワードは6文字以上で入力してください。");
         return;
     }
 
-    if (appPassword.value.trim() === "") {
-        alert("パスワードを入力してください。");
+    if (appPassword.value !== appPasswordConfirm.value) {
+        alert("アプリ用パスワードが一致しません。");
         return;
     }
 
-    const userRef = doc(db, "users", value);
+    const userRef = doc(db, "users", studentNumber);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-        alert("登録されていません。");
+        alert("登録情報が見つかりません。");
+        location.href = "login.html";
         return;
     }
 
     const user = userSnap.data();
 
-    if (!user.appPasswordHash) {
+    const appPasswordHash =
+        await hashPassword(appPassword.value);
 
-        localStorage.setItem("pendingStudentNumber", value);
-
-        location.href = "set-password.html";
-
-        return;
-
-    }
-
-    const inputHash = await hashPassword(appPassword.value);
-
-    if (inputHash !== user.appPasswordHash) {
-        alert("学籍番号またはパスワードが違います。");
-        return;
-    }
+    await updateDoc(userRef, {
+        appPasswordHash: appPasswordHash
+    });
 
     localStorage.setItem("registered", "true");
     localStorage.setItem("loggedIn", "true");
-    localStorage.setItem("studentNumber", value);
+    localStorage.setItem("studentNumber", studentNumber);
     localStorage.setItem("department", user.department || "");
     localStorage.setItem("major", user.major || "");
     localStorage.setItem("grade", user.grade || "");
     localStorage.setItem("manabaId", user.manabaId || "");
     localStorage.setItem("migrated", "true");
+
+    localStorage.removeItem("pendingStudentNumber");
+
+    alert("アプリ用パスワードを設定しました。");
 
     location.href = "index.html";
 
