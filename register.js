@@ -314,7 +314,7 @@ try {
             grade: selectedGrade,
             manabaId: manabaId.value,
             manabaPasswordEncrypted: encryptedPassword,
-            appPassword: appPasswordHash,
+            appPasswordHash: appPasswordHash,
             subscription: JSON.parse(JSON.stringify(subscription))
         }
     );
@@ -336,6 +336,7 @@ try {
     grade.disabled = true;
 
     alert("登録が完了しました。");
+    localStorage.setItem("loggedIn", "true");
     location.href = "index.html";
     } catch (e) {
 

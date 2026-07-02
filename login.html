@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン | CareMateApp</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">🎓</div>
+    <h1>CareMateApp</h1>
+    <p>ログイン</p>
+</header>
+
+<div class="setting-card">
+
+    <h3>学籍番号</h3>
+    <input
+        id="studentNumber"
+        type="text"
+        maxlength="7"
+        placeholder="例：2510044">
+
+    <h3>アプリ用パスワード</h3>
+    <input
+        id="appPassword"
+        type="password"
+        placeholder="登録したパスワード">
+
+    <button id="loginButton" class="primary-button">
+        ログイン
+    </button>
+
+    <br><br>
+
+    <button id="registerButton" class="primary-button">
+        初回登録はこちら
+    </button>
+
+</div>
+
+<script type="module" src="login.js"></script>
+
+</body>
+</html>

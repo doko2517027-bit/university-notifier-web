@@ -180,3 +180,13 @@ document
     location.href = "register.html";
 
 });
+
+document
+.getElementById("logout")
+.addEventListener("click", () => {
+
+    localStorage.removeItem("loggedIn");
+
+    location.href = "login.html";
+
+});

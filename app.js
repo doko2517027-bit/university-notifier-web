@@ -61,9 +61,12 @@ if (
 
 }
 
-if (!registered) {
+const loggedIn =
+    localStorage.getItem("loggedIn");
 
-    location.href = "register.html";
+if (loggedIn !== "true") {
+
+    location.href = "login.html";
 
 }
 
