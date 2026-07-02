@@ -202,7 +202,7 @@ async function loadNews() {
                     <div class="news-date">${postedText}</div>
 
                     <div class="news-body">
-                        ${notice.body.replace(/\n/g, "<br>")}
+                        ${(notice.body || notice.title || "").replace(/\n/g, "<br>")}
                     </div>
 
                     <br>
