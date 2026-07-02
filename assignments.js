@@ -95,15 +95,13 @@ async function loadAssignments() {
             "締切不明";
 
         const rawUrl =
-            item.url ||
-            item.link ||
-            item.href ||
+            item.courseUrl ||
             "";
 
         const url =
-            rawUrl.startsWith("http")
-                ? rawUrl
-                : "https://sums.manaba.jp/" + rawUrl;
+            rawUrl
+                ? "https://sums.manaba.jp/ct/" + rawUrl + "_report"
+        : "";
 
         assignmentList.innerHTML += `
             <div class="setting-card">
