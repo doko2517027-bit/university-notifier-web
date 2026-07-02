@@ -56,6 +56,8 @@ const grade = document.getElementById("grade");
 const studentNumber = document.getElementById("studentNumber");
 const manabaId = document.getElementById("manabaId");
 const manabaPassword = document.getElementById("manabaPassword");
+const appPassword =document.getElementById("appPassword");
+const appPasswordConfirm =document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
 
@@ -113,6 +115,18 @@ manabaPassword.addEventListener("input", () => {
 
 });
 
+appPassword.addEventListener("input", () => {
+
+    updateState();
+
+});
+
+appPasswordConfirm.addEventListener("input", () => {
+
+    updateState();
+
+});
+
 updateState();
 updateAccentColor();
 
@@ -138,13 +152,29 @@ function updateState() {
         grade.value === "" ||
         studentNumber.value.trim() === "" ||
         manabaId.value.trim() === "" ||
-        manabaPassword.value.trim() === "";
+        manabaPassword.value.trim() === ""
+        appPassword.value.trim() === "" ||
+        appPasswordConfirm.value.trim() === "";
 
 }
 
 button.addEventListener("click", async () => {
 
         const value = studentNumber.value.trim();
+
+        if (appPassword.value.length < 6) {
+
+            alert("アプリ用パスワードは6文字以上で入力してください。");
+            return;
+
+        }
+
+        if (appPassword.value !== appPasswordConfirm.value) {
+
+            alert("アプリ用パスワードが一致しません。");
+            return;
+
+        }
 
         const selectedDepartment = department.value;
         const selectedMajor = major.value;
@@ -281,6 +311,7 @@ try {
             grade: selectedGrade,
             manabaId: manabaId.value,
             manabaPasswordEncrypted: encryptedPassword,
+            appPassword: appPassword.value,
             subscription: JSON.parse(JSON.stringify(subscription))
         }
     );
