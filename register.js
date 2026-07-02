@@ -311,7 +311,13 @@ try {
             manabaId: manabaId.value,
             manabaPasswordEncrypted: encryptedPassword,
             appPasswordHash: appPasswordHash,
-            subscription: JSON.parse(JSON.stringify(subscription))
+            subscription: JSON.parse(JSON.stringify(subscription)),
+            
+            notificationSettings: {
+                schedule: true,
+                assignment: true,
+                reminder: true
+}
         }
     );
 

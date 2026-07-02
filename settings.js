@@ -176,6 +176,10 @@ document
 .getElementById("logout")
 .addEventListener("click", () => {
 
+    if (!confirm("ログアウトしますか？")) {
+        return;
+    }
+
     localStorage.removeItem("loggedIn");
 
     location.href = "login.html";
