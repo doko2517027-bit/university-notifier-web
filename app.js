@@ -3,7 +3,6 @@ import {
   getFirestore,
   doc,
   getDoc,
-  setDoc,
   collection,
   query,
   where,
@@ -67,6 +66,19 @@ if (loggedIn !== "true") {
 
 async function checkMaintenance() {
 
+    checkMaintenance()
+    .then(() => {
+        loadUserName();
+        loadNews();
+        loadTodaySchedule();
+    })
+    .catch((e) => {
+        console.error(e);
+        loadUserName();
+        loadNews();
+        loadTodaySchedule();
+    });
+
     const ref = doc(db, "system", "app");
 
     const snap = await getDoc(ref);
@@ -107,20 +119,6 @@ async function checkMaintenance() {
 
 }
 
-checkMaintenance()
-.then(() => {
-    console.log("メンテOK");
-    loadUserName();
-    loadNews();
-    loadTodaySchedule();
-})
-.catch((e) => {
-    console.error("メンテ確認エラー", e);
-    loadUserName();
-    loadNews();
-    loadTodaySchedule();
-});
-
 async function loadUserName() {
 
     const ref = doc(
@@ -155,9 +153,23 @@ async function loadNews() {
             return;
         }
 
-        const snapshot = await getDocs(
-            collection(db, "news")
-        );
+        let q;
+
+        if (department !== "") {
+            q = query(
+                collection(db, "news"),
+                where("department", "==", department),
+                where("grade", "==", grade.replace("年", ""))
+            );
+        } else {
+            q = query(
+                collection(db, "news"),
+                where("major", "==", major),
+                where("grade", "==", grade.replace("年", ""))
+            );
+        }
+
+        const snapshot = await getDocs(q);
         const notices = [];
 
         snapshot.forEach((doc) => {
@@ -169,46 +181,35 @@ async function loadNews() {
         });
 
         if (snapshot.empty) {
-
             newsList.innerHTML = "まだお知らせはありません";
-
             return;
-
         }
 
         newsList.innerHTML = "";
 
-        const latestNews = notices.slice(0, 3);
+        notices.slice(0, 3).forEach((notice) => {
 
-        latestNews.forEach((notice) => {
+            const posted = notice.postedAt.toDate();
 
-            let postedText = "";
-
-            if (notice.postedAt) {
-                const posted = notice.postedAt.toDate();
-
-                postedText =
-                    `${posted.getFullYear()}/` +
-                    `${posted.getMonth() + 1}/` +
-                    `${posted.getDate()} ` +
-                    `${String(posted.getHours()).padStart(2, "0")}:` +
-                    `${String(posted.getMinutes()).padStart(2, "0")}`;
-            } else {
-                postedText = notice.date;
-            }
+            const postedText =
+                `${posted.getFullYear()}/` +
+                `${posted.getMonth() + 1}/` +
+                `${posted.getDate()} ` +
+                `${String(posted.getHours()).padStart(2, "0")}:` +
+                `${String(posted.getMinutes()).padStart(2, "0")}`;
 
             newsList.innerHTML += `
                 <div class="news-card">
                     <div class="news-date">${postedText}</div>
 
                     <div class="news-body">
-                        ${(notice.body || notice.title || "").replace(/\n/g, "<br>")}
+                        ${notice.body.replace(/\n/g, "<br>")}
                     </div>
 
                     <br>
 
-                    <a href="${notice.pdf || notice.url}" target="_blank">
-                        ${notice.pdf ? "📄 PDFを見る" : "📢 コースを見る"}
+                    <a href="${notice.pdf}" target="_blank">
+                        📄 PDFを見る
                     </a>
                 </div>
             `;
@@ -223,10 +224,8 @@ async function loadNews() {
         `;
 
     } catch (e) {
-
-        console.error("お知らせ取得エラー", e);
+        console.error(e);
         newsList.innerHTML = "お知らせの取得に失敗しました。";
-
     }
 }
 
