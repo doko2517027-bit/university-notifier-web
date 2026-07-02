@@ -22,16 +22,10 @@ const db = getFirestore(app);
 const appPassword = document.getElementById("appPassword");
 const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const savePassword = document.getElementById("savePassword");
-
-const studentNumber =
-    document.getElementById("studentNumber");
+const studentNumber = document.getElementById("studentNumber");
 
 const value =
     studentNumber.value.trim();
-
-if (!studentNumber) {
-    location.href = "login.html";
-}
 
 savePassword.addEventListener("click", async () => {
 
@@ -45,7 +39,16 @@ savePassword.addEventListener("click", async () => {
         return;
     }
 
-    const userRef = doc(db, "users", studentNumber);
+    const userRef = doc(db, "users", value);
+    const value = studentNumber.value.trim();
+
+    if (!/^\d{7}$/.test(value)) {
+
+        alert("学籍番号は7桁の数字で入力してください。");
+        return;
+
+    }
+
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
@@ -65,14 +68,12 @@ savePassword.addEventListener("click", async () => {
 
     localStorage.setItem("registered", "true");
     localStorage.setItem("loggedIn", "true");
-    localStorage.setItem("studentNumber", studentNumber);
+    localStorage.setItem("studentNumber", value);
     localStorage.setItem("department", user.department || "");
     localStorage.setItem("major", user.major || "");
     localStorage.setItem("grade", user.grade || "");
     localStorage.setItem("manabaId", user.manabaId || "");
     localStorage.setItem("migrated", "true");
-
-    localStorage.removeItem("pendingStudentNumber");
 
     alert("アプリ用パスワードを設定しました。");
 

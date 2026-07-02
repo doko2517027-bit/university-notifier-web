@@ -22,9 +22,14 @@ const studentNumber = document.getElementById("studentNumber");
 const appPassword = document.getElementById("appPassword");
 const loginButton = document.getElementById("loginButton");
 const registerButton = document.getElementById("registerButton");
+const setPasswordButton = document.getElementById("setPasswordButton");
 
 registerButton.addEventListener("click", () => {
     location.href = "register.html";
+});
+
+setPasswordButton.addEventListener("click", () => {
+    location.href = "set-password.html";
 });
 
 loginButton.addEventListener("click", async () => {
