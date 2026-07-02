@@ -152,7 +152,7 @@ function updateState() {
         grade.value === "" ||
         studentNumber.value.trim() === "" ||
         manabaId.value.trim() === "" ||
-        manabaPassword.value.trim() === ""
+        manabaPassword.value.trim() === "" ||
         appPassword.value.trim() === "" ||
         appPasswordConfirm.value.trim() === "";
 
