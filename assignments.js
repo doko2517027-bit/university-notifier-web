@@ -82,10 +82,15 @@ async function loadAssignments() {
 
     assignments.forEach(item => {
 
+        const course =
+            item.course ||
+            item.courseName ||
+            item.subject ||
+            "科目名なし";
+
         const title =
             item.title ||
             item.name ||
-            item.subject ||
             "課題名なし";
 
         const deadline =
@@ -94,18 +99,23 @@ async function loadAssignments() {
             item.limit ||
             "締切不明";
 
-        const rawUrl =
+        const rawCourseUrl =
             item.courseUrl ||
             "";
 
         const url =
-            rawUrl
-                ? "https://sums.manaba.jp/ct/" + rawUrl + "_report"
-        : "";
+            rawCourseUrl
+                ? "https://sums.manaba.jp/ct/" + rawCourseUrl + "_report"
+                : "";
 
         assignmentList.innerHTML += `
             <div class="setting-card">
-                <h3>📚 ${title}</h3>
+                <h3>📚 ${course}</h3>
+
+                <p>
+                    <b>課題</b><br>
+                    ${title}
+                </p>
 
                 <p>
                     <b>締切</b><br>
@@ -114,7 +124,7 @@ async function loadAssignments() {
 
                 ${
                     url
-                    ? `<a href="${url}" target="_blank">Manabaで開く</a>`
+                    ? `<a href="${url}" target="_blank">レポート一覧を開く</a>`
                     : `<p>リンクなし</p>`
                 }
             </div>
