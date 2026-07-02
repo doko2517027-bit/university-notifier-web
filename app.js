@@ -107,12 +107,18 @@ async function checkMaintenance() {
 
 }
 
-checkMaintenance().then(() => {
-
+checkMaintenance()
+.then(() => {
+    console.log("メンテOK");
     loadUserName();
     loadNews();
     loadTodaySchedule();
-
+})
+.catch((e) => {
+    console.error("メンテ確認エラー", e);
+    loadUserName();
+    loadNews();
+    loadTodaySchedule();
 });
 
 async function loadUserName() {
@@ -218,12 +224,18 @@ async function loadNews() {
 
     } catch (e) {
 
-        alert(e);
+        console.error("お知らせ取得エラー", e);
+        newsList.innerHTML = "お知らせの取得に失敗しました。";
 
     }
 }
 
 async function loadTodaySchedule() {
+
+    console.log("時間割読み込み開始");
+    console.log("department:", department);
+    console.log("major:", major);
+    console.log("grade:", grade);
 
     const department = localStorage.getItem("department");
     const major = localStorage.getItem("major");
