@@ -312,7 +312,6 @@ try {
             manabaPasswordEncrypted: encryptedPassword,
             appPasswordHash: appPasswordHash,
             subscription: JSON.parse(JSON.stringify(subscription)),
-            
             notificationSettings: {
                 schedule: true,
                 assignment: true,
