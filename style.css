@@ -330,9 +330,9 @@ body.dark .schedule-table tr:hover{
 
     border-radius:12px;
 
-    padding:18px;
+    padding:24px;
 
-    max-width:500px;
+    max-width:420px;
 
     margin:60px auto 20px;
 
@@ -410,7 +410,7 @@ body.dark #versionText{
 
     border:none;
 
-    border-radius:10px;
+    border-radius:14px;
 
     background:#ef4444;
 
