@@ -232,7 +232,7 @@ button.addEventListener("click", async () => {
     if (permission !== "granted") {
 
         alert(
-            "通知が拒否されています。\n\n設定 → 通知 → University Notifier から通知を許可してください。"
+            "通知が拒否されています。\n\n設定 → 通知 → CareMateApp から通知を許可してください。"
         );
 
         return;

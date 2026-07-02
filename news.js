@@ -24,7 +24,7 @@ const db = getFirestore(app);
 
 const userName = document.getElementById("userName");
 const themeButton = document.getElementById("themeButton");
-const card = document.querySelector(".setting-card");
+const newsList = document.getElementById("newsList");
 
 const studentNumber = localStorage.getItem("studentNumber");
 
@@ -76,48 +76,42 @@ async function loadNews() {
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-
-        card.innerHTML = "お知らせはありません。";
+        newsList.innerHTML = "お知らせはありません。";
         return;
-
     }
 
     const notices = [];
 
     snapshot.forEach(doc => {
-
         notices.push(doc.data());
-
     });
 
     notices.sort((a, b) =>
         b.postedAt.seconds - a.postedAt.seconds
     );
 
-    card.innerHTML = "";
+    newsList.innerHTML = "";
 
     notices.forEach(notice => {
 
         const posted = notice.postedAt.toDate();
 
-        card.innerHTML += `
-            <div style="margin-bottom:20px;">
+        newsList.innerHTML += `
+            <div class="news-card">
 
-                <b>
+                <div class="news-date">
                     ${posted.getFullYear()}/${posted.getMonth()+1}/${posted.getDate()}
-                </b>
+                </div>
 
-                <br><br>
+                <div class="news-body">
+                    ${notice.body.replace(/\n/g,"<br>")}
+                </div>
 
-                ${notice.body.replace(/\n/g,"<br>")}
-
-                <br><br>
+                <br>
 
                 <a href="${notice.pdf}" target="_blank">
-                    PDFを見る
+                    📄 PDFを見る
                 </a>
-
-                <hr>
 
             </div>
         `;

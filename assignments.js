@@ -95,7 +95,6 @@ async function loadAssignments() {
             "締切不明";
 
         const rawUrl =
-            item.courseUrl ||
             item.url ||
             item.link ||
             item.href ||
@@ -104,7 +103,7 @@ async function loadAssignments() {
         const url =
             rawUrl.startsWith("http")
                 ? rawUrl
-                : "https://sums.manaba.jp/" + rawUrl;
+                : "https://sums.manaba.jp/ct/" + rawUrl;
 
         assignmentList.innerHTML += `
             <div class="setting-card">

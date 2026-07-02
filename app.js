@@ -202,7 +202,6 @@ async function loadNews() {
             let postedText = "";
 
             if (notice.postedAt) {
-
                 const posted = notice.postedAt.toDate();
 
                 postedText =
@@ -211,39 +210,34 @@ async function loadNews() {
                     `${posted.getDate()} ` +
                     `${String(posted.getHours()).padStart(2, "0")}:` +
                     `${String(posted.getMinutes()).padStart(2, "0")}`;
-
             } else {
-
                 postedText = notice.date;
-
             }
 
             newsList.innerHTML += `
-                <div style="margin-bottom:20px;">
-                    <b>${postedText}</b>
+                <div class="news-card">
+                    <div class="news-date">${postedText}</div>
 
-                    ${notice.body.replace(/\n/g, "<br>")}
-                    <br><br>
+                    <div class="news-body">
+                        ${notice.body.replace(/\n/g, "<br>")}
+                    </div>
+
+                    <br>
 
                     <a href="${notice.pdf}" target="_blank">
-                        PDFを見る
+                        📄 PDFを見る
                     </a>
                 </div>
-                <hr>
             `;
         });
 
         newsList.innerHTML += `
-
             <div style="text-align:center; margin-top:20px;">
-
                 <a href="news.html">
                     もっと見る →
                 </a>
-
             </div>
-
-            `;
+        `;
 
     } catch (e) {
 
@@ -479,17 +473,27 @@ themeButton.addEventListener("click", () => {
 
 const splash = document.getElementById("splash");
 
-splash.style.display = "flex";
+if (!localStorage.getItem("splashShown")) {
 
-setTimeout(() => {
-
-    splash.classList.add("hide");
+    splash.style.display = "flex";
 
     setTimeout(() => {
-        splash.style.display = "none";
-    }, 500);
 
-}, 1200);
+        splash.classList.add("hide");
+
+        setTimeout(() => {
+            splash.style.display = "none";
+        }, 500);
+
+    }, 1200);
+
+    localStorage.setItem("splashShown", "true");
+
+} else {
+
+    splash.style.display = "none";
+
+}
 
 const settingButton =
 document.getElementById("settingButton");
