@@ -67,7 +67,7 @@ const loggedIn =
 if (loggedIn !== "true") {
 
     location.href = "login.html";
-    
+
 }
 
 async function checkMaintenance() {
@@ -418,15 +418,9 @@ async function loadTodaySchedule() {
 
                 }
 
-                window.open(
-                    "https://sums.manaba.jp/ct/" + courseId,
-                    "_blank"
-                );
-
-                if(!courseId){
+                if (!courseId) {
 
                     alert("この授業はまだ対応していません");
-
                     return;
 
                 }
