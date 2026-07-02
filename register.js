@@ -284,6 +284,9 @@ button.addEventListener("click", async () => {
     const encryptedPassword =
         await encrypt(manabaPassword.value);
 
+    const appPasswordHash =
+    await hashPassword(appPassword.value);
+
 try {
 
     const userRef = doc(
@@ -311,7 +314,7 @@ try {
             grade: selectedGrade,
             manabaId: manabaId.value,
             manabaPasswordEncrypted: encryptedPassword,
-            appPassword: appPassword.value,
+            appPassword: appPasswordHash,
             subscription: JSON.parse(JSON.stringify(subscription))
         }
     );
@@ -388,5 +391,26 @@ async function encrypt(text) {
     result.set(new Uint8Array(encrypted), iv.length);
 
     return btoa(String.fromCharCode(...result));
+
+}
+
+async function hashPassword(password) {
+
+    const encoder = new TextEncoder();
+
+    const data = encoder.encode(password);
+
+    const hashBuffer = await crypto.subtle.digest(
+        "SHA-256",
+        data
+    );
+
+    const hashArray = Array.from(
+        new Uint8Array(hashBuffer)
+    );
+
+    return hashArray
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
 
 }
