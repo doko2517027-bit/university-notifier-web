@@ -66,8 +66,8 @@ const loggedIn =
 
 if (loggedIn !== "true") {
 
-    location.href = "set-password.html";
-
+    location.href = "login.html";
+    
 }
 
 async function checkMaintenance() {
