@@ -3,7 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
     getFirestore,
     doc,
-    setDoc
+    setDoc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -255,12 +256,24 @@ button.addEventListener("click", async () => {
 
 try {
 
-    await setDoc(
-        doc(
+    const userRef = doc(
             db,
             "users",
             studentNumber.value
-        ),
+        );
+
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+
+            alert("この学籍番号は既に登録されています。");
+
+            return;
+
+        }
+
+    await setDoc(
+        userRef,
         {
             studentNumber: studentNumber.value,
             department: selectedDepartment,
