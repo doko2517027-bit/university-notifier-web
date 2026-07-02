@@ -279,3 +279,64 @@ select:focus{
     flex-shrink:0;
     accent-color:var(--primary);
 }
+
+.schedule-scroll{
+    display:flex;
+    gap:16px;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    padding-bottom:10px;
+}
+
+.day-card{
+    min-width:88%;
+    background:var(--card);
+    border-radius:22px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    scroll-snap-align:start;
+}
+
+.day-title{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:16px;
+    color:var(--text);
+}
+
+.lesson-card{
+    display:flex;
+    gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
+}
+
+.lesson-card:last-child{
+    border-bottom:none;
+}
+
+.lesson-period{
+    min-width:48px;
+    height:48px;
+    border-radius:14px;
+    background:var(--primary);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.lesson-subject{
+    font-size:17px;
+    font-weight:bold;
+    color:var(--text);
+}
+
+.lesson-room,
+.lesson-teacher,
+.empty-text{
+    color:var(--subtext);
+    font-size:14px;
+    margin-top:4px;
+}

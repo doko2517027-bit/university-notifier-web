@@ -252,194 +252,80 @@ async function loadNews() {
 
 async function loadTodaySchedule() {
 
-    const courseRef = doc(
-        db,
-        "courseLinks",
-        studentNumber
-    );
-
-    const courseSnap = await getDoc(courseRef);
-
-    let courseLinks = {};
-
-    if (courseSnap.exists()) {
-
-        courseLinks =
-            courseSnap.data().courses;
-
-    }
-
     const department = localStorage.getItem("department");
     const major = localStorage.getItem("major");
     const grade = localStorage.getItem("grade");
-
-    if ((!department && !major) || !grade) {
-
-        todaySchedule.innerHTML = "学科・学年を登録してください。";
-        return;
-
-    }
 
     let docId = "";
 
     if (department === "看護学科") {
         docId = "ns_yamate";
-    }
-    else if (major === "理学療法学専攻") {
+    } else if (major === "理学療法学専攻") {
         docId = "pt";
-    }
-    else if (major === "作業療法学専攻") {
+    } else if (major === "作業療法学専攻") {
         docId = "ot";
     }
 
-    const ref = doc(db, "schedule", docId);
-
-    const snap = await getDoc(ref);
+    const snap = await getDoc(
+        doc(db, "schedule", docId)
+    );
 
     if (!snap.exists()) {
-
-        todaySchedule.innerHTML = "時間割がありません。";
+        document.getElementById("todaySchedule").innerHTML = "時間割がありません。";
+        document.getElementById("tomorrowSchedule").innerHTML = "時間割がありません。";
         return;
-
     }
 
     const schedules = snap.data().data;
 
-    const week = ["日","月","火","水","木","金","土"];
+    const week = ["日", "月", "火", "水", "木", "金", "土"];
 
     const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
 
-    // 18時以降は翌日の時間割を表示
-    if (today.getHours() >= 18) {
-        today.setDate(today.getDate() + 1);
-    }
+    renderDaySchedule(today, "今日", "todayDate", "todaySchedule", schedules, week, grade);
+    renderDaySchedule(tomorrow, "明日", "tomorrowDate", "tomorrowSchedule", schedules, week, grade);
 
-    const todayDay = week[today.getDay()];
+}
 
-    const result = schedules.filter(item =>
+function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade) {
 
-        item.grade === grade &&
-        item.day === todayDay
+    const day = week[date.getDay()];
 
-    );
+    document.getElementById(dateId).textContent =
+        `${label}｜${date.getMonth() + 1}月${date.getDate()}日（${day}）`;
 
-    result.sort((a,b)=>{
-
-        return parseInt(a.period) - parseInt(b.period);
-
-    });
-
-    if(result.length===0){
-
-        todaySchedule.innerHTML="今日は授業がありません。";
-        return;
-
-    }
-
-    let html = `
-    <table class="schedule-table">
-        <thead>
-            <tr>
-                <th>時限</th>
-                <th>科目名</th>
-                <th>区分</th>
-                <th>建物</th>
-                <th>講義室</th>
-                <th>教員名</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
-
-    result.forEach(item => {
-
-        html += `
-        <tr>
-            <td>${item.period}</td>
-            <td>
-
-            <a
-                href="#"
-                class="course-link"
-                data-subject="${item.subject}"
-            >
-
-            ${item.subject}
-
-            </a>
-
-            </td>
-            <td>${item.kubun}</td>
-            <td>${item.building}</td>
-            <td>${item.room}</td>
-            <td>${item.teacher}</td>
-        </tr>
-        `;
-
-    });
-
-    html += `
-        </tbody>
-    </table>
-    `;
-
-    todaySchedule.innerHTML = html;
-
-    document
-    .querySelectorAll(".course-link")
-    .forEach(link => {
-
-        link.addEventListener(
-            "click",
-            (e)=>{
-
-                e.preventDefault();
-
-                let subject =
-                    e.target.dataset.subject;
-
-                subject = subject
-                    .replace(/[（(].*?[）)]/g, "")
-                    .trim();
-
-                let courseId =
-                    courseLinks[subject];
-
-                if (!courseId) {
-
-                    for (const key in courseLinks) {
-
-                        if (
-                            subject.includes(key) ||
-                            key.includes(subject)
-                        ) {
-
-                            courseId = courseLinks[key];
-                            break;
-
-                        }
-
-                    }
-
-                }
-
-                if (!courseId) {
-
-                    alert("この授業はまだ対応していません");
-
-                    return;
-
-                }
-
-                window.open(
-                    "https://sums.manaba.jp/ct/" + courseId,
-                    "_blank"
-                );
-
-            }
+    const list = schedules
+        .filter(item =>
+            item.grade === grade &&
+            item.day === day
+        )
+        .sort((a, b) =>
+            parseInt(a.period) - parseInt(b.period)
         );
 
-    });
+    if (list.length === 0) {
+        document.getElementById(targetId).innerHTML =
+            `<p class="empty-text">授業はありません</p>`;
+        return;
+    }
+
+    document.getElementById(targetId).innerHTML =
+        list.map(item => `
+            <div class="lesson-card">
+                <div class="lesson-period">${item.period}</div>
+                <div>
+                    <div class="lesson-subject">${item.subject}</div>
+                    <div class="lesson-room">
+                        ${item.building} ${item.room}
+                    </div>
+                    <div class="lesson-teacher">
+                        ${item.teacher}
+                    </div>
+                </div>
+            </div>
+        `).join("");
 
 }
 
