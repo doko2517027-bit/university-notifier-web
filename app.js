@@ -195,7 +195,10 @@ async function loadNews() {
 
         newsList.innerHTML = "";
 
-        notices.forEach((notice) => {
+        const latestNews = notices.slice(0, 3);
+
+        latestNews.forEach((notice) => {
+
             let postedText = "";
 
             if (notice.postedAt) {
@@ -229,6 +232,18 @@ async function loadNews() {
                 <hr>
             `;
         });
+
+        newsList.innerHTML += `
+
+            <div style="text-align:center; margin-top:20px;">
+
+                <a href="news.html">
+                    もっと見る →
+                </a>
+
+            </div>
+
+            `;
 
     } catch (e) {
 
