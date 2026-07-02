@@ -98,7 +98,7 @@ document.getElementById("gradeText").textContent =
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
 
-loadNotificationSettings();
+loadNotificationswitchs();
 setupNotificationEvents();
 
 // ダークモード
@@ -191,7 +191,7 @@ document
 
 });
 
-async function loadNotificationSettings() {
+async function loadNotificationswitchs() {
 
     if (!studentNumber) return;
 
@@ -201,20 +201,20 @@ async function loadNotificationSettings() {
 
     if (!snap.exists()) return;
 
-    const settings =
-        snap.data().notificationSettings || {};
+    const switchs =
+        snap.data().notificationswitchs || {};
 
     notifySchedule.checked =
-        settings.schedule ?? true;
+        switchs.schedule ?? true;
 
     notifyAssignment.checked =
-        settings.assignment ?? true;
+        switchs.assignment ?? true;
 
     notifyReminder.checked =
-        settings.reminder ?? true;
+        switchs.reminder ?? true;
 
     notifyCourseNews.checked =
-        settings.courseNews ?? true;
+        switchs.courseNews ?? true;
 
 }
 
@@ -227,20 +227,20 @@ function setupNotificationEvents() {
         notifyCourseNews
     ].forEach(input => {
 
-        input.addEventListener("change", saveNotificationSettings);
+        input.addEventListener("change", saveNotificationswitchs);
 
     });
 
 }
 
-async function saveNotificationSettings() {
+async function saveNotificationswitchs() {
 
     if (!studentNumber) return;
 
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            notificationSettings: {
+            notificationswitchs: {
                 schedule: notifySchedule.checked,
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,

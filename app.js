@@ -378,11 +378,11 @@ if (!localStorage.getItem("splashShown")) {
 
 }
 
-const settingButton =
-document.getElementById("settingButton");
+const switchButton =
+document.getElementById("switchButton");
 
-settingButton.addEventListener("click",()=>{
+switchButton.addEventListener("click",()=>{
 
-    location.href="settings.html";
+    location.href="switchs.html";
 
 });

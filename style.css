@@ -75,7 +75,7 @@ a{
 }
 
 #themeButton,
-#settingButton{
+#switchButton{
     width:50px;
     height:50px;
     border-radius:50%;
@@ -86,7 +86,7 @@ a{
     box-shadow:var(--shadow);
 }
 
-.setting-card,
+.switch-card,
 .news-card{
     background:var(--card);
     border-radius:18px;
@@ -254,7 +254,33 @@ select:focus{
     font-size:13px;
 }
 
-.setting-row{
+.switch-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:16px 0;
+    border-bottom:1px solid var(--border);
+    text-align:left;
+}
+
+.switch-row:last-child{
+    border-bottom:none;
+}
+
+.switch-row small{
+    color:var(--subtext);
+    font-size:13px;
+}
+
+.switch-row input[type="checkbox"]{
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+    accent-color:var(--primary);
+}
+
+.switch-row{
     display:flex;
     justify-content:space-between;
     align-items:center;

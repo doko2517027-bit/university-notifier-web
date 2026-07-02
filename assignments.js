@@ -109,7 +109,7 @@ async function loadAssignments() {
                 : "";
 
         assignmentList.innerHTML += `
-            <div class="setting-card">
+            <div class="switch-card">
                 <h3>📚 ${course}</h3>
 
                 <p>
