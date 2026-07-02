@@ -94,11 +94,17 @@ async function loadAssignments() {
             item.limit ||
             "締切不明";
 
-        const url =
+        const rawUrl =
+            item.courseUrl ||
             item.url ||
             item.link ||
             item.href ||
             "";
+
+        const url =
+            rawUrl.startsWith("http")
+                ? rawUrl
+                : "https://sums.manaba.jp/ct/" + rawUrl;
 
         assignmentList.innerHTML += `
             <div class="setting-card">
