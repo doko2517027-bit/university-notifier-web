@@ -116,6 +116,8 @@ checkMaintenance()
 
 async function loadUserName() {
 
+    console.log("studentNumber:", studentNumber);
+
     const ref = doc(
         db,
         "publicUsers",
