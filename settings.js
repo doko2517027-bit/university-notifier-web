@@ -58,6 +58,7 @@ const studentNumber = localStorage.getItem("studentNumber");
 const notifySchedule = document.getElementById("notifySchedule");
 const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
+const notifyCourseNews = document.getElementById("notifyCourseNews");
 
 loadUserName();
 
@@ -212,11 +213,19 @@ async function loadNotificationSettings() {
     notifyReminder.checked =
         settings.reminder ?? true;
 
+    notifyCourseNews.checked =
+        settings.courseNews ?? true;
+
 }
 
 function setupNotificationEvents() {
 
-    [notifySchedule, notifyAssignment, notifyReminder].forEach(input => {
+    [
+        notifySchedule,
+        notifyAssignment,
+        notifyReminder,
+        notifyCourseNews
+    ].forEach(input => {
 
         input.addEventListener("change", saveNotificationSettings);
 
@@ -234,7 +243,8 @@ async function saveNotificationSettings() {
             notificationSettings: {
                 schedule: notifySchedule.checked,
                 assignment: notifyAssignment.checked,
-                reminder: notifyReminder.checked
+                reminder: notifyReminder.checked,
+                courseNews: notifyCourseNews.checked
             }
         }
     );
