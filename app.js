@@ -394,6 +394,8 @@ async function openCourse(subject) {
         return;
     }
 
+    window.open(url, "_blank");
+
 }
 
 window.openCourse = openCourse;
