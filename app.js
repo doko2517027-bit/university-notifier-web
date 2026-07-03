@@ -384,4 +384,4 @@ settingButton.addEventListener("click",()=>{
 
     location.href="settings.html";
 
-});
+})
