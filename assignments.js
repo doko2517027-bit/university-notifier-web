@@ -104,8 +104,8 @@ async function loadAssignments() {
             "";
 
         const url =
-            rawCourseUrl
-                ? "https://sums.manaba.jp/ct/" + rawCourseUrl + "_report"
+            item.url
+                ? "https://sums.manaba.jp/ct/" + item.url
                 : "";
 
         assignmentList.innerHTML += `
@@ -124,7 +124,7 @@ async function loadAssignments() {
 
                 ${
                     url
-                    ? `<a href="${url}" target="_blank">レポート一覧を開く</a>`
+                    ? `<a href="${url}" target="_blank">課題を開く</a>`
                     : `<p>リンクなし</p>`
                 }
             </div>
