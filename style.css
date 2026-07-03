@@ -352,14 +352,26 @@ select:focus{
 
 .lesson-card{
     cursor:pointer;
+    transition:0.2s;
     position:relative;
 }
 
+.lesson-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
 .lesson-card::after{
-    content:"Manabaへ";
-    margin-left:auto;
-    color:var(--primary);
-    font-size:13px;
+    content:"▶ Manaba";
+    position:absolute;
+    right:16px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:12px;
+    color:#2e7d32;
     font-weight:bold;
-    align-self:center;
+}
+
+.lesson-subject{
+    text-decoration:underline;
 }
