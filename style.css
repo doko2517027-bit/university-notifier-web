@@ -105,6 +105,12 @@ a{
 
 }
 
+.news-card:active{
+
+    transform:scale(.98);
+
+}
+
 .news-card:hover{
 
     transform:translateY(-2px);
@@ -460,5 +466,45 @@ select:focus{
     background:#2196F3;
 
     color:white;
+
+}
+
+.news-link{
+
+    margin-top:15px;
+
+    text-align:right;
+
+    color:#2196F3;
+
+    font-weight:bold;
+
+}
+
+.news-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:10px;
+
+}
+
+.news-new{
+
+    background:#ff5252;
+
+    color:white;
+
+    font-size:12px;
+
+    padding:3px 8px;
+
+    border-radius:999px;
+
+    font-weight:bold;
 
 }

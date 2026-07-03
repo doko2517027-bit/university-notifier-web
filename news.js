@@ -177,39 +177,31 @@ async function loadCourseNews() {
 
     notices.forEach(notice => {
 
+        const isNew =
+            (Date.now() - notice.createdAt.toDate().getTime()) <
+            1000 * 60 * 60 * 24 * 3;
+
         courseNews.innerHTML += `
 
-        <div class="news-card">
-
-            <div class="news-date">
-
-                ${notice.posted}
-
-            </div>
+        <div class="news-card"
+            onclick="window.open('${notice.url}','_blank')">
 
             <div class="news-title">
-
                 📘 ${notice.course}
-
             </div>
 
             <div class="news-body">
-
                 ${notice.title}
-
             </div>
 
             <div class="news-date">
-
                 👤 ${notice.author}<br>
-
                 🕒 ${notice.posted}
-
             </div>
 
-            <div class="news-body">
+            <div class="news-link">
 
-                ${notice.title}
+                → Manabaで開く
 
             </div>
 
