@@ -299,9 +299,6 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
 
 }
 
-console.log("時間割の科目:", subject);
-console.log("Firestore:", courses);
-
 async function openCourse(subject) {
 
     const snap = await getDoc(
@@ -314,6 +311,9 @@ async function openCourse(subject) {
     }
 
     const courses = snap.data().courses;
+
+    console.log("時間割の科目:", subject);
+    console.log("Firestore:", courses);
 
     const url = courses[subject];
 
