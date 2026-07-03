@@ -324,6 +324,8 @@ async function openCourse(subject) {
             "https://sums.manaba.jp/ct/" + item.courseUrl;
     }
 
+}
+
 window.openCourse = openCourse;
 
 const themeButton = document.getElementById("themeButton");
