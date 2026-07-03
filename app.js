@@ -322,10 +322,6 @@ async function openCourse(subject) {
         return;
     }
 
-    if (confirm("Manabaの授業を開きますか？")) {
-        window.open(url, "_blank");
-    }
-
 }
 
 window.openCourse = openCourse;
