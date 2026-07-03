@@ -280,14 +280,11 @@ async function loadHomeCourseNews() {
     });
 
     homeCourseNews.innerHTML += `
-
-    <div class="news-link"
-        onclick="location.href='news.html'">
-
-        もっと見る →
-
-    </div>
-
+        <div style="text-align:center; margin-top:20px;">
+            <a href="news.html">
+                もっと見る →
+            </a>
+        </div>
     `;
 
 }
