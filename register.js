@@ -4,7 +4,8 @@ import {
     getFirestore,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { VERSION } from "./version.js";
@@ -295,7 +296,24 @@ try {
 
         if (userSnap.exists()) {
 
-            alert("この学籍番号は既に登録されています。");
+            await updateDoc(
+                userRef,
+                {
+                    subscription: JSON.parse(JSON.stringify(subscription))
+                }
+            );
+
+            localStorage.setItem("registered", "true");
+            localStorage.setItem("department", selectedDepartment);
+            localStorage.setItem("major", selectedMajor);
+            localStorage.setItem("grade", selectedGrade);
+            localStorage.setItem("studentNumber", studentNumber.value);
+            localStorage.setItem("manabaId", manabaId.value);
+            localStorage.setItem("migrated", "true");
+            localStorage.setItem("loggedIn", "true");
+
+            alert("通知情報を更新しました。");
+            location.href = "index.html";
 
             return;
 
