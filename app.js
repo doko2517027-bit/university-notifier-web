@@ -97,13 +97,11 @@ async function checkMaintenance() {
 
 checkMaintenance()
 .then(() => {
-    alert("checkMaintenance OK");
     loadUserName();
     loadNews();
     loadTodaySchedule();
 })
 .catch((e) => {
-    alert("checkMaintenance エラー");
     console.error(e);
     loadUserName();
     loadNews();
