@@ -331,6 +331,8 @@ async function openCourse(subject) {
 
 }
 
+window.openCourse = openCourse;
+
 const themeButton = document.getElementById("themeButton");
 
 // 前回の設定を読み込む
