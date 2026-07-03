@@ -124,7 +124,8 @@ async function loadAssignments() {
 
                 ${
                     url
-                    ? `<a href="${url}" target="_blank">課題を開く</a>`
+                    ? `<div class="switch-card assignment-card"
+                            onclick="window.open('${url}','_blank')">`
                     : `<p>リンクなし</p>`
                 }
             </div>
