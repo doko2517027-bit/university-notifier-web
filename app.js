@@ -302,26 +302,25 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
 async function openCourse(subject) {
 
     const snap = await getDoc(
-        doc(db, "assignments", studentNumber)
+        doc(db, "courseLinks", studentNumber)
     );
 
     if (!snap.exists()) {
-        alert("課題情報がありません。");
+        alert("コース情報がありません。");
         return;
     }
 
-    const assignments = snap.data().assignments;
+    const courses = snap.data().courses;
 
-    const item = assignments.find(a => a.course === subject);
+    const url = courses[subject];
 
-    if (!item) {
+    if (!url) {
         alert("この授業のManabaリンクはありません。");
         return;
     }
 
     if (confirm("Manabaの授業を開きますか？")) {
-        location.href =
-            "https://sums.manaba.jp/ct/" + item.courseUrl;
+        window.open(url, "_blank");
     }
 
 }
