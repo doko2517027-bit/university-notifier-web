@@ -23,73 +23,40 @@ const message = document.getElementById("message");
 const studentNumber =
     localStorage.getItem("studentNumber");
 
-console.log("student:", studentNumber);
+// 開発者ならメンテ中でもホームへ
+if (studentNumber) {
 
-let devSnap;
-let snap;
-
-try {
-
-    devSnap = await getDoc(
+    const devSnap = await getDoc(
         doc(db, "developers", studentNumber)
     );
 
-    console.log("developers OK", devSnap.exists());
-
-} catch (e) {
-
-    console.log("developers NG", e);
-
-}
-
-try {
-
-    snap = await getDoc(
-        doc(db, "system", "app")
-    );
-
-    console.log("system/app OK", snap.exists());
-
-} catch (e) {
-
-    console.log("system/app NG", e);
-
-}
-
-if (
-    devSnap &&
-    devSnap.exists() &&
-    devSnap.data().enabled
-) {
-
-    location.href = "index.html";
-
-} else if (snap && snap.exists()) {
-
-    const data = snap.data();
-
-    if (data.message) {
-        message.innerHTML =
-            data.message.replace(/\n/g, "<br>");
-    }
-
-    if (!data.maintenance) {
+    if (
+        devSnap.exists() &&
+        devSnap.data().enabled === true
+    ) {
         location.href = "index.html";
     }
 
 }
 
-if (snap && snap.exists()) {
+// メンテ情報取得
+const snap = await getDoc(
+    doc(db, "system", "app")
+);
+
+if (!snap.exists()) {
+    message.textContent = "メンテナンス情報を取得できませんでした。";
+} else {
 
     const data = snap.data();
+
+    if (!data.maintenance) {
+        location.href = "index.html";
+    }
 
     if (data.message) {
         message.innerHTML =
             data.message.replace(/\n/g, "<br>");
-    }
-
-    if (!data.maintenance) {
-        location.href = "index.html";
     }
 
 }

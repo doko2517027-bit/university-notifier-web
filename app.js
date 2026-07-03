@@ -66,9 +66,9 @@ if (loggedIn !== "true") {
 
 async function checkMaintenance() {
 
-    const ref = doc(db, "system", "app");
-
-    const snap = await getDoc(ref);
+    const snap = await getDoc(
+        doc(db, "system", "app")
+    );
 
     if (!snap.exists()) {
         return;
@@ -80,25 +80,19 @@ async function checkMaintenance() {
         return;
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    const devSnap = await getDoc(
+        doc(db, "developers", studentNumber)
+    );
 
-    const subscription =
-        await registration.pushManager.getSubscription();
-
-    if (!subscription) {
-        location.href = "maintenance.html";
-        return;
-    }
-
-    const devRef = doc(db, "developers", studentNumber);
-
-    const devSnap = await getDoc(devRef);
-
-    if (devSnap.exists()) {
+    if (
+        devSnap.exists() &&
+        devSnap.data().enabled === true
+    ) {
         return;
     }
 
     location.href = "maintenance.html";
+
 }
 
 checkMaintenance()
