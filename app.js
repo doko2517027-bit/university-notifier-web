@@ -273,7 +273,7 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
 
     const list = schedules
         .filter(item =>
-            item.grade === grade.replace("年", "") &&
+            item.grade === grade &&
             item.day === day
         )
         .sort((a, b) =>
