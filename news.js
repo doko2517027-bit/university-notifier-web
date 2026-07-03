@@ -199,6 +199,20 @@ async function loadCourseNews() {
 
             </div>
 
+            <div class="news-date">
+
+                👤 ${notice.author}<br>
+
+                🕒 ${notice.posted}
+
+            </div>
+
+            <div class="news-body">
+
+                ${notice.title}
+
+            </div>
+
         </div>
 
         `;

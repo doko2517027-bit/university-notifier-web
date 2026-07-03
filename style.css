@@ -88,26 +88,59 @@ a{
 
 .setting-card,
 .news-card{
-    background:var(--card);
-    border-radius:18px;
-    padding:22px;
-    margin:20px auto;
-    box-shadow:var(--shadow);
-    color:var(--text);
+
+    background:white;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    margin-bottom:16px;
+
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+
+    transition:.2s;
+
+    cursor:pointer;
+
+}
+
+.news-card:hover{
+
+    transform:translateY(-2px);
+
+}
+
+.dark .news-card{
+
+    background:#2b2b2b;
+
 }
 
 .news-date{
-    font-size:15px;
-    color:var(--subtext);
+
+    font-size:13px;
+
+    color:#888;
+
+    margin-bottom:8px;
+
+}
+
+.news-title{
+
+    font-size:18px;
+
     font-weight:bold;
-    margin-bottom:12px;
+
+    margin-bottom:10px;
+
 }
 
 .news-body{
-    font-size:17px;
-    line-height:1.8;
-    color:var(--text);
-    text-align:left;
+
+    line-height:1.6;
+
 }
 
 .news-list{
