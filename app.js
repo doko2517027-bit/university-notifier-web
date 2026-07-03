@@ -26,6 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const homeCourseNews = document.getElementById("homeCourseNews");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 const todaySchedule = document.getElementById("todaySchedule");
@@ -100,12 +101,14 @@ checkMaintenance()
     loadUserName();
     loadNews();
     loadTodaySchedule();
+    loadHomeCourseNews();
 })
 .catch((e) => {
     console.error(e);
     loadUserName();
     loadNews();
     loadTodaySchedule();
+    loadHomeCourseNews();
 });
 
 async function loadUserName() {
@@ -190,18 +193,21 @@ async function loadNews() {
                 `${String(posted.getMinutes()).padStart(2, "0")}`;
 
             newsList.innerHTML += `
-                <div class="news-card">
-                    <div class="news-date">${postedText}</div>
+                <div class="news-card"
+                    onclick="location.href='news.html'">
 
-                    <div class="news-body">
-                        ${notice.body.replace(/\n/g, "<br>")}
+                    <div class="news-date">
+                        ${postedText}
                     </div>
 
-                    <br>
+                    <div class="news-body">
 
-                    <a href="${notice.pdf}" target="_blank">
-                        📄 PDFを見る
-                    </a>
+                        ${notice.body
+                            .split("\n")[0]
+                            .substring(0, 40)}...
+
+                    </div>
+
                 </div>
             `;
         });
@@ -218,6 +224,72 @@ async function loadNews() {
         console.error(e);
         newsList.innerHTML = "お知らせの取得に失敗しました。";
     }
+}
+
+async function loadHomeCourseNews() {
+
+    const snapshot = await getDocs(
+        collection(db, "courseNews")
+    );
+
+    if (snapshot.empty) {
+
+        homeCourseNews.innerHTML =
+            "コースニュースはありません。";
+
+        return;
+
+    }
+
+    const notices = [];
+
+    snapshot.forEach(doc => {
+
+        notices.push(doc.data());
+
+    });
+
+    notices.sort((a, b) =>
+        b.createdAt.seconds - a.createdAt.seconds
+    );
+
+    homeCourseNews.innerHTML = "";
+
+    notices.slice(0, 3).forEach(notice => {
+
+        homeCourseNews.innerHTML += `
+
+        <div class="news-card"
+            onclick="location.href='news.html'">
+
+            <div class="news-title">
+                📘 ${notice.course}
+            </div>
+
+            <div class="news-body">
+                ${notice.title}
+            </div>
+
+            <div class="news-date">
+                ${notice.posted}
+            </div>
+
+        </div>
+
+        `;
+    });
+
+    homeCourseNews.innerHTML += `
+
+    <div class="news-link"
+        onclick="location.href='news.html'">
+
+        もっと見る →
+
+    </div>
+
+    `;
+
 }
 
 async function loadTodaySchedule() {
