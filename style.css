@@ -349,3 +349,17 @@ select:focus{
     font-size:14px;
     margin-top:4px;
 }
+
+.lesson-card{
+    cursor:pointer;
+    position:relative;
+}
+
+.lesson-card::after{
+    content:"Manabaへ";
+    margin-left:auto;
+    color:var(--primary);
+    font-size:13px;
+    font-weight:bold;
+    align-self:center;
+}
