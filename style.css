@@ -89,29 +89,21 @@ a{
 .setting-card,
 .news-card{
 
-    background:white;
-
-    border-radius:16px;
-
-    padding:18px;
-
-    margin-bottom:16px;
-
-    box-shadow:0 2px 10px rgba(0,0,0,.08);
-
-    transition:.2s;
-
     cursor:pointer;
 
-}
-
-.news-card:active{
-
-    transform:scale(.98);
+    transition:.2s;
 
 }
 
 .news-card:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:0 8px 20px rgba(0,0,0,.15);
+
+}
+
+.news-card:active{
 
     transform:translateY(-2px);
 
@@ -473,11 +465,13 @@ select:focus{
 
     margin-top:15px;
 
-    text-align:right;
-
     color:#2196F3;
 
     font-weight:bold;
+
+    text-decoration:underline;
+
+    text-align:right;
 
 }
 

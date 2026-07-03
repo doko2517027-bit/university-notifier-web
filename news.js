@@ -201,7 +201,7 @@ async function loadCourseNews() {
 
             <div class="news-link">
 
-                → Manabaで開く
+                🗞️ コースニュースを開く
 
             </div>
 
