@@ -288,7 +288,7 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
 
     document.getElementById(targetId).innerHTML =
         list.map(item => `
-            <div class="lesson-card">
+            <div class="lesson-card" onclick="openCourse('${item.subject}')">
                 <div class="lesson-period">${item.period}</div>
                 <div>
                     <div class="lesson-subject">${item.subject}</div>
@@ -301,6 +301,33 @@ function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade
                 </div>
             </div>
         `).join("");
+
+}
+
+async function openCourse(subject) {
+
+    const snap = await getDoc(
+        doc(db, "assignments", studentNumber)
+    );
+
+    if (!snap.exists()) {
+        alert("課題情報がありません。");
+        return;
+    }
+
+    const assignments = snap.data().assignments;
+
+    const item = assignments.find(a => a.course === subject);
+
+    if (!item) {
+        alert("この授業のManabaリンクはありません。");
+        return;
+    }
+
+    if (confirm("Manabaの授業を開きますか？")) {
+        location.href =
+            "https://sums.manaba.jp/ct/" + item.courseUrl;
+    }
 
 }
 
