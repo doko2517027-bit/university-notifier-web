@@ -28,9 +28,36 @@ const newsList = document.getElementById("newsList");
 
 const studentNumber = localStorage.getItem("studentNumber");
 
+const universityTab = document.getElementById("universityTab");
+const courseTab = document.getElementById("courseTab");
+
+const universityNews = document.getElementById("universityNews");
+const courseNews = document.getElementById("courseNews");
+
 loadUserName();
 loadNews();
+loadCourseNews();
 setupTheme();
+
+universityTab.onclick = () => {
+
+    universityTab.classList.add("active");
+    courseTab.classList.remove("active");
+
+    universityNews.style.display = "block";
+    courseNews.style.display = "none";
+
+};
+
+courseTab.onclick = () => {
+
+    courseTab.classList.add("active");
+    universityTab.classList.remove("active");
+
+    universityNews.style.display = "none";
+    courseNews.style.display = "block";
+
+};
 
 async function loadUserName() {
 
@@ -114,6 +141,66 @@ async function loadNews() {
                 </a>
 
             </div>
+        `;
+
+    });
+
+}
+
+async function loadCourseNews() {
+
+    const snapshot = await getDocs(
+        collection(db, "courseNews")
+    );
+
+    if (snapshot.empty) {
+
+        courseNews.innerHTML = "コースニュースはありません。";
+
+        return;
+
+    }
+
+    const notices = [];
+
+    snapshot.forEach(doc => {
+
+        notices.push(doc.data());
+
+    });
+
+    notices.sort((a, b) =>
+        b.createdAt.seconds - a.createdAt.seconds
+    );
+
+    courseNews.innerHTML = "";
+
+    notices.forEach(notice => {
+
+        courseNews.innerHTML += `
+
+        <div class="news-card">
+
+            <div class="news-date">
+
+                ${notice.posted}
+
+            </div>
+
+            <div class="news-title">
+
+                📘 ${notice.course}
+
+            </div>
+
+            <div class="news-body">
+
+                ${notice.title}
+
+            </div>
+
+        </div>
+
         `;
 
     });

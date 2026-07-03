@@ -393,3 +393,39 @@ select:focus{
     display:block;
     margin-top:12px;
 }
+
+.news-tabs{
+
+    display:flex;
+
+    margin:20px;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+}
+
+.news-tabs button{
+
+    flex:1;
+
+    border:none;
+
+    padding:12px;
+
+    font-size:16px;
+
+    background:#eeeeee;
+
+    cursor:pointer;
+
+}
+
+.news-tabs button.active{
+
+    background:#2196F3;
+
+    color:white;
+
+}
