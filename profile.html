@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>プロフィール</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+</head>
+
+<body>
+
+    <div class="top-buttons">
+
+        <button id="backButton">
+            ←
+        </button>
+
+        <h2>プロフィール</h2>
+
+        <div style="width:44px"></div>
+
+        <button id="themeButton">
+            🌙
+        </button>
+
+    </div>
+
+    <div class="profile-card">
+
+        <img
+            id="profileImage"
+            src="images/default.png">
+
+        <h2 id="userName">
+
+        </h2>
+
+        <p id="studentNumber">
+
+        </p>
+
+    </div>
+
+    <div class="profile-stats">
+
+        <div>
+
+            <h2 id="postCount">
+                0
+            </h2>
+
+            <small>
+                投稿
+            </small>
+
+        </div>
+
+        <div>
+
+            <h2 id="likeCount">
+                0 / 0
+            </h2>
+
+            <small>
+                ❤️された / ❤️した
+            </small>
+
+        </div>
+
+        <div>
+
+            <h2 id="commentCount">
+                0
+            </h2>
+
+            <small>
+                コメント
+            </small>
+
+        </div>
+
+    </div>
+
+    <div class="profile-menu">
+
+        <button id="myPosts">
+
+            📝 自分の投稿
+
+        </button>
+
+        <button id="likedPosts">
+
+            ❤️ いいねした投稿
+
+        </button>
+
+        <button id="myComments">
+
+            💬 コメントした投稿
+
+        </button>
+
+    </div>
+
+    <div id="profileContent">
+
+    </div>
+
+    <script
+        type="module"
+        src="profile.js">
+
+    </script>
+
+</body>
+
+</html>
