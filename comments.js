@@ -11,7 +11,8 @@ import {
     addDoc,
     serverTimestamp,
     updateDoc,
-    increment
+    increment,
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -79,7 +80,7 @@ async function loadPost() {
 
     }
 
-    postCard.innerHTML = `
+postCard.innerHTML = `
 
 <div class="post-card">
 
@@ -147,15 +148,33 @@ async function loadComments() {
 
 <div class="post-card">
 
-    <div class="student-number">
+    <div class="post-header">
 
-        👤 ${comment.studentNumber}
+        <div>
 
-    </div>
+            <div class="student-number">
 
-    <div class="post-time">
+                👤 ${comment.studentNumber}
 
-        ${time}
+            </div>
+
+            <div class="post-time">
+
+                ${time}
+
+            </div>
+
+        </div>
+
+        ${comment.studentNumber === studentNumber ? `
+
+        <button
+            class="delete-comment"
+            data-id="${commentDoc.id}">
+            ⋯
+        </button>
+
+        ` : ""}
 
     </div>
 
@@ -217,3 +236,41 @@ sendComment.onclick = async () => {
     loadComments();
 
 };
+
+document.addEventListener("click", async (e) => {
+
+    if (!e.target.classList.contains("delete-comment")) return;
+
+    const ok = confirm("コメントを削除しますか？");
+
+    if (!ok) return;
+
+    const commentId = e.target.dataset.id;
+
+    await deleteDoc(
+
+        doc(
+            db,
+            "posts",
+            postId,
+            "comments",
+            commentId
+        )
+
+    );
+
+    await updateDoc(
+
+        doc(db,"posts",postId),
+
+        {
+
+            commentCount: increment(-1)
+
+        }
+
+    );
+
+    loadComments();
+
+});
