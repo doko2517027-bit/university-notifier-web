@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コメント</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="top-buttons">
+
+        <button id="backButton">
+            ←
+        </button>
+
+        <h2>コメント</h2>
+
+        <div style="width:44px"></div>
+
+    </div>
+
+    <!-- 元の投稿 -->
+    <div id="postCard"></div>
+
+    <!-- コメント一覧 -->
+    <div id="commentList"></div>
+
+    <!-- コメント入力 -->
+    <div class="comment-input">
+
+        <textarea
+            id="commentText"
+            placeholder="コメントを書く..."></textarea>
+
+        <button id="sendComment">
+            送信
+        </button>
+
+    </div>
+
+    <script type="module" src="comments.js"></script>
+
+</body>
+</html>
