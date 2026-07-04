@@ -1218,3 +1218,33 @@ white-space:pre-wrap;
     cursor: pointer;
 
 }
+
+.post-image{
+
+    width:100%;
+
+    margin-top:12px;
+
+    border-radius:12px;
+
+    object-fit:cover;
+
+    cursor:pointer;
+
+}
+
+.post-pdf{
+
+    margin-top:12px;
+
+    padding:12px;
+
+    border-radius:12px;
+
+    background:#f5f5f5;
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+}

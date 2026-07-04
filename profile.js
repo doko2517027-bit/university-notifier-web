@@ -293,6 +293,24 @@ document
 
     </div>
 
+    ${post.type === "image" ? `
+
+    <img
+        src="${post.imageUrl}"
+        class="post-image">
+
+    ` : ""}
+
+    ${post.type === "pdf" ? `
+
+    <div class="post-pdf">
+
+        📄 ${post.pdfName}
+
+    </div>
+
+    ` : ""}
+
 </div>
 
 `;

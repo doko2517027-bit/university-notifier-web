@@ -78,13 +78,31 @@ function renderPost(postDoc, liked) {
 
     </div>
 
-    <div
-        class="post-text"
-        data-id="${postDoc.id}">
+    <div class="post-text">
 
         ${post.text}
 
     </div>
+
+    ${post.type === "image" ? `
+
+    <img
+        src="${post.imageUrl}"
+        class="post-image">
+
+    ` : ""}
+
+    ${post.type === "pdf" ? `
+
+    <div
+        class="post-pdf"
+        data-url="${post.pdfUrl}">
+
+        📄 ${post.pdfName}
+
+    </div>
+
+    ` : ""}
 
     <div class="post-footer">
 
@@ -167,6 +185,16 @@ async function loadPosts() {
 }
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("post-pdf")) {
+
+        const url = e.target.dataset.url;
+
+        window.open(url);
+
+        return;
+
+    }
 
     // コメント
     if (e.target.classList.contains("comment-button")) {
