@@ -59,7 +59,14 @@ function renderPost(postDoc, liked) {
         <div>
 
             <div class="student-number">
-                👤 ${post.studentNumber}
+
+                <img
+                    src="${photo}"
+                    id="topProfileImage"
+                    class="circle-button">
+
+                ${post.studentNumber}
+
             </div>
 
             <div class="post-time">
