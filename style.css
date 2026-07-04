@@ -694,3 +694,33 @@ white-space:pre-wrap;
     }
 
 }
+
+.post-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+}
+
+.delete-button{
+
+    border:none;
+
+    background:none;
+
+    font-size:24px;
+
+    cursor:pointer;
+
+    color:var(--subtext);
+
+}
+
+.delete-button:hover{
+
+    color:#EF4444;
+
+}

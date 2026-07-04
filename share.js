@@ -89,18 +89,22 @@ async function loadPosts() {
         <div>
 
             <div class="student-number">
-
                 👤 ${post.studentNumber}
-
             </div>
 
             <div class="post-time">
-
                 ${time}
-
             </div>
 
         </div>
+
+        ${post.studentNumber === studentNumber ? `
+            <button
+                class="delete-button"
+                data-id="${postDoc.id}">
+                ⋯
+            </button>
+        ` : ""}
 
     </div>
 
@@ -235,6 +239,22 @@ document.addEventListener("click", async (e) => {
 let lastTap = 0;
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("delete-button")) {
+
+        const postId = e.target.dataset.id;
+
+        const ok = confirm("この投稿を削除しますか？");
+
+        if (!ok) return;
+
+        await deleteDoc(doc(db, "posts", postId));
+
+        loadPosts();
+
+        return;
+
+    }
 
     if (!e.target.classList.contains("post-text")) return;
 
