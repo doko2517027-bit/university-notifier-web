@@ -116,13 +116,21 @@ document
 
 document
 .getElementById("resetPhoto")
-.onclick = () => {
+.onclick = async () => {
 
-    localStorage.removeItem("profileImage");
+    await updateDoc(
 
-    document
-        .getElementById("profileImage")
-        .src = "images/default.png";
+        doc(db, "publicUsers", studentNumber),
+
+        {
+
+            photo: ""
+
+        }
+
+    );
+
+    profileImage.src = "images/default.png";
 
     menu.style.display = "none";
 
@@ -171,6 +179,10 @@ async function loadProfile() {
         if (user.photo) {
 
             profileImage.src = user.photo;
+
+        } else {
+
+            profileImage.src = "images/default.png";
 
         }
         
