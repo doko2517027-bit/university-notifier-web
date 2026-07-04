@@ -107,7 +107,7 @@ async function loadNews() {
         const posted = notice.postedAt.toDate();
 
         newsList.innerHTML += `
-            <div class="news-card">
+            <div class="card news-card">
 
                 <div class="news-date">
                     ${posted.getFullYear()}/${posted.getMonth()+1}/${posted.getDate()}

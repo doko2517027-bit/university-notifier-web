@@ -206,7 +206,7 @@ select:focus{
     font-size:16px;
     border:none;
     border-radius:14px;
-    background:#EF4444;
+    background:var(--danger);
     color:white;
     font-weight:bold;
 }
@@ -362,13 +362,6 @@ select:focus{
     color:var(--text);
 }
 
-.lesson-card{
-    display:flex;
-    gap:14px;
-    padding:14px 0;
-    border-bottom:1px solid var(--border);
-}
-
 .lesson-card:last-child{
     border-bottom:none;
 }
@@ -403,6 +396,10 @@ select:focus{
     cursor:pointer;
     transition:0.2s;
     position:relative;
+    display:flex;
+    gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
 }
 
 .lesson-card:hover{
@@ -417,7 +414,7 @@ select:focus{
     top:50%;
     transform:translateY(-50%);
     font-size:12px;
-    color:#2e7d32;
+    color:var(--success);
     font-weight:bold;
 }
 
@@ -437,7 +434,7 @@ select:focus{
 
 .assignment-card::after{
     content:"▶ 課題を開く";
-    color:#2e7d32;
+    color:var(--success);
     font-weight:bold;
     display:block;
     margin-top:12px;
@@ -485,7 +482,7 @@ select:focus{
 
     margin-top:15px;
 
-    color:#2196F3;
+    color:var(--info);
 
     font-weight:bold;
 
@@ -509,7 +506,7 @@ select:focus{
 
 .news-new{
 
-    background:#ff5252;
+    background:var(--danger);
 
     color:white;
 
@@ -537,24 +534,6 @@ textarea{
     resize:vertical;
 
     box-sizing:border-box;
-
-}
-
-.post-card{
-
-    background:var(--card);
-
-    color:var(--text);
-
-    border:1px solid var(--border);
-
-    border-radius:20px;
-
-    padding:18px;
-
-    margin-bottom:16px;
-
-    box-shadow:var(--shadow);
 
 }
 
@@ -744,26 +723,6 @@ white-space:pre-wrap;
 .comment-input textarea{
 
     margin-bottom:10px;
-
-}
-
-#backButton{
-
-    width:44px;
-
-    height:44px;
-
-    border:none;
-
-    border-radius:50%;
-
-    background:var(--card);
-
-    color:var(--text);
-
-    box-shadow:var(--shadow);
-
-    cursor:pointer;
 
 }
 
@@ -1011,19 +970,6 @@ white-space:pre-wrap;
 
 }
 
-.top-profile-image{
-
-    width:36px;
-    height:36px;
-
-    border-radius:50%;
-
-    object-fit:cover;
-
-    display:block;
-
-}
-
 #profileButton{
 
     width:50px;
@@ -1247,7 +1193,7 @@ white-space:pre-wrap;
 
 .btn-danger{
 
-    background:#EF4444;
+    background:var(--danger);
 
     color:white;
 
