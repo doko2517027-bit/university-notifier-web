@@ -1,4 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    initializePage
+} from "./common.js";
 
 import {
     getFirestore,
@@ -23,6 +25,8 @@ const appPassword = document.getElementById("appPassword");
 const loginButton = document.getElementById("loginButton");
 const registerButton = document.getElementById("registerButton");
 const setPasswordButton = document.getElementById("setPasswordButton");
+
+await initializePage();
 
 registerButton.addEventListener("click", () => {
     location.href = "register.html";
@@ -95,3 +99,6 @@ async function hashPassword(password) {
         .join("");
 
 }
+
+document.body.classList.remove("page-loading");
+document.body.classList.add("page-loaded");
