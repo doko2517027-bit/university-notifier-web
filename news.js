@@ -2,6 +2,7 @@ import {
     db,
     studentNumber,
     setupTheme,
+    initializePage,
     loadProfileImage,
     loadUserName
 } from "./common.js";

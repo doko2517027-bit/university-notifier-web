@@ -1200,3 +1200,97 @@ white-space:pre-wrap;
     transform:translateX(-50%) translateY(0);
 
 }
+
+/* ===== Common Button ===== */
+
+.btn{
+
+    height:48px;
+
+    border:none;
+
+    border-radius:14px;
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.btn:hover{
+
+    transform:translateY(-2px);
+
+}
+
+.btn:active{
+
+    transform:scale(.98);
+
+}
+
+.btn-primary{
+
+    background:var(--primary);
+
+    color:white;
+
+}
+
+.btn-danger{
+
+    background:#EF4444;
+
+    color:white;
+
+}
+
+.btn-secondary{
+
+    background:var(--card);
+
+    color:var(--text);
+
+    border:1px solid var(--border);
+
+}
+
+/* ===== Circle Button ===== */
+
+.circle-button{
+
+    width:50px;
+
+    height:50px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:var(--card);
+
+    color:var(--text);
+
+    box-shadow:var(--shadow);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.circle-button:hover{
+
+    transform:scale(1.05);
+
+}
