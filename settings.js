@@ -107,7 +107,7 @@ const themeButton = document.getElementById("themeButton");
 // 前回の設定を反映
 if (localStorage.getItem("theme") === "dark") {
 
-    document.body.classList.add("dark");
+    document.documentElement.classList.add("dark");
     themeButton.textContent = "☀️";
 
 } else {
@@ -119,7 +119,7 @@ if (localStorage.getItem("theme") === "dark") {
 // ボタンを押した時
 themeButton.addEventListener("click", () => {
 
-    document.body.classList.toggle("dark");
+    document.documentElement.classList.toggle("dark");
 
     if (document.body.classList.contains("dark")) {
 

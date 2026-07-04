@@ -403,7 +403,7 @@ async function openCourse(subject) {
         return;
     }
 
-    location.href = url;
+    window.open(url, "_self");
 
 }
 
@@ -413,7 +413,7 @@ const themeButton = document.getElementById("themeButton");
 
 // 前回の設定を読み込む
 if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark");
+    document.documentElement.classList.add("dark");
     themeButton.textContent = "☀️";
 } else {
     themeButton.textContent = "🌙";
@@ -422,7 +422,7 @@ if (localStorage.getItem("theme") === "dark") {
 //ボタンを押した時
 themeButton.addEventListener("click", () => {
 
-    document.body.classList.toggle("dark");
+    document.documentElement.classList.toggle("dark");
 
     if (document.body.classList.contains("dark")) {
         localStorage.setItem("theme", "dark");
@@ -458,10 +458,11 @@ if (!sessionStorage.getItem("splashShown")) {
 
 }
 
-document
-.getElementById("profileButton")
-.onclick = () => {
+const settingButton =
+document.getElementById("settingButton");
 
-    location.href = "profile.html";
+settingButton.addEventListener("click",()=>{
 
-};
+    location.href="settings.html";
+
+})

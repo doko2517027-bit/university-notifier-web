@@ -85,7 +85,7 @@ function setupTheme() {
 
     if (localStorage.getItem("theme") === "dark") {
 
-        document.body.classList.add("dark");
+        document.documentElement.classList.add("dark");
         themeButton.textContent = "☀️";
 
     } else {
@@ -96,7 +96,7 @@ function setupTheme() {
 
     themeButton.addEventListener("click", () => {
 
-        document.body.classList.toggle("dark");
+        document.documentElement.classList.toggle("dark");
 
         if (document.body.classList.contains("dark")) {
 
