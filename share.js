@@ -84,15 +84,16 @@ function renderPost(postDoc, liked) {
 
     </div>
 
-    ${post.type === "image" ? `
+    ${post.imageUrl ? `
 
     <img
         src="${post.imageUrl}"
-        class="post-image">
+        class="post-image"
+        data-url="${post.imageUrl}">
 
     ` : ""}
 
-    ${post.type === "pdf" ? `
+    ${post.pdfUrl ? `
 
     <div
         class="post-pdf"
@@ -173,9 +174,6 @@ async function loadPosts() {
 
         }
 
-        const time =
-            formatDateTime(post.createdAt);
-
         postList.innerHTML += renderPost(postDoc, liked);
 
     };
@@ -191,6 +189,14 @@ document.addEventListener("click", async (e) => {
         const url = e.target.dataset.url;
 
         window.open(url);
+
+        return;
+
+    }
+
+    if (e.target.classList.contains("post-image")) {
+
+        window.open(e.target.dataset.url);
 
         return;
 

@@ -114,21 +114,13 @@ button.onclick = async () => {
         await addDoc(collection(db, "posts"), {
 
             studentNumber,
-
             text,
-
             type,
-
             imageUrl,
-
             pdfUrl,
-
             pdfName,
-
             createdAt: serverTimestamp(),
-
             likeCount: 0,
-
             commentCount: 0
 
         });
