@@ -25,6 +25,7 @@ const db = getFirestore(app);
 
 const themeButton = document.getElementById("themeButton");
 const studentNumber = localStorage.getItem("studentNumber");
+const profileImage = document.getElementById("profileImage");
 
 const menu =
     document.getElementById("photoMenu");
@@ -32,28 +33,36 @@ const menu =
 const picker =
     document.getElementById("photoPicker");
 
-    picker.addEventListener("change", (e) => {
+    picker.addEventListener("change", async (e) => {
 
         const file = e.target.files[0];
 
         if (!file) return;
 
-        const reader = new FileReader();
+        if (file.size > 50 * 1024 * 1024) {
 
-        reader.onload = () => {
+            alert("50MB以下の画像を選択してください。");
 
-            document
-                .getElementById("profileImage")
-                .src = reader.result;
+            return;
 
-            localStorage.setItem(
-                "profileImage",
-                reader.result
-            );
+        }
 
-        };
+        const formData = new FormData();
 
-        reader.readAsDataURL(file);
+        formData.append("file", file);
+        formData.append("upload_preset", "caremate_upload");
+
+        const res = await fetch(
+            "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await res.json();
+
+        console.log(data);
 
     });
 
