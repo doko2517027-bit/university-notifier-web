@@ -236,6 +236,43 @@ document.addEventListener("click", async (e) => {
 
     const wasLiked = e.target.classList.contains("liked");
 
+    // 画面を先に更新
+    if (wasLiked) {
+
+        e.target.textContent = "🤍";
+        e.target.classList.remove("liked");
+        countSpan.textContent = count - 1;
+
+    } else {
+
+        e.target.textContent = "❤️";
+        e.target.classList.add("liked");
+        countSpan.textContent = count + 1;
+
+        const heart = document.createElement("div");
+
+        heart.textContent = "❤️";
+
+        heart.className = "floating-heart";
+
+        e.target.closest(".post-card").appendChild(heart);
+
+        setTimeout(() => {
+
+            heart.remove();
+
+        },700);
+
+        e.target.classList.add("animate");
+
+        setTimeout(() => {
+
+            e.target.classList.remove("animate");
+
+        },200);
+
+    }
+
     const likeSnap = await getDoc(likeRef);
 
     if (likeSnap.exists()) {
@@ -255,28 +292,6 @@ document.addEventListener("click", async (e) => {
         await updateDoc(postRef, {
             likeCount: increment(1)
         });
-
-        const heart = document.createElement("div");
-
-        heart.textContent = "❤️";
-
-        heart.className = "floating-heart";
-
-        e.target.closest(".post-card").appendChild(heart);
-
-        setTimeout(() => {
-
-            heart.remove();
-
-        }, 700);
-
-        e.target.classList.add("animate");
-
-        setTimeout(() => {
-
-            e.target.classList.remove("animate");
-
-        }, 200);
 
     }
 
@@ -315,14 +330,18 @@ function setupTheme() {
 
     themeButton.addEventListener("click", () => {
 
-        document.documentElement.classList.contains("dark")
+        document.documentElement.classList.toggle("dark");
 
-        if (document.body.classList.contains("dark")) {
-            localStorage.setItem("theme", "dark");
-            themeButton.textContent = "☀️";
+        if (document.documentElement.classList.contains("dark")) {
+
+            localStorage.setItem("theme","dark");
+            themeButton.textContent="☀️";
+
         } else {
-            localStorage.setItem("theme", "light");
-            themeButton.textContent = "🌙";
+
+            localStorage.setItem("theme","light");
+            themeButton.textContent="🌙";
+
         }
 
     });

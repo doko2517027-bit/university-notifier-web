@@ -327,17 +327,17 @@ function setupTheme() {
 
     themeButton.addEventListener("click", () => {
 
-        document.documentElement.classList.contains("dark")
+        document.documentElement.classList.toggle("dark");
 
-        if (document.body.classList.contains("dark")) {
+        if (document.documentElement.classList.contains("dark")) {
 
-            localStorage.setItem("theme", "dark");
-            themeButton.textContent = "☀️";
+            localStorage.setItem("theme","dark");
+            themeButton.textContent="☀️";
 
         } else {
 
-            localStorage.setItem("theme", "light");
-            themeButton.textContent = "🌙";
+            localStorage.setItem("theme","light");
+            themeButton.textContent="🌙";
 
         }
 
