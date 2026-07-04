@@ -131,7 +131,8 @@ async function loadPosts() {
     </span>
 
     <button
-        class="comment-button">
+        class="comment-button"
+        data-id="${postDoc.id}">
 
         💬
 
@@ -157,6 +158,35 @@ loadPosts();
 
 document.addEventListener("click", async (e) => {
 
+    // コメント
+    if (e.target.classList.contains("comment-button")) {
+
+        const postId = e.target.dataset.id;
+
+        location.href = `comments.html?postId=${postId}`;
+
+        return;
+
+    }
+
+    // 投稿削除
+    if (e.target.classList.contains("delete-button")) {
+
+        const postId = e.target.dataset.id;
+
+        const ok = confirm("この投稿を削除しますか？");
+
+        if (!ok) return;
+
+        await deleteDoc(doc(db, "posts", postId));
+
+        loadPosts();
+
+        return;
+
+    }
+
+    // いいね以外は終了
     if (!e.target.classList.contains("like-button")) return;
 
     const postId = e.target.dataset.id;
@@ -178,6 +208,7 @@ document.addEventListener("click", async (e) => {
     const likeSnap = await getDoc(likeRef);
 
     const countSpan = e.target.nextElementSibling;
+
     let count = Number(countSpan.textContent);
 
     if (likeSnap.exists()) {
@@ -190,7 +221,7 @@ document.addEventListener("click", async (e) => {
 
         await deleteDoc(likeRef);
 
-        await updateDoc(postRef,{
+        await updateDoc(postRef, {
             likeCount: increment(-1)
         });
 
@@ -202,11 +233,11 @@ document.addEventListener("click", async (e) => {
 
         e.target.classList.add("liked");
 
-        await setDoc(likeRef,{
-            likedAt:new Date()
+        await setDoc(likeRef, {
+            likedAt: new Date()
         });
 
-        await updateDoc(postRef,{
+        await updateDoc(postRef, {
             likeCount: increment(1)
         });
 
@@ -238,23 +269,7 @@ document.addEventListener("click", async (e) => {
 
 let lastTap = 0;
 
-document.addEventListener("click", async (e) => {
-
-    if (e.target.classList.contains("delete-button")) {
-
-        const postId = e.target.dataset.id;
-
-        const ok = confirm("この投稿を削除しますか？");
-
-        if (!ok) return;
-
-        await deleteDoc(doc(db, "posts", postId));
-
-        loadPosts();
-
-        return;
-
-    }
+document.addEventListener("click", (e) => {
 
     if (!e.target.classList.contains("post-text")) return;
 
