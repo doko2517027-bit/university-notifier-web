@@ -35,6 +35,9 @@ const commentText =
 const sendComment =
     document.getElementById("sendComment");
 
+const commentList =
+    document.getElementById("commentList");
+
 const params = new URLSearchParams(location.search);
 
 const postId = params.get("postId");
@@ -106,9 +109,6 @@ async function loadPost() {
 
 loadPost();
 loadComments();
-
-const commentList =
-    document.getElementById("commentList");
 
 async function loadComments() {
 
