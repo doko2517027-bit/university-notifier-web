@@ -78,7 +78,7 @@ postCard.innerHTML = `
 
         <img
             src="${photo}"
-            class="top-profile-image">
+            class="circle-button"
 
         ${post.studentNumber}
 
