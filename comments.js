@@ -7,7 +7,11 @@ import {
     collection,
     query,
     orderBy,
-    getDocs
+    getDocs,
+    addDoc,
+    serverTimestamp,
+    updateDoc,
+    increment
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -21,6 +25,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+const studentNumber =
+    localStorage.getItem("studentNumber");
+
+const commentText =
+    document.getElementById("commentText");
+
+const sendComment =
+    document.getElementById("sendComment");
 
 const params = new URLSearchParams(location.search);
 
@@ -159,3 +172,48 @@ async function loadComments() {
     });
 
 }
+
+sendComment.onclick = async () => {
+
+    const text = commentText.value.trim();
+
+    if (!text) return;
+
+    await addDoc(
+
+        collection(
+            db,
+            "posts",
+            postId,
+            "comments"
+        ),
+
+        {
+
+            studentNumber,
+
+            text,
+
+            createdAt: serverTimestamp()
+
+        }
+
+    );
+
+    await updateDoc(
+
+        doc(db,"posts",postId),
+
+        {
+
+            commentCount: increment(1)
+
+        }
+
+    );
+
+    commentText.value = "";
+
+    loadComments();
+
+};
