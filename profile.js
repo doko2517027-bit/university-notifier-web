@@ -146,19 +146,12 @@ document
         document.getElementById("profileContent");
 
     content.innerHTML = "";
-
+    
     const snapshot = await getDocs(
-
         query(
-
             collection(db, "posts"),
-
-            where("studentNumber", "==", studentNumber),
-
-            orderBy("createdAt", "desc")
-
+            where("studentNumber", "==", studentNumber)
         )
-
     );
 
     if (snapshot.empty) {
