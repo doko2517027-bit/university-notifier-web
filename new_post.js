@@ -59,7 +59,7 @@ button.onclick = async () => {
 
         });
 
-        showToast("✅ 投稿しました");
+        showToast("投稿しました");
 
         setTimeout(() => {
 

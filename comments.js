@@ -118,15 +118,15 @@ async function loadComments() {
 
     const snapshot = await getDocs(q);
 
-    snapshot.forEach((commentDoc) => {
+    for (const commentDoc of snapshot.docs) {
 
         const comment = commentDoc.data();
 
-        const time =
-            formatDateTime(comment.createdAt);
-
         const photo =
             await getProfilePhoto(comment.studentNumber);
+
+        const time =
+            formatDateTime(comment.createdAt);
 
         commentList.innerHTML += `
 
@@ -176,7 +176,7 @@ async function loadComments() {
 
 `;
 
-    });
+    }
 
 }
 
@@ -186,42 +186,51 @@ sendComment.onclick = async () => {
 
     if (!text) return;
 
-    await addDoc(
+    try{
 
-        collection(
-            db,
-            "posts",
-            postId,
-            "comments"
-        ),
+        await addDoc(
 
-        {
+            collection(
+                db,
+                "posts",
+                postId,
+                "comments"
+            ),
 
-            studentNumber,
+            {
 
-            text,
+                studentNumber,
 
-            createdAt: serverTimestamp()
+                text,
 
-        }
+                createdAt: serverTimestamp()
 
-    );
+            }
 
-    await updateDoc(
+        );
 
-        doc(db,"posts",postId),
+        await updateDoc(
 
-        {
+            doc(db,"posts",postId),
 
-            commentCount: increment(1)
+            {
 
-        }
+                commentCount: increment(1)
 
-    );
+            }
 
-    commentText.value = "";
+        );
 
-    await loadComments();
+        commentText.value = "";
+
+        await loadComments();
+
+    } catch (e) {
+
+        console.error(e);
+        
+        alert("コメントの投稿に失敗しました。")
+    }
 
 };
 
