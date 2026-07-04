@@ -46,8 +46,6 @@ button.onclick = async () => {
 
             studentNumber: studentNumber,
 
-            studentNumber: users.studentNumber,
-
             text: text,
 
             createdAt: serverTimestamp(),
