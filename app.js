@@ -35,6 +35,8 @@ const studentNumber = localStorage.getItem("studentNumber");
 const manabaId = localStorage.getItem("manabaId");
 const migrated = localStorage.getItem("migrated");
 
+let courses = {};
+
 const root = document.documentElement;
 
 const department = localStorage.getItem("department");
@@ -113,7 +115,8 @@ async function startApp() {
         loadUserName(),
         loadNews(),
         loadTodaySchedule(),
-        loadHomeCourseNews()
+        loadHomeCourseNews(),
+        loadCourseLinks()
 
     ]);
 
@@ -392,18 +395,13 @@ function renderSchedule(targetId, schedules, grade) {
 
 async function openCourse(subject) {
 
-    const snap = await getDoc(
-        doc(db, "courseLinks", studentNumber)
-    );
+    if (Object.keys(courses).length === 0) {
 
-    let courses = {};
-
-    if (!snap.exists()) {
         alert("コース情報がありません。");
-        return;
-    }
 
-    const courses = snap.data().courses;
+        return;
+
+    }
 
     console.log("時間割の科目:", subject);
     console.log("Firestore:", courses);
@@ -415,7 +413,7 @@ async function openCourse(subject) {
         return;
     }
 
-    window.open(url, "_self");
+    location.href = url;
 
 }
 

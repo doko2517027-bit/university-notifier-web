@@ -102,7 +102,7 @@ postCard.innerHTML = `
 }
 
 loadPost();
-loadComments();
+await loadComments();
 
 async function loadComments() {
 
@@ -226,7 +226,7 @@ sendComment.onclick = async () => {
 
     commentText.value = "";
 
-    loadComments();
+    await loadComments();
 
 };
 
@@ -259,7 +259,7 @@ document.addEventListener("click", async (e) => {
         }
     );
 
-    loadComments();
+    await loadComments();
 
 });
 

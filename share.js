@@ -11,6 +11,7 @@ import {
     setDoc,
     deleteDoc,
     updateDoc,
+    onSnapshot,
     increment
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -55,6 +56,89 @@ async function loadUserName() {
 
 }
 
+function renderPost(postDoc, liked) {
+
+    const post = postDoc.data();
+
+    let time = "";
+
+    if (post.createdAt) {
+
+        const date = post.createdAt.toDate();
+
+        time =
+            `${date.getMonth() + 1}/${date.getDate()} ` +
+            `${String(date.getHours()).padStart(2, "0")}:` +
+            `${String(date.getMinutes()).padStart(2, "0")}`;
+
+    }
+
+    return `
+
+<div class="post-card">
+
+    <div class="post-header">
+
+        <div>
+
+            <div class="student-number">
+                👤 ${post.studentNumber}
+            </div>
+
+            <div class="post-time">
+                ${time}
+            </div>
+
+        </div>
+
+        ${post.studentNumber === studentNumber ? `
+            <button
+                class="delete-button"
+                data-id="${postDoc.id}">
+                ⋯
+            </button>
+        ` : ""}
+
+    </div>
+
+    <div
+        class="post-text"
+        data-id="${postDoc.id}">
+
+        ${post.text}
+
+    </div>
+
+    <div class="post-footer">
+
+        <button
+            class="like-button ${liked ? "liked" : ""}"
+            data-id="${postDoc.id}">
+            ${liked ? "❤️" : "🤍"}
+        </button>
+
+        <span class="like-count">
+            ${post.likeCount ?? 0}
+        </span>
+
+        <button
+            class="comment-button"
+            data-id="${postDoc.id}">
+            💬
+        </button>
+
+        <span>
+            ${post.commentCount ?? 0}
+        </span>
+
+    </div>
+
+</div>
+
+`;
+
+}
+
 async function loadPosts() {
 
     postList.innerHTML = "";
@@ -64,7 +148,9 @@ async function loadPosts() {
         orderBy("createdAt", "desc")
     );
 
-    const snapshot = await getDocs(q);
+    onSnapshot(q, async (snapshot) => {
+
+        postList.innerHTML = "";
 
     for (const postDoc of snapshot.docs) {
 
@@ -105,77 +191,11 @@ async function loadPosts() {
 
         }
 
-        postList.innerHTML += `
-
-<div class="post-card">
-
-    <div class="post-header">
-
-        <div>
-
-            <div class="student-number">
-                👤 ${post.studentNumber}
-            </div>
-
-            <div class="post-time">
-                ${time}
-            </div>
-
-        </div>
-
-        ${post.studentNumber === studentNumber ? `
-            <button
-                class="delete-button"
-                data-id="${postDoc.id}">
-                ⋯
-            </button>
-        ` : ""}
-
-    </div>
-
-    <div
-        class="post-text"
-        data-id="${postDoc.id}">
-
-        ${post.text}
-
-    </div>
-
-    <div class="post-footer">
-
-    <button
-        class="like-button ${liked ? "liked" : ""}"
-        data-id="${postDoc.id}">
-        ${liked ? "❤️" : "🤍"}
-    </button>
-
-    <span class="like-count">
-
-    ${post.likeCount ?? 0}
-
-    </span>
-
-    <button
-        class="comment-button"
-        data-id="${postDoc.id}">
-
-        💬
-
-    </button>
-
-    <span>
-
-    ${post.commentCount ?? 0}
-
-    </span>
-
-    </div>
-
-</div>
-
-`;
+        postList.innerHTML += renderPost(postDoc, liked);
 
     };
+
+    });
 
 }
 
@@ -204,8 +224,6 @@ document.addEventListener("click", async (e) => {
         if (!ok) return;
 
         await deleteDoc(doc(db, "posts", postId));
-
-        loadPosts();
 
         return;
 
