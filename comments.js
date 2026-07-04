@@ -2,7 +2,10 @@ import {
     db,
     studentNumber,
     setupTheme,
-    loadProfileImage
+    loadProfileImage,
+    initializePage,
+    formatDateTime,
+    getProfilePhoto
 } from "./common.js";
 
 import {
@@ -61,18 +64,11 @@ async function loadPost() {
 
     const post = snap.data();
 
-    let time = "";
+    const photo =
+        await getProfilePhoto(post.studentNumber);
 
-    if (post.createdAt) {
-
-        const date = post.createdAt.toDate();
-
-        time =
-            `${date.getMonth() + 1}/${date.getDate()} ` +
-            `${String(date.getHours()).padStart(2,"0")}:` +
-            `${String(date.getMinutes()).padStart(2,"0")}`;
-
-    }
+    const time =
+        formatDateTime(post.createdAt);
 
 postCard.innerHTML = `
 
@@ -80,7 +76,11 @@ postCard.innerHTML = `
 
     <div class="student-number">
 
-        👤 ${post.studentNumber}
+        <img
+            src="${photo}"
+            class="top-profile-image">
+
+        ${post.studentNumber}
 
     </div>
 
@@ -122,18 +122,11 @@ async function loadComments() {
 
         const comment = commentDoc.data();
 
-        let time = "";
+        const time =
+            formatDateTime(comment.createdAt);
 
-        if (comment.createdAt) {
-
-            const date = comment.createdAt.toDate();
-
-            time =
-                `${date.getMonth() + 1}/${date.getDate()} ` +
-                `${String(date.getHours()).padStart(2,"0")}:` +
-                `${String(date.getMinutes()).padStart(2,"0")}`;
-
-        }
+        const photo =
+            await getProfilePhoto(comment.studentNumber);
 
         commentList.innerHTML += `
 
@@ -145,7 +138,11 @@ async function loadComments() {
 
             <div class="student-number">
 
-                👤 ${comment.studentNumber}
+                <img
+                    src="${photo}"
+                    class="top-profile-image">
+
+                ${comment.studentNumber}
 
             </div>
 

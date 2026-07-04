@@ -5,7 +5,8 @@ import {
     loadProfileImage,
     loadUserName,
     initializePage,
-    showPostSkeleton
+    showPostSkeleton,
+    formatDateTime
 } from "./common.js";
 
 import {
@@ -46,18 +47,8 @@ function renderPost(postDoc, liked) {
 
     const post = postDoc.data();
 
-    let time = "";
-
-    if (post.createdAt) {
-
-        const date = post.createdAt.toDate();
-
-        time =
-            `${date.getMonth() + 1}/${date.getDate()} ` +
-            `${String(date.getHours()).padStart(2, "0")}:` +
-            `${String(date.getMinutes()).padStart(2, "0")}`;
-
-    }
+    const time =
+        formatDateTime(post.createdAt);
 
     return `
 
@@ -164,18 +155,8 @@ async function loadPosts() {
 
         }
 
-        let time = "";
-
-        if (post.createdAt) {
-
-            const date = post.createdAt.toDate();
-
-            time =
-                `${date.getMonth() + 1}/${date.getDate()} ` +
-                `${String(date.getHours()).padStart(2, "0")}:` +
-                `${String(date.getMinutes()).padStart(2, "0")}`;
-
-        }
+        const time =
+            formatDateTime(post.createdAt);
 
         postList.innerHTML += renderPost(postDoc, liked);
 

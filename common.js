@@ -262,3 +262,34 @@ export function updateAccentColor(department, major) {
     }
 
 }
+
+export function formatDateTime(timestamp) {
+
+    if (!timestamp) return "";
+
+    const date = timestamp.toDate();
+
+    return (
+        `${date.getMonth() + 1}/${date.getDate()} ` +
+        `${String(date.getHours()).padStart(2, "0")}:` +
+        `${String(date.getMinutes()).padStart(2, "0")}`
+    );
+
+}
+
+export async function getProfilePhoto(studentNumber) {
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) {
+        return "images/default.png";
+    }
+
+    return (
+        snap.data().photo ||
+        "images/default.png"
+    );
+
+}
