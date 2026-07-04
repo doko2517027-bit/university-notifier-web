@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>お知らせ</title>
+<title>共有</title>
 
 <link rel="stylesheet" href="style.css">
 
@@ -27,39 +28,27 @@
 
 <header class="header">
 
-    <div class="logo">📢</div>
+    <div class="logo">🤝</div>
 
-    <h1>お知らせ</h1>
+    <h1>共有</h1>
 
-    <p>お知らせ一覧</p>
+    <p>学生同士の情報共有</p>
 
 </header>
 
-<div class="news-tabs">
+<div id="postList"></div>
 
-    <button id="universityTab" class="active">
-        大学
-    </button>
+<button
+    class="floating-button"
+    onclick="location.href='new_post.html'">
+    ＋
+</button>
 
-    <button id="courseTab">
-        コース
-    </button>
-
-</div>
-
-<div id="universityNews">
-
-    <div id="newsList" class="news-list">
-        読み込み中...
-    </div>
-
-</div>
-
-<div id="courseNews" style="display:none;">
-
-    読み込み中...
-
-</div>
+<button
+    class="floating-button"
+    onclick="location.href='new_post.html'">
+    ＋
+</button>
 
 <nav class="bottom-nav">
 
@@ -73,12 +62,12 @@
         <span>課題</span>
     </a>
 
-    <a href="share.html">
+    <a href="share.html" class="active">
         🤝<br>
         <span>共有</span>
     </a>
 
-    <a href="news.html" class="active">
+    <a href="news.html">
         📢<br>
         <span>お知らせ</span>
     </a>
@@ -90,7 +79,8 @@
 
 </nav>
 
-<script type="module" src="news.js"></script>
+<script type="module" src="share.js"></script>
 
 </body>
+
 </html>

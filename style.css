@@ -518,3 +518,78 @@ select:focus{
     font-weight:bold;
 
 }
+
+textarea{
+
+    width:100%;
+    padding:15px;
+
+    border-radius:12px;
+
+    border:1px solid #ccc;
+
+    font-size:16px;
+
+    resize:vertical;
+
+    box-sizing:border-box;
+
+}
+
+.post-card{
+
+background:white;
+
+border-radius:16px;
+
+padding:18px;
+
+margin:18px;
+
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+
+}
+
+.student-number{
+
+font-weight:bold;
+
+font-size:17px;
+
+}
+
+.post-time{
+
+font-size:13px;
+
+color:#888;
+
+margin-top:4px;
+
+}
+
+.post-text{
+
+margin-top:16px;
+
+line-height:1.7;
+
+font-size:16px;
+
+white-space:pre-wrap;
+
+}
+
+.post-footer{
+
+margin-top:18px;
+
+display:flex;
+
+gap:24px;
+
+color:#666;
+
+font-size:15px;
+
+}
