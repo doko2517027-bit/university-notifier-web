@@ -315,14 +315,10 @@ document
 function setupTheme() {
 
     if (localStorage.getItem("theme") === "dark") {
-
         document.documentElement.classList.add("dark");
         themeButton.textContent = "☀️";
-
     } else {
-
         themeButton.textContent = "🌙";
-
     }
 
     themeButton.addEventListener("click", () => {

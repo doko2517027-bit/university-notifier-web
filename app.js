@@ -96,20 +96,30 @@ async function checkMaintenance() {
 
 }
 
-checkMaintenance()
-.then(() => {
-    loadUserName();
-    loadNews();
-    loadTodaySchedule();
-    loadHomeCourseNews();
-})
-.catch((e) => {
-    console.error(e);
-    loadUserName();
-    loadNews();
-    loadTodaySchedule();
-    loadHomeCourseNews();
-});
+async function startApp() {
+
+    try {
+
+        await checkMaintenance();
+
+    } catch (e) {
+
+        console.error(e);
+
+    }
+
+    await Promise.all([
+
+        loadUserName(),
+        loadNews(),
+        loadTodaySchedule(),
+        loadHomeCourseNews()
+
+    ]);
+
+}
+
+startApp();
 
 async function loadUserName() {
 
@@ -386,6 +396,8 @@ async function openCourse(subject) {
         doc(db, "courseLinks", studentNumber)
     );
 
+    let courses = {};
+
     if (!snap.exists()) {
         alert("コース情報がありません。");
         return;
@@ -404,6 +416,20 @@ async function openCourse(subject) {
     }
 
     window.open(url, "_self");
+
+}
+
+async function loadCourseLinks() {
+
+    const snap = await getDoc(
+        doc(db, "courseLinks", studentNumber)
+    );
+
+    if (snap.exists()) {
+
+        courses = snap.data().courses ?? {};
+
+    }
 
 }
 
