@@ -146,13 +146,14 @@ document
         document.getElementById("profileContent");
 
     content.innerHTML = "";
-    
-    const snapshot = await getDocs(
-        query(
-            collection(db, "posts"),
-            where("studentNumber", "==", studentNumber)
-        )
-    );
+
+    const snapshot = await getDocs(collection(db, "posts"));
+
+    const myPosts = snapshot.docs
+        .filter(doc => doc.data().studentNumber === studentNumber)
+        .sort((a, b) =>
+            b.data().createdAt.toMillis() - a.data().createdAt.toMillis()
+        );
 
     if (snapshot.empty) {
 
