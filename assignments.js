@@ -1,83 +1,31 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage,
+    loadUserName
+} from "./common.js";
 
 import {
-    getFirestore,
+    
     doc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
 const userName = document.getElementById("userName");
 const assignmentList = document.getElementById("assignmentList");
 const themeButton = document.getElementById("themeButton");
-
-const studentNumber = localStorage.getItem("studentNumber");
 const loggedIn = localStorage.getItem("loggedIn");
-
-const topProfileImage =
-    document.getElementById("topProfileImage");
+const topProfileImage = document.getElementById("topProfileImage");
 
 if (loggedIn !== "true") {
     location.href = "login.html";
 }
 
-loadUserName();
-loadProfileImage();
+loadUserName(userName);
+loadProfileImage(topProfileImage);
+setupTheme(themeButton);
 loadAssignments();
-setupTheme();
-
-async function loadProfileImage() {
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const user = snap.data();
-
-    if (user.photo) {
-
-        topProfileImage.src = user.photo;
-
-    } else {
-
-        topProfileImage.src = "images/default.png";
-
-    }
-
-}
-
-async function loadUserName() {
-
-    if (!studentNumber) {
-        userName.textContent = "Unknownさん";
-        return;
-    }
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) {
-        userName.textContent = "Unknownさん";
-        return;
-    }
-
-    userName.textContent = snap.data().name + "さん";
-
-}
 
 async function loadAssignments() {
 
@@ -151,40 +99,11 @@ async function loadAssignments() {
                 ${
                     url
                     ? `<div class="switch-card assignment-card"
-                            onclick="window.open('${url}','_blank')">`
+                            onclick="location.href='${url}'">`
                     : `<p>リンクなし</p>`
                 }
             </div>
         `;
-
-    });
-
-}
-
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-    } else {
-        themeButton.textContent = "🌙";
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
 
     });
 

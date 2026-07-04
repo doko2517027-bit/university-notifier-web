@@ -1,7 +1,13 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage,
+    loadUserName
+} from "./common.js";
 
 import {
-    getFirestore,
+    
     doc,
     getDoc,
     collection,
@@ -10,58 +16,20 @@ import {
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
 const userName = document.getElementById("userName");
 const themeButton = document.getElementById("themeButton");
 const newsList = document.getElementById("newsList");
-
-const studentNumber = localStorage.getItem("studentNumber");
-
 const universityTab = document.getElementById("universityTab");
 const courseTab = document.getElementById("courseTab");
-
 const universityNews = document.getElementById("universityNews");
 const courseNews = document.getElementById("courseNews");
 const topProfileImage = document.getElementById("topProfileImage");
 
-loadUserName();
-loadProfileImage();
+loadUserName(userName);
 loadNews();
 loadCourseNews();
-setupTheme();
-
-async function loadProfileImage() {
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const user = snap.data();
-
-    if (user.photo) {
-
-        topProfileImage.src = user.photo;
-
-    } else {
-
-        topProfileImage.src = "images/default.png";
-
-    }
-
-}
+loadProfileImage(topProfileImage);
+setupTheme(themeButton);
 
 universityTab.onclick = () => {
 
@@ -82,21 +50,6 @@ courseTab.onclick = () => {
     courseNews.style.display = "block";
 
 };
-
-async function loadUserName() {
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) {
-        userName.textContent = "Unknownさん";
-        return;
-    }
-
-    userName.textContent = snap.data().name + "さん";
-
-}
 
 async function loadNews() {
 
@@ -237,43 +190,6 @@ async function loadCourseNews() {
 
 }
 
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-
-    } else {
-
-        themeButton.textContent = "🌙";
-
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
-
-    });
-
-}
-
-document
-.getElementById("profileButton")
-.onclick = () => {
-
+document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
-
 };

@@ -1,6 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import {
-  getFirestore,
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage
+} from "./common.js";
+
+import {
+  
   doc,
   getDoc,
   collection,
@@ -8,23 +14,12 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
 const themeButton = document.getElementById("themeButton");
 const button = document.getElementById("postButton");
 const topProfileImage = document.getElementById("topProfileImage");
 
-setupTheme();
+setupTheme(themeButton);
+loadProfileImage(topProfileImage);
 
 button.onclick = async () => {
 
@@ -43,14 +38,11 @@ button.onclick = async () => {
 
     try {
 
-        const studentNumber =
-            localStorage.getItem("studentNumber");
-
         await addDoc(collection(db, "posts"), {
 
-            studentNumber: studentNumber,
+            studentNumber,
 
-            text: text,
+            text,
 
             createdAt: serverTimestamp(),
 
@@ -81,36 +73,3 @@ document.getElementById("backButton").onclick = () => {
     history.back();
 
 };
-
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-
-    } else {
-
-        themeButton.textContent = "🌙";
-
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
-
-    });
-
-}

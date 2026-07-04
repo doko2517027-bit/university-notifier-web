@@ -1,7 +1,13 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage,
+    loadUserName
+} from "./common.js";
 
 import {
-    getFirestore,
+    
     collection,
     query,
     orderBy,
@@ -15,70 +21,15 @@ import {
     increment
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const studentNumber = localStorage.getItem("studentNumber");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const postList = document.getElementById("postList");
 const topProfileImage = document.getElementById("topProfileImage");
 
 
-loadUserName();
-loadProfileImage();
-setupTheme();
-
-async function loadProfileImage() {
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const user = snap.data();
-
-    if (user.photo) {
-
-        topProfileImage.src = user.photo;
-
-    } else {
-
-        topProfileImage.src = "images/default.png";
-
-    }
-
-}
-
-async function loadUserName() {
-
-    if (!studentNumber) {
-        userName.textContent = "Unknownさん";
-        return;
-    }
-
-    const snap = await getDoc(
-        doc(db, "publicUsers", studentNumber)
-    );
-
-    if (!snap.exists()) {
-        userName.textContent = "Unknownさん";
-        return;
-    }
-
-    userName.textContent = snap.data().name + "さん";
-
-}
+loadUserName(userName);
+loadProfileImage(topProfileImage);
+setupTheme(themeButton);
 
 function renderPost(postDoc, liked) {
 
@@ -360,35 +311,6 @@ document.addEventListener("click", (e) => {
     lastTap = now;
 
 });
-
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-    } else {
-        themeButton.textContent = "🌙";
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
-
-    });
-
-}
 
 document
 .getElementById("profileButton")

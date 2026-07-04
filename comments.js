@@ -1,7 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage
+} from "./common.js";
 
 import {
-    getFirestore,
+    
     doc,
     getDoc,
     collection,
@@ -15,19 +20,6 @@ import {
     deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const studentNumber = localStorage.getItem("studentNumber");
 const commentText = document.getElementById("commentText");
 const sendComment = document.getElementById("sendComment");
 const commentList = document.getElementById("commentList");
@@ -37,7 +29,8 @@ const postCard = document.getElementById("postCard");
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 
-setupTheme();
+setupTheme(themeButton);
+loadProfileImage(topProfileImage);
 
 document.getElementById("backButton").onclick = () => {
 
@@ -263,32 +256,3 @@ document.addEventListener("click", async (e) => {
     await loadComments();
 
 });
-
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-    } else {
-        themeButton.textContent = "🌙";
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
-
-    });
-
-}
