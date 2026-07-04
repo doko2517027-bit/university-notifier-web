@@ -538,15 +538,19 @@ textarea{
 
 .post-card{
 
-background:white;
+    background:var(--card);
 
-border-radius:16px;
+    color:var(--text);
 
-padding:18px;
+    border:1px solid var(--border);
 
-margin:18px;
+    border-radius:20px;
 
-box-shadow:0 2px 8px rgba(0,0,0,.08);
+    padding:18px;
+
+    margin-bottom:16px;
+
+    box-shadow:var(--shadow);
 
 }
 
@@ -560,11 +564,11 @@ font-size:17px;
 
 .post-time{
 
-font-size:13px;
+    font-size:13px;
 
-color:#888;
+    color:var(--subtext);
 
-margin-top:4px;
+    margin-top:4px;
 
 }
 
@@ -582,27 +586,15 @@ white-space:pre-wrap;
 
 .post-footer{
 
-margin-top:18px;
-
-display:flex;
-
-gap:24px;
-
-color:#666;
-
-font-size:15px;
-
-}
-
-.post-footer{
-
     display:flex;
 
     align-items:center;
 
-    gap:10px;
+    gap:12px;
 
     margin-top:18px;
+
+    color:var(--subtext);
 
 }
 
@@ -619,9 +611,29 @@ font-size:15px;
 
 }
 
-.like-button{
+.like-button {
+    transition: transform 0.15s ease;
+}
 
-    transition:.2s;
+.like-button.animate{
+
+    animation:likePop .25s ease;
+
+}
+
+@keyframes likePop{
+
+    0%{
+        transform:scale(1);
+    }
+
+    50%{
+        transform:scale(1.35);
+    }
+
+    100%{
+        transform:scale(1);
+    }
 
 }
 
@@ -631,14 +643,54 @@ font-size:15px;
 
 }
 
-.like-button.liked{
+.post-card{
 
-    color:red;
+    position:relative;
 
 }
 
-.like-button:active{
+.floating-heart{
 
-    transform:scale(1.4);
+    position:absolute;
+
+    left:50%;
+
+    top:45%;
+
+    transform:translate(-50%,-50%);
+
+    font-size:70px;
+
+    pointer-events:none;
+
+    animation:heartFloat .7s ease forwards;
+
+}
+
+@keyframes heartFloat{
+
+    0%{
+
+        opacity:0;
+
+        transform:translate(-50%,-50%) scale(.5);
+
+    }
+
+    30%{
+
+        opacity:1;
+
+        transform:translate(-50%,-50%) scale(1.2);
+
+    }
+
+    100%{
+
+        opacity:0;
+
+        transform:translate(-50%,-130%) scale(1);
+
+    }
 
 }

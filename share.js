@@ -59,7 +59,7 @@ async function loadPosts() {
 
             const likeSnap = await getDoc(likeRef);
 
-            const liked = likeSnap.exists();
+            liked = likeSnap.exists();
 
         } catch (e) {
 
@@ -104,7 +104,9 @@ async function loadPosts() {
 
     </div>
 
-    <div class="post-text">
+    <div
+        class="post-text"
+        data-id="${postDoc.id}">
 
         ${post.text}
 
@@ -171,26 +173,83 @@ document.addEventListener("click", async (e) => {
 
     const likeSnap = await getDoc(likeRef);
 
+    const countSpan = e.target.nextElementSibling;
+    let count = Number(countSpan.textContent);
+
     if (likeSnap.exists()) {
+
+        e.target.textContent = "🤍";
+
+        countSpan.textContent = count - 1;
+
+        e.target.classList.remove("liked");
 
         await deleteDoc(likeRef);
 
-        await updateDoc(postRef, {
+        await updateDoc(postRef,{
             likeCount: increment(-1)
         });
 
     } else {
 
-        await setDoc(likeRef, {
-            likedAt: new Date()
+        e.target.textContent = "❤️";
+
+        countSpan.textContent = count + 1;
+
+        e.target.classList.add("liked");
+
+        await setDoc(likeRef,{
+            likedAt:new Date()
         });
 
-        await updateDoc(postRef, {
+        await updateDoc(postRef,{
             likeCount: increment(1)
         });
 
+        const heart = document.createElement("div");
+
+        heart.textContent = "❤️";
+
+        heart.className = "floating-heart";
+
+        e.target.closest(".post-card").appendChild(heart);
+
+        setTimeout(() => {
+
+            heart.remove();
+
+        }, 700);
+
+        e.target.classList.add("animate");
+
+        setTimeout(() => {
+
+            e.target.classList.remove("animate");
+
+        }, 200);
+
     }
 
-    loadPosts();
+});
+
+let lastTap = 0;
+
+document.addEventListener("click", async (e) => {
+
+    if (!e.target.classList.contains("post-text")) return;
+
+    const now = Date.now();
+
+    if (now - lastTap < 300) {
+
+        const button = e.target
+            .closest(".post-card")
+            .querySelector(".like-button");
+
+        button.click();
+
+    }
+
+    lastTap = now;
 
 });
