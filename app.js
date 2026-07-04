@@ -315,38 +315,47 @@ async function loadTodaySchedule() {
         return;
     }
 
-    const schedules = snap.data().data;
+    const data = snap.data();
 
-    const week = ["日", "月", "火", "水", "木", "金", "土"];
+    const todayLabel = data.todayLabel;
+    const nextLabel = data.nextLabel;
 
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
+    const todaySchedules = data.today;
+    const nextSchedules = data.next;
 
-    renderDaySchedule(today, "今日", "todayDate", "todaySchedule", schedules, week, grade);
-    renderDaySchedule(tomorrow, "明日", "tomorrowDate", "tomorrowSchedule", schedules, week, grade);
+    document.getElementById("todayDate").textContent =
+        `今日｜${todayLabel}`;
+
+    document.getElementById("tomorrowDate").textContent =
+        `次回｜${nextLabel}`;
+
+    renderSchedule(
+        "todaySchedule",
+        todaySchedules,
+        grade
+    );
+
+    renderSchedule(
+        "tomorrowSchedule",
+        nextSchedules,
+        grade
+    );
 
 }
 
-function renderDaySchedule(date, label, dateId, targetId, schedules, week, grade) {
-
-    const day = week[date.getDay()];
-
-    document.getElementById(dateId).textContent =
-        `${label}｜${date.getMonth() + 1}月${date.getDate()}日（${day}）`;
+function renderSchedule(targetId, schedules, grade) {
 
     const list = schedules
-        .filter(item =>
-            item.grade === grade &&
-            item.day === day
-        )
+        .filter(item => item.grade === grade)
         .sort((a, b) =>
             parseInt(a.period) - parseInt(b.period)
         );
 
     if (list.length === 0) {
+
         document.getElementById(targetId).innerHTML =
             `<p class="empty-text">授業はありません</p>`;
+
         return;
     }
 
