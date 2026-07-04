@@ -3,7 +3,9 @@ import {
     studentNumber,
     setupTheme,
     loadProfileImage,
-    loadUserName
+    loadUserName,
+    initializePage,
+    showNewsSkeleton
 } from "./common.js";
 
 import {
@@ -22,6 +24,9 @@ document.getElementById("version").textContent = `Version ${VERSION}`;
 const homeCourseNews = document.getElementById("homeCourseNews");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
+if(newsList){
+    showNewsSkeleton(newsList);
+}
 const todaySchedule = document.getElementById("todaySchedule");
 const registered = localStorage.getItem("registered");
 const manabaId = localStorage.getItem("manabaId");
@@ -104,7 +109,7 @@ async function startApp() {
 
     }
 
-    await Promise.all([
+    await initializePage([
 
         loadUserName(userName),
         loadProfileImage(topProfileImage),

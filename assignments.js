@@ -3,17 +3,21 @@ import {
     studentNumber,
     setupTheme,
     loadProfileImage,
-    loadUserName
+    loadUserName,
+    initializePage,
+    showAssignmentSkeleton
 } from "./common.js";
 
 import {
-    
     doc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const userName = document.getElementById("userName");
 const assignmentList = document.getElementById("assignmentList");
+if(assignmentList){
+    showAssignmentSkeleton(assignmentList);
+}
 const themeButton = document.getElementById("themeButton");
 const loggedIn = localStorage.getItem("loggedIn");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -22,10 +26,15 @@ if (loggedIn !== "true") {
     location.href = "login.html";
 }
 
-loadUserName(userName);
-loadProfileImage(topProfileImage);
+await initializePage([
+
+    loadUserName(userName),
+    loadProfileImage(topProfileImage),
+    loadAssignments()
+
+]);
+
 setupTheme(themeButton);
-loadAssignments();
 
 async function loadAssignments() {
 

@@ -25,11 +25,16 @@ const universityNews = document.getElementById("universityNews");
 const courseNews = document.getElementById("courseNews");
 const topProfileImage = document.getElementById("topProfileImage");
 
-loadUserName(userName);
-loadNews();
-loadCourseNews();
-loadProfileImage(topProfileImage);
 setupTheme(themeButton);
+
+await initializePage([
+
+    loadUserName(userName),
+    loadProfileImage(topProfileImage),
+    loadNews(),
+    loadCourseNews()
+
+]);
 
 universityTab.onclick = () => {
 

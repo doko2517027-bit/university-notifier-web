@@ -95,3 +95,147 @@ export async function loadUserName(element){
         snap.data().name + "さん";
 
 }
+
+export function showPage(){
+
+    document.body.classList.remove("page-loading");
+    document.body.classList.add("page-loaded");
+
+}
+
+export async function initializePage(tasks = []){
+
+    try{
+
+        await Promise.all(tasks);
+
+    }finally{
+
+        showPage();
+
+    }
+
+}
+
+export function showNewsSkeleton(target, count = 3){
+
+    if(!target) return;
+
+    target.innerHTML="";
+
+    for(let i=0;i<count;i++){
+
+        target.innerHTML+=`
+
+        <div class="news-card skeleton-card">
+
+            <div class="skeleton skeleton-title"></div>
+
+            <div class="skeleton skeleton-text"></div>
+
+            <div class="skeleton skeleton-text short"></div>
+
+        </div>
+
+        `;
+
+    }
+
+}
+
+export function showPostSkeleton(target, count = 5){
+
+    if(!target) return;
+
+    target.innerHTML="";
+
+    for(let i=0;i<count;i++){
+
+        target.innerHTML+=`
+
+        <div class="post-card">
+
+            <div class="post-header">
+
+                <div>
+
+                    <div class="skeleton skeleton-title"></div>
+
+                    <div class="skeleton skeleton-text short"></div>
+
+                </div>
+
+            </div>
+
+            <br>
+
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text short"></div>
+
+        </div>
+
+        `;
+
+    }
+
+}
+
+export function showAssignmentSkeleton(target,count=4){
+
+    if(!target) return;
+
+    target.innerHTML="";
+
+    for(let i=0;i<count;i++){
+
+        target.innerHTML+=`
+
+        <div class="setting-card">
+
+            <div class="skeleton skeleton-title"></div>
+
+            <div class="skeleton skeleton-text"></div>
+
+            <div class="skeleton skeleton-text short"></div>
+
+        </div>
+
+        `;
+
+    }
+
+}
+
+let toastTimer;
+
+export function showToast(message){
+
+    let toast =
+        document.getElementById("toast");
+
+    if(!toast){
+
+        toast = document.createElement("div");
+
+        toast.id="toast";
+
+        toast.className="toast";
+
+        document.body.appendChild(toast);
+
+    }
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(()=>{
+
+        toast.classList.remove("show");
+
+    },1800);
+
+}

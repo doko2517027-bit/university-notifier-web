@@ -2,7 +2,9 @@ import {
     db,
     studentNumber,
     setupTheme,
-    loadProfileImage
+    loadProfileImage,
+    initializePage,
+    showToast
 } from "./common.js";
 
 import {
@@ -19,7 +21,12 @@ const button = document.getElementById("postButton");
 const topProfileImage = document.getElementById("topProfileImage");
 
 setupTheme(themeButton);
-loadProfileImage(topProfileImage);
+
+await initializePage([
+
+    loadProfileImage(topProfileImage)
+
+]);
 
 button.onclick = async () => {
 
@@ -52,9 +59,13 @@ button.onclick = async () => {
 
         });
 
-        alert("投稿しました！");
+        showToast("✅ 投稿しました");
 
-        location.href = "share.html";
+        setTimeout(() => {
+
+            location.href = "share.html";
+
+        }, 1800);
 
     }
 

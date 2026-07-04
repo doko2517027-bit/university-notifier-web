@@ -56,9 +56,17 @@ const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 
-loadUserName(userName);
-loadProfileImage(topProfileImage);
 setupTheme(themeButton);
+
+await initializePage([
+
+    loadUserName(userName),
+    loadProfileImage(topProfileImage),
+    loadnotificationSettings()
+
+]);
+
+setupNotificationEvents();
 
 document.getElementById("departmentText").textContent =
     localStorage.getItem("department") || "未登録";
@@ -71,9 +79,6 @@ document.getElementById("gradeText").textContent =
 
 document.getElementById("versionText").textContent =
     `Version ${VERSION}`;
-
-loadnotificationSettings();
-setupNotificationEvents();
 
 document
 .getElementById("unregister")

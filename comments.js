@@ -30,7 +30,14 @@ const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 
 setupTheme(themeButton);
-loadProfileImage(topProfileImage);
+
+await initializePage([
+
+    loadProfileImage(topProfileImage),
+    loadPost(),
+    loadComments()
+
+]);
 
 document.getElementById("backButton").onclick = () => {
 
@@ -94,9 +101,6 @@ postCard.innerHTML = `
 `;
 
 }
-
-loadPost();
-await loadComments();
 
 async function loadComments() {
 

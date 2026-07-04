@@ -3,7 +3,9 @@ import {
     studentNumber,
     setupTheme,
     loadProfileImage,
-    loadUserName
+    loadUserName,
+    initializePage,
+    showPostSkeleton
 } from "./common.js";
 
 import {
@@ -24,12 +26,21 @@ import {
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const postList = document.getElementById("postList");
+if(postList){
+    showPostSkeleton(postList);
+}
 const topProfileImage = document.getElementById("topProfileImage");
 
 
-loadUserName(userName);
-loadProfileImage(topProfileImage);
 setupTheme(themeButton);
+
+await initializePage([
+
+    loadUserName(userName),
+    loadProfileImage(topProfileImage),
+    loadPosts()
+
+]);
 
 function renderPost(postDoc, liked) {
 
@@ -173,8 +184,6 @@ async function loadPosts() {
     });
 
 }
-
-loadPosts();
 
 document.addEventListener("click", async (e) => {
 
