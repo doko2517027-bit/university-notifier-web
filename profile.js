@@ -15,7 +15,6 @@ import {
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const profileImage = document.getElementById("profileImage");
 const menu = document.getElementById("photoMenu");
