@@ -147,17 +147,28 @@ document
 
     content.innerHTML = "";
 
-    const q = query(
+    const snapshot = await getDocs(
 
-        collection(db, "posts"),
+        query(
 
-        where("studentNumber", "==", studentNumber),
+            collection(db, "posts"),
 
-        orderBy("createdAt", "desc")
+            where("studentNumber", "==", studentNumber),
+
+            orderBy("createdAt", "desc")
+
+        )
 
     );
 
-    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+
+        content.innerHTML =
+            "<p>投稿がありません。</p>";
+
+        return;
+
+    }
 
     snapshot.forEach((postDoc) => {
 
