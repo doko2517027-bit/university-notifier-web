@@ -9,6 +9,10 @@
     --subtext:#64748B;
     --border:#DDE5E8;
     --shadow:0 6px 18px rgba(15,23,42,.08);
+
+    --success:#2E7D32;
+    --danger:#EF4444;
+    --info:#2196F3;
 }
 
 .dark{
@@ -1292,5 +1296,17 @@ white-space:pre-wrap;
 .circle-button:hover{
 
     transform:scale(1.05);
+
+}
+
+.card{
+
+    background:var(--card);
+
+    border:1px solid var(--border);
+
+    border-radius:20px;
+
+    box-shadow:var(--shadow);
 
 }
