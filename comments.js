@@ -27,23 +27,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const studentNumber =
-    localStorage.getItem("studentNumber");
-
-const commentText =
-    document.getElementById("commentText");
-
-const sendComment =
-    document.getElementById("sendComment");
-
-const commentList =
-    document.getElementById("commentList");
-
+const studentNumber = localStorage.getItem("studentNumber");
+const commentText = document.getElementById("commentText");
+const sendComment = document.getElementById("sendComment");
+const commentList = document.getElementById("commentList");
 const params = new URLSearchParams(location.search);
-
 const postId = params.get("postId");
-
 const postCard = document.getElementById("postCard");
+const themeButton = document.getElementById("themeButton");
+
+setupTheme();
 
 document.getElementById("backButton").onclick = () => {
 
@@ -260,17 +253,37 @@ document.addEventListener("click", async (e) => {
     );
 
     await updateDoc(
-
         doc(db,"posts",postId),
-
         {
-
             commentCount: increment(-1)
-
         }
-
     );
 
     loadComments();
 
 });
+
+function setupTheme() {
+
+    if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+        themeButton.textContent = "☀️";
+    } else {
+        themeButton.textContent = "🌙";
+    }
+
+    themeButton.addEventListener("click", () => {
+
+        document.body.classList.toggle("dark");
+
+        if (document.body.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark");
+            themeButton.textContent = "☀️";
+        } else {
+            localStorage.setItem("theme", "light");
+            themeButton.textContent = "🌙";
+        }
+
+    });
+
+}

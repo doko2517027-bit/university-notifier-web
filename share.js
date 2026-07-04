@@ -338,3 +338,11 @@ function setupTheme() {
     });
 
 }
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};

@@ -466,3 +466,11 @@ settingButton.addEventListener("click",()=>{
     location.href="settings.html";
 
 })
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
