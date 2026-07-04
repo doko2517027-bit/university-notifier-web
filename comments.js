@@ -35,6 +35,7 @@ const params = new URLSearchParams(location.search);
 const postId = params.get("postId");
 const postCard = document.getElementById("postCard");
 const themeButton = document.getElementById("themeButton");
+const topProfileImage = document.getElementById("topProfileImage");
 
 setupTheme();
 

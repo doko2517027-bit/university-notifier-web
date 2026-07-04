@@ -31,10 +31,34 @@ const studentNumber = localStorage.getItem("studentNumber");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const postList = document.getElementById("postList");
+const topProfileImage = document.getElementById("topProfileImage");
 
 
 loadUserName();
+loadProfileImage();
 setupTheme();
+
+async function loadProfileImage() {
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const user = snap.data();
+
+    if (user.photo) {
+
+        topProfileImage.src = user.photo;
+
+    } else {
+
+        topProfileImage.src = "images/default.png";
+
+    }
+
+}
 
 async function loadUserName() {
 

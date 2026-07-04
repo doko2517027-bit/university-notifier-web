@@ -34,6 +34,7 @@ const registered = localStorage.getItem("registered");
 const studentNumber = localStorage.getItem("studentNumber");
 const manabaId = localStorage.getItem("manabaId");
 const migrated = localStorage.getItem("migrated");
+const topProfileImage = document.getElementById("topProfileImage");
 
 let courses = {};
 
@@ -113,6 +114,7 @@ async function startApp() {
     await Promise.all([
 
         loadUserName(),
+        loadProfileImage();
         loadNews(),
         loadTodaySchedule(),
         loadHomeCourseNews(),
@@ -123,6 +125,28 @@ async function startApp() {
 }
 
 startApp();
+
+async function loadProfileImage() {
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const user = snap.data();
+
+    if (user.photo) {
+
+        topProfileImage.src = user.photo;
+
+    } else {
+
+        topProfileImage.src = "images/default.png";
+
+    }
+
+}
 
 async function loadUserName() {
 

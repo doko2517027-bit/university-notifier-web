@@ -25,13 +25,39 @@ const themeButton = document.getElementById("themeButton");
 const studentNumber = localStorage.getItem("studentNumber");
 const loggedIn = localStorage.getItem("loggedIn");
 
+const topProfileImage =
+    document.getElementById("topProfileImage");
+
 if (loggedIn !== "true") {
     location.href = "login.html";
 }
 
 loadUserName();
+loadProfileImage();
 loadAssignments();
 setupTheme();
+
+async function loadProfileImage() {
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const user = snap.data();
+
+    if (user.photo) {
+
+        topProfileImage.src = user.photo;
+
+    } else {
+
+        topProfileImage.src = "images/default.png";
+
+    }
+
+}
 
 async function loadUserName() {
 

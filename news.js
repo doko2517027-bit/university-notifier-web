@@ -33,11 +33,35 @@ const courseTab = document.getElementById("courseTab");
 
 const universityNews = document.getElementById("universityNews");
 const courseNews = document.getElementById("courseNews");
+const topProfileImage = document.getElementById("topProfileImage");
 
 loadUserName();
+loadProfileImage();
 loadNews();
 loadCourseNews();
 setupTheme();
+
+async function loadProfileImage() {
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const user = snap.data();
+
+    if (user.photo) {
+
+        topProfileImage.src = user.photo;
+
+    } else {
+
+        topProfileImage.src = "images/default.png";
+
+    }
+
+}
 
 universityTab.onclick = () => {
 

@@ -1006,3 +1006,16 @@ white-space:pre-wrap;
     border-bottom:1px solid #eee;
 
 }
+
+.top-profile-image{
+
+    width:36px;
+    height:36px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+
+    display:block;
+
+}

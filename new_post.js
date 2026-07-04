@@ -22,6 +22,7 @@ const db = getFirestore(app);
 
 const themeButton = document.getElementById("themeButton");
 const button = document.getElementById("postButton");
+const topProfileImage = document.getElementById("topProfileImage");
 
 setupTheme();
 
