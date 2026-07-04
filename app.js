@@ -490,3 +490,11 @@ if (!sessionStorage.getItem("splashShown")) {
 
 const settingButton =
 document.getElementById("settingButton");
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
