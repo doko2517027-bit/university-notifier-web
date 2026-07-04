@@ -20,7 +20,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const themeButton = document.getElementById("themeButton");
 const button = document.getElementById("postButton");
+
+setupTheme();
 
 button.onclick = async () => {
 
@@ -77,3 +80,36 @@ document.getElementById("backButton").onclick = () => {
     history.back();
 
 };
+
+function setupTheme() {
+
+    if (localStorage.getItem("theme") === "dark") {
+
+        document.body.classList.add("dark");
+        themeButton.textContent = "☀️";
+
+    } else {
+
+        themeButton.textContent = "🌙";
+
+    }
+
+    themeButton.addEventListener("click", () => {
+
+        document.body.classList.toggle("dark");
+
+        if (document.body.classList.contains("dark")) {
+
+            localStorage.setItem("theme", "dark");
+            themeButton.textContent = "☀️";
+
+        } else {
+
+            localStorage.setItem("theme", "light");
+            themeButton.textContent = "🌙";
+
+        }
+
+    });
+
+}

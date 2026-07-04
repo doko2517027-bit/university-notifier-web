@@ -7,6 +7,7 @@ import {
     collection,
     query,
     where,
+    orderBy,
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -139,11 +140,50 @@ document
 
 document
 .getElementById("myPosts")
-.onclick = () => {
+.onclick = async () => {
 
-    document.getElementById("profileContent")
-    .innerHTML =
-    "<p>自分の投稿を表示します。</p>";
+    const content =
+        document.getElementById("profileContent");
+
+    content.innerHTML = "";
+
+    const q = query(
+
+        collection(db, "posts"),
+
+        where("studentNumber", "==", studentNumber),
+
+        orderBy("createdAt", "desc")
+
+    );
+
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach((postDoc) => {
+
+        const post = postDoc.data();
+
+        content.innerHTML += `
+
+<div class="post-card">
+
+    <div class="student-number">
+
+        👤 ${post.studentNumber}
+
+    </div>
+
+    <div class="post-text">
+
+        ${post.text}
+
+    </div>
+
+</div>
+
+`;
+
+    });
 
 };
 
