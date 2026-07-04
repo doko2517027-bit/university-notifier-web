@@ -27,8 +27,33 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const studentNumber = localStorage.getItem("studentNumber");
-
+const themeButton = document.getElementById("themeButton");
+const userName = document.getElementById("userName");
 const postList = document.getElementById("postList");
+
+
+loadUserName();
+setupTheme();
+
+async function loadUserName() {
+
+    if (!studentNumber) {
+        userName.textContent = "Unknownさん";
+        return;
+    }
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
+    );
+
+    if (!snap.exists()) {
+        userName.textContent = "Unknownさん";
+        return;
+    }
+
+    userName.textContent = snap.data().name + "さん";
+
+}
 
 async function loadPosts() {
 
@@ -288,3 +313,28 @@ document.addEventListener("click", (e) => {
     lastTap = now;
 
 });
+
+function setupTheme() {
+
+    if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+        themeButton.textContent = "☀️";
+    } else {
+        themeButton.textContent = "🌙";
+    }
+
+    themeButton.addEventListener("click", () => {
+
+        document.body.classList.toggle("dark");
+
+        if (document.body.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark");
+            themeButton.textContent = "☀️";
+        } else {
+            localStorage.setItem("theme", "light");
+            themeButton.textContent = "🌙";
+        }
+
+    });
+
+}
