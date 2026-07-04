@@ -268,3 +268,11 @@ document.addEventListener("click", async (e) => {
     await loadComments();
 
 });
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
