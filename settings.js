@@ -119,7 +119,7 @@ if (localStorage.getItem("theme") === "dark") {
 // ボタンを押した時
 themeButton.addEventListener("click", () => {
 
-    document.documentElement.classList.toggle("dark");
+    document.documentElement.classList.contains("dark")
 
     if (document.body.classList.contains("dark")) {
 

@@ -230,19 +230,15 @@ document.addEventListener("click", async (e) => {
         postId
     );
 
-    const likeSnap = await getDoc(likeRef);
-
     const countSpan = e.target.nextElementSibling;
 
     let count = Number(countSpan.textContent);
 
+    const wasLiked = e.target.classList.contains("liked");
+
+    const likeSnap = await getDoc(likeRef);
+
     if (likeSnap.exists()) {
-
-        e.target.textContent = "🤍";
-
-        countSpan.textContent = count - 1;
-
-        e.target.classList.remove("liked");
 
         await deleteDoc(likeRef);
 
@@ -251,12 +247,6 @@ document.addEventListener("click", async (e) => {
         });
 
     } else {
-
-        e.target.textContent = "❤️";
-
-        countSpan.textContent = count + 1;
-
-        e.target.classList.add("liked");
 
         await setDoc(likeRef, {
             likedAt: new Date()
@@ -325,7 +315,7 @@ function setupTheme() {
 
     themeButton.addEventListener("click", () => {
 
-        document.documentElement.classList.toggle("dark");
+        document.documentElement.classList.contains("dark")
 
         if (document.body.classList.contains("dark")) {
             localStorage.setItem("theme", "dark");
