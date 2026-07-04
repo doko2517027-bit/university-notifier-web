@@ -1,39 +1,25 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    loadProfileImage
+} from "./common.js";
 
 import {
-    getFirestore,
     doc,
     getDoc,
-    setDoc,
     updateDoc,
     collection,
     query,
     where,
-    orderBy,
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-    authDomain: "universitynotifier-67517.firebaseapp.com",
-    projectId: "universitynotifier-67517",
-    storageBucket: "universitynotifier-67517.firebasestorage.app",
-    messagingSenderId: "908622250178",
-    appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
+const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
-const studentNumber = localStorage.getItem("studentNumber");
 const profileImage = document.getElementById("profileImage");
-
-const menu =
-    document.getElementById("photoMenu");
-
-const picker =
-    document.getElementById("photoPicker");
+const menu = document.getElementById("photoMenu");
+const picker = document.getElementById("photoPicker");
 
     picker.addEventListener("change", async (e) => {
 
@@ -81,6 +67,10 @@ const picker =
         profileImage.src = data.secure_url;
 
     });
+
+loadProfileImage(topProfileImage);
+setupTheme(themeButton);
+loadProfile();
 
 document
 .getElementById("profileImage")
@@ -144,8 +134,6 @@ document
 
 };
 
-setupTheme();
-
 function changeTab(button){
 
     document
@@ -165,49 +153,46 @@ async function loadProfile() {
     document.getElementById("studentNumber").textContent =
         studentNumber;
 
-    const snap = await getDoc(
+    const [snap, postSnap, posts] = await Promise.all([
+
+    getDoc(
         doc(db, "publicUsers", studentNumber)
-    );
+    ),
 
-    if (!snap.exists()) return;
+    getDocs(
+        query(
+            collection(db, "posts"),
+            where("studentNumber", "==", studentNumber)
+        )
+    ),
 
-    const user = snap.data();
-
-    document.getElementById("userName").textContent =
-        user.name;
-
-        if (user.photo) {
-
-            profileImage.src = user.photo;
-
-        } else {
-
-            profileImage.src = "images/default.png";
-
-        }
-        
-        const postSnap = await getDocs(
-
-    query(
-
-        collection(db, "posts"),
-
-        where("studentNumber", "==", studentNumber)
-
+    getDocs(
+        collection(db, "posts")
     )
 
-);
+]);
+
+if (!snap.exists()) return;
+
+const user = snap.data();
+
+document.getElementById("userName").textContent =
+    user.name;
+
+if (user.photo) {
+
+    profileImage.src = user.photo;
+
+} else {
+
+    profileImage.src = "images/default.png";
+
+}
 
 document.getElementById("postCount").textContent =
     postSnap.size;
 
-
-
 let likedCount = 0;
-
-const posts = await getDocs(
-    collection(db, "posts")
-);
 
 for (const post of posts.docs) {
 
@@ -253,8 +238,6 @@ document.getElementById("likeCount").textContent =
     `${receivedLikes} / ${likedCount}`;
 
 }
-
-loadProfile();
 
 document
     .getElementById("backButton")
@@ -343,32 +326,3 @@ document
     "<p>コメントした投稿を表示します。</p>";
 
 };
-
-function setupTheme() {
-
-    if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-        themeButton.textContent = "☀️";
-    } else {
-        themeButton.textContent = "🌙";
-    }
-
-    themeButton.addEventListener("click", () => {
-
-        document.documentElement.classList.toggle("dark");
-
-        if (document.documentElement.classList.contains("dark")) {
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        } else {
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
-        }
-
-    });
-
-}
