@@ -317,6 +317,9 @@ async function loadTodaySchedule() {
 
     const data = snap.data();
 
+    const todayTitle = data.todayTitle;
+    const nextTitle = data.nextTitle;
+
     const todayLabel = data.todayLabel;
     const nextLabel = data.nextLabel;
 
@@ -324,10 +327,10 @@ async function loadTodaySchedule() {
     const nextSchedules = data.next;
 
     document.getElementById("todayDate").textContent =
-        `今日｜${todayLabel}`;
+    `${todayTitle}｜${todayLabel}`;
 
     document.getElementById("tomorrowDate").textContent =
-        `次回｜${nextLabel}`;
+        `${nextTitle}｜${nextLabel}`;
 
     renderSchedule(
         "todaySchedule",
