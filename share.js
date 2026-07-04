@@ -61,7 +61,7 @@ function renderPost(postDoc, liked) {
 
     return `
 
-<div class="post-card">
+<div class="card post-card">
 
     <div class="post-header">
 

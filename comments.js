@@ -76,7 +76,7 @@ async function loadPost() {
 
 postCard.innerHTML = `
 
-<div class="post-card">
+<div class="card post-card">
 
     <div class="student-number">
 
@@ -137,7 +137,7 @@ async function loadComments() {
 
         commentList.innerHTML += `
 
-<div class="post-card">
+<div class="card post-card">
 
     <div class="post-header">
 

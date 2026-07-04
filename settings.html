@@ -56,7 +56,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>登録情報</h2>
 
-<div class="setting-card">
+<div class="card setting-card">
 
     <p><b>学科</b></p>
     <p id="departmentText"></p>
@@ -71,7 +71,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>アプリ情報</h2>
 
-<div class="setting-card">
+<div class="card setting-card">
 
     <p id="versionText"></p>
 
@@ -79,7 +79,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>通知設定</h2>
 
-<div class="setting-card">
+<div class="card setting-card">
 
     <label class="setting-row">
         <span>
@@ -117,14 +117,14 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>アカウント</h2>
 
-<div class="setting-card">
+<div class="card setting-card">
 
     <p>
-        現在ログイン中です。
+        ログアウト後はログイン画面に戻ります。
     </p>
 
-    <button id="logout" class="primary-button">
-        ログアウト
+    <button id="logout" class="btn btn-primary">
+    ログアウト
     </button>
 
 </div>
@@ -132,14 +132,14 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>危険な操作</h2>
 
-<div class="setting-card">
+<div class="card setting-card">
 
     <p>
         登録情報・通知設定を削除します。
     </p>
 
-    <button id="unregister" class="danger-button">
-        登録解除
+    <button id="unregister" class="btn btn-danger">
+    登録解除
     </button>
 
 </div>

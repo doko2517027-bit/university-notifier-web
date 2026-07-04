@@ -279,7 +279,7 @@ document
 
         content.innerHTML += `
 
-<div class="post-card">
+<div class="card post-card">
 
     <div class="student-number">
 

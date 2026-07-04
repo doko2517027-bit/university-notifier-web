@@ -90,20 +90,11 @@ a{
     box-shadow:var(--shadow);
 }
 
-.setting-card,
 .news-card{
-
-    background:var(--card);
-
-    border-radius:20px;
 
     padding:20px;
 
     margin-bottom:18px;
-
-    box-shadow:var(--shadow);
-
-    border:1px solid var(--border);
 
     cursor:pointer;
 
@@ -181,34 +172,6 @@ select:focus{
     outline:none;
     border-color:var(--primary-light);
     box-shadow:0 0 0 4px rgba(20,184,166,.18);
-}
-
-.primary-button,
-#subscribe{
-    width:100%;
-    padding:14px;
-    font-size:16px;
-    border:none;
-    border-radius:14px;
-    background:var(--primary);
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-#subscribe:disabled{
-    background:#B5B5B5;
-}
-
-.danger-button{
-    width:100%;
-    padding:14px;
-    font-size:16px;
-    border:none;
-    border-radius:14px;
-    background:var(--danger);
-    color:white;
-    font-weight:bold;
 }
 
 .schedule-table{
@@ -347,12 +310,13 @@ select:focus{
 }
 
 .day-card{
+
     min-width:88%;
-    background:var(--card);
-    border-radius:22px;
+
     padding:20px;
-    box-shadow:var(--shadow);
+
     scroll-snap-align:start;
+
 }
 
 .day-title{
@@ -628,6 +592,10 @@ white-space:pre-wrap;
 
 .post-card{
 
+    padding:18px;
+
+    margin-bottom:16px;
+
     position:relative;
 
 }
@@ -726,43 +694,13 @@ white-space:pre-wrap;
 
 }
 
-#backButton{
-
-    width:42px;
-
-    height:42px;
-
-    border:none;
-
-    border-radius:50%;
-
-    background:var(--card);
-
-    box-shadow:var(--shadow);
-
-    font-size:18px;
-
-    color:var(--text);
-
-    cursor:pointer;
-
-}
-
 .profile-card{
-
-    background:var(--card);
-
-    border-radius:22px;
 
     padding:30px 20px;
 
-    text-align:center;
-
-    box-shadow:var(--shadow);
-
-    border:1px solid var(--border);
-
     margin-bottom:20px;
+
+    text-align:center;
 
 }
 
@@ -790,17 +728,9 @@ white-space:pre-wrap;
 
     text-align:center;
 
-    background:var(--card);
-
-    border-radius:20px;
-
     padding:18px;
 
     margin-bottom:20px;
-
-    box-shadow:var(--shadow);
-
-    border:1px solid var(--border);
 
 }
 
@@ -1155,19 +1085,25 @@ white-space:pre-wrap;
 
 .btn{
 
+    width:100%;
     height:48px;
 
     border:none;
-
     border-radius:14px;
 
     font-size:16px;
-
     font-weight:bold;
 
     cursor:pointer;
 
     transition:.2s;
+
+}
+
+.btn:disabled{
+
+    opacity:.5;
+    cursor:not-allowed;
 
 }
 
@@ -1254,5 +1190,13 @@ white-space:pre-wrap;
     border-radius:20px;
 
     box-shadow:var(--shadow);
+
+}
+
+.setting-card{
+
+    padding:20px;
+
+    margin-bottom:18px;
 
 }

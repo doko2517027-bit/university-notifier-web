@@ -153,7 +153,7 @@ export function showPostSkeleton(target, count = 5){
 
         target.innerHTML+=`
 
-        <div class="post-card">
+        <div class="card post-card">
 
             <div class="post-header">
 
@@ -191,7 +191,7 @@ export function showAssignmentSkeleton(target,count=4){
 
         target.innerHTML+=`
 
-        <div class="setting-card">
+        <div class="card setting-card">
 
             <div class="skeleton skeleton-title"></div>
 

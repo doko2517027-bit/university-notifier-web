@@ -22,8 +22,8 @@ if(localStorage.getItem("theme")==="dark"){
 
 <div class="top-buttons">
 
-    <button id="backButton">
-        ←
+    <button id="backButton" class="circle-button">
+    ←
     </button>
 
     <h2>新規投稿</h2>
@@ -49,7 +49,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
-<div class="setting-card">
+<div class="card setting-card">
 
 <textarea
     id="postText"
@@ -58,12 +58,8 @@ if(localStorage.getItem("theme")==="dark"){
 
 <br><br>
 
-<button
-    class="primary-button"
-    id="postButton">
-
+<button id="postButton" class="btn btn-primary">
 投稿する
-
 </button>
 
 </div>
