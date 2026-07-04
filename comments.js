@@ -3,7 +3,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
     getFirestore,
     doc,
-    getDoc
+    getDoc,
+    collection,
+    query,
+    orderBy,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -88,3 +92,70 @@ async function loadPost() {
 }
 
 loadPost();
+loadComments();
+
+const commentList =
+    document.getElementById("commentList");
+
+async function loadComments() {
+
+    commentList.innerHTML = "";
+
+    const q = query(
+        collection(
+            db,
+            "posts",
+            postId,
+            "comments"
+        ),
+        orderBy("createdAt", "asc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach((commentDoc) => {
+
+        const comment = commentDoc.data();
+
+        let time = "";
+
+        if (comment.createdAt) {
+
+            const date = comment.createdAt.toDate();
+
+            time =
+                `${date.getMonth() + 1}/${date.getDate()} ` +
+                `${String(date.getHours()).padStart(2,"0")}:` +
+                `${String(date.getMinutes()).padStart(2,"0")}`;
+
+        }
+
+        commentList.innerHTML += `
+
+<div class="post-card">
+
+    <div class="student-number">
+
+        👤 ${comment.studentNumber}
+
+    </div>
+
+    <div class="post-time">
+
+        ${time}
+
+    </div>
+
+    <div class="post-text">
+
+        ${comment.text}
+
+    </div>
+
+</div>
+
+`;
+
+    });
+
+}
