@@ -57,19 +57,17 @@ export function setupTheme(themeButton){
 
 export async function loadProfileImage(img){
 
-    const snap=await getDoc(
-        doc(
-            db,
-            "publicUsers",
-            studentNumber
-        )
+    if (!img) return;
+
+    const snap = await getDoc(
+        doc(db, "publicUsers", studentNumber)
     );
 
-    if(!snap.exists()) return;
+    if (!snap.exists()) return;
 
-    const user=snap.data();
+    const user = snap.data();
 
-    img.src=user.photo || "images/default.png";
+    img.src = user.photo || "images/default.png";
 
 }
 
