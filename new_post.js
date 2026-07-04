@@ -46,7 +46,7 @@ button.onclick = async () => {
 
             studentNumber: studentNumber,
 
-            studentNumber: user.studentNumber,
+            studentNumber: users.studentNumber,
 
             text: text,
 
