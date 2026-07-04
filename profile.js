@@ -4,6 +4,8 @@ import {
     getFirestore,
     doc,
     getDoc,
+    setDoc,
+    updateDoc,
     collection,
     query,
     where,
@@ -63,6 +65,20 @@ const picker =
         const data = await res.json();
 
         console.log(data);
+
+        await updateDoc(
+
+            doc(db, "publicUsers", studentNumber),
+
+            {
+
+                photo: data.secure_url
+
+            }
+
+        );
+
+        profileImage.src = data.secure_url;
 
     });
 
@@ -151,6 +167,12 @@ async function loadProfile() {
 
     document.getElementById("userName").textContent =
         user.name;
+
+        if (user.photo) {
+
+            profileImage.src = user.photo;
+
+        }
         
         const postSnap = await getDocs(
 
@@ -217,17 +239,6 @@ for (const post of postSnap.docs) {
 
 document.getElementById("likeCount").textContent =
     `${receivedLikes} / ${likedCount}`;
-
-}
-
-const savedImage =
-    localStorage.getItem("profileImage");
-
-if (savedImage) {
-
-    document
-        .getElementById("profileImage")
-        .src = savedImage;
 
 }
 
