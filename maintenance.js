@@ -27,6 +27,7 @@ async function checkDeveloper() {
         devSnap.data().enabled === true
     ) {
         location.href = "index.html";
+        return;
     }
 
 }
