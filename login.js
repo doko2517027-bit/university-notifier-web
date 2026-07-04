@@ -1,24 +1,12 @@
 import {
+    db,
     initializePage
 } from "./common.js";
 
 import {
-    getFirestore,
     doc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 const studentNumber = document.getElementById("studentNumber");
 const appPassword = document.getElementById("appPassword");
@@ -99,6 +87,3 @@ async function hashPassword(password) {
         .join("");
 
 }
-
-document.body.classList.remove("page-loading");
-document.body.classList.add("page-loaded");

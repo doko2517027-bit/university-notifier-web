@@ -239,3 +239,26 @@ export function showToast(message){
     },1800);
 
 }
+
+export function updateAccentColor(department, major) {
+
+    const root = document.documentElement;
+
+    if (department === "看護学科") {
+
+        root.style.setProperty("--accent", "#F7EAC5");
+
+    } else if (major === "理学療法学専攻") {
+
+        root.style.setProperty("--accent", "#DDEBF7");
+
+    } else if (major === "作業療法学専攻") {
+
+        root.style.setProperty("--accent", "#E2EFDA");
+
+    } else {
+
+        root.style.setProperty("--accent", "#BEE9E8"); // style.cssのデフォルト
+    }
+
+}

@@ -1,7 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+    db,
+    initializePage,
+    updateAccentColor
+} from "./common.js";
 
 import {
-    getFirestore,
     doc,
     setDoc,
     getDoc,
@@ -10,46 +13,10 @@ import {
 
 import { VERSION } from "./version.js";
 
-document.getElementById("version").textContent = `Version ${VERSION}`;
+const version = document.getElementById("version");
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-  authDomain: "universitynotifier-67517.firebaseapp.com",
-  projectId: "universitynotifier-67517",
-  storageBucket: "universitynotifier-67517.firebasestorage.app",
-  messagingSenderId: "908622250178",
-  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-
-function updateAccentColor() {
-
-    const root = document.documentElement;
-
-    if (department.value === "看護学科") {
-
-        root.style.setProperty("--accent", "#F7EAC5");
-
-    }
-    else if (major.value === "理学療法学専攻") {
-
-        root.style.setProperty("--accent", "#DDEBF7");
-
-    }
-    else if (major.value === "作業療法学専攻") {
-
-        root.style.setProperty("--accent", "#E2EFDA");
-
-    }
-    else {
-
-        root.style.setProperty("--accent", "#2563eb");
-
-    }
-
+if (version) {
+    version.textContent = `Version ${VERSION}`;
 }
 
 const PUBLIC_KEY =
@@ -73,7 +40,11 @@ department.addEventListener("change", () => {
     }
 
     updateState();
-    updateAccentColor();
+
+    updateAccentColor(
+        department.value,
+        major.value
+    );
 
 });
 
@@ -84,7 +55,11 @@ major.addEventListener("change", () => {
     }
 
     updateState();
-    updateAccentColor();
+
+    updateAccentColor(
+        department.value,
+        major.value
+    );
 
 });
 
@@ -125,8 +100,13 @@ appPasswordConfirm.addEventListener("input", () => {
 });
 
 updateState();
-updateAccentColor();
 
+updateAccentColor(
+    department.value,
+    major.value
+);
+
+await initializePage();
 
 function updateState() {
 
@@ -348,21 +328,15 @@ try {
 
     localStorage.setItem("migrated", "true");
 
-    button.textContent = "登録済み";
-    button.disabled = true;
-
-    department.disabled = true;
-    major.disabled = true;
-    grade.disabled = true;
-
     alert("登録が完了しました。");
     localStorage.setItem("loggedIn", "true");
     location.href = "index.html";
     } catch (e) {
 
-    alert(e);
+        console.error(e);
+        alert("登録に失敗しました。");
 
-}
+    }
 });
 
 function urlBase64ToUint8Array(base64String) {
