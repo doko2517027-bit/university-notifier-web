@@ -71,3 +71,9 @@ button.onclick = async () => {
     }
 
 };
+
+document.getElementById("backButton").onclick = () => {
+
+    history.back();
+
+};

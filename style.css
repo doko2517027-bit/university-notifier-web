@@ -762,3 +762,25 @@ white-space:pre-wrap;
     cursor:pointer;
 
 }
+
+#backButton{
+
+    width:42px;
+
+    height:42px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:var(--card);
+
+    box-shadow:var(--shadow);
+
+    font-size:18px;
+
+    color:var(--text);
+
+    cursor:pointer;
+
+}
