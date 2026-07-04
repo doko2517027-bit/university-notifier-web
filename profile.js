@@ -68,7 +68,6 @@ const picker = document.getElementById("photoPicker");
 
     });
 
-loadProfileImage(topProfileImage);
 setupTheme(themeButton);
 loadProfile();
 
