@@ -436,7 +436,7 @@ themeButton.addEventListener("click", () => {
 
 const splash = document.getElementById("splash");
 
-if (!localStorage.getItem("splashShown")) {
+if (!sessionStorage.getItem("splashShown")) {
 
     splash.style.display = "flex";
 
@@ -450,7 +450,7 @@ if (!localStorage.getItem("splashShown")) {
 
     }, 1200);
 
-    localStorage.setItem("splashShown", "true");
+    sessionStorage.setItem("splashShown", "true");
 
 } else {
 
