@@ -19,6 +19,11 @@ import {
 const themeButton = document.getElementById("themeButton");
 const button = document.getElementById("postButton");
 const topProfileImage = document.getElementById("topProfileImage");
+const selectImage = document.getElementById("selectImage");
+const selectPdf = document.getElementById("selectPdf");
+const imagePicker = document.getElementById("imagePicker");
+const pdfPicker = document.getElementById("pdfPicker");
+const selectedFile = document.getElementById("selectedFile");
 
 setupTheme(themeButton);
 
@@ -51,6 +56,14 @@ button.onclick = async () => {
 
             text,
 
+            type: "text",
+
+            imageUrl: "",
+
+            pdfUrl: "",
+
+            pdfName: "",
+
             createdAt: serverTimestamp(),
 
             likeCount: 0,
@@ -79,7 +92,45 @@ button.onclick = async () => {
 
 };
 
-document.getElementById("backButton").onclick = () => {
+selectImage.onclick = () => {
+
+    imagePicker.click();
+
+};
+
+selectPdf.onclick = () => {
+
+    pdfPicker.click();
+
+};
+
+imagePicker.onchange = () => {
+
+    const file = imagePicker.files[0];
+
+    if (!file) return;
+
+    selectedFile.textContent =
+        `📷 ${file.name}`;
+
+};
+
+pdfPicker.onchange = () => {
+
+    const file = pdfPicker.files[0];
+
+    if (!file) return;
+
+    selectedFile.textContent =
+        `📄 ${file.name}`;
+
+};
+
+
+
+document
+.getElementById("backButton")
+.onclick = () => {
 
     history.back();
 

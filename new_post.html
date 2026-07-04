@@ -62,6 +62,42 @@ if(localStorage.getItem("theme")==="dark"){
 投稿する
 </button>
 
+<div class="post-attachments">
+
+    <button
+        id="selectImage"
+        type="button"
+        class="btn btn-secondary">
+
+        📷 写真
+
+    </button>
+
+    <button
+        id="selectPdf"
+        type="button"
+        class="btn btn-secondary">
+
+        📄 PDF
+
+    </button>
+
+</div>
+
+<input
+    id="imagePicker"
+    type="file"
+    accept="image/*"
+    hidden>
+
+<input
+    id="pdfPicker"
+    type="file"
+    accept="application/pdf"
+    hidden>
+
+<p id="selectedFile"></p>
+
 </div>
 
 <script type="module" src="new_post.js"></script>
