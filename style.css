@@ -962,3 +962,47 @@ white-space:pre-wrap;
     color:white;
 
 }
+
+.photo-menu{
+
+    display:none;
+
+    position:fixed;
+
+    inset:0;
+
+    background:rgba(0,0,0,.4);
+
+    z-index:9999;
+
+    align-items:flex-end;
+
+}
+
+.photo-sheet{
+
+    width:100%;
+
+    background:white;
+
+    border-radius:18px 18px 0 0;
+
+    padding:15px;
+
+}
+
+.photo-sheet button{
+
+    width:100%;
+
+    padding:18px;
+
+    border:none;
+
+    background:none;
+
+    font-size:17px;
+
+    border-bottom:1px solid #eee;
+
+}

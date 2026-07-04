@@ -26,6 +26,91 @@ const db = getFirestore(app);
 const themeButton = document.getElementById("themeButton");
 const studentNumber = localStorage.getItem("studentNumber");
 
+const menu =
+    document.getElementById("photoMenu");
+
+const picker =
+    document.getElementById("photoPicker");
+
+    picker.addEventListener("change", (e) => {
+
+        const file = e.target.files[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+
+            document
+                .getElementById("profileImage")
+                .src = reader.result;
+
+            localStorage.setItem(
+                "profileImage",
+                reader.result
+            );
+
+        };
+
+        reader.readAsDataURL(file);
+
+    });
+
+document
+.getElementById("profileImage")
+.onclick = () => {
+
+    menu.style.display = "flex";
+
+};
+
+document
+.getElementById("choosePhoto")
+.onclick = () => {
+
+    picker.removeAttribute("capture");
+
+    picker.click();
+
+    menu.style.display = "none";
+
+};
+
+document
+.getElementById("takePhoto")
+.onclick = () => {
+
+    picker.setAttribute("capture","environment");
+
+    picker.click();
+
+    menu.style.display = "none";
+
+};
+
+document
+.getElementById("resetPhoto")
+.onclick = () => {
+
+    localStorage.removeItem("profileImage");
+
+    document
+        .getElementById("profileImage")
+        .src = "images/default.png";
+
+    menu.style.display = "none";
+
+};
+
+document
+.getElementById("cancelPhoto")
+.onclick = () => {
+
+    menu.style.display = "none";
+
+};
+
 setupTheme();
 
 function changeTab(button){
@@ -126,6 +211,17 @@ document.getElementById("likeCount").textContent =
 
 }
 
+const savedImage =
+    localStorage.getItem("profileImage");
+
+if (savedImage) {
+
+    document
+        .getElementById("profileImage")
+        .src = savedImage;
+
+}
+
 loadProfile();
 
 document
@@ -133,22 +229,6 @@ document
     .onclick = () => {
 
     history.back();
-
-};
-
-document
-    .getElementById("profileImage")
-    .onclick = () => {
-
-    alert(
-`プロフィール画像
-
-📷 写真を変更
-
-👤 初期アイコンに戻す
-
-※現在準備中`
-    );
 
 };
 
@@ -171,7 +251,7 @@ document
             b.data().createdAt.toMillis() - a.data().createdAt.toMillis()
         );
 
-    if (snapshot.empty) {
+    if (myPosts.length === 0) {
 
         content.innerHTML =
             "<p>投稿がありません。</p>";
@@ -180,7 +260,7 @@ document
 
     }
 
-    snapshot.forEach((postDoc) => {
+    myPosts.forEach((postDoc) => {
 
         const post = postDoc.data();
 
