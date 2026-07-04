@@ -140,7 +140,7 @@ async function loadComments() {
 
                 <img
                     src="${photo}"
-                    class="top-profile-image">
+                    class="circle-button">
 
                 ${comment.studentNumber}
 
