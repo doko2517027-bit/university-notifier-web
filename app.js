@@ -458,15 +458,6 @@ if (!sessionStorage.getItem("splashShown")) {
 
 }
 
-const settingButton =
-document.getElementById("settingButton");
-
-settingButton.addEventListener("click",()=>{
-
-    location.href="settings.html";
-
-})
-
 document
 .getElementById("profileButton")
 .onclick = () => {
