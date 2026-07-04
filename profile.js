@@ -28,6 +28,20 @@ const studentNumber = localStorage.getItem("studentNumber");
 
 setupTheme();
 
+function changeTab(button){
+
+    document
+    .querySelectorAll(".profile-tabs button")
+    .forEach(btn=>{
+
+        btn.classList.remove("active");
+
+    });
+
+    button.classList.add("active");
+
+}
+
 async function loadProfile() {
 
     document.getElementById("studentNumber").textContent =
@@ -142,6 +156,8 @@ document
 .getElementById("myPosts")
 .onclick = async () => {
 
+    changeTab(document.getElementById("myPosts"));
+
     const content =
         document.getElementById("profileContent");
 
@@ -196,6 +212,8 @@ document
 .getElementById("likedPosts")
 .onclick = () => {
 
+    changeTab(document.getElementById("likedPosts"));
+
     document.getElementById("profileContent")
     .innerHTML =
     "<p>いいねした投稿を表示します。</p>";
@@ -205,6 +223,8 @@ document
 document
 .getElementById("myComments")
 .onclick = () => {
+
+    changeTab(document.getElementById("myComments"));
 
     document.getElementById("profileContent")
     .innerHTML =
