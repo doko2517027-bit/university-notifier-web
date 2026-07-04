@@ -593,3 +593,52 @@ color:#666;
 font-size:15px;
 
 }
+
+.post-footer{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    margin-top:18px;
+
+}
+
+.like-button,
+.comment-button{
+
+    border:none;
+
+    background:none;
+
+    font-size:24px;
+
+    cursor:pointer;
+
+}
+
+.like-button{
+
+    transition:.2s;
+
+}
+
+.like-button:hover{
+
+    transform:scale(1.2);
+
+}
+
+.like-button.liked{
+
+    color:red;
+
+}
+
+.like-button:active{
+
+    transform:scale(1.4);
+
+}

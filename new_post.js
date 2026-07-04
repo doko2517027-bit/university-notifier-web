@@ -4,14 +4,9 @@ import {
   doc,
   getDoc,
   collection,
-  query,
-  where,
-  getDocs
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-import { VERSION } from "./version.js";
-
-document.getElementById("version").textContent = `Version ${VERSION}`;
 
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
@@ -21,6 +16,9 @@ const firebaseConfig = {
   messagingSenderId: "908622250178",
   appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
 };
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 const button = document.getElementById("postButton");
 
@@ -41,13 +39,12 @@ button.onclick = async () => {
 
     try {
 
-        const user = JSON.parse(
-            localStorage.getItem("user")
-        );
+        const studentNumber =
+            localStorage.getItem("studentNumber");
 
         await addDoc(collection(db, "posts"), {
 
-            author: user.name,
+            studentNumber: studentNumber,
 
             studentNumber: user.studentNumber,
 

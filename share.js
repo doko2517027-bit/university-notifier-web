@@ -1,68 +1,196 @@
-const posts = [
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
-{
-    studentNumber:"2510044",
-    text:"この問題解けた人いる？",
-    createdAt:"7/4 14:32",
-    likeCount:0,
-    commentCount:0
-},
+import {
+    getFirestore,
+    collection,
+    query,
+    orderBy,
+    getDocs,
+    doc,
+    getDoc,
+    setDoc,
+    deleteDoc,
+    updateDoc,
+    increment
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-{
-    studentNumber:"2510018",
-    text:"今日の解剖のプリント持ってる人いますか？",
-    createdAt:"7/4 12:08",
-    likeCount:2,
-    commentCount:1
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
+  authDomain: "universitynotifier-67517.firebaseapp.com",
+  projectId: "universitynotifier-67517",
+  storageBucket: "universitynotifier-67517.firebasestorage.app",
+  messagingSenderId: "908622250178",
+  appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
+};
 
-];
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const postList =
-document.getElementById("postList");
+const studentNumber = localStorage.getItem("studentNumber");
 
-posts.forEach(post=>{
+const postList = document.getElementById("postList");
 
-postList.innerHTML += `
+async function loadPosts() {
+
+    postList.innerHTML = "";
+
+    const q = query(
+        collection(db, "posts"),
+        orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    for (const postDoc of snapshot.docs) {
+
+        const post = postDoc.data();
+
+        const likeRef = doc(
+            db,
+            "posts",
+            postDoc.id,
+            "likes",
+            studentNumber
+        );
+
+        let liked = false;
+
+        try {
+
+            const likeSnap = await getDoc(likeRef);
+
+            const liked = likeSnap.exists();
+
+        } catch (e) {
+
+            console.error(e);
+
+        }
+
+        let time = "";
+
+        if (post.createdAt) {
+
+            const date = post.createdAt.toDate();
+
+            time =
+                `${date.getMonth() + 1}/${date.getDate()} ` +
+                `${String(date.getHours()).padStart(2, "0")}:` +
+                `${String(date.getMinutes()).padStart(2, "0")}`;
+
+        }
+
+        postList.innerHTML += `
 
 <div class="post-card">
 
-<div class="post-header">
+    <div class="post-header">
 
-<div>
+        <div>
 
-<div class="student-number">
+            <div class="student-number">
 
-👤 ${post.studentNumber}
+                👤 ${post.studentNumber}
 
-</div>
+            </div>
 
-<div class="post-time">
+            <div class="post-time">
 
-${post.createdAt}
+                ${time}
 
-</div>
+            </div>
 
-</div>
+        </div>
 
-</div>
+    </div>
 
-<div class="post-text">
+    <div class="post-text">
 
-${post.text}
+        ${post.text}
 
-</div>
+    </div>
 
-<div class="post-footer">
+    <div class="post-footer">
 
-❤️ ${post.likeCount}
+    <button
+        class="like-button ${liked ? "liked" : ""}"
+        data-id="${postDoc.id}">
+        ${liked ? "❤️" : "🤍"}
+    </button>
 
-💬 ${post.commentCount}
+    <span class="like-count">
 
-</div>
+    ${post.likeCount ?? 0}
+
+    </span>
+
+    <button
+        class="comment-button">
+
+        💬
+
+    </button>
+
+    <span>
+
+    ${post.commentCount ?? 0}
+
+    </span>
+
+    </div>
 
 </div>
 
 `;
+
+    };
+
+}
+
+loadPosts();
+
+document.addEventListener("click", async (e) => {
+
+    if (!e.target.classList.contains("like-button")) return;
+
+    const postId = e.target.dataset.id;
+
+    const likeRef = doc(
+        db,
+        "posts",
+        postId,
+        "likes",
+        studentNumber
+    );
+
+    const postRef = doc(
+        db,
+        "posts",
+        postId
+    );
+
+    const likeSnap = await getDoc(likeRef);
+
+    if (likeSnap.exists()) {
+
+        await deleteDoc(likeRef);
+
+        await updateDoc(postRef, {
+            likeCount: increment(-1)
+        });
+
+    } else {
+
+        await setDoc(likeRef, {
+            likedAt: new Date()
+        });
+
+        await updateDoc(postRef, {
+            likeCount: increment(1)
+        });
+
+    }
+
+    loadPosts();
 
 });
