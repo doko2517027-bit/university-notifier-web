@@ -13,7 +13,6 @@ const message = document.getElementById("message");
 const studentNumber =
     localStorage.getItem("studentNumber");
 
-// 開発者ならメンテ中でもホームへ
 async function checkDeveloper() {
 
     if (!studentNumber) return;
@@ -32,7 +31,6 @@ async function checkDeveloper() {
 
 }
 
-// メンテ情報取得
 async function loadMaintenance() {
 
     const snap = await getDoc(
@@ -40,7 +38,8 @@ async function loadMaintenance() {
     );
 
     if (!snap.exists()) {
-        message.textContent = "メンテナンス情報を取得できませんでした。";
+        message.textContent =
+            "メンテナンス情報を取得できませんでした。";
         return;
     }
 
@@ -56,8 +55,26 @@ async function loadMaintenance() {
 
 }
 
-await checkDeveloper();
+async function start() {
 
-await loadMaintenance();
+    try {
 
-await initializePage();
+        await checkDeveloper();
+        await loadMaintenance();
+
+    } catch (e) {
+
+        console.error(e);
+
+        message.textContent =
+            "メンテナンス情報の取得に失敗しました。";
+
+    } finally {
+
+        await initializePage();
+
+    }
+
+}
+
+await start();
