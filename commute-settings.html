@@ -80,38 +80,45 @@ if(localStorage.getItem("theme")==="dark"){
 
 <div class="card setting-card">
 
-<h2>利用手段</h2>
+    <h2>
 
-<label class="setting-row">
+        🚆 電車
 
-    <span>🚆 電車</span>
+    </h2>
 
-    <input
-        type="radio"
-        name="commuteType"
-        value="train"
-        checked>
+    <button
+        id="trainSettingButton"
+        class="btn btn-primary">
 
-</label>
+        電車ルートを設定
 
-<label class="setting-row">
+    </button>
 
-    <span>🚌 バス</span>
+</div>
 
-    <input
-        type="radio"
-        name="commuteType"
-        value="bus">
+<div class="card setting-card">
 
-</label>
+    <h2>
+
+        🚌 バス
+
+    </h2>
+
+    <button
+        id="busSettingButton"
+        class="btn btn-primary">
+
+        バスルートを設定
+
+    </button>
+
+</div>
 
 <hr>
 
-<h2>
-
-出発駅・停留所
-
-</h2>
+<div
+    id="commuteEditor"
+    style="display:none;">
 
 <input
     id="departureSearch"

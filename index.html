@@ -69,6 +69,28 @@ if(localStorage.getItem("theme")==="dark"){
             class="card setting-card home-card">
 
             <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    margin-bottom:12px;
+                ">
+
+                <h3 style="margin:0;">
+                    🌤 天気
+                </h3>
+
+                <span
+                    id="weatherDate"
+                    style="
+                        font-size:13px;
+                        color:gray;
+                    ">
+                </span>
+
+            </div>
+
+            <div
                 id="weatherLocation"
                 style="
                     font-size:18px;
@@ -97,6 +119,15 @@ if(localStorage.getItem("theme")==="dark"){
                     margin-top:12px;
                 ">
 
+            </div>
+
+            <div
+                id="weatherUpdated"
+                style="
+                    margin-top:10px;
+                    font-size:12px;
+                    color:gray;
+                ">
             </div>
 
         </div>

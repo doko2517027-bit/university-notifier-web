@@ -29,6 +29,23 @@ const arrivalSelected = document.getElementById("arrivalSelected");
 
 const saveButton = document.getElementById("saveCommuteButton");
 
+const trainSettingButton =
+document.getElementById(
+    "trainSettingButton"
+);
+
+const busSettingButton =
+document.getElementById(
+    "busSettingButton"
+);
+
+const commuteEditor =
+document.getElementById(
+    "commuteEditor"
+);
+
+let editingType="train";
+
 const currentCommuteSetting =
     document.getElementById("currentCommuteSetting");
 
@@ -44,6 +61,22 @@ let departure = null;
 let arrival = null;
 
 saveButton.onclick = saveCommute;
+
+trainSettingButton.onclick=()=>{
+
+    editingType="train";
+
+    commuteEditor.style.display="block";
+
+};
+
+busSettingButton.onclick=()=>{
+
+    editingType="bus";
+
+    commuteEditor.style.display="block";
+
+};
 
 departureSearch.addEventListener("input", () => {
     searchPlaces(
@@ -82,10 +115,12 @@ async function loadCommute() {
 
     }
 
-    const commute = user.commute;
+    const commute = user.commute ?? {};
 
-    departure = commute.departure || null;
-    arrival = commute.arrival || null;
+    const current = commute[editingType] ?? {};
+
+    departure = current.departure ?? null;
+    arrival = current.arrival ?? null;
 
     renderSelected();
     renderCurrent(commute);
@@ -104,56 +139,61 @@ function renderSelected() {
 
 }
 
-function renderCurrent(commute) {
+function renderCurrent(commute){
 
-    currentCommuteSetting.innerHTML = `
+    let html="";
 
-    <div class="commute-summary">
+    if(commute.train?.departure){
 
-        <h3>
+        html += `
+        <div class="card">
 
-            ${commute.type === "bus"
-                ? "🚌 バス"
-                : "🚆 電車"}
+            <h3>🚆 電車</h3>
 
-        </h3>
+            🚩 ${commute.train.departure.name}
 
-        <br>
-
-        <div>
-
-            <small>🚩 出発</small>
-
-            <br>
-
-            <b>${commute.departure.name}</b>
-
-        </div>
-
-        <div
-            style="
-                text-align:center;
-                font-size:28px;
-                margin:15px 0;
-            ">
+            <br><br>
 
             ⬇️
 
-        </div>
+            <br><br>
 
-        <div>
-
-            <small>🏫 到着</small>
-
-            <br>
-
-            <b>${commute.arrival.name}</b>
+            🏫 ${commute.train.arrival.name}
 
         </div>
+        `;
 
-    </div>
+    }
 
-    `;
+    if(commute.bus?.departure){
+
+        html += `
+        <div class="card">
+
+            <h3>🚌 バス</h3>
+
+            🚩 ${commute.bus.departure.name}
+
+            <br><br>
+
+            ⬇️
+
+            <br><br>
+
+            🏫 ${commute.bus.arrival.name}
+
+        </div>
+        `;
+
+    }
+
+    if(html===""){
+
+        html="まだ設定されていません。";
+
+    }
+
+    currentCommuteSetting.innerHTML=html;
 
 }
 
@@ -167,36 +207,31 @@ async function saveCommute() {
 
     }
 
-    const type = document.querySelector(
-        'input[name="commuteType"]:checked'
-    ).value;
+    const updateData = {};
 
-    await updateDoc(
-        doc(db, "users", studentNumber),
-        {
-
-            commute: {
-
-                type,
-
-                departure,
-
-                arrival
-
-            }
-
-        }
-    );
-
-    renderCurrent({
-
-        type,
+    updateData[
+        `commute.${editingType}`
+    ] = {
 
         departure,
 
         arrival
 
-    });
+    };
+
+    await updateDoc(
+
+        doc(db,"users",studentNumber),
+
+        updateData
+
+    );
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    renderCurrent(snap.data().commute);
 
     showToast("保存しました");
 
@@ -244,9 +279,7 @@ function searchPlaces(keyword, target, mode) {
         return;
     }
 
-    const selectedType = document.querySelector(
-        'input[name="commuteType"]:checked'
-    ).value;
+    const selectedType = editingType;
 
     const results = mockPlaces.filter(place => {
         return (

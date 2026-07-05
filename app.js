@@ -32,8 +32,12 @@ const weatherLocation = document.getElementById("weatherLocation");
 const weatherMain = document.getElementById("weatherMain");
 const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
+const weatherUpdated = document.getElementById("weatherUpdated");
+const weatherDate = document.getElementById("weatherDate");
 const trainCard = document.getElementById("trainCard");
 const busCard = document.getElementById("busCard");
+const trainContent = document.getElementById("trainContent");
+const busContent = document.getElementById("busContent");
 const commuteCard = document.getElementById("commuteCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
@@ -625,7 +629,7 @@ async function loadWeather() {
             "https://api.open-meteo.com/v1/forecast" +
             `?latitude=${latitude}` +
             `&longitude=${longitude}` +
-            "&current=temperature_2m,weather_code" +
+            "&current=temperature_2m,apparent_temperature,weather_code" +
             "&hourly=precipitation_probability" +
             "&daily=temperature_2m_max,temperature_2m_min" +
             "&timezone=Asia%2FTokyo";
@@ -644,6 +648,11 @@ async function loadWeather() {
         const temp =
             Math.round(data.current.temperature_2m);
 
+        const apparent =
+            Math.round(
+                data.current.apparent_temperature
+            );
+
         const max =
             Math.round(data.daily.temperature_2m_max[0]);
 
@@ -659,11 +668,97 @@ async function loadWeather() {
         weatherLocation.innerHTML =
             `<b>${locationName}</b>`;
 
-        weatherMain.innerHTML =
-            `${weather.icon} ${weather.text}　<b>${temp}℃</b>`;
+        weatherMain.innerHTML = `
 
-        weatherDetail.textContent =
-            `最高 ${max}℃ / 最低 ${min}℃　降水確率 ${rain}%`;
+        <div style="
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+        ">
+
+            <div style="
+                font-size:58px;
+                line-height:1;
+            ">
+                ${weather.icon}
+            </div>
+
+            <div style="
+                font-size:18px;
+                margin-top:8px;
+            ">
+                ${weather.text}
+            </div>
+
+            <div style="
+                font-size:42px;
+                font-weight:bold;
+                margin-top:6px;
+            ">
+                ${temp}℃
+            </div>
+
+        </div>
+
+        `;
+
+        weatherDetail.innerHTML = `
+
+        <div style="
+            display:flex;
+            justify-content:space-around;
+            text-align:center;
+            margin-top:12px;
+        ">
+
+            <div>
+
+                <div style="font-size:12px;color:gray;">
+                    最高
+                </div>
+
+                <b>${max}℃</b>
+
+            </div>
+
+            <div>
+
+                <div style="font-size:12px;color:gray;">
+                    最低
+                </div>
+
+                <b>${min}℃</b>
+
+            </div>
+
+            <div>
+
+                <div style="font-size:12px;color:gray;">
+                    降水
+                </div>
+
+                <b>${rain}%</b>
+
+            </div>
+
+        </div>
+
+        `;
+
+        setWeatherCardStyle(weather.text);
+
+        const now = new Date();
+
+        const dateText =
+            `${now.getMonth() + 1}月${now.getDate()}日`;
+
+        weatherDate.textContent = dateText;
+
+        const timeText =
+            `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+        weatherUpdated.innerHTML =
+            `🕒 更新 ${timeText}`;
 
     } catch (e) {
 
@@ -680,11 +775,31 @@ async function loadWeather() {
 
 function getWeatherText(code) {
 
+    const hour = new Date().getHours();
+
+    const isNight =
+        hour >= 19 || hour < 5;
+
+    const isEvening =
+        hour >= 17 && hour < 19;
+
     if (code === 0) {
+        if (isNight) {
+            return { icon: "🌙", text: "晴れ" };
+        }
+
+        if (isEvening) {
+            return { icon: "🌇", text: "晴れ" };
+        }
+
         return { icon: "☀️", text: "晴れ" };
     }
 
     if ([1, 2, 3].includes(code)) {
+        if (isNight) {
+            return { icon: "☁️", text: "くもり" };
+        }
+
         return { icon: "🌤", text: "くもり時々晴れ" };
     }
 
@@ -720,94 +835,89 @@ async function loadCommuteCard() {
         doc(db, "users", studentNumber)
     );
 
-    if (!snap.exists()) {
-
-        commuteCard.innerHTML =
-            "通学設定がありません。";
-
-        return;
-
-    }
+    if (!snap.exists()) return;
 
     const user = snap.data();
 
-    if (!user.commute) {
+    const commute = user.commute ?? {};
 
-        commuteCard.innerHTML = `
+    if (commute.train?.departure) {
 
-        <button
-            class="btn btn-primary"
-            onclick="location.href='commute-settings.html'">
-
-            通学設定をする
-
-        </button>
-
+        trainContent.innerHTML = `
+            🚩 ${commute.train.departure.name}
+            <br><br>
+            ⬇️
+            <br><br>
+            🏫 ${commute.train.arrival.name}
         `;
 
-        return;
+    } else {
+
+        trainContent.innerHTML = `
+            <button
+                class="btn btn-primary">
+                設定する
+            </button>
+        `;
 
     }
 
-    const commute = user.commute;
+    if (commute.bus?.departure) {
 
-    commuteCard.innerHTML = `
+        busContent.innerHTML = `
+            🚩 ${commute.bus.departure.name}
+            <br><br>
+            ⬇️
+            <br><br>
+            🏫 ${commute.bus.arrival.name}
+        `;
 
-        <div class="commute-summary">
+    } else {
 
-            <h3>
-
-                ${commute.type === "bus"
-                    ? "🚌 バス"
-                    : "🚆 電車"}
-
-            </h3>
-
-            <br>
-
-            <div>
-
-                <small>🚩 出発</small>
-
-                <br>
-
-                <b>${commute.departure.name}</b>
-
-            </div>
-
-            <div
-                style="
-                    text-align:center;
-                    font-size:28px;
-                    margin:15px 0;
-                ">
-
-                ⬇️
-
-            </div>
-
-            <div>
-
-                <small>🏫 到着</small>
-
-                <br>
-
-                <b>${commute.arrival.name}</b>
-
-            </div>
-
-            <br>
-
+        busContent.innerHTML = `
             <button
-                class="btn btn-secondary"
-                onclick="location.href='commute-settings.html'">
-
-                設定変更
-
+                class="btn btn-primary">
+                設定する
             </button>
+        `;
 
-        </div>
+    }
 
-    `;
+}
+
+function setWeatherCardStyle(weatherText) {
+
+    weatherCard.style.background = "";
+    weatherCard.style.borderColor = "";
+
+    if (weatherText.includes("晴れ")) {
+
+        weatherCard.style.background =
+            "linear-gradient(135deg, #E0F2FE, #FEF3C7)";
+
+    } else if (weatherText.includes("くもり")) {
+
+        weatherCard.style.background =
+            "linear-gradient(135deg, #E5E7EB, #F8FAFC)";
+
+    } else if (
+        weatherText.includes("雨") ||
+        weatherText.includes("霧雨")
+    ) {
+
+        weatherCard.style.background =
+            "linear-gradient(135deg, #DBEAFE, #E0F2FE)";
+
+    } else if (weatherText.includes("雪")) {
+
+        weatherCard.style.background =
+            "linear-gradient(135deg, #FFFFFF, #E0F2FE)";
+
+    } else if (weatherText.includes("雷")) {
+
+        weatherCard.style.background =
+            "linear-gradient(135deg, #EDE9FE, #DBEAFE)";
+
+    }
 
 }
