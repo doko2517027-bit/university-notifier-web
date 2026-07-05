@@ -28,7 +28,7 @@ const selectedFile = document.getElementById("selectedFile");
 let uploadMode = null;
 const selectedImages = [];
 const selectedPdfs = [];
-const selectedPdfs = [];
+const POST_INTERVAL = 10000;
 
 setupTheme(themeButton);
 
@@ -67,6 +67,17 @@ async function uploadFile(file, resourceType = "image") {
 }
 
 button.onclick = async () => {
+
+    const lastPost =
+        Number(localStorage.getItem("lastPostTime") ?? 0);
+
+    if (Date.now() - lastPost < POST_INTERVAL) {
+
+        alert("投稿は10秒に1回までです。");
+
+        return;
+
+    }
 
     const text = document
         .getElementById("postText")
@@ -132,6 +143,11 @@ button.onclick = async () => {
             commentCount: 0
 
         });
+
+        localStorage.setItem(
+            "lastPostTime",
+            Date.now()
+        );
 
         showToast("投稿しました");
 

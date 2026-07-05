@@ -78,11 +78,3 @@ async function start() {
 }
 
 await start();
-
-document
-.getElementById("profileButton")
-.onclick = () => {
-
-    location.href = "profile.html";
-
-};
