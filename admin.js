@@ -92,6 +92,8 @@ async function loadDashboard() {
 
         usersSnap.forEach(userDoc => {
 
+            const user = userDoc.data();
+
             const now = Date.now();
 
             let status = "⚫";
