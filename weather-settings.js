@@ -152,9 +152,31 @@ document.addEventListener("click", (e) => {
 
 function renderSelectedWeather() {
 
-    weatherSelected.innerHTML = selectedWeatherLocation
-        ? `✅ 選択中<br><b>${selectedWeatherLocation.name}</b>`
-        : "";
+    if (!selectedWeatherLocation) {
+        weatherSelected.innerHTML = "";
+        return;
+    }
+
+    weatherSelected.innerHTML = `
+        <div class="card setting-card">
+
+            <h3>✅ 選択中</h3>
+
+            <p>
+                <b>${selectedWeatherLocation.name}</b><br>
+                <small>
+                    ${selectedWeatherLocation.prefecture || ""}
+                    ${selectedWeatherLocation.country || ""}
+                </small>
+            </p>
+
+            <small>
+                緯度 ${selectedWeatherLocation.latitude}<br>
+                経度 ${selectedWeatherLocation.longitude}
+            </small>
+
+        </div>
+    `;
 
 }
 
