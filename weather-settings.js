@@ -42,65 +42,6 @@ weatherSearch.addEventListener("input", () => {
 
 saveWeatherButton.onclick = saveWeatherSetting;
 
-const weatherLocations = [
-    {
-        id: "yokohama_naka",
-        name: "横浜市中区",
-        prefecture: "神奈川県",
-        latitude: 35.4437,
-        longitude: 139.6500
-    },
-    {
-        id: "yokohama_totsuka",
-        name: "横浜市戸塚区",
-        prefecture: "神奈川県",
-        latitude: 35.4002,
-        longitude: 139.5330
-    },
-    {
-        id: "yokohama_kohoku",
-        name: "横浜市港北区",
-        prefecture: "神奈川県",
-        latitude: 35.5198,
-        longitude: 139.6336
-    },
-    {
-        id: "kawasaki",
-        name: "川崎市",
-        prefecture: "神奈川県",
-        latitude: 35.5308,
-        longitude: 139.7029
-    },
-    {
-        id: "fujisawa",
-        name: "藤沢市",
-        prefecture: "神奈川県",
-        latitude: 35.3392,
-        longitude: 139.4900
-    },
-    {
-        id: "chigasaki",
-        name: "茅ヶ崎市",
-        prefecture: "神奈川県",
-        latitude: 35.3339,
-        longitude: 139.4047
-    },
-    {
-        id: "tokyo_chiyoda",
-        name: "千代田区",
-        prefecture: "東京都",
-        latitude: 35.6938,
-        longitude: 139.7532
-    },
-    {
-        id: "shibuya",
-        name: "渋谷区",
-        prefecture: "東京都",
-        latitude: 35.6618,
-        longitude: 139.7041
-    }
-];
-
 async function loadWeatherSetting() {
 
     if (!studentNumber) return;
@@ -125,46 +66,84 @@ async function loadWeatherSetting() {
 
 }
 
-function searchWeatherLocation(keyword) {
+async function searchWeatherLocation(keyword) {
 
     const text = keyword.trim();
 
     if (!text) {
+
         weatherResults.innerHTML = "";
+
         return;
+
     }
 
-    const results = weatherLocations.filter(location =>
-        location.name.includes(text)
-    );
+    try {
 
-    if (results.length === 0) {
-        weatherResults.innerHTML = "候補がありません。";
-        return;
-    }
+        const response = await fetch(
 
-    weatherResults.innerHTML = "";
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=10&language=ja&format=json`
 
-    results.forEach(location => {
+        );
 
-        weatherResults.innerHTML += `
+        const data = await response.json();
+
+        weatherResults.innerHTML = "";
+
+        if (!data.results) {
+
+            weatherResults.innerHTML =
+                "候補がありません。";
+
+            return;
+
+        }
+
+        data.results.forEach(location => {
+
+            weatherResults.innerHTML += `
+
             <div
                 class="setting-row weather-result"
+
                 data-id="${location.id}"
+
                 data-name="${location.name}"
-                data-prefecture="${location.prefecture}"
+
+                data-prefecture="${location.admin1 ?? ""}"
+
                 data-latitude="${location.latitude}"
+
                 data-longitude="${location.longitude}">
 
                 <div>
-                    <b>🌤 ${location.name}</b><br>
-                    <small>${location.prefecture}</small>
+
+                    <b>🌤 ${location.name}</b>
+
+                    <br>
+
+                    <small>
+
+                        ${location.admin1 ?? ""}
+
+                    </small>
+
                 </div>
 
             </div>
-        `;
 
-    });
+            `;
+
+        });
+
+    } catch (e) {
+
+        console.error(e);
+
+        weatherResults.innerHTML =
+            "検索に失敗しました。";
+
+    }
 
 }
 
