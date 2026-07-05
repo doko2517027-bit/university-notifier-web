@@ -1342,3 +1342,31 @@ white-space:pre-wrap;
     cursor:pointer;
 
 }
+
+.home-slider{
+
+    display:flex;
+
+    overflow-x:auto;
+
+    gap:16px;
+
+    scroll-snap-type:x mandatory;
+
+    padding-bottom:8px;
+
+}
+
+.home-slider::-webkit-scrollbar{
+
+    display:none;
+
+}
+
+.home-slide{
+
+    flex:0 0 88%;
+
+    scroll-snap-align:center;
+
+}

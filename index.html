@@ -58,25 +58,45 @@ if(localStorage.getItem("theme")==="dark"){
 
 <hr>
 
-<h2>🌤 今日の天気</h2>
+<h2>🚶 通学・天気 ☀️</h2>
 
-<div class="card setting-card" id="weatherCard">
-    <p id="weatherLocation"><b>横浜市中区</b></p>
-    <p id="weatherMain">読み込み中...</p>
-    <p id="weatherDetail"></p>
-</div>
+<div class="home-slider">
 
-<hr>
+    <div class="home-slide">
 
-<hr>
+        <div
+            id="weatherCard"
+            class="card setting-card">
 
-<h2>🧭 通学</h2>
+            読み込み中...
 
-<div
-    id="commuteCard"
-    class="card setting-card">
+        </div>
 
-    読み込み中...
+    </div>
+
+    <div class="home-slide">
+
+        <div
+            id="trainCard"
+            class="card setting-card">
+
+            通学設定してください
+
+        </div>
+
+    </div>
+
+    <div class="home-slide">
+
+        <div
+            id="busCard"
+            class="card setting-card">
+
+            バス設定してください
+
+        </div>
+
+    </div>
 
 </div>
 
