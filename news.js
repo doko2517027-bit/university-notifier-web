@@ -166,7 +166,7 @@ async function loadCourseNews() {
 
         courseNews.innerHTML += `
 
-        <div class="news-card"
+        <div class="card news-card"
             onclick="window.open('${notice.url}','_blank')">
 
             <div class="news-title">

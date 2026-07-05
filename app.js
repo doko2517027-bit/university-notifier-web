@@ -183,7 +183,7 @@ async function loadNews() {
                 `${String(posted.getMinutes()).padStart(2, "0")}`;
 
             newsList.innerHTML += `
-                <div class="news-card"
+                <div class="card news-card"
                     onclick="location.href='news.html'">
 
                     <div class="news-date">
@@ -249,7 +249,7 @@ async function loadHomeCourseNews() {
 
         homeCourseNews.innerHTML += `
 
-        <div class="news-card"
+        <div class="card news-card"
             onclick="location.href='news.html'">
 
             <div class="news-title">
