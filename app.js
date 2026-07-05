@@ -31,6 +31,7 @@ const homeSystemNews = document.getElementById("homeSystemNews");
 const weatherLocation = document.getElementById("weatherLocation");
 const weatherMain = document.getElementById("weatherMain");
 const weatherDetail = document.getElementById("weatherDetail");
+const weatherCard = document.getElementById("weatherCard");
 const trainCard = document.getElementById("trainCard");
 const busCard = document.getElementById("busCard");
 const commuteCard = document.getElementById("commuteCard");
