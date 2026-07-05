@@ -36,7 +36,9 @@ await initializePage([
     loadWeatherSetting()
 ]);
 
-backButton.onclick = () => {
+document
+    .getElementById("backButton")
+    .onclick = () => {
 
     history.back();
 
@@ -219,3 +221,11 @@ async function saveWeatherSetting() {
     showToast("保存しました");
 
 }
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
