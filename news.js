@@ -23,6 +23,8 @@ const themeButton = document.getElementById("themeButton");
 const newsList = document.getElementById("newsList");
 const universityTab = document.getElementById("universityTab");
 const courseTab = document.getElementById("courseTab");
+const systemTab = document.getElementById("systemTab");
+const systemNews = document.getElementById("systemNews");
 const universityNews = document.getElementById("universityNews");
 const courseNews = document.getElementById("courseNews");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -35,7 +37,8 @@ await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadNews(),
-    loadCourseNews()
+    loadCourseNews(),
+    loadSystemNews()
 
 ]);
 
@@ -56,6 +59,19 @@ courseTab.onclick = () => {
 
     universityNews.style.display = "none";
     courseNews.style.display = "block";
+
+};
+
+systemTab.onclick = () => {
+
+    systemTab.classList.remove("active");
+
+    universityTab.classList.remove("active");
+    courseTab.classList.remove("active");
+
+    universityNews.style.display = "none";
+    courseNews.style.display = "none";
+    systemNews.style.display = "none";
 
 };
 
@@ -201,3 +217,66 @@ async function loadCourseNews() {
 document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
 };
+
+async function loadSystemNews() {
+
+    const snapshot = await getDocs(
+        collection(db, "systemNews")
+    );
+
+    if (snapshot.empty) {
+
+        systemNews.innerHTML =
+            "CareMateからのお知らせはありません。";
+
+        return;
+
+    }
+
+    const notices = [];
+
+    snapshot.forEach(doc => {
+
+        notices.push({
+            id: doc.id,
+            ...doc.data()
+        });
+
+    });
+
+    notices.sort((a, b) =>
+        b.createdAt.seconds - a.createdAt.seconds
+    );
+
+    systemNews.innerHTML = "";
+
+    notices.forEach(notice => {
+
+        const created =
+            notice.createdAt.toDate();
+
+        systemNews.innerHTML += `
+
+        <div class="card news-card">
+
+            <div class="news-title">
+                💙 ${notice.title}
+            </div>
+
+            <div class="news-body">
+                ${(notice.body || "").replace(/\n/g,"<br>")}
+            </div>
+
+            <div class="news-date">
+                ${created.getFullYear()}/
+                ${created.getMonth()+1}/
+                ${created.getDate()}
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
