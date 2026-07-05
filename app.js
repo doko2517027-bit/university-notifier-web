@@ -23,6 +23,7 @@ import { VERSION } from "./version.js";
 document.getElementById("version").textContent = `Version ${VERSION}`;
 
 const homeCourseNews = document.getElementById("homeCourseNews");
+const homeSystemNews = document.getElementById("homeSystemNews");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
@@ -118,6 +119,7 @@ async function startApp() {
         loadNews(),
         loadTodaySchedule(),
         loadHomeCourseNews(),
+        loadHomeSystemNews(),
         loadCourseLinks()
 
     ]);
@@ -272,6 +274,77 @@ async function loadHomeCourseNews() {
     });
 
     homeCourseNews.innerHTML += `
+        <div style="text-align:center; margin-top:20px;">
+            <a href="news.html">
+                もっと見る →
+            </a>
+        </div>
+    `;
+
+}
+
+async function loadHomeSystemNews() {
+
+    const snapshot = await getDocs(
+        collection(db, "systemNews")
+    );
+
+    if (snapshot.empty) {
+
+        homeSystemNews.innerHTML =
+            "CareMateからのお知らせはありません。";
+
+        return;
+
+    }
+
+    const notices = [];
+
+    snapshot.forEach(doc => {
+        notices.push(doc.data());
+    });
+
+    notices.sort((a, b) =>
+        b.createdAt.seconds - a.createdAt.seconds
+    );
+
+    homeSystemNews.innerHTML = "";
+
+    notices.slice(0, 3).forEach(notice => {
+
+        const created =
+            notice.createdAt.toDate();
+
+        const dateText =
+            `${created.getFullYear()}/` +
+            `${created.getMonth() + 1}/` +
+            `${created.getDate()}`;
+
+        homeSystemNews.innerHTML += `
+
+        <div class="card news-card"
+            onclick="location.href='news.html'">
+
+            <div class="news-title">
+                💙 ${notice.title}
+            </div>
+
+            <div class="news-body">
+                ${(notice.body || "")
+                    .split("\n")[0]
+                    .substring(0, 40)}...
+            </div>
+
+            <div class="news-date">
+                ${dateText}
+            </div>
+
+        </div>
+
+        `;
+    });
+
+    homeSystemNews.innerHTML += `
         <div style="text-align:center; margin-top:20px;">
             <a href="news.html">
                 もっと見る →
