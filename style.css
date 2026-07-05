@@ -510,11 +510,11 @@ textarea{
 
 }
 
-.student-number{
+.student-number {
 
-font-weight:bold;
-
-font-size:17px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
 }
 
