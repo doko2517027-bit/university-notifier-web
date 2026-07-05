@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+<title>通学設定 | CareMate</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+
+if(localStorage.getItem("theme")==="dark"){
+
+    document.documentElement.classList.add("dark");
+
+}
+
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div id="userName">
+        読み込み中...
+    </div>
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            class="circle-button">
+
+            🌙
+
+        </button>
+
+        <button
+            id="profileButton"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                class="header-profile-image"
+                src="images/default.png">
+
+        </button>
+
+    </div>
+
+</div>
+
+<header class="header">
+
+    <div class="logo">
+        🧭
+    </div>
+
+    <h1>
+
+        通学設定
+
+    </h1>
+
+    <p>
+
+        利用する交通機関を設定します
+
+    </p>
+
+</header>
+
+<div class="card setting-card">
+
+<h2>利用手段</h2>
+
+<label class="setting-row">
+
+    <span>🚆 電車</span>
+
+    <input
+        type="radio"
+        name="commuteType"
+        value="train"
+        checked>
+
+</label>
+
+<label class="setting-row">
+
+    <span>🚌 バス</span>
+
+    <input
+        type="radio"
+        name="commuteType"
+        value="bus">
+
+</label>
+
+<hr>
+
+<h2>
+
+出発駅・停留所
+
+</h2>
+
+<input
+    id="departureSearch"
+    type="text"
+    placeholder="駅名・停留所名を検索">
+
+<div id="departureResults"></div>
+
+<div id="departureSelected"></div>
+
+<hr>
+
+<h2>
+
+到着駅・停留所
+
+</h2>
+
+<input
+    id="arrivalSearch"
+    type="text"
+    placeholder="駅名・停留所名を検索">
+
+<div id="arrivalResults"></div>
+
+<div id="arrivalSelected"></div>
+
+<br>
+
+<button
+    id="saveCommuteButton"
+    class="btn btn-primary">
+
+保存
+
+</button>
+
+</div>
+
+<div class="card setting-card">
+
+<h2>
+
+現在の設定
+
+</h2>
+
+<div id="currentCommuteSetting">
+
+読み込み中...
+
+</div>
+
+</div>
+
+<div style="height:100px;"></div>
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+        🏠<br>
+        <span>ホーム</span>
+    </a>
+
+    <a href="assignments.html">
+        📚<br>
+        <span>課題</span>
+    </a>
+
+    <a href="share.html">
+        🤝<br>
+        <span>共有</span>
+    </a>
+
+    <a href="news.html">
+        📢<br>
+        <span>お知らせ</span>
+    </a>
+
+    <a href="settings.html">
+        ⚙️<br>
+        <span>設定</span>
+    </a>
+
+</nav>
+
+<script type="module" src="commute-settings.js"></script>
+
+</body>
+
+</html>

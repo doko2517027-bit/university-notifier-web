@@ -31,6 +31,7 @@ const homeSystemNews = document.getElementById("homeSystemNews");
 const weatherLocation = document.getElementById("weatherLocation");
 const weatherMain = document.getElementById("weatherMain");
 const weatherDetail = document.getElementById("weatherDetail");
+const commuteCard = document.getElementById("commuteCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
@@ -124,6 +125,7 @@ async function startApp() {
         loadUserName(userName),
         loadProfileImage(topProfileImage),
         loadWeather(),
+        loadCommuteCard(),
         loadNews(),
         loadTodaySchedule(),
         loadHomeCourseNews(),
@@ -660,5 +662,105 @@ function getWeatherText(code) {
     }
 
     return { icon: "🌤", text: "天気" };
+
+}
+
+async function loadCommuteCard() {
+
+    if (!studentNumber) return;
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (!snap.exists()) {
+
+        commuteCard.innerHTML =
+            "通学設定がありません。";
+
+        return;
+
+    }
+
+    const user = snap.data();
+
+    if (!user.commute) {
+
+        commuteCard.innerHTML = `
+
+        <button
+            class="btn btn-primary"
+            onclick="location.href='commute-settings.html'">
+
+            通学設定をする
+
+        </button>
+
+        `;
+
+        return;
+
+    }
+
+    const commute = user.commute;
+
+    commuteCard.innerHTML = `
+
+        <div class="commute-summary">
+
+            <h3>
+
+                ${commute.type === "bus"
+                    ? "🚌 バス"
+                    : "🚆 電車"}
+
+            </h3>
+
+            <br>
+
+            <div>
+
+                <small>🚩 出発</small>
+
+                <br>
+
+                <b>${commute.departure.name}</b>
+
+            </div>
+
+            <div
+                style="
+                    text-align:center;
+                    font-size:28px;
+                    margin:15px 0;
+                ">
+
+                ⬇️
+
+            </div>
+
+            <div>
+
+                <small>🏫 到着</small>
+
+                <br>
+
+                <b>${commute.arrival.name}</b>
+
+            </div>
+
+            <br>
+
+            <button
+                class="btn btn-secondary"
+                onclick="location.href='commute-settings.html'">
+
+                設定変更
+
+            </button>
+
+        </div>
+
+    `;
 
 }
