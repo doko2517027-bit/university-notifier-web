@@ -93,50 +93,50 @@ postCard.innerHTML = `
 
         ${post.text}
 
-        ${post.images?.length ? `
+    </div>
 
-        <div class="post-images">
+    ${post.images?.length ? `
 
-            ${post.images.map(image => `
+    <div class="post-images">
 
-            <img
-                src="${image.url}"
-                class="post-image"
-                data-url="${image.url}">
+        ${post.images.map(image => `
 
-            `).join("")}
-
-        </div>
-
-        ` : ""}
-
-        ${post.pdfs?.length ? `
-
-        ${post.pdfs.map(pdf => `
-
-        <div
-            class="post-pdf"
-            data-url="${pdf.url}">
-
-            <div class="pdf-title">
-
-                📄 ${pdf.name}
-
-            </div>
-
-            <div class="pdf-subtitle">
-
-                タップして開く
-
-            </div>
-
-        </div>
+        <img
+            src="${image.url}"
+            class="post-image"
+            data-url="${image.url}">
 
         `).join("")}
 
-        ` : ""}
+    </div>
+
+    ` : ""}
+
+    ${post.pdfs?.length ? `
+
+    ${post.pdfs.map(pdf => `
+
+    <div
+        class="post-pdf"
+        data-url="${pdf.url}">
+
+        <div class="pdf-title">
+
+            📄 ${pdf.name}
+
+        </div>
+
+        <div class="pdf-subtitle">
+
+            タップして開く
+
+        </div>
 
     </div>
+
+    `).join("")}
+
+    ` : ""}
 
 </div>
 
