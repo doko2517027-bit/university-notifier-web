@@ -936,15 +936,14 @@ white-space:pre-wrap;
 
 }
 
-.top-profile-image{
+.top-profile-image {
 
-    width:100%;
-    height:100%;
+    width: 28px;
+    height: 28px;
 
-    border-radius:50%;
-    object-fit:cover;
-
-    display:block;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
 
 }
 
@@ -1158,21 +1157,24 @@ white-space:pre-wrap;
 .circle-button{
 
     width:50px;
-    height:50px;
 
-    padding:0;
+    height:50px;
 
     border:none;
 
     border-radius:50%;
-
-    overflow:hidden;
 
     background:var(--card);
 
     color:var(--text);
 
     box-shadow:var(--shadow);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
 
     cursor:pointer;
 
