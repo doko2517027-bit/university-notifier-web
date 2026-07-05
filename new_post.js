@@ -28,6 +28,7 @@ const selectedFile = document.getElementById("selectedFile");
 let uploadMode = null;
 const selectedImages = [];
 const selectedPdfs = [];
+const selectedPdfs = [];
 
 setupTheme(themeButton);
 
@@ -351,6 +352,14 @@ function renderSelectedFiles() {
         };
 
 }
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
 
 document
 .getElementById("backButton")
