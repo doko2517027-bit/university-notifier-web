@@ -96,16 +96,16 @@ async function renderPost(postDoc, liked) {
 
     
 
-    ${post.imageUrls?.length ? `
+    ${post.images?.length ? `
 
     <div class="post-images">
 
-        ${post.imageUrls.map(url => `
+        ${post.images.map(image => `
 
         <img
-            src="${url}"
+            src="${image.url}"
             class="post-image"
-            data-url="${url}">
+            data-url="${image.url}">
 
         `).join("")}
 

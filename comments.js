@@ -93,6 +93,49 @@ postCard.innerHTML = `
 
         ${post.text}
 
+        ${post.images?.length ? `
+
+        <div class="post-images">
+
+            ${post.images.map(image => `
+
+            <img
+                src="${image.url}"
+                class="post-image"
+                data-url="${image.url}">
+
+            `).join("")}
+
+        </div>
+
+        ` : ""}
+
+        ${post.pdfs?.length ? `
+
+        ${post.pdfs.map(pdf => `
+
+        <div
+            class="post-pdf"
+            data-url="${pdf.url}">
+
+            <div class="pdf-title">
+
+                📄 ${pdf.name}
+
+            </div>
+
+            <div class="pdf-subtitle">
+
+                タップして開く
+
+            </div>
+
+        </div>
+
+        `).join("")}
+
+        ` : ""}
+
     </div>
 
 </div>
@@ -234,6 +277,26 @@ sendComment.onclick = async () => {
 };
 
 document.addEventListener("click", async (e) => {
+
+    const pdf = e.target.closest(".post-pdf");
+
+    if (pdf) {
+
+        window.open(pdf.dataset.url, "_blank");
+
+        return;
+
+    }
+
+    const image = e.target.closest(".post-image");
+
+    if (image) {
+
+        window.open(image.dataset.url, "_blank");
+
+        return;
+
+    }
 
     if (!e.target.classList.contains("delete-comment")) return;
 

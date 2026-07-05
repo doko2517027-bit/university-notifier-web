@@ -62,7 +62,13 @@ async function uploadFile(file, resourceType = "image") {
 
     const data = await res.json();
 
-    return data.secure_url;
+    return {
+
+        url: data.secure_url,
+
+        publicId: data.public_id
+
+    };
 
 }
 
@@ -96,7 +102,7 @@ button.onclick = async () => {
     try {
 
         let type = "text";
-        let imageUrls = [];
+        let images = [];
         let pdfs = [];
 
         if (selectedImages.length > 0) {
@@ -105,7 +111,7 @@ button.onclick = async () => {
 
             for (const file of selectedImages) {
 
-                imageUrls.push(
+                images.push(
                     await uploadFile(file, "image")
                 );
 
@@ -119,11 +125,16 @@ button.onclick = async () => {
 
             for (const file of selectedPdfs) {
 
+                const uploaded =
+                    await uploadFile(file, "raw");
+
                 pdfs.push({
 
                     name: file.name,
 
-                    url: await uploadFile(file, "raw")
+                    url: uploaded.url,
+
+                    publicId: uploaded.publicId
 
                 });
 
@@ -136,9 +147,16 @@ button.onclick = async () => {
             studentNumber,
             text,
             type,
-            imageUrls,
+
+            images,
             pdfs,
+
             createdAt: serverTimestamp(),
+
+            deleteAt: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+            ),
+
             likeCount: 0,
             commentCount: 0
 
