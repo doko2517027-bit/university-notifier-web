@@ -4,7 +4,8 @@ import {
     setupTheme,
     loadProfileImage,
     getProfilePhoto,
-    formatDateTime
+    formatDateTime,
+    initializePage
 } from "./common.js";
 
 import {
