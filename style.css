@@ -1296,3 +1296,39 @@ white-space:pre-wrap;
     display:block;
 
 }
+
+.post-images{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+
+}
+
+.selected-item{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin:8px 0;
+
+}
+
+.remove-file{
+
+    border:none;
+
+    background:none;
+
+    color:#ef4444;
+
+    font-size:20px;
+
+    cursor:pointer;
+
+}

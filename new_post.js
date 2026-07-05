@@ -25,6 +25,10 @@ const imagePicker = document.getElementById("imagePicker");
 const pdfPicker = document.getElementById("pdfPicker");
 const selectedFile = document.getElementById("selectedFile");
 
+let uploadMode = null;
+const selectedImages = [];
+const selectedPdfs = [];
+
 setupTheme(themeButton);
 
 await initializePage([
@@ -70,8 +74,8 @@ button.onclick = async () => {
 
     if (
         !text &&
-        imagePicker.files.length === 0 &&
-        pdfPicker.files.length === 0
+        selectedImages.length === 0 &&
+        selectedPdfs.length === 0
     ) {
         alert("投稿内容を入力してください。");
         return;
@@ -80,34 +84,38 @@ button.onclick = async () => {
     try {
 
         let type = "text";
+        let imageUrls = [];
+        let pdfs = [];
 
-        let imageUrl = "";
-
-        let pdfUrl = "";
-
-        let pdfName = "";
-
-        if (imagePicker.files.length > 0) {
-
-            imageUrl = await uploadFile(
-                imagePicker.files[0],
-                "image"
-            );
+        if (selectedImages.length > 0) {
 
             type = "image";
 
+            for (const file of selectedImages) {
+
+                imageUrls.push(
+                    await uploadFile(file, "image")
+                );
+
+            }
+
         }
 
-        if (pdfPicker.files.length > 0) {
-
-            pdfUrl = await uploadFile(
-                pdfPicker.files[0],
-                "raw"
-            );
-
-            pdfName = pdfPicker.files[0].name;
+        if (selectedPdfs.length > 0) {
 
             type = "pdf";
+
+            for (const file of selectedPdfs) {
+
+                pdfs.push({
+
+                    name: file.name,
+
+                    url: await uploadFile(file, "raw")
+
+                });
+
+            }
 
         }
 
@@ -116,9 +124,8 @@ button.onclick = async () => {
             studentNumber,
             text,
             type,
-            imageUrl,
-            pdfUrl,
-            pdfName,
+            imageUrls,
+            pdfs,
             createdAt: serverTimestamp(),
             likeCount: 0,
             commentCount: 0
@@ -159,25 +166,171 @@ selectPdf.onclick = () => {
 
 imagePicker.onchange = () => {
 
+    if (uploadMode === "pdf") {
+
+        alert("PDFを選択中です。PDFを削除してから画像を選択してください。");
+
+        imagePicker.value = "";
+
+        return;
+
+    }
+
+    uploadMode = "image";
+
     const file = imagePicker.files[0];
 
     if (!file) return;
 
-    selectedFile.textContent =
-        `📷 ${file.name}`;
+    if (selectedImages.length >= 5) {
+
+        alert("画像は5枚までです。");
+
+        imagePicker.value = "";
+
+        return;
+
+    }
+
+    selectedImages.push(file);
+
+    uploadMode = "image";
+
+    renderSelectedFiles();
+
+    imagePicker.value = "";
 
 };
 
 pdfPicker.onchange = () => {
 
+    if (uploadMode === "image") {
+
+        alert("画像を選択中です。画像を削除してからPDFを選択してください。");
+
+        pdfPicker.value = "";
+
+        return;
+
+    }
+
+    uploadMode = "pdf";
+
     const file = pdfPicker.files[0];
 
     if (!file) return;
 
-    selectedFile.textContent =
-        `📄 ${file.name}`;
+    if (selectedPdfs.length >= 5) {
+
+        alert("PDFは5件までです。");
+
+        pdfPicker.value = "";
+
+        return;
+
+    }
+
+    selectedPdfs.push(file);
+
+    uploadMode = "pdf";
+
+    renderSelectedFiles();
+
+    pdfPicker.value = "";
 
 };
+
+document.addEventListener("click", (e) => {
+
+    if (!e.target.classList.contains("remove-file")) return;
+
+    const index =
+        Number(e.target.dataset.index);
+
+    if (e.target.dataset.type === "image") {
+
+        selectedImages.splice(index, 1);
+
+        if (selectedImages.length === 0) {
+
+            uploadMode = null;
+
+        }
+
+    } else {
+
+        selectedPdfs.splice(index, 1);
+
+        if (selectedPdfs.length === 0) {
+
+            uploadMode = null;
+
+        }
+
+    }
+
+    renderSelectedFiles();
+
+});
+
+function renderSelectedFiles() {
+
+    selectedFile.innerHTML = "";
+
+    if (uploadMode === "image") {
+
+            selectedImages.forEach((file, index) => {
+
+                selectedFile.innerHTML += `
+
+            <div class="selected-item">
+
+                <span>
+                    📷 ${file.name}
+                </span>
+
+                <button
+                    class="remove-file"
+                    data-type="image"
+                    data-index="${index}">
+                    ×
+                </button>
+
+            </div>
+
+            `;
+
+            });
+
+    }
+
+    if (uploadMode === "pdf") {
+
+            selectedPdfs.forEach((file, index) => {
+
+                selectedFile.innerHTML += `
+
+            <div class="selected-item">
+
+                <span>
+                    📄 ${file.name}
+                </span>
+
+                <button
+                    class="remove-file"
+                    data-type="pdf"
+                    data-index="${index}">
+                    ×
+                </button>
+
+            </div>
+
+            `;
+
+            });
+        };
+
+}
 
 document
 .getElementById("backButton")

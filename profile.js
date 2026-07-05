@@ -320,30 +320,46 @@ document
 
     </div>
 
-    ${post.imageUrl ? `
+    ${post.imageUrls?.length ? `
 
-    <img
-        src="${post.imageUrl}"
-        class="post-image"
-        data-url="${post.imageUrl}">
+    <div class="post-images">
+
+        ${post.imageUrls.map(url => `
+
+        <img
+            src="${url}"
+            class="post-image"
+            data-url="${url}">
+
+        `).join("")}
+
+    </div>
 
     ` : ""}
 
-    ${post.pdfUrl ? `
+    ${post.pdfs?.length ? `
+
+    ${post.pdfs.map(pdf => `
 
     <div
         class="post-pdf"
-        data-url="${post.pdfUrl}">
+        data-url="${pdf.url}">
 
         <div class="pdf-title">
-            📄 ${post.pdfName}
+
+            📄 ${pdf.name}
+
         </div>
 
         <div class="pdf-subtitle">
+
             タップして開く
+
         </div>
 
     </div>
+
+    `).join("")}
 
     ` : ""}
 

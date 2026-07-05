@@ -9,7 +9,6 @@ import {
 } from "./common.js";
 
 import {
-    
     doc,
     getDoc,
     collection,
