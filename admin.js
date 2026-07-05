@@ -22,7 +22,8 @@ import {
     deleteDoc,
     query,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const userName = document.getElementById("userName");
@@ -124,46 +125,49 @@ async function loadDashboard() {
 
 }
 
-async function loadSystemNews() {
+function loadSystemNews() {
 
     const q = query(
         collection(db, "systemNews"),
         orderBy("createdAt", "desc")
     );
 
-    const snapshot = await getDocs(q);
+    onSnapshot(q, (snapshot) => {
 
-    if (snapshot.empty) {
-        systemNewsList.innerHTML = "CareMateお知らせはありません。";
-        return;
-    }
+        if (snapshot.empty) {
 
-    systemNewsList.innerHTML = "";
+            systemNewsList.innerHTML =
+                "CareMateお知らせはありません。";
 
-    snapshot.forEach(newsDoc => {
+            return;
 
-        const news = newsDoc.data();
+        }
 
-        const date = news.createdAt
-            ? news.createdAt.toDate()
-            : null;
+        systemNewsList.innerHTML = "";
 
-        const dateText = date
-            ? `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
-            : "";
+        snapshot.forEach(newsDoc => {
 
-        systemNewsList.innerHTML += `
+            const news = newsDoc.data();
+
+            const date = news.createdAt
+                ? news.createdAt.toDate()
+                : null;
+
+            const dateText = date
+                ? `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}`
+                : "";
+
+            systemNewsList.innerHTML += `
+
             <div class="card setting-card">
 
                 <p><b>${news.title}</b></p>
 
                 <p>
-                    ${(news.body || "").replace(/\n/g, "<br>")}
+                    ${(news.body || "").replace(/\n/g,"<br>")}
                 </p>
 
-                <small>
-                    ${dateText}
-                </small>
+                <small>${dateText}</small>
 
                 <br><br>
 
@@ -174,7 +178,10 @@ async function loadSystemNews() {
                 </button>
 
             </div>
-        `;
+
+            `;
+
+        });
 
     });
 
@@ -291,7 +298,7 @@ function setupEvents() {
 
         showToast("削除しました");
 
-        await loadSystemNews();
+        
 
     });
 
@@ -325,7 +332,7 @@ async function postNews() {
 
     showToast("投稿しました");
 
-    await loadSystemNews();
+    
 
 }
 
