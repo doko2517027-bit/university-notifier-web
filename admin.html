@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>管理 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if(localStorage.getItem("theme")==="dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div id="userName">
+        Unknownさん
+    </div>
+
+    <div class="top-right">
+
+        <button id="themeButton" class="circle-button">
+            🌙
+        </button>
+
+        <button id="profileButton" class="circle-button">
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image">
+        </button>
+
+    </div>
+
+</div>
+
+<header class="header">
+
+    <div class="logo">👑</div>
+
+    <h1>管理</h1>
+
+    <p>CareMateApp 管理者画面</p>
+
+</header>
+
+<h2>📊 ダッシュボード</h2>
+
+<div class="card setting-card">
+
+    <p><b>登録ユーザー数</b></p>
+    <p id="userCount">取得中...</p>
+
+    <p><b>Version</b></p>
+    <p id="versionText">取得中...</p>
+
+    <p><b>Firestore状態</b></p>
+    <p id="firestoreStatus">確認中...</p>
+
+    <p><b>Render状態</b></p>
+    <p id="renderStatus">準備中</p>
+
+    <p><b>最終Cron実行</b></p>
+    <p id="lastCronText">----</p>
+
+    <p><b>最終Active!Mail取得</b></p>
+    <p id="lastActiveMailText">----</p>
+
+</div>
+
+<h2>📢 CareMateお知らせ</h2>
+
+<div class="card setting-card">
+
+    <h3>新規投稿</h3>
+
+    <input
+        id="systemNewsTitle"
+        type="text"
+        placeholder="タイトル">
+
+    <br><br>
+
+    <textarea
+        id="systemNewsBody"
+        rows="6"
+        placeholder="本文"></textarea>
+
+    <br><br>
+
+    <button id="postSystemNews" class="btn btn-primary">
+        投稿する
+    </button>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>投稿一覧</h3>
+
+    <div id="systemNewsList">
+        読み込み中...
+    </div>
+
+</div>
+
+<h2>📱 Push通知</h2>
+
+<div class="card setting-card">
+
+    <p>
+        管理者本人にテスト通知を送信します。
+    </p>
+
+    <button id="sendTestPush" class="btn btn-primary">
+        テスト通知を送信
+    </button>
+
+</div>
+
+<h2>⚡ 手動実行</h2>
+
+<div class="card setting-card">
+
+    <button id="runSchedule" class="btn btn-secondary">
+        時間割取得
+    </button>
+
+    <br><br>
+
+    <button id="runAssignments" class="btn btn-secondary">
+        課題取得
+    </button>
+
+    <br><br>
+
+    <button id="runCourseNews" class="btn btn-secondary">
+        コースニュース取得
+    </button>
+
+    <br><br>
+
+    <button id="runActiveMail" class="btn btn-secondary">
+        Active!Mail取得
+    </button>
+
+</div>
+
+<h2>👥 ユーザー管理</h2>
+
+<div class="card setting-card">
+
+    <p><b>登録人数</b></p>
+    <p id="userCountDetail">取得中...</p>
+
+    <h3>ユーザー一覧</h3>
+
+    <div id="userList">
+        読み込み中...
+    </div>
+
+</div>
+
+<h2>🛠 システム</h2>
+
+<div class="card setting-card">
+
+    <label class="setting-row">
+        <span>
+            <b>メンテナンスモード</b><br>
+            <small>ONにすると一般ユーザーはメンテナンス画面へ移動します</small>
+        </span>
+        <input type="checkbox" id="maintenanceToggle">
+    </label>
+
+    <h3>メンテナンスメッセージ</h3>
+
+    <textarea
+        id="maintenanceMessage"
+        rows="5"
+        placeholder="メンテナンス中のメッセージ"></textarea>
+
+    <br><br>
+
+    <button id="saveMaintenance" class="btn btn-primary">
+        保存する
+    </button>
+
+</div>
+
+<h2>🚨 通報</h2>
+
+<div class="card setting-card">
+
+    <p>
+        通報管理は今後追加予定です。
+    </p>
+
+</div>
+
+<h2>⚙️ 設定</h2>
+
+<div class="card setting-card">
+
+    <h3>通知設定</h3>
+
+    <label class="setting-row">
+        <span>
+            <b>🗓 時間割変更</b><br>
+            <small>時間割PDFに変更があった時</small>
+        </span>
+        <input type="checkbox" id="notifySchedule">
+    </label>
+
+    <label class="setting-row">
+        <span>
+            <b>📢 コースニュース</b><br>
+            <small>コースニュースに新しいお知らせが出た時</small>
+        </span>
+        <input type="checkbox" id="notifyCourseNews">
+    </label>
+
+        <label class="setting-row">
+        <span>
+            <b>📚 新しい課題</b><br>
+            <small>Manabaに新しい未提出課題が出た時</small>
+        </span>
+        <input type="checkbox" id="notifyAssignment">
+    </label>
+
+    <label class="setting-row">
+        <span>
+            <b>⏰ 課題リマインダー</b><br>
+            <small>締切前にお知らせ</small>
+        </span>
+        <input type="checkbox" id="notifyReminder">
+    </label>
+
+    <br>
+
+    <button id="logout" class="btn btn-primary">
+        ログアウト
+    </button>
+
+</div>
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+        🏠<br>
+        <span>ホーム</span>
+    </a>
+
+    <a href="assignments.html">
+        📚<br>
+        <span>課題</span>
+    </a>
+
+    <a href="share.html">
+        🤝<br>
+        <span>共有</span>
+    </a>
+
+    <a href="news.html">
+        📢<br>
+        <span>お知らせ</span>
+    </a>
+
+    <a
+        id="settingsTab"
+        href="admin.html"
+        class="active">
+
+        👑<br>
+        <span>管理</span>
+
+    </a>
+
+</nav>
+
+<script type="module" src="admin.js"></script>
+
+</body>
+</html>

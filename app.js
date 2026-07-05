@@ -5,7 +5,8 @@ import {
     loadProfileImage,
     loadUserName,
     initializePage,
-    showNewsSkeleton
+    showNewsSkeleton,
+    setupAdminTab
 } from "./common.js";
 
 import {
@@ -110,7 +111,8 @@ async function startApp() {
     }
 
     await initializePage([
-
+        
+        setupAdminTab(),
         loadUserName(userName),
         loadProfileImage(topProfileImage),
         loadNews(),

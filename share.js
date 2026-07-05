@@ -7,7 +7,8 @@ import {
     initializePage,
     showPostSkeleton,
     formatDateTime,
-    getProfilePhoto
+    getProfilePhoto,
+    setupAdminTab
 } from "./common.js";
 
 import {
@@ -48,6 +49,7 @@ setupTheme(themeButton);
 
 await initializePage([
 
+	setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadPosts()

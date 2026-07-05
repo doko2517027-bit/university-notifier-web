@@ -293,3 +293,44 @@ export async function getProfilePhoto(studentNumber) {
     );
 
 }
+
+export async function isAdmin() {
+
+    if (!studentNumber) {
+        return false;
+    }
+
+    const snap = await getDoc(
+        doc(db, "admins", studentNumber)
+    );
+
+    return (
+        snap.exists() &&
+        snap.data().enabled === true
+    );
+
+}
+
+export async function setupAdminTab() {
+
+    const settingsTab =
+        document.getElementById("settingsTab");
+
+    if (!settingsTab) {
+        return;
+    }
+
+    const admin = await isAdmin();
+
+    if (!admin) {
+        return;
+    }
+
+    settingsTab.href = "admin.html";
+
+    settingsTab.innerHTML = `
+        👑<br>
+        <span>管理</span>
+    `;
+
+}

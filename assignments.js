@@ -5,7 +5,8 @@ import {
     loadProfileImage,
     loadUserName,
     initializePage,
-    showAssignmentSkeleton
+    showAssignmentSkeleton,
+    setupAdminTab
 } from "./common.js";
 
 import {
@@ -27,7 +28,8 @@ if (loggedIn !== "true") {
 }
 
 await initializePage([
-
+    
+    setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadAssignments()

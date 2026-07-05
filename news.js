@@ -4,7 +4,8 @@ import {
     setupTheme,
     initializePage,
     loadProfileImage,
-    loadUserName
+    loadUserName,
+    setupAdminTab
 } from "./common.js";
 
 import {
@@ -30,6 +31,7 @@ setupTheme(themeButton);
 
 await initializePage([
 
+	setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadNews(),
