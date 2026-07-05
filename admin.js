@@ -92,18 +92,53 @@ async function loadDashboard() {
 
         usersSnap.forEach(userDoc => {
 
-            const user = userDoc.data();
+            const now = Date.now();
+
+            let status = "⚫";
+
+            if (user.lastActiveAt) {
+
+                const diff =
+                    now - user.lastActiveAt.toDate().getTime();
+
+                if (diff <= 5 * 60 * 1000) {
+
+                    status = "🟢";
+
+                } else if (diff <= 30 * 60 * 1000) {
+
+                    status = "🟡";
+
+                } else {
+
+                    status = "🔴";
+
+                }
+
+            }
 
             userList.innerHTML += `
-                <div class="setting-row">
-                    <span>
-                        <b>${userDoc.id}</b><br>
-                        <small>
-                            ${user.department || user.major || "所属なし"}
-                            ${user.grade || ""}
-                        </small>
-                    </span>
-                </div>
+
+            <div
+                class="setting-row admin-user"
+                data-id="${userDoc.id}">
+
+                <span>
+
+                    <b>${status} ${userDoc.id}</b><br>
+
+                    <small>
+
+                        ${user.department || user.major || "所属なし"}
+
+                        ${user.grade || ""}
+
+                    </small>
+
+                </span>
+
+            </div>
+
             `;
 
         });
@@ -389,5 +424,54 @@ async function sendTestNotification() {
         body: "通知は正常に動作しています。",
         icon: "icon-192.png"
     });
+
+}
+
+document.addEventListener("click", async (e) => {
+
+    const row =
+        e.target.closest(".admin-user");
+
+    if (!row) return;
+
+    openUserDetail(row.dataset.id);
+
+});
+
+async function openUserDetail(studentNumber) {
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (!snap.exists()) return;
+
+    const user = snap.data();
+
+    let text = `
+
+学籍番号：${studentNumber}
+
+学科：${user.department || "-"}
+
+専攻：${user.major || "-"}
+
+学年：${user.grade || "-"}
+
+`;
+
+    if (user.lastLoginAt) {
+
+        text += `
+
+最終ログイン
+
+${user.lastLoginAt.toDate().toLocaleString()}
+
+`;
+
+    }
+
+    alert(text);
 
 }

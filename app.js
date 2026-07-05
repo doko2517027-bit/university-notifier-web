@@ -12,6 +12,8 @@ import {
 import {
     doc,
     getDoc,
+    updateDoc,
+    serverTimestamp,
     collection,
     query,
     where,
@@ -130,6 +132,23 @@ async function startApp() {
 
 startApp();
 setupTheme(themeButton);
+
+// 起動時
+updateLastActive();
+
+// 5分ごと
+setInterval(updateLastActive, 5 * 60 * 1000);
+
+// アプリへ戻った時
+document.addEventListener("visibilitychange", () => {
+
+    if (!document.hidden) {
+
+        updateLastActive();
+
+    }
+
+});
 
 async function loadNews() {
 
@@ -520,3 +539,24 @@ document
     location.href = "profile.html";
 
 };
+
+async function updateLastActive() {
+
+    if (!studentNumber) return;
+
+    try {
+
+        await updateDoc(
+            doc(db, "users", studentNumber),
+            {
+                lastActiveAt: serverTimestamp()
+            }
+        );
+
+    } catch (e) {
+
+        console.error(e);
+
+    }
+
+}

@@ -5,7 +5,9 @@ import {
 
 import {
     doc,
-    getDoc
+    getDoc,
+    updateDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const studentNumber = document.getElementById("studentNumber");
@@ -63,6 +65,14 @@ loginButton.addEventListener("click", async () => {
     localStorage.setItem("grade", user.grade || "");
     localStorage.setItem("manabaId", user.manabaId || "");
     localStorage.setItem("migrated", "true");
+
+    await updateDoc(userRef, {
+
+        lastLoginAt: serverTimestamp(),
+
+        lastActiveAt: serverTimestamp()
+
+    });
 
     location.href = "index.html";
 

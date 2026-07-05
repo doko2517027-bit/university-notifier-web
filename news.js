@@ -9,13 +9,14 @@ import {
 } from "./common.js";
 
 import {
-    
     doc,
     getDoc,
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    orderBy,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const userName = document.getElementById("userName");
@@ -224,64 +225,60 @@ document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
 };
 
-async function loadSystemNews() {
+function loadSystemNews() {
 
-    const snapshot = await getDocs(
-        collection(db, "systemNews")
+    const q = query(
+        collection(db, "systemNews"),
+        orderBy("createdAt", "desc")
     );
 
-    if (snapshot.empty) {
+    onSnapshot(q, (snapshot) => {
 
-        systemNews.innerHTML =
-            "CareMateからのお知らせはありません。";
+        if (snapshot.empty) {
 
-        return;
+            systemNews.innerHTML =
+                "CareMateからのお知らせはありません。";
 
-    }
+            return;
 
-    const notices = [];
+        }
 
-    snapshot.forEach(doc => {
+        systemNews.innerHTML = "";
 
-        notices.push({
-            id: doc.id,
-            ...doc.data()
+        snapshot.forEach(newsDoc => {
+
+            const notice = newsDoc.data();
+
+            const created =
+                notice.createdAt
+                    ? notice.createdAt.toDate()
+                    : null;
+
+            const dateText = created
+                ? `${created.getFullYear()}/${created.getMonth()+1}/${created.getDate()}`
+                : "";
+
+            systemNews.innerHTML += `
+
+            <div class="card news-card">
+
+                <div class="news-title">
+                    💙 ${notice.title}
+                </div>
+
+                <div class="news-body">
+                    ${(notice.body || "").replace(/\n/g,"<br>")}
+                </div>
+
+                <div class="news-date">
+                    ${dateText}
+                </div>
+
+            </div>
+
+            `;
+
         });
-
-    });
-
-    notices.sort((a, b) =>
-        b.createdAt.seconds - a.createdAt.seconds
-    );
-
-    systemNews.innerHTML = "";
-
-    notices.forEach(notice => {
-
-        const created =
-            notice.createdAt.toDate();
-
-        systemNews.innerHTML += `
-
-        <div class="card news-card">
-
-            <div class="news-title">
-                💙 ${notice.title}
-            </div>
-
-            <div class="news-body">
-                ${(notice.body || "").replace(/\n/g,"<br>")}
-            </div>
-
-            <div class="news-date">
-                ${created.getFullYear()}/
-                ${created.getMonth()+1}/
-                ${created.getDate()}
-            </div>
-
-        </div>
-
-        `;
 
     });
 
