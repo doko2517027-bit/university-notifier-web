@@ -71,67 +71,48 @@ async function searchWeatherLocation(keyword) {
     const text = keyword.trim();
 
     if (!text) {
-
         weatherResults.innerHTML = "";
-
         return;
-
     }
 
     try {
 
+        weatherResults.innerHTML = "検索中...";
+
         const response = await fetch(
-
             `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=10&language=ja&format=json`
-
         );
 
         const data = await response.json();
 
         weatherResults.innerHTML = "";
 
-        if (!data.results) {
-
-            weatherResults.innerHTML =
-                "候補がありません。";
-
+        if (!data.results || data.results.length === 0) {
+            weatherResults.innerHTML = "候補がありません。";
             return;
-
         }
 
         data.results.forEach(location => {
 
             weatherResults.innerHTML += `
+                <div
+                    class="setting-row weather-result"
+                    data-id="${location.id}"
+                    data-name="${location.name}"
+                    data-prefecture="${location.admin1 ?? ""}"
+                    data-country="${location.country ?? ""}"
+                    data-latitude="${location.latitude}"
+                    data-longitude="${location.longitude}">
 
-            <div
-                class="setting-row weather-result"
-
-                data-id="${location.id}"
-
-                data-name="${location.name}"
-
-                data-prefecture="${location.admin1 ?? ""}"
-
-                data-latitude="${location.latitude}"
-
-                data-longitude="${location.longitude}">
-
-                <div>
-
-                    <b>🌤 ${location.name}</b>
-
-                    <br>
-
-                    <small>
-
-                        ${location.admin1 ?? ""}
-
-                    </small>
+                    <div>
+                        <b>🌤 ${location.name}</b><br>
+                        <small>
+                            ${location.admin1 ?? ""}
+                            ${location.country ?? ""}
+                        </small>
+                    </div>
 
                 </div>
-
-            </div>
-
             `;
 
         });
