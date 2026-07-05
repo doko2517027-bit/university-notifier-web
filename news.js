@@ -45,20 +45,26 @@ await initializePage([
 universityTab.onclick = () => {
 
     universityTab.classList.add("active");
+
     courseTab.classList.remove("active");
+    systemTab.classList.remove("active");
 
     universityNews.style.display = "block";
     courseNews.style.display = "none";
+    systemNews.style.display = "none";
 
 };
 
 courseTab.onclick = () => {
 
     courseTab.classList.add("active");
+
     universityTab.classList.remove("active");
+    systemTab.classList.remove("active");
 
     universityNews.style.display = "none";
     courseNews.style.display = "block";
+    systemNews.style.display = "none";
 
 };
 
