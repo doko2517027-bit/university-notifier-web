@@ -99,7 +99,13 @@ function renderPost(postDoc, liked) {
         class="post-pdf"
         data-url="${post.pdfUrl}">
 
-        📄 ${post.pdfName}
+        <div class="pdf-title">
+            📄 ${post.pdfName}
+        </div>
+
+        <div class="pdf-subtitle">
+            タップして開く
+        </div>
 
     </div>
 
@@ -184,19 +190,21 @@ async function loadPosts() {
 
 document.addEventListener("click", async (e) => {
 
-    if (e.target.classList.contains("post-pdf")) {
+    const pdf = e.target.closest(".post-pdf");
 
-        const url = e.target.dataset.url;
+    if (pdf) {
 
-        window.open(url);
+        window.open(pdf.dataset.url);
 
         return;
 
     }
 
-    if (e.target.classList.contains("post-image")) {
+    const image = e.target.closest(".post-image");
 
-        window.open(e.target.dataset.url);
+    if (image) {
+
+        window.open(image.dataset.url);
 
         return;
 

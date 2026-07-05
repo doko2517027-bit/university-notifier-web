@@ -12,6 +12,7 @@ import {
     collection,
     query,
     where,
+    orderBy,
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -256,13 +257,17 @@ document
 
     content.innerHTML = "";
 
-    const snapshot = await getDocs(collection(db, "posts"));
+    const snapshot = await getDocs(
+
+        query(
+            collection(db, "posts"),
+            orderBy("createdAt", "desc")
+        )
+
+    );
 
     const myPosts = snapshot.docs
         .filter(doc => doc.data().studentNumber === studentNumber)
-        .sort((a, b) =>
-            b.data().createdAt.toMillis() - a.data().createdAt.toMillis()
-        );
 
     if (myPosts.length === 0) {
 
@@ -293,7 +298,7 @@ document
 
     </div>
 
-    ${post.type === "image" ? `
+    ${post.imageUrl ? `
 
     <img
         src="${post.imageUrl}"
@@ -301,9 +306,11 @@ document
 
     ` : ""}
 
-    ${post.type === "pdf" ? `
+    ${post.pdfUrl ? `
 
-    <div class="post-pdf">
+    <div
+        class="post-pdf"
+        onclick="window.open('${post.pdfUrl}')">
 
         📄 ${post.pdfName}
 
