@@ -272,10 +272,29 @@ function searchPlaces(keyword, target, mode) {
                 data-type="${place.type}"
                 data-mode="${mode}">
 
-                <span>
-                    ${place.type === "train" ? "🚉" : "🚌"}
-                    ${place.name}
-                </span>
+                <div>
+
+                    <b>
+
+                        ${place.type === "train"
+                            ? "🚉"
+                            : "🚌"}
+
+                        ${place.name}
+
+                    </b>
+
+                    <br>
+
+                    <small>
+
+                        ${place.type === "train"
+                            ? "駅"
+                            : "停留所"}
+
+                    </small>
+
+                </div>
 
             </div>
         `;

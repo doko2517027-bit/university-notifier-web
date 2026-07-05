@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+<title>天気設定 | CareMate</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+
+if(localStorage.getItem("theme")==="dark"){
+
+    document.documentElement.classList.add("dark");
+
+}
+
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div id="userName">
+        読み込み中...
+    </div>
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            class="circle-button">
+
+            🌙
+
+        </button>
+
+        <button
+            id="profileButton"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                class="header-profile-image"
+                src="images/default.png">
+
+        </button>
+
+    </div>
+
+</div>
+
+<header class="header">
+
+    <div class="logo">
+
+        🌤
+
+    </div>
+
+    <h1>
+
+        天気設定
+
+    </h1>
+
+    <p>
+
+        表示する地域を設定します
+
+    </p>
+
+</header>
+
+<div class="card setting-card">
+
+    <h2>
+
+        地域検索
+
+    </h2>
+
+    <input
+        id="weatherSearch"
+        type="text"
+        placeholder="市区町村を検索">
+
+    <div id="weatherResults"></div>
+
+    <div id="weatherSelected"></div>
+
+    <br>
+
+    <button
+        id="saveWeatherButton"
+        class="btn btn-primary">
+
+        保存
+
+    </button>
+
+</div>
+
+<div class="card setting-card">
+
+    <h2>
+
+        現在の設定
+
+    </h2>
+
+    <div id="currentWeather">
+
+        読み込み中...
+
+    </div>
+
+</div>
+
+<div style="height:100px;"></div>
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+        🏠<br>
+        <span>ホーム</span>
+    </a>
+
+    <a href="assignments.html">
+        📚<br>
+        <span>課題</span>
+    </a>
+
+    <a href="share.html">
+        🤝<br>
+        <span>共有</span>
+    </a>
+
+    <a href="news.html">
+        📢<br>
+        <span>お知らせ</span>
+    </a>
+
+    <a
+        id="settingsTab"
+        href="settings.html">
+        ⚙️<br>
+        <span>設定</span>
+    </a>
+
+</nav>
+
+<script type="module" src="weather-settings.js"></script>
+
+</body>
+
+</html>

@@ -31,6 +31,8 @@ const homeSystemNews = document.getElementById("homeSystemNews");
 const weatherLocation = document.getElementById("weatherLocation");
 const weatherMain = document.getElementById("weatherMain");
 const weatherDetail = document.getElementById("weatherDetail");
+const trainCard = document.getElementById("trainCard");
+const busCard = document.getElementById("busCard");
 const commuteCard = document.getElementById("commuteCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
@@ -155,6 +157,27 @@ document.addEventListener("visibilitychange", () => {
     }
 
 });
+
+weatherCard.onclick = () => {
+
+    location.href =
+        "weather-settings.html";
+
+};
+
+trainCard.onclick = () => {
+
+    location.href =
+        "commute-settings.html";
+
+};
+
+busCard.onclick = () => {
+
+    location.href =
+        "commute-settings.html";
+
+};
 
 async function loadNews() {
 
@@ -571,8 +594,31 @@ async function loadWeather() {
 
     try {
 
-        const latitude = 35.4437;
-        const longitude = 139.6500;
+        let latitude = 35.4437;
+        let longitude = 139.6500;
+        let locationName = "横浜市中区";
+
+        if (studentNumber) {
+
+            const snap = await getDoc(
+                doc(db, "users", studentNumber)
+            );
+
+            if (snap.exists()) {
+
+                const user = snap.data();
+
+                if (user.weather) {
+
+                    latitude = user.weather.latitude;
+                    longitude = user.weather.longitude;
+                    locationName = user.weather.name;
+
+                }
+
+            }
+
+        }
 
         const url =
             "https://api.open-meteo.com/v1/forecast" +
@@ -610,7 +656,7 @@ async function loadWeather() {
             data.hourly.precipitation_probability[nowHour] ?? 0;
 
         weatherLocation.innerHTML =
-            "<b>横浜市中区</b>";
+            `<b>${locationName}</b>`;
 
         weatherMain.innerHTML =
             `${weather.icon} ${weather.text}　<b>${temp}℃</b>`;

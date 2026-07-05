@@ -1370,3 +1370,73 @@ white-space:pre-wrap;
     scroll-snap-align:center;
 
 }
+
+.home-card{
+
+    cursor:pointer;
+
+    min-height:180px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    transition:.2s;
+
+}
+
+.home-card:active{
+
+    transform:scale(.98);
+
+}
+
+#departureResults,
+#arrivalResults{
+
+    margin-top:10px;
+
+    max-height:220px;
+
+    overflow-y:auto;
+
+    border-radius:12px;
+
+}
+
+.commute-result{
+
+    cursor:pointer;
+
+    padding:14px 16px;
+
+    border-bottom:1px solid var(--border);
+
+    transition:.2s;
+
+}
+
+.commute-result:hover{
+
+    background:var(--accent);
+
+}
+
+.commute-result:last-child{
+
+    border-bottom:none;
+
+}
+
+#departureSelected,
+#arrivalSelected{
+
+    margin-top:12px;
+
+    font-weight:bold;
+
+    color:var(--primary);
+
+}
