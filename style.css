@@ -13,6 +13,10 @@
     --success:#2E7D32;
     --danger:#EF4444;
     --info:#2196F3;
+
+    --border:#dddddd;
+    --text:#222222;
+    --text-secondary:#666666;
 }
 
 .dark{
@@ -22,6 +26,11 @@
     --subtext:#CBD5E1;
     --border:#3A3A3A;
     --shadow:0 6px 18px rgba(0,0,0,.35);
+
+    --card:#2b2b2b;
+    --border:#444444;
+    --text:#ffffff;
+    --text-secondary:#b5b5b5;
 }
 
 body{
@@ -1235,34 +1244,42 @@ white-space:pre-wrap;
 
 .post-pdf{
 
-    background:#3a3a3a;
+    background: var(--card);
 
-    border-radius:12px;
+    border: 1px solid var(--border);
 
-    padding:14px;
+    border-radius: 12px;
 
-    cursor:pointer;
+    padding: 14px;
 
-    margin-top:12px;
+    cursor: pointer;
+
+    transition: .2s;
+
+}
+
+.post-pdf:hover{
+
+    transform: scale(1.01);
 
 }
 
 .pdf-title{
 
-    color:#fff;
+    font-size: 16px;
 
-    font-weight:600;
+    font-weight: 600;
 
-    font-size:16px;
+    color: var(--text);
 
 }
 
 .pdf-subtitle{
 
-    color:#bdbdbd;
+    margin-top: 6px;
 
-    font-size:13px;
+    font-size: 13px;
 
-    margin-top:6px;
+    color: var(--text-secondary);
 
 }

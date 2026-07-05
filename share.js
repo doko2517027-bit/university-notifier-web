@@ -6,7 +6,8 @@ import {
     loadUserName,
     initializePage,
     showPostSkeleton,
-    formatDateTime
+    formatDateTime,
+    getProfilePhoto
 } from "./common.js";
 
 import {
@@ -43,9 +44,12 @@ await initializePage([
 
 ]);
 
-function renderPost(postDoc, liked) {
+async function renderPost(postDoc, liked) {
 
     const post = postDoc.data();
+
+    const photo =
+        await getProfilePhoto(post.studentNumber);
 
     const time =
         formatDateTime(post.createdAt);
@@ -59,7 +63,13 @@ function renderPost(postDoc, liked) {
         <div>
 
             <div class="student-number">
-                👤 ${post.studentNumber}
+
+                <img
+                    src="${photo}"
+                    class="top-profile-image">
+
+                ${post.studentNumber}
+
             </div>
 
             <div class="post-time">
@@ -180,7 +190,8 @@ async function loadPosts() {
 
         }
 
-        postList.innerHTML += renderPost(postDoc, liked);
+        postList.innerHTML +=
+            await renderPost(postDoc, liked);
 
     };
 
@@ -194,7 +205,7 @@ document.addEventListener("click", async (e) => {
 
     if (pdf) {
 
-        window.open(pdf.dataset.url);
+        window.open(pdf.dataset.url, "_blank");
 
         return;
 
@@ -204,7 +215,7 @@ document.addEventListener("click", async (e) => {
 
     if (image) {
 
-        window.open(image.dataset.url);
+        window.open(image.dataset.url, "_blank");
 
         return;
 

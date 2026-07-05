@@ -2,7 +2,9 @@ import {
     db,
     studentNumber,
     setupTheme,
-    loadProfileImage
+    loadProfileImage,
+    getProfilePhoto,
+    formatDateTime
 } from "./common.js";
 
 import {
@@ -69,7 +71,10 @@ const picker = document.getElementById("photoPicker");
     });
 
 setupTheme(themeButton);
-loadProfile();
+
+await initializePage([
+    loadProfile()
+]);
 
 document
 .getElementById("profileImage")
@@ -278,9 +283,15 @@ document
 
     }
 
-    myPosts.forEach((postDoc) => {
+    for (const postDoc of myPosts) {
 
         const post = postDoc.data();
+
+        const photo =
+            await getProfilePhoto(post.studentNumber);
+
+        const time =
+            formatDateTime(post.createdAt);
 
         content.innerHTML += `
 
@@ -288,7 +299,17 @@ document
 
     <div class="student-number">
 
-        👤 ${post.studentNumber}
+        <img
+            src="${photo}"
+            class="top-profile-image">
+
+        ${post.studentNumber}
+
+    </div>
+
+    <div class="post-time">
+
+        ${time}
 
     </div>
 
@@ -302,7 +323,8 @@ document
 
     <img
         src="${post.imageUrl}"
-        class="post-image">
+        class="post-image"
+        data-url="${post.imageUrl}">
 
     ` : ""}
 
@@ -310,9 +332,15 @@ document
 
     <div
         class="post-pdf"
-        onclick="window.open('${post.pdfUrl}')">
+        data-url="${post.pdfUrl}">
 
-        📄 ${post.pdfName}
+        <div class="pdf-title">
+            📄 ${post.pdfName}
+        </div>
+
+        <div class="pdf-subtitle">
+            タップして開く
+        </div>
 
     </div>
 
@@ -322,7 +350,7 @@ document
 
 `;
 
-    });
+    };
 
 };
 
@@ -349,3 +377,25 @@ document
     "<p>コメントした投稿を表示します。</p>";
 
 };
+
+document.addEventListener("click",(e)=>{
+
+    const pdf = e.target.closest(".post-pdf");
+
+    if (pdf) {
+
+        window.open(pdf.dataset.url, "_blank");
+
+        return;
+
+    }
+
+    const image = e.target.closest(".post-image");
+
+    if (image) {
+
+        window.open(image.dataset.url, "_blank");
+
+    }
+
+});

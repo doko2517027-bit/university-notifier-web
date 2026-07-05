@@ -78,8 +78,7 @@ postCard.innerHTML = `
 
         <img
             src="${photo}"
-            id="topProfileImage"
-            class="circle-button">
+            class="top-profile-image">
 
         ${post.studentNumber}
 
@@ -141,8 +140,7 @@ async function loadComments() {
 
                 <img
                     src="${photo}"
-                    id="topProfileImage"
-                    class="circle-button">
+                    class="top-profile-image">
 
                 ${comment.studentNumber}
 
