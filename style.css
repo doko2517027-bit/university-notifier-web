@@ -1440,3 +1440,23 @@ white-space:pre-wrap;
     color:var(--primary);
 
 }
+
+.back-button{
+
+    position:fixed;
+
+    top:20px;
+
+    left:20px;
+
+    z-index:1000;
+
+    width:48px;
+
+    height:48px;
+
+    border-radius:50%;
+
+    font-size:22px;
+
+}

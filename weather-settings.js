@@ -18,7 +18,7 @@ import {
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const topProfileImage = document.getElementById("topProfileImage");
-
+const backButton = document.getElementById("backButton");
 const weatherSearch = document.getElementById("weatherSearch");
 const weatherResults = document.getElementById("weatherResults");
 const weatherSelected = document.getElementById("weatherSelected");
@@ -35,6 +35,12 @@ await initializePage([
     loadProfileImage(topProfileImage),
     loadWeatherSetting()
 ]);
+
+backButton.onclick = () => {
+
+    history.back();
+
+};
 
 weatherSearch.addEventListener("input", () => {
     searchWeatherLocation(weatherSearch.value);
