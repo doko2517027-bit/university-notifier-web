@@ -64,14 +64,14 @@ courseTab.onclick = () => {
 
 systemTab.onclick = () => {
 
-    systemTab.classList.remove("active");
+    systemTab.classList.add("active");
 
     universityTab.classList.remove("active");
     courseTab.classList.remove("active");
 
     universityNews.style.display = "none";
     courseNews.style.display = "none";
-    systemNews.style.display = "none";
+    systemNews.style.display = "block";
 
 };
 
