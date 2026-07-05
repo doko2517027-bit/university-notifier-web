@@ -28,6 +28,9 @@ document.getElementById("version").textContent = `Version ${VERSION}`;
 
 const homeCourseNews = document.getElementById("homeCourseNews");
 const homeSystemNews = document.getElementById("homeSystemNews");
+const weatherLocation = document.getElementById("weatherLocation");
+const weatherMain = document.getElementById("weatherMain");
+const weatherDetail = document.getElementById("weatherDetail");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
@@ -120,6 +123,7 @@ async function startApp() {
         setupAdminTab(),
         loadUserName(userName),
         loadProfileImage(topProfileImage),
+        loadWeather(),
         loadNews(),
         loadTodaySchedule(),
         loadHomeCourseNews(),
@@ -558,5 +562,103 @@ async function updateLastActive() {
         console.error(e);
 
     }
+
+}
+
+async function loadWeather() {
+
+    try {
+
+        const latitude = 35.4437;
+        const longitude = 139.6500;
+
+        const url =
+            "https://api.open-meteo.com/v1/forecast" +
+            `?latitude=${latitude}` +
+            `&longitude=${longitude}` +
+            "&current=temperature_2m,weather_code" +
+            "&hourly=precipitation_probability" +
+            "&daily=temperature_2m_max,temperature_2m_min" +
+            "&timezone=Asia%2FTokyo";
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("天気の取得に失敗しました");
+        }
+
+        const data = await response.json();
+
+        const weather =
+            getWeatherText(data.current.weather_code);
+
+        const temp =
+            Math.round(data.current.temperature_2m);
+
+        const max =
+            Math.round(data.daily.temperature_2m_max[0]);
+
+        const min =
+            Math.round(data.daily.temperature_2m_min[0]);
+
+        const nowHour =
+            new Date().getHours();
+
+        const rain =
+            data.hourly.precipitation_probability[nowHour] ?? 0;
+
+        weatherLocation.innerHTML =
+            "<b>横浜市中区</b>";
+
+        weatherMain.innerHTML =
+            `${weather.icon} ${weather.text}　<b>${temp}℃</b>`;
+
+        weatherDetail.textContent =
+            `最高 ${max}℃ / 最低 ${min}℃　降水確率 ${rain}%`;
+
+    } catch (e) {
+
+        console.error(e);
+
+        weatherMain.textContent =
+            "天気を取得できませんでした。";
+
+        weatherDetail.textContent = "";
+
+    }
+
+}
+
+function getWeatherText(code) {
+
+    if (code === 0) {
+        return { icon: "☀️", text: "晴れ" };
+    }
+
+    if ([1, 2, 3].includes(code)) {
+        return { icon: "🌤", text: "くもり時々晴れ" };
+    }
+
+    if ([45, 48].includes(code)) {
+        return { icon: "🌫", text: "霧" };
+    }
+
+    if ([51, 53, 55, 56, 57].includes(code)) {
+        return { icon: "🌦", text: "霧雨" };
+    }
+
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+        return { icon: "🌧", text: "雨" };
+    }
+
+    if ([71, 73, 75, 77, 85, 86].includes(code)) {
+        return { icon: "❄️", text: "雪" };
+    }
+
+    if ([95, 96, 99].includes(code)) {
+        return { icon: "⛈", text: "雷雨" };
+    }
+
+    return { icon: "🌤", text: "天気" };
 
 }
