@@ -182,6 +182,16 @@ imagePicker.onchange = () => {
 
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+
+        alert("画像は1枚10MBまでです。");
+
+        imagePicker.value = "";
+
+        return;
+
+    }
+
     if (selectedImages.length >= 5) {
 
         alert("画像は5枚までです。");
@@ -219,6 +229,16 @@ pdfPicker.onchange = () => {
     const file = pdfPicker.files[0];
 
     if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+
+        alert("PDFは1ファイル20MBまでです。");
+
+        pdfPicker.value = "";
+
+        return;
+
+    }
 
     if (selectedPdfs.length >= 5) {
 
