@@ -25,6 +25,16 @@ import {
     increment
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+const postMenu =
+    document.getElementById("postMenu");
+
+const deletePost =
+    document.getElementById("deletePost");
+
+const reportPost =
+    document.getElementById("reportPost");
+
+let selectedPostId = "";
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const postList = document.getElementById("postList");
@@ -250,16 +260,13 @@ document.addEventListener("click", async (e) => {
 
     }
 
-    // 投稿削除
+    // 投稿削除・通報
     if (e.target.classList.contains("delete-button")) {
 
-        const postId = e.target.dataset.id;
+        selectedPostId =
+            e.target.dataset.id;
 
-        const ok = confirm("この投稿を削除しますか？");
-
-        if (!ok) return;
-
-        await deleteDoc(doc(db, "posts", postId));
+        postMenu.style.display = "flex";
 
         return;
 
@@ -378,5 +385,34 @@ document
 .onclick = () => {
 
     location.href = "profile.html";
+
+};
+
+document
+.getElementById("cancelPostMenu")
+.onclick = () => {
+
+    postMenu.style.display = "none";
+
+};
+
+deletePost.onclick = async () => {
+
+    const ok =
+        confirm("投稿を削除しますか？");
+
+    if (!ok) return;
+
+    await deleteDoc(
+        doc(db,"posts",selectedPostId)
+    );
+
+    postMenu.style.display = "none";
+
+};
+
+reportPost.onclick = () => {
+
+    alert("通報機能は準備中です。");
 
 };
