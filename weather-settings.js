@@ -138,6 +138,7 @@ document.addEventListener("click", (e) => {
         id: item.dataset.id,
         name: item.dataset.name,
         prefecture: item.dataset.prefecture,
+        country: item.dataset.country,
         latitude: Number(item.dataset.latitude),
         longitude: Number(item.dataset.longitude)
     };
