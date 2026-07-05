@@ -15,7 +15,9 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    orderBy,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { VERSION } from "./version.js";
@@ -283,74 +285,73 @@ async function loadHomeCourseNews() {
 
 }
 
-async function loadHomeSystemNews() {
+function loadHomeSystemNews() {
 
-    const snapshot = await getDocs(
-        collection(db, "systemNews")
+    const q = query(
+        collection(db, "systemNews"),
+        orderBy("createdAt", "desc")
     );
 
-    if (snapshot.empty) {
+    onSnapshot(q, (snapshot) => {
 
-        homeSystemNews.innerHTML =
-            "CareMateからのお知らせはありません。";
+        if (snapshot.empty) {
 
-        return;
+            homeSystemNews.innerHTML =
+                "CareMateからのお知らせはありません。";
 
-    }
+            return;
 
-    const notices = [];
+        }
 
-    snapshot.forEach(doc => {
-        notices.push(doc.data());
-    });
+        homeSystemNews.innerHTML = "";
 
-    notices.sort((a, b) =>
-        b.createdAt.seconds - a.createdAt.seconds
-    );
+        snapshot.docs.slice(0, 3).forEach(newsDoc => {
 
-    homeSystemNews.innerHTML = "";
+            const notice = newsDoc.data();
 
-    notices.slice(0, 3).forEach(notice => {
+            const created =
+                notice.createdAt
+                    ? notice.createdAt.toDate()
+                    : null;
 
-        const created =
-            notice.createdAt.toDate();
+            const dateText = created
+                ? `${created.getFullYear()}/${created.getMonth() + 1}/${created.getDate()}`
+                : "";
 
-        const dateText =
-            `${created.getFullYear()}/` +
-            `${created.getMonth() + 1}/` +
-            `${created.getDate()}`;
+            homeSystemNews.innerHTML += `
+
+            <div class="card news-card"
+                onclick="location.href='news.html'">
+
+                <div class="news-title">
+                    💙 ${notice.title}
+                </div>
+
+                <div class="news-body">
+                    ${(notice.body || "")
+                        .split("\n")[0]
+                        .substring(0, 40)}...
+                </div>
+
+                <div class="news-date">
+                    ${dateText}
+                </div>
+
+            </div>
+
+            `;
+
+        });
 
         homeSystemNews.innerHTML += `
-
-        <div class="card news-card"
-            onclick="location.href='news.html'">
-
-            <div class="news-title">
-                💙 ${notice.title}
+            <div style="text-align:center; margin-top:20px;">
+                <a href="news.html">
+                    もっと見る →
+                </a>
             </div>
-
-            <div class="news-body">
-                ${(notice.body || "")
-                    .split("\n")[0]
-                    .substring(0, 40)}...
-            </div>
-
-            <div class="news-date">
-                ${dateText}
-            </div>
-
-        </div>
-
         `;
-    });
 
-    homeSystemNews.innerHTML += `
-        <div style="text-align:center; margin-top:20px;">
-            <a href="news.html">
-                もっと見る →
-            </a>
-        </div>
-    `;
+    });
 
 }
 
