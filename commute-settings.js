@@ -125,29 +125,36 @@ function renderSelected() {
 
 }
 
-function renderCurrent(commute){
+function renderCurrent(commute) {
 
-    let html = "";
+    const route = commute.route;
 
-    if (commute.train?.departure) {
+    if (!route?.departure) {
 
-        html += `
+        currentCommuteSetting.innerHTML =
+            "まだ設定されていません。";
+
+        return;
+
+    }
+
+    currentCommuteSetting.innerHTML = `
         <div class="card setting-card">
 
-            <h3>🚆 電車</h3>
+            <h3>🚃 現在の通学ルート</h3>
 
             <p>
-                🚩 <b>${commute.train.departure.name}</b>
+                🚩 <b>${route.departure.name}</b>
             </p>
 
-            ${commute.train.via ? `
-            <div style="text-align:center;font-size:24px;">
-                ↓
-            </div>
+            ${route.via ? `
+                <div style="text-align:center;font-size:24px;">
+                    ↓
+                </div>
 
-            <p>
-                🚏 <b>${commute.train.via.name}</b>
-            </p>
+                <p>
+                    🚏 <b>${route.via.name}</b>
+                </p>
             ` : ""}
 
             <div style="text-align:center;font-size:24px;">
@@ -155,77 +162,25 @@ function renderCurrent(commute){
             </div>
 
             <p>
-                🏫 <b>${commute.train.arrival.name}</b>
+                🏫 <b>${route.arrival.name}</b>
             </p>
 
             <small>
-                時刻表ベースの目安です
+                ${route.departTime} → ${route.arriveTime}
+                ／ ${route.durationMinutes}分
+                ／ 乗換${route.transfers}回
             </small>
 
             <br><br>
 
             <button
                 class="btn btn-danger delete-route"
-                data-type="train">
-                電車ルートを削除
+                data-type="route">
+                ルートを削除
             </button>
 
         </div>
-        `;
-
-    }
-
-    if (commute.bus?.departure) {
-
-        html += `
-        <div class="card setting-card">
-
-            <h3>🚌 バス</h3>
-
-            <p>
-                🚩 <b>${commute.bus.departure.name}</b>
-            </p>
-
-            ${commute.bus.via ? `
-            <div style="text-align:center;font-size:24px;">
-                ↓
-            </div>
-
-            <p>
-                🚏 <b>${commute.bus.via.name}</b>
-            </p>
-            ` : ""}
-
-            <div style="text-align:center;font-size:24px;">
-                ↓
-            </div>
-
-            <p>
-                🏫 <b>${commute.bus.arrival.name}</b>
-            </p>
-
-            <small>
-                時刻表ベースの目安です
-            </small>
-
-            <br><br>
-
-            <button
-                class="btn btn-danger delete-route"
-                data-type="bus">
-                バスルートを削除
-            </button>
-
-        </div>
-        `;
-
-    }
-
-    if (html === "") {
-        html = "まだ設定されていません。";
-    }
-
-    currentCommuteSetting.innerHTML = html;
+    `;
 
 }
 
@@ -475,15 +430,9 @@ document.addEventListener("click", async (e) => {
 
     if (!button) return;
 
-    const type = button.dataset.type;
-
-    if (!confirm("このルートを削除しますか？")) {
-        return;
-    }
-
-    const updateData = {};
-
-    updateData[`commute.${type}`] = null;
+    const updateData = {
+        "commute.route": null
+    };
 
     await updateDoc(
         doc(db, "users", studentNumber),
