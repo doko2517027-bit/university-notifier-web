@@ -889,35 +889,26 @@ function setWeatherCardStyle(weatherText) {
 
     weatherCard.style.background = "";
     weatherCard.style.borderColor = "";
+    weatherCard.style.color = "#0F172A";
 
     if (weatherText.includes("晴れ")) {
-
         weatherCard.style.background =
             "linear-gradient(135deg, #E0F2FE, #FEF3C7)";
-
     } else if (weatherText.includes("くもり")) {
-
         weatherCard.style.background =
             "linear-gradient(135deg, #E5E7EB, #F8FAFC)";
-
     } else if (
         weatherText.includes("雨") ||
         weatherText.includes("霧雨")
     ) {
-
         weatherCard.style.background =
             "linear-gradient(135deg, #DBEAFE, #E0F2FE)";
-
     } else if (weatherText.includes("雪")) {
-
         weatherCard.style.background =
             "linear-gradient(135deg, #FFFFFF, #E0F2FE)";
-
     } else if (weatherText.includes("雷")) {
-
         weatherCard.style.background =
             "linear-gradient(135deg, #EDE9FE, #DBEAFE)";
-
     }
 
 }
