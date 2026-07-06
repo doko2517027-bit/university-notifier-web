@@ -78,7 +78,7 @@ async function searchWeatherLocation(keyword) {
 
     const text = keyword.trim();
 
-    if (!text) {
+    if (text.length < 2) {
         weatherResults.innerHTML = "";
         return;
     }
@@ -88,7 +88,7 @@ async function searchWeatherLocation(keyword) {
         weatherResults.innerHTML = "検索中...";
 
         const response = await fetch(
-            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=10&language=ja&format=json`
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=50&language=ja&format=json`
         );
 
         const data = await response.json();
