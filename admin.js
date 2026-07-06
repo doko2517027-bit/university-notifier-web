@@ -36,6 +36,9 @@ const userList = document.getElementById("userList");
 const versionText = document.getElementById("versionText");
 const firestoreStatus = document.getElementById("firestoreStatus");
 const renderStatus = document.getElementById("renderStatus");
+const lastCronText = document.getElementById("lastCronText");
+const lastScheduleCheckText = document.getElementById("lastScheduleCheckText");
+const lastAssignmentCheckText = document.getElementById("lastAssignmentCheckText");
 
 const systemNewsTitle = document.getElementById("systemNewsTitle");
 const systemNewsBody = document.getElementById("systemNewsBody");
@@ -159,7 +162,68 @@ async function loadDashboard() {
 
     }
 
-    renderStatus.textContent = "🟢 未実装";
+    await loadSystemStatus();
+}
+
+async function loadSystemStatus() {
+
+    try {
+
+        const snap = await getDoc(
+            doc(db, "system", "app")
+        );
+
+        if (!snap.exists()) {
+            renderStatus.textContent = "⚫ 未確認";
+            return;
+        }
+
+        const data = snap.data();
+
+        if (data.renderStatus === "ok") {
+            renderStatus.textContent = "🟢 正常";
+        } else if (data.renderStatus === "running") {
+            renderStatus.textContent = "🟡 実行中";
+        } else if (data.renderStatus === "error") {
+            renderStatus.textContent = "🔴 エラー";
+        } else {
+            renderStatus.textContent = "⚫ 未確認";
+        }
+
+        lastCronText.textContent =
+            formatAdminDate(data.lastCronAt);
+
+        lastScheduleCheckText.textContent =
+            formatAdminDate(data.lastScheduleCheckAt);
+
+        lastAssignmentCheckText.textContent =
+            formatAdminDate(data.lastAssignmentCheckAt);
+
+    } catch (e) {
+
+        console.error(e);
+
+        renderStatus.textContent = "🔴 取得失敗";
+
+    }
+
+}
+
+function formatAdminDate(timestamp) {
+
+    if (!timestamp) {
+        return "----";
+    }
+
+    const date = timestamp.toDate();
+
+    return (
+        `${date.getFullYear()}/` +
+        `${date.getMonth() + 1}/` +
+        `${date.getDate()} ` +
+        `${String(date.getHours()).padStart(2, "0")}:` +
+        `${String(date.getMinutes()).padStart(2, "0")}`
+    );
 
 }
 
@@ -281,23 +345,6 @@ function setupEvents() {
 
     document.getElementById("sendTestPush").onclick =
         sendTestNotification;
-
-    document.getElementById("runSchedule").onclick = () => {
-        alert("時間割取得の手動実行は後でRender APIに接続します。");
-    };
-
-    document.getElementById("runAssignments").onclick = () => {
-        alert("課題取得の手動実行は後でRender APIに接続します。");
-    };
-
-    document.getElementById("runCourseNews").onclick = () => {
-        alert("コースニュース取得の手動実行は後でRender APIに接続します。");
-    };
-
-    document.getElementById("runActiveMail").onclick = () => {
-        alert("Active!Mail取得の手動実行は後でRender APIに接続します。");
-    };
-
     document.getElementById("logout").onclick = () => {
 
         if (!confirm("ログアウトしますか？")) return;
@@ -379,30 +426,6 @@ async function postNews() {
     showToast("投稿しました");
 
     
-
-}
-
-async function notifySystemNewsUsers(newsId, title, body) {
-
-    try {
-
-        await fetch("https://あなたのRenderURL/notify-system-news", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                newsId,
-                title,
-                body
-            })
-        });
-
-    } catch (e) {
-
-        console.error("CareMateお知らせ通知に失敗:", e);
-
-    }
 
 }
 

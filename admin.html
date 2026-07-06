@@ -71,8 +71,11 @@ if(localStorage.getItem("theme")==="dark"){
     <p><b>最終Cron実行</b></p>
     <p id="lastCronText">----</p>
 
-    <p><b>最終Active!Mail取得</b></p>
-    <p id="lastActiveMailText">----</p>
+    <p><b>最終時間割取得</b></p>
+	<p id="lastScheduleCheckText">----</p>
+	
+	<p><b>最終課題取得</b></p>
+	<p id="lastAssignmentCheckText">----</p>
 
 </div>
 
@@ -122,34 +125,6 @@ if(localStorage.getItem("theme")==="dark"){
 
     <button id="sendTestPush" class="btn btn-primary">
         テスト通知を送信
-    </button>
-
-</div>
-
-<h2>⚡ 手動実行</h2>
-
-<div class="card setting-card">
-
-    <button id="runSchedule" class="btn btn-secondary">
-        時間割取得
-    </button>
-
-    <br><br>
-
-    <button id="runAssignments" class="btn btn-secondary">
-        課題取得
-    </button>
-
-    <br><br>
-
-    <button id="runCourseNews" class="btn btn-secondary">
-        コースニュース取得
-    </button>
-
-    <br><br>
-
-    <button id="runActiveMail" class="btn btn-secondary">
-        Active!Mail取得
     </button>
 
 </div>
