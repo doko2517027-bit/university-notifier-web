@@ -96,9 +96,35 @@ async function searchWeatherLocation(keyword) {
         weatherResults.innerHTML = "";
 
         if (!data.results || data.results.length === 0) {
+
+            let retry = text
+                .replaceAll("市","")
+                .replaceAll("区","")
+                .replaceAll("町","")
+                .replaceAll("村","");
+
+            if (retry !== text) {
+
+                const retryResponse = await fetch(
+                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(retry)}&count=50&language=ja&format=json`
+                );
+
+                const retryData = await retryResponse.json();
+
+                if (retryData.results && retryData.results.length > 0) {
+                    displayWeatherResults(retryData.results);
+                    return;
+                }
+
+            }
+
             weatherResults.innerHTML = "候補がありません。";
+
             return;
+
         }
+
+        displayWeatherResults(data.results);
 
         data.results.forEach(location => {
 
@@ -229,3 +255,34 @@ document
     location.href = "profile.html";
 
 };
+
+function displayWeatherResults(results) {
+
+    weatherResults.innerHTML = "";
+
+    results.forEach(location => {
+
+        weatherResults.innerHTML += `
+            <div
+                class="setting-row weather-result"
+                data-id="${location.id}"
+                data-name="${location.name}"
+                data-prefecture="${location.admin1 ?? ""}"
+                data-country="${location.country ?? ""}"
+                data-latitude="${location.latitude}"
+                data-longitude="${location.longitude}">
+
+                <div>
+                    <b>🌤 ${location.name}</b><br>
+                    <small>
+                        ${location.admin1 ?? ""}
+                        ${location.country ?? ""}
+                    </small>
+                </div>
+
+            </div>
+        `;
+
+    });
+
+}
