@@ -24,8 +24,11 @@ const arrivalResults = document.getElementById("arrivalResults");
 const departureSelected = document.getElementById("departureSelected");
 const arrivalSelected = document.getElementById("arrivalSelected");
 const departureTime = document.getElementById("departureTime");
-const durationMinutes = document.getElementById("durationMinutes");
-const saveButton = document.getElementById("saveCommuteButton");
+const timeType = document.getElementById("timeType");
+const routeTime = document.getElementById("routeTime");
+const searchRouteButton = document.getElementById("searchRouteButton");
+const routeResults = document.getElementById("routeResults");
+const routeResultList = document.getElementById("routeResultList");
 const trainSettingButton = document.getElementById("trainSettingButton");
 const busSettingButton = document.getElementById("busSettingButton");
 const commuteEditor = document.getElementById("commuteEditor");
@@ -47,7 +50,7 @@ await initializePage([
     loadCommute()
 ]);
 
-saveButton.onclick = saveCommute;
+searchRouteButton.onclick = searchRouteCandidates;
 
 trainSettingButton.onclick=()=>{
 
@@ -534,3 +537,168 @@ document
     location.href = "profile.html";
 
 };
+
+async function searchRouteCandidates() {
+
+    if (!departure || !arrival) {
+
+        alert("出発地と到着地を選択してください。");
+
+        return;
+
+    }
+
+    const baseTime = routeTime.value || "09:00";
+
+    const routes = [
+
+        {
+            departTime: baseTime,
+            arriveTime: addMinutes(baseTime, 34),
+            duration: 34,
+            transfers: 2,
+            line: "京急川崎・横浜"
+        },
+
+        {
+            departTime: addMinutes(baseTime, 5),
+            arriveTime: addMinutes(baseTime, 42),
+            duration: 37,
+            transfers: 1,
+            line: "京急川崎"
+        },
+
+        {
+            departTime: addMinutes(baseTime, 10),
+            arriveTime: addMinutes(baseTime, 48),
+            duration: 38,
+            transfers: 2,
+            line: "横浜"
+        }
+
+    ];
+
+    renderRouteCandidates(routes);
+
+}
+
+function addMinutes(time, minutes) {
+
+    const [h, m] = time.split(":").map(Number);
+
+    const date = new Date();
+
+    date.setHours(h, m + minutes, 0, 0);
+
+    return date.toTimeString().slice(0, 5);
+
+}
+
+function renderRouteCandidates(routes) {
+
+    routeResults.style.display = "block";
+
+    routeResultList.innerHTML = "";
+
+    routes.forEach((route, index) => {
+
+        routeResultList.innerHTML += `
+            <div
+                class="card route-candidate"
+                data-index="${index}">
+
+                <h3>
+                    ${route.departTime}
+                    ▶
+                    ${route.arriveTime}
+                </h3>
+
+                <p>
+                    ${route.duration}分　
+                    乗換${route.transfers}回
+                </p>
+
+                <p>
+                    ${route.line}
+                </p>
+
+                <small>
+                    タップしてこのルートを保存
+                </small>
+
+            </div>
+        `;
+
+    });
+
+    window.routeCandidates = routes;
+
+}
+
+document.addEventListener("click", async (e) => {
+
+    const item =
+        e.target.closest(".route-candidate");
+
+    if (!item) return;
+
+    const route =
+        window.routeCandidates[
+            Number(item.dataset.index)
+        ];
+
+    await saveSelectedRoute(route);
+
+});
+
+async function saveSelectedRoute(route) {
+
+    const stops = [
+        {
+            name: departure.name,
+            time: route.departTime
+        }
+    ];
+
+    if (via) {
+        stops.push({
+            name: via.name,
+            time: addMinutes(route.departTime, Math.floor(route.duration / 2))
+        });
+    }
+
+    stops.push({
+        name: arrival.name,
+        time: route.arriveTime
+    });
+
+    const selectedRoute = {
+        type: editingType,
+
+        departure,
+        via,
+        arrival,
+
+        departTime: route.departTime,
+        arriveTime: route.arriveTime,
+        durationMinutes: route.duration,
+        transfers: route.transfers,
+        lineSummary: route.line,
+
+        stops,
+
+        operationStatus: "通常運転"
+    };
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        {
+            [`commute.${editingType}`]: selectedRoute
+        }
+    );
+
+    showToast("ルートを保存しました");
+
+    location.href = "index.html";
+
+}

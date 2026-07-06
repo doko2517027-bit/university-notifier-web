@@ -829,14 +829,14 @@ function getWeatherText(code) {
 
 function getCommuteStatus(route) {
 
-    if (!route.departureTime || !route.durationMinutes) {
+    if (!route.departTime || !route.durationMinutes) {
         return "時刻未設定";
     }
 
     const now = new Date();
 
     const [hour, minute] =
-        route.departureTime.split(":").map(Number);
+        route.departTime.split(":").map(Number);
 
     const departureDate = new Date();
     departureDate.setHours(hour, minute, 0, 0);
@@ -884,37 +884,9 @@ async function loadCommuteCard() {
 
     if (commute.train?.departure) {
 
-        trainContent.innerHTML = `
-            🚩 ${commute.train.departure.name}
-
-            <br><br>
-
-            ⬇️
-
-            <br><br>
-
-            ${commute.train.via ? `
-                🚏 ${commute.train.via.name}
-                <br><br>
-                ⬇️
-                <br><br>
-            ` : ""}
-
-            🏫 ${commute.train.arrival.name}
-
-            <br><br>
-
-            <small>
-                ${getCommuteStatus(commute.train)}
-            </small>
-
-            <br>
-
-            <small>
-                運行情報：確認中
-            </small>
-        `;
-
+        trainContent.innerHTML =
+    renderCommuteHomeCard(commute.train); 
+    
     } else {
 
         trainContent.innerHTML = `
@@ -928,37 +900,9 @@ async function loadCommuteCard() {
 
     if (commute.bus?.departure) {
 
-        busContent.innerHTML = `
-            🚩 ${commute.bus.departure.name}
-
-            <br><br>
-
-            ⬇️
-
-            <br><br>
-
-            ${commute.bus.via ? `
-                🚏 ${commute.bus.via.name}
-                <br><br>
-                ⬇️
-                <br><br>
-            ` : ""}
-
-            🏫 ${commute.bus.arrival.name}
-
-            <br><br>
-
-            <small>
-                ${getCommuteStatus(commute.bus)}
-            </small>
-
-            <br>
-
-            <small>
-                運行情報：確認中
-            </small>
-        `;
-
+        busContent.innerHTML =
+    renderCommuteHomeCard(commute.bus); 
+    
     } else {
 
         busContent.innerHTML = `
@@ -997,5 +941,113 @@ function setWeatherCardStyle(weatherText) {
         weatherCard.style.background =
             "linear-gradient(135deg, #EDE9FE, #DBEAFE)";
     }
+
+}
+
+function renderCommuteHomeCard(route) {
+
+    const status =
+        getCommuteStatus(route);
+
+    const stopsHtml =
+        route.stops
+            .map(stop => `
+                <div style="text-align:center;">
+                    <b>${stop.name}</b><br>
+                    <small>${stop.time}</small>
+                </div>
+            `)
+            .join("");
+
+    return `
+        <div>
+
+            <b>${route.departure.name}</b>
+
+            <br>
+
+            <small>${route.lineSummary}</small>
+
+            <br><br>
+
+            <b>
+                ${route.departTime}
+                →
+                ${route.arriveTime}
+            </b>
+
+            <br>
+
+            <small>
+                ${route.durationMinutes}分　
+                乗換${route.transfers}回
+            </small>
+
+            <br><br>
+
+            <b>${status}</b>
+
+            <br><br>
+
+            <div style="
+                text-align:center;
+                font-size:20px;
+                letter-spacing:2px;
+            ">
+                ${renderRouteLine(route)}
+            </div>
+
+            <br>
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:8px;
+                font-size:12px;
+            ">
+                ${stopsHtml}
+            </div>
+
+            <br>
+
+            <small>
+                運行情報：${route.operationStatus || "確認中"}
+            </small>
+
+        </div>
+    `;
+
+}
+
+function renderRouteLine(route) {
+
+    if (!route.stops || route.stops.length === 0) {
+        return "○";
+    }
+
+    const now = new Date();
+
+    let currentIndex = 0;
+
+    route.stops.forEach((stop, index) => {
+
+        const [hour, minute] =
+            stop.time.split(":").map(Number);
+
+        const stopDate = new Date();
+        stopDate.setHours(hour, minute, 0, 0);
+
+        if (now >= stopDate) {
+            currentIndex = index;
+        }
+
+    });
+
+    return route.stops
+        .map((stop, index) =>
+            index === currentIndex ? "◉" : "○"
+        )
+        .join("ーー");
 
 }
