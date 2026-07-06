@@ -123,67 +123,78 @@ if(localStorage.getItem("theme")==="dark"){
     <div class="card setting-card">
 
         <h2 id="editorTitle">
-            ルート設定
+            経路検索
         </h2>
 
-        <label>出発駅・停留所</label>
+        <label>出発地</label>
 
         <input
             id="departureSearch"
             type="text"
-            placeholder="出発地を検索">
+            placeholder="例：川崎大師">
 
         <div id="departureResults"></div>
         <div id="departureSelected"></div>
 
         <hr>
 
-        <label>経由駅・停留所（任意）</label>
+        <label>経由地（任意）</label>
 
         <input
             id="viaSearch"
             type="text"
-            placeholder="経由地を検索">
+            placeholder="例：横浜">
 
         <div id="viaResults"></div>
         <div id="viaSelected"></div>
 
         <hr>
 
-        <label>到着駅・停留所</label>
+        <label>到着地</label>
 
         <input
             id="arrivalSearch"
             type="text"
-            placeholder="到着地を検索">
+            placeholder="例：石川町">
 
         <div id="arrivalResults"></div>
         <div id="arrivalSelected"></div>
 
         <hr>
 
-        <label>出発時刻</label>
+        <label>時刻指定</label>
+
+        <select id="timeType">
+            <option value="departure">出発時刻</option>
+            <option value="arrival">到着時刻</option>
+        </select>
 
         <input
-            id="departureTime"
+            id="routeTime"
             type="time">
-
-        <label>所要時間（分）</label>
-
-        <input
-            id="durationMinutes"
-            type="number"
-            placeholder="例：25">
 
         <br><br>
 
         <button
-            id="saveCommuteButton"
+            id="searchRouteButton"
             class="btn btn-primary">
 
-            保存
+            経路を検索
 
         </button>
+
+    </div>
+
+    <div
+        id="routeResults"
+        class="card setting-card"
+        style="display:none;">
+
+        <h2>
+            ルート候補
+        </h2>
+
+        <div id="routeResultList"></div>
 
     </div>
 
@@ -202,6 +213,14 @@ if(localStorage.getItem("theme")==="dark"){
 読み込み中...
 
 </div>
+
+</div>
+
+<div class="card setting-card">
+
+    <small>
+        駅・路線情報提供：HeartRails Express
+    </small>
 
 </div>
 
