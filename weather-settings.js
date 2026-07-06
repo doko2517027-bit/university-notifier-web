@@ -6,7 +6,9 @@ import {
     loadUserName,
     loadProfileImage,
     showToast,
-    setupAdminTab
+    setupAdminTab,
+    encryptData,
+    decryptData
 } from "./common.js";
 
 import {
@@ -62,15 +64,18 @@ async function loadWeatherSetting() {
 
     const user = snap.data();
 
-    if (!user.weather) {
+    if (!user.weatherEncrypted) {
         currentWeather.innerHTML = "まだ登録されていません。";
         return;
     }
 
-    selectedWeatherLocation = user.weather;
+    const weather =
+        await decryptData(user.weatherEncrypted);
+
+    selectedWeatherLocation = weather;
 
     renderSelectedWeather();
-    renderCurrentWeather(user.weather);
+    renderCurrentWeather(weather);
 
 }
 
@@ -235,10 +240,14 @@ async function saveWeatherSetting() {
         return;
     }
 
+    const encrypted =
+        await encryptData(selectedWeatherLocation);
+
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            weather: selectedWeatherLocation
+            weatherEncrypted: encrypted,
+            weather: null
         }
     );
 

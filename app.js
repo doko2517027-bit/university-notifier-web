@@ -6,7 +6,8 @@ import {
     loadUserName,
     initializePage,
     showNewsSkeleton,
-    setupAdminTab
+    setupAdminTab,
+    decryptData
 } from "./common.js";
 
 import {
@@ -600,11 +601,14 @@ async function loadWeather() {
 
                 const user = snap.data();
 
-                if (user.weather) {
+                if (user.weatherEncrypted) {
 
-                    latitude = user.weather.latitude;
-                    longitude = user.weather.longitude;
-                    locationName = user.weather.name;
+                    const weatherSetting =
+                        await decryptData(user.weatherEncrypted);
+
+                    latitude = weatherSetting.latitude;
+                    longitude = weatherSetting.longitude;
+                    locationName = weatherSetting.name;
 
                 }
 

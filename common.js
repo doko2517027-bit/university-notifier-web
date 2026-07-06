@@ -334,3 +334,73 @@ export async function setupAdminTab() {
     `;
 
 }
+
+const SECRET = "UniversityNotifier2026";
+
+export async function encryptData(data) {
+
+    const text = JSON.stringify(data);
+
+    const encoder = new TextEncoder();
+
+    const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(SECRET.padEnd(32, "0")),
+        "AES-GCM",
+        false,
+        ["encrypt"]
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv
+        },
+        key,
+        encoder.encode(text)
+    );
+
+    const result = new Uint8Array(iv.length + encrypted.byteLength);
+
+    result.set(iv);
+    result.set(new Uint8Array(encrypted), iv.length);
+
+    return btoa(String.fromCharCode(...result));
+
+}
+
+export async function decryptData(encryptedText) {
+
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+
+    const raw = Uint8Array.from(
+        atob(encryptedText),
+        c => c.charCodeAt(0)
+    );
+
+    const iv = raw.slice(0, 12);
+    const data = raw.slice(12);
+
+    const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(SECRET.padEnd(32, "0")),
+        "AES-GCM",
+        false,
+        ["decrypt"]
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+        {
+            name: "AES-GCM",
+            iv
+        },
+        key,
+        data
+    );
+
+    return JSON.parse(decoder.decode(decrypted));
+
+}

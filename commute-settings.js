@@ -341,6 +341,21 @@ document.addEventListener("click", async (e) => {
 
     renderCurrent(snap.data().commute ?? {});
 
+    departure = null;
+    via = null;
+    arrival = null;
+
+    departureSearch.value = "";
+    viaSearch.value = "";
+    arrivalSearch.value = "";
+
+    departureSelected.innerHTML = "";
+    viaSelected.innerHTML = "";
+    arrivalSelected.innerHTML = "";
+
+    routeResults.style.display = "none";
+    routeResultList.innerHTML = "";
+
     showToast("削除しました");
 
 });
