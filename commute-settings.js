@@ -309,6 +309,11 @@ let places = [];
 
 async function searchPlaces(keyword, target, mode) {
 
+    if (text.length < 2) {
+        target.innerHTML = "";
+        return;
+    }
+
     const text = keyword.trim();
 
     if (!text) {
@@ -325,11 +330,27 @@ async function searchPlaces(keyword, target, mode) {
 
         const response = await fetch(
 
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&countrycodes=jp&limit=10`
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&lang=ja&limit=10`
 
         );
 
-        places = await response.json();
+        const data = await response.json();
+
+        places = data.features.map(feature => {
+            return {
+                name: feature.properties.name,
+                display_name: [
+                    feature.properties.name,
+                    feature.properties.city,
+                    feature.properties.state,
+                    feature.properties.country
+                ].filter(Boolean).join(", "),
+                lat: feature.geometry.coordinates[1],
+                lon: feature.geometry.coordinates[0],
+                type: feature.properties.osm_value || "",
+                class: feature.properties.osm_key || ""
+            };
+        });
 
         places = filterCommutePlaces(places);
 
