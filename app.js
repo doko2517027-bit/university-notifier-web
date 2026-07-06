@@ -125,8 +125,8 @@ async function startApp() {
     }
 
     await initializePage([
-	    loadUserName(),
-	    loadProfileImage()
+	    loadUserName(userName),
+	    loadProfileImage(topProfileImage)
 	]);
 	
 	loadWeather();
