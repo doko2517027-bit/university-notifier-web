@@ -17,41 +17,28 @@ import {
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 const topProfileImage = document.getElementById("topProfileImage");
-
 const departureSearch = document.getElementById("departureSearch");
 const arrivalSearch = document.getElementById("arrivalSearch");
-
 const departureResults = document.getElementById("departureResults");
 const arrivalResults = document.getElementById("arrivalResults");
-
 const departureSelected = document.getElementById("departureSelected");
 const arrivalSelected = document.getElementById("arrivalSelected");
-
+const departureTime = document.getElementById("departureTime");
+const durationMinutes = document.getElementById("durationMinutes");
 const saveButton = document.getElementById("saveCommuteButton");
-
-const trainSettingButton =
-document.getElementById(
-    "trainSettingButton"
-);
-
-const busSettingButton =
-document.getElementById(
-    "busSettingButton"
-);
-
-const commuteEditor =
-document.getElementById(
-    "commuteEditor"
-);
-
-let editingType="train";
-
-const currentCommuteSetting =
-    document.getElementById("currentCommuteSetting");
+const trainSettingButton = document.getElementById("trainSettingButton");
+const busSettingButton = document.getElementById("busSettingButton");
+const commuteEditor = document.getElementById("commuteEditor");
+const currentCommuteSetting = document.getElementById("currentCommuteSetting");
+const viaSearch = document.getElementById("viaSearch");
+const viaResults = document.getElementById("viaResults");
+const viaSelected = document.getElementById("viaSelected");
 
 setupTheme(themeButton);
 
+let editingType="train";
 let departure = null;
+let via = null;
 let arrival = null;
 
 await initializePage([
@@ -94,6 +81,16 @@ arrivalSearch.addEventListener("input", () => {
     );
 });
 
+viaSearch.addEventListener("input", () => {
+
+    searchPlaces(
+        viaSearch.value,
+        viaResults,
+        "via"
+    );
+
+});
+
 async function loadCommute() {
 
     if (!studentNumber) return;
@@ -131,6 +128,10 @@ function renderSelected() {
 
     departureSelected.innerHTML = departure
         ? `📍 ${departure.name}`
+        : "";
+
+    viaSelected.innerHTML = via
+        ? `🚏 ${via.name}`
         : "";
 
     arrivalSelected.innerHTML = arrival
@@ -240,8 +241,9 @@ async function saveCommute() {
     ] = {
 
         departure,
-
-        arrival
+        arrival,
+        departureTime: departureTime.value,
+        durationMinutes: Number(durationMinutes.value)
 
     };
 
@@ -389,6 +391,12 @@ document.addEventListener("click", (e) => {
         departure = selectedPlace;
         departureResults.innerHTML = "";
         departureSearch.value = selectedPlace.name;
+
+    } else if (item.dataset.mode === "via") {
+
+        via = selectedPlace;
+        viaResults.innerHTML = "";
+        viaSearch.value = selectedPlace.name;
 
     } else {
 

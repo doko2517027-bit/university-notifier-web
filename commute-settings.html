@@ -120,41 +120,72 @@ if(localStorage.getItem("theme")==="dark"){
     id="commuteEditor"
     style="display:none;">
 
-<input
-    id="departureSearch"
-    type="text"
-    placeholder="駅名・停留所名を検索">
+    <div class="card setting-card">
 
-<div id="departureResults"></div>
+        <h2 id="editorTitle">
+            ルート設定
+        </h2>
 
-<div id="departureSelected"></div>
+        <label>出発駅・停留所</label>
 
-<hr>
+        <input
+            id="departureSearch"
+            type="text"
+            placeholder="出発地を検索">
 
-<h2>
+        <div id="departureResults"></div>
+        <div id="departureSelected"></div>
 
-到着駅・停留所
+        <hr>
 
-</h2>
+        <label>経由駅・停留所（任意）</label>
 
-<input
-    id="arrivalSearch"
-    type="text"
-    placeholder="駅名・停留所名を検索">
+        <input
+            id="viaSearch"
+            type="text"
+            placeholder="経由地を検索">
 
-<div id="arrivalResults"></div>
+        <div id="viaResults"></div>
+        <div id="viaSelected"></div>
 
-<div id="arrivalSelected"></div>
+        <hr>
 
-<br>
+        <label>到着駅・停留所</label>
 
-<button
-    id="saveCommuteButton"
-    class="btn btn-primary">
+        <input
+            id="arrivalSearch"
+            type="text"
+            placeholder="到着地を検索">
 
-保存
+        <div id="arrivalResults"></div>
+        <div id="arrivalSelected"></div>
 
-</button>
+        <hr>
+
+        <label>出発時刻</label>
+
+        <input
+            id="departureTime"
+            type="time">
+
+        <label>所要時間（分）</label>
+
+        <input
+            id="durationMinutes"
+            type="number"
+            placeholder="例：25">
+
+        <br><br>
+
+        <button
+            id="saveCommuteButton"
+            class="btn btn-primary">
+
+            保存
+
+        </button>
+
+    </div>
 
 </div>
 

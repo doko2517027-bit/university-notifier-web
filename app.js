@@ -849,6 +849,8 @@ async function loadCommuteCard() {
             ⬇️
             <br><br>
             🏫 ${commute.train.arrival.name}
+            <br><br>
+            <small>運行情報：確認中</small>
         `;
 
     } else {
@@ -870,6 +872,8 @@ async function loadCommuteCard() {
             ⬇️
             <br><br>
             🏫 ${commute.bus.arrival.name}
+            <br><br>
+            <small>運行情報：確認中</small>
         `;
 
     } else {
