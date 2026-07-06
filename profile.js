@@ -55,17 +55,22 @@ const picker = document.getElementById("photoPicker");
 
         console.log(data);
 
-        await updateDoc(
-
-            doc(db, "publicUsers", studentNumber),
-
-            {
-
-                photo: data.secure_url
-
-            }
-
-        );
+        await Promise.all([
+            updateDoc(
+                doc(db, "publicUsers", studentNumber),
+                {
+                    photo: data.secure_url
+                }
+            ),
+            updateDoc(
+                doc(db, "users", studentNumber),
+                {
+                    profile: {
+                        photo: data.secure_url
+                    }
+                }
+            )
+        ]);
 
         profileImage.src = data.secure_url;
 
@@ -113,17 +118,22 @@ document
 .getElementById("resetPhoto")
 .onclick = async () => {
 
-    await updateDoc(
-
-        doc(db, "publicUsers", studentNumber),
-
-        {
-
-            photo: ""
-
-        }
-
-    );
+    await Promise.all([
+        updateDoc(
+            doc(db, "publicUsers", studentNumber),
+            {
+                photo: ""
+            }
+        ),
+        updateDoc(
+            doc(db, "users", studentNumber),
+            {
+                profile: {
+                    photo: ""
+                }
+            }
+        )
+    ]);
 
     profileImage.src = "images/default.png";
 

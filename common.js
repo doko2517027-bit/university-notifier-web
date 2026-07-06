@@ -59,15 +59,31 @@ export async function loadProfileImage(img){
 
     if (!img) return;
 
-    const snap = await getDoc(
+    const publicSnap = await getDoc(
         doc(db, "publicUsers", studentNumber)
     );
 
-    if (!snap.exists()) return;
+    if (
+        publicSnap.exists() &&
+        publicSnap.data().photo
+    ) {
+        img.src = publicSnap.data().photo;
+        return;
+    }
 
-    const user = snap.data();
+    const userSnap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
 
-    img.src = user.photo || "images/default.png";
+    if (
+        userSnap.exists() &&
+        userSnap.data().profile?.photo
+    ) {
+        img.src = userSnap.data().profile.photo;
+        return;
+    }
+
+    img.src = "images/default.png";
 
 }
 
@@ -279,18 +295,29 @@ export function formatDateTime(timestamp) {
 
 export async function getProfilePhoto(studentNumber) {
 
-    const snap = await getDoc(
+    const publicSnap = await getDoc(
         doc(db, "publicUsers", studentNumber)
     );
 
-    if (!snap.exists()) {
-        return "images/default.png";
+    if (
+        publicSnap.exists() &&
+        publicSnap.data().photo
+    ) {
+        return publicSnap.data().photo;
     }
 
-    return (
-        snap.data().photo ||
-        "images/default.png"
+    const userSnap = await getDoc(
+        doc(db, "users", studentNumber)
     );
+
+    if (
+        userSnap.exists() &&
+        userSnap.data().profile?.photo
+    ) {
+        return userSnap.data().profile.photo;
+    }
+
+    return "images/default.png";
 
 }
 
