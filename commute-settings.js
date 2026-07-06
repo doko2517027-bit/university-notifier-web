@@ -152,6 +152,12 @@ function renderCurrent(commute){
 
             🚩 ${commute.train.departure.name}
 
+            <br>
+
+            <small>
+            ${commute.train.departure.fullName}
+            </small>
+
             <br><br>
 
             ⬇️
@@ -159,6 +165,12 @@ function renderCurrent(commute){
             <br><br>
 
             🏫 ${commute.train.arrival.name}
+
+            <br>
+
+            <small>
+            ${commute.train.arrival.fullname}
+            <small>
 
         </div>
         `;
@@ -174,6 +186,12 @@ function renderCurrent(commute){
 
             🚩 ${commute.bus.departure.name}
 
+            <br>
+
+            <small>
+            ${commute.bus.departure.fullName}
+            </small>
+
             <br><br>
 
             ⬇️
@@ -181,6 +199,14 @@ function renderCurrent(commute){
             <br><br>
 
             🏫 ${commute.bus.arrival.name}
+
+            <br>
+
+            <small>
+
+            ${commute.bus.arrival.fullName}
+
+            </small>
 
         </div>
         `;
@@ -280,11 +306,8 @@ async function searchPlaces(keyword, target, mode) {
         places = filterCommutePlaces(places);
 
         if (places.length === 0) {
-
             target.innerHTML = "候補がありません。";
-
             return;
-
         }
 
         renderPlaces(target, mode);
@@ -352,9 +375,12 @@ document.addEventListener("click", (e) => {
     ];
 
     const selectedPlace = {
-        name: place.display_name,
+        name: place.name || place.display_name.split(",")[0],
+        fullName: place.display_name,
         latitude: Number(place.lat),
         longitude: Number(place.lon),
+        osmType: place.type,
+        osmClass: place.class,
         type: editingType
     };
 
@@ -378,19 +404,33 @@ document.addEventListener("click", (e) => {
 
 function filterCommutePlaces(results) {
 
-    const keywords =
-        editingType === "train"
-            ? ["駅", "station", "railway"]
-            : ["バス停", "停留所", "bus_stop", "bus station"];
-
     const filtered = results.filter(place => {
 
         const text =
-            `${place.display_name} ${place.type} ${place.class}`;
+            `${place.display_name} ${place.type} ${place.class}`.toLowerCase();
 
-        return keywords.some(keyword =>
-            text.includes(keyword)
-        );
+        if (editingType === "train") {
+
+            return (
+                text.includes("駅") ||
+                text.includes("station") ||
+                text.includes("railway")
+            );
+
+        }
+
+        if (editingType === "bus") {
+
+            return (
+                text.includes("バス停") ||
+                text.includes("停留所") ||
+                text.includes("bus_stop") ||
+                text.includes("bus station")
+            );
+
+        }
+
+        return true;
 
     });
 
