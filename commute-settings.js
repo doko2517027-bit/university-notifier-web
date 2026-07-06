@@ -245,14 +245,15 @@ async function searchPlaces(keyword, target, mode) {
 
     if (!text) {
 
-        departureResults.innerHTML = "";
-        arrivalResults.innerHTML = "";
+        target.innerHTML = "";
 
         return;
 
     }
 
     try {
+
+        target.innerHTML = "検索中...";
 
         const response = await fetch(
 
@@ -263,6 +264,14 @@ async function searchPlaces(keyword, target, mode) {
         places = await response.json();
 
         places = filterCommutePlaces(places);
+
+        if (places.length === 0) {
+
+            target.innerHTML = "候補がありません。";
+
+            return;
+
+        }
 
         renderPlaces(target, mode);
 
