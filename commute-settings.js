@@ -325,11 +325,16 @@ async function searchPlaces(keyword, target, mode) {
 
         const response = await fetch(
 
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&lang=ja&limit=10`
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=10`
 
         );
 
         const data = await response.json();
+
+        if (!data.features) {
+            target.innerHTML = "候補がありません。";
+            return;
+        }
 
         places = data.features.map(feature => {
             return {
