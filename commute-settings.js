@@ -184,66 +184,6 @@ function renderCurrent(commute) {
 
 }
 
-async function saveCommute() {
-
-    if (!departure || !arrival) {
-
-        alert("出発・到着を選択してください。");
-
-        return;
-
-    }
-
-    const updateData = {};
-
-    updateData[
-        `commute.${editingType}`
-    ] = {
-
-        departure,
-        via,
-        arrival,
-        departureTime: departureTime.value,
-        durationMinutes: Number(durationMinutes.value)
-
-    };
-
-    await updateDoc(
-
-        doc(db,"users",studentNumber),
-
-        updateData
-
-    );
-
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    renderCurrent(snap.data().commute);
-
-    departure = null;
-    via = null;
-    arrival = null;
-
-    departureSearch.value = "";
-    viaSearch.value = "";
-    arrivalSearch.value = "";
-
-    departureResults.innerHTML = "";
-    viaResults.innerHTML = "";
-    arrivalResults.innerHTML = "";
-
-    departureSelected.innerHTML = "";
-    viaSelected.innerHTML = "";
-    arrivalSelected.innerHTML = "";
-
-    commuteEditor.style.display = "none";
-
-    showToast("保存しました");
-
-}
-
 let places = [];
 
 async function searchPlaces(keyword, target, mode) {
@@ -261,12 +201,6 @@ async function searchPlaces(keyword, target, mode) {
     try {
 
         target.innerHTML = "検索中...";
-
-        if (editingType === "bus") {
-            target.innerHTML =
-                "バス停検索は後で対応します。先に電車を設定してください。";
-            return;
-        }
 
         const response = await fetch(
             `https://express.heartrails.com/api/json?method=getStations&name=${encodeURIComponent(text)}`
@@ -384,44 +318,6 @@ document.addEventListener("click", (e) => {
     renderSelected();
 
 });
-
-function filterCommutePlaces(results) {
-
-    const filtered = results.filter(place => {
-
-        const text =
-            `${place.display_name} ${place.type} ${place.class}`.toLowerCase();
-
-        if (editingType === "train") {
-
-            return (
-                text.includes("駅") ||
-                text.includes("station") ||
-                text.includes("railway")
-            );
-
-        }
-
-        if (editingType === "bus") {
-
-            return (
-                text.includes("バス停") ||
-                text.includes("停留所") ||
-                text.includes("bus_stop") ||
-                text.includes("bus station")
-            );
-
-        }
-
-        return true;
-
-    });
-
-    return filtered.length > 0
-        ? filtered
-        : results;
-
-}
 
 document.addEventListener("click", async (e) => {
 
