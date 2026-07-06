@@ -29,8 +29,6 @@ const routeTime = document.getElementById("routeTime");
 const searchRouteButton = document.getElementById("searchRouteButton");
 const routeResults = document.getElementById("routeResults");
 const routeResultList = document.getElementById("routeResultList");
-const trainSettingButton = document.getElementById("trainSettingButton");
-const busSettingButton = document.getElementById("busSettingButton");
 const commuteEditor = document.getElementById("commuteEditor");
 const currentCommuteSetting = document.getElementById("currentCommuteSetting");
 const viaSearch = document.getElementById("viaSearch");
@@ -39,7 +37,6 @@ const viaSelected = document.getElementById("viaSelected");
 
 setupTheme(themeButton);
 
-let editingType="train";
 let departure = null;
 let via = null;
 let arrival = null;
@@ -51,22 +48,6 @@ await initializePage([
 ]);
 
 searchRouteButton.onclick = searchRouteCandidates;
-
-trainSettingButton.onclick=()=>{
-
-    editingType="train";
-
-    commuteEditor.style.display="block";
-
-};
-
-busSettingButton.onclick=()=>{
-
-    editingType="bus";
-
-    commuteEditor.style.display="block";
-
-};
 
 departureSearch.addEventListener("input", () => {
     searchPlaces(
@@ -117,7 +98,7 @@ async function loadCommute() {
 
     const commute = user.commute ?? {};
 
-    const current = commute[editingType] ?? {};
+    const current = commute.route ?? {};
 
     departure = current.departure ?? null;
     via = current.via ?? null;
@@ -378,18 +359,7 @@ function renderPlaces(target, mode) {
 
     target.innerHTML = places.map((place, index) => {
 
-        const name =
-            place.name ||
-            place.display_name.split(",")[0];
-
-        const subText =
-            place.display_name
-                .split(",")
-                .slice(1, 3)
-                .join(" / ");
-
         return `
-
             <div
                 class="setting-row commute-result"
                 data-index="${index}"
@@ -398,20 +368,18 @@ function renderPlaces(target, mode) {
                 <div>
 
                     <b>
-                        ${editingType === "train" ? "🚉" : "🚌"}
-                        ${name}
+                        🚉 ${place.name}
                     </b>
 
                     <br>
 
                     <small>
-                        ${subText}
+                        ${place.line || ""}
                     </small>
 
                 </div>
 
             </div>
-
         `;
 
     }).join("");
@@ -435,7 +403,7 @@ document.addEventListener("click", (e) => {
         longitude: place.longitude,
         line: place.line,
         prefecture: place.prefecture,
-        type: editingType
+        type: "commute"
     };
 
     if (item.dataset.mode === "departure") {
@@ -675,7 +643,7 @@ async function saveSelectedRoute(route) {
     });
 
     const selectedRoute = {
-        type: editingType,
+        type: "commute",
 
         departure,
         via,
@@ -695,7 +663,7 @@ async function saveSelectedRoute(route) {
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            [`commute.${editingType}`]: selectedRoute
+            "commute.route": selectedRoute
         }
     );
 

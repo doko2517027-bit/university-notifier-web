@@ -34,10 +34,7 @@ const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
 const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
-const trainCard = document.getElementById("trainCard");
-const busCard = document.getElementById("busCard");
-const trainContent = document.getElementById("trainContent");
-const busContent = document.getElementById("busContent");
+const commuteContent = document.getElementById("commuteContent");
 const commuteCard = document.getElementById("commuteCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
@@ -170,18 +167,8 @@ weatherCard.onclick = () => {
 
 };
 
-trainCard.onclick = () => {
-
-    location.href =
-        "commute-settings.html";
-
-};
-
-busCard.onclick = () => {
-
-    location.href =
-        "commute-settings.html";
-
+commuteCard.onclick = () => {
+    location.href = "commute-settings.html";
 };
 
 async function loadNews() {
@@ -880,34 +867,18 @@ async function loadCommuteCard() {
 
     const user = snap.data();
 
-    const commute = user.commute ?? {};
+    const route =
+        user.commute?.route;
 
-    if (commute.train?.departure) {
+    if (route?.departure) {
 
-        trainContent.innerHTML =
-    renderCommuteHomeCard(commute.train); 
-    
+        commuteContent.innerHTML =
+            renderCommuteHomeCard(route);
+
     } else {
 
-        trainContent.innerHTML = `
-            <button
-                class="btn btn-primary">
-                設定する
-            </button>
-        `;
-
-    }
-
-    if (commute.bus?.departure) {
-
-        busContent.innerHTML =
-    renderCommuteHomeCard(commute.bus); 
-    
-    } else {
-
-        busContent.innerHTML = `
-            <button
-                class="btn btn-primary">
+        commuteContent.innerHTML = `
+            <button class="btn btn-primary">
                 設定する
             </button>
         `;
