@@ -141,35 +141,29 @@ function renderSelected() {
 
 function renderCurrent(commute){
 
-    let html="";
+    let html = "";
 
-    if(commute.train?.departure){
+    if (commute.train?.departure) {
 
         html += `
-        <div class="card">
+        <div class="card setting-card">
 
             <h3>🚆 電車</h3>
 
-            🚩 ${commute.train.departure.name}
+            <p>
+                🚩 <b>${commute.train.departure.name}</b>
+            </p>
 
-            <br>
+            <div style="text-align:center;font-size:24px;">
+                ↓
+            </div>
 
-            <small>
-            ${commute.train.departure.fullName}
-            </small>
-
-            <br><br>
-
-            ⬇️
-
-            <br><br>
-
-            🏫 ${commute.train.arrival.name}
-
-            <br>
+            <p>
+                🏫 <b>${commute.train.arrival.name}</b>
+            </p>
 
             <small>
-            ${commute.train.arrival.fullName}
+                時刻表ベースの目安です
             </small>
 
             <br><br>
@@ -177,9 +171,7 @@ function renderCurrent(commute){
             <button
                 class="btn btn-danger delete-route"
                 data-type="train">
-
                 電車ルートを削除
-
             </button>
 
         </div>
@@ -187,35 +179,27 @@ function renderCurrent(commute){
 
     }
 
-    if(commute.bus?.departure){
+    if (commute.bus?.departure) {
 
         html += `
-        <div class="card">
+        <div class="card setting-card">
 
             <h3>🚌 バス</h3>
 
-            🚩 ${commute.bus.departure.name}
+            <p>
+                🚩 <b>${commute.bus.departure.name}</b>
+            </p>
 
-            <br>
+            <div style="text-align:center;font-size:24px;">
+                ↓
+            </div>
 
-            <small>
-            ${commute.bus.departure.fullName}
-            </small>
-
-            <br><br>
-
-            ⬇️
-
-            <br><br>
-
-            🏫 ${commute.bus.arrival.name}
-
-            <br>
+            <p>
+                🏫 <b>${commute.bus.arrival.name}</b>
+            </p>
 
             <small>
-
-            ${commute.bus.arrival.fullName}
-
+                時刻表ベースの目安です
             </small>
 
             <br><br>
@@ -223,9 +207,7 @@ function renderCurrent(commute){
             <button
                 class="btn btn-danger delete-route"
                 data-type="bus">
-
                 バスルートを削除
-
             </button>
 
         </div>
@@ -233,13 +215,11 @@ function renderCurrent(commute){
 
     }
 
-    if(html===""){
-
-        html="まだ設定されていません。";
-
+    if (html === "") {
+        html = "まだ設定されていません。";
     }
 
-    currentCommuteSetting.innerHTML=html;
+    currentCommuteSetting.innerHTML = html;
 
 }
 
@@ -491,3 +471,11 @@ document.addEventListener("click", async (e) => {
     showToast("削除しました");
 
 });
+
+document
+.getElementById("profileButton")
+.onclick = () => {
+
+    location.href = "profile.html";
+
+};
