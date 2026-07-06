@@ -5,7 +5,9 @@ import {
     setupTheme,
     loadUserName,
     loadProfileImage,
-    showToast
+    showToast,
+    encryptData,
+    decryptData
 } from "./common.js";
 
 import {
@@ -87,7 +89,7 @@ async function loadCommute() {
 
     const user = snap.data();
 
-    if (!user.commute) {
+    if (!user.commuteEncrypted) {
 
         currentCommuteSetting.innerHTML =
             "まだ登録されていません。";
@@ -96,7 +98,8 @@ async function loadCommute() {
 
     }
 
-    const commute = user.commute ?? {};
+    const commute =
+        await decryptData(user.commuteEncrypted);
 
     const current = commute.route ?? {};
 
@@ -327,7 +330,8 @@ document.addEventListener("click", async (e) => {
     if (!button) return;
 
     const updateData = {
-        "commute.route": null
+        commuteEncrypted: null,
+        commute: null
     };
 
     await updateDoc(
@@ -520,10 +524,16 @@ async function saveSelectedRoute(route) {
         operationStatus: "通常運転"
     };
 
+    const encrypted =
+        await encryptData({
+            route: selectedRoute
+        });
+
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            "commute.route": selectedRoute
+            commuteEncrypted: encrypted,
+            commute: null
         }
     );
 

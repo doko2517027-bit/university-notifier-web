@@ -871,8 +871,16 @@ async function loadCommuteCard() {
 
     const user = snap.data();
 
-    const route =
-        user.commute?.route;
+    let route = null;
+
+    if (user.commuteEncrypted) {
+
+        const commute =
+            await decryptData(user.commuteEncrypted);
+
+        route = commute.route;
+
+    }
 
     if (route?.departure) {
 
