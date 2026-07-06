@@ -314,7 +314,8 @@ try {
                 schedule: true,
                 assignment: true,
                 reminder: true,
-                courseNews: true
+                courseNews: true,
+                systemNews: true
 }
         }
     );

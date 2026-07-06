@@ -54,6 +54,8 @@ const notifySchedule = document.getElementById("notifySchedule");
 const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
+const notifySystemNews = document.getElementById("notifySystemNews");
+
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
@@ -164,6 +166,9 @@ async function loadnotificationSettings() {
     notifyCourseNews.checked =
         switchs.courseNews ?? true;
 
+    notifySystemNews.checked =
+        switchs.systemNews ?? true;
+
 }
 
 function setupNotificationEvents() {
@@ -172,7 +177,9 @@ function setupNotificationEvents() {
         notifySchedule,
         notifyAssignment,
         notifyReminder,
-        notifyCourseNews
+        notifyCourseNews,
+        notifySystemNews
+
     ].forEach(input => {
 
         input.addEventListener("change", savenotificationSettings);
@@ -192,7 +199,8 @@ async function savenotificationSettings() {
                 schedule: notifySchedule.checked,
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,
-                courseNews: notifyCourseNews.checked
+                courseNews: notifyCourseNews.checked,
+                systemNews: notifySystemNews.checked
             }
         }
     );

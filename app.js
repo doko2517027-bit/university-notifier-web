@@ -125,19 +125,19 @@ async function startApp() {
     }
 
     await initializePage([
-        
-        setupAdminTab(),
-        loadUserName(userName),
-        loadProfileImage(topProfileImage),
-        loadWeather(),
-        loadCommuteCard(),
-        loadNews(),
-        loadTodaySchedule(),
-        loadHomeCourseNews(),
-        loadHomeSystemNews(),
-        loadCourseLinks()
-
-    ]);
+	    loadUserName(),
+	    loadProfileImage()
+	]);
+	
+	loadWeather();
+	loadCommuteCard();
+	loadNews();
+	loadHomeCourseNews();
+	loadHomeSystemNews();
+	loadCourseLinks().then(() => {
+	    loadTodaySchedule();
+	});
+	setupAdminTab();
 
 }
 

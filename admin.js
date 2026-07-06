@@ -50,6 +50,7 @@ const notifySchedule = document.getElementById("notifySchedule");
 const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
+const notifySystemNews = document.getElementById("notifySystemNews");
 
 setupTheme(themeButton);
 
@@ -267,6 +268,9 @@ async function loadNotificationSettings() {
     notifyCourseNews.checked =
         settings.courseNews ?? true;
 
+    notifySystemNews.checked =
+        settings.systemNews ?? true;
+
 }
 
 function setupEvents() {
@@ -308,7 +312,9 @@ function setupEvents() {
         notifySchedule,
         notifyAssignment,
         notifyReminder,
-        notifyCourseNews
+        notifyCourseNews,
+        notifySystemNews
+
     ].forEach(input => {
 
         input.addEventListener(
@@ -360,7 +366,10 @@ async function postNews() {
             title,
             body,
             author: studentNumber,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+
+            notifyTarget: "allUsers",
+            notificationSentAt: null
         }
     );
 
@@ -370,6 +379,30 @@ async function postNews() {
     showToast("投稿しました");
 
     
+
+}
+
+async function notifySystemNewsUsers(newsId, title, body) {
+
+    try {
+
+        await fetch("https://あなたのRenderURL/notify-system-news", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                newsId,
+                title,
+                body
+            })
+        });
+
+    } catch (e) {
+
+        console.error("CareMateお知らせ通知に失敗:", e);
+
+    }
 
 }
 
@@ -398,7 +431,8 @@ async function saveNotificationSettings() {
                 schedule: notifySchedule.checked,
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,
-                courseNews: notifyCourseNews.checked
+                courseNews: notifyCourseNews.checked,
+                systemNews: notifySystemNews.checked
             }
         }
     );
