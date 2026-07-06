@@ -339,11 +339,8 @@ document.addEventListener("click", async (e) => {
         updateData
     );
 
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    renderCurrent(snap.data().commute ?? {});
+    currentCommuteSetting.innerHTML =
+        "まだ設定されていません。";
 
     departure = null;
     via = null;
