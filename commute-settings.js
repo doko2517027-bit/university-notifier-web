@@ -233,6 +233,20 @@ async function saveCommute() {
 
     renderCurrent(snap.data().commute);
 
+    departure = null;
+    arrival = null;
+
+    departureSearch.value = "";
+    arrivalSearch.value = "";
+
+    departureResults.innerHTML = "";
+    arrivalResults.innerHTML = "";
+
+    departureSelected.innerHTML = "";
+    arrivalSelected.innerHTML = "";
+
+    commuteEditor.style.display = "none";
+
     showToast("保存しました");
 
 }
