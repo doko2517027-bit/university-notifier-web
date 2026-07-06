@@ -309,14 +309,9 @@ let places = [];
 
 async function searchPlaces(keyword, target, mode) {
 
-    if (text.length < 2) {
-        target.innerHTML = "";
-        return;
-    }
-
     const text = keyword.trim();
 
-    if (!text) {
+    if (text.length < 2) {
 
         target.innerHTML = "";
 
