@@ -827,6 +827,47 @@ function getWeatherText(code) {
 
 }
 
+function getCommuteStatus(route) {
+
+    if (!route.departureTime || !route.durationMinutes) {
+        return "時刻未設定";
+    }
+
+    const now = new Date();
+
+    const [hour, minute] =
+        route.departureTime.split(":").map(Number);
+
+    const departureDate = new Date();
+    departureDate.setHours(hour, minute, 0, 0);
+
+    const arrivalDate = new Date(
+        departureDate.getTime() +
+        route.durationMinutes * 60 * 1000
+    );
+
+    if (now < departureDate) {
+
+        const diff =
+            Math.ceil((departureDate - now) / 60000);
+
+        return `あと${diff}分で出発`;
+
+    }
+
+    if (now >= departureDate && now <= arrivalDate) {
+
+        const diff =
+            Math.ceil((arrivalDate - now) / 60000);
+
+        return `移動中・あと${diff}分で到着`;
+
+    }
+
+    return "到着予定時刻を過ぎています";
+
+}
+
 async function loadCommuteCard() {
 
     if (!studentNumber) return;
@@ -845,12 +886,33 @@ async function loadCommuteCard() {
 
         trainContent.innerHTML = `
             🚩 ${commute.train.departure.name}
+
             <br><br>
+
             ⬇️
+
             <br><br>
+
+            ${commute.train.via ? `
+                🚏 ${commute.train.via.name}
+                <br><br>
+                ⬇️
+                <br><br>
+            ` : ""}
+
             🏫 ${commute.train.arrival.name}
+
             <br><br>
-            <small>運行情報：確認中</small>
+
+            <small>
+                ${getCommuteStatus(commute.train)}
+            </small>
+
+            <br>
+
+            <small>
+                運行情報：確認中
+            </small>
         `;
 
     } else {
@@ -868,12 +930,33 @@ async function loadCommuteCard() {
 
         busContent.innerHTML = `
             🚩 ${commute.bus.departure.name}
+
             <br><br>
+
             ⬇️
+
             <br><br>
+
+            ${commute.bus.via ? `
+                🚏 ${commute.bus.via.name}
+                <br><br>
+                ⬇️
+                <br><br>
+            ` : ""}
+
             🏫 ${commute.bus.arrival.name}
+
             <br><br>
-            <small>運行情報：確認中</small>
+
+            <small>
+                ${getCommuteStatus(commute.bus)}
+            </small>
+
+            <br>
+
+            <small>
+                運行情報：確認中
+            </small>
         `;
 
     } else {
