@@ -79,11 +79,19 @@ busSettingButton.onclick=()=>{
 };
 
 departureSearch.addEventListener("input", () => {
-    searchPlaces(departureSearch.value);
+    searchPlaces(
+        departureSearch.value,
+        departureResults,
+        "departure"
+    );
 });
 
 arrivalSearch.addEventListener("input", () => {
-    searchPlaces(arrivalSearch.value);
+    searchPlaces(
+        arrivalSearch.value,
+        arrivalResults,
+        "arrival"
+    );
 });
 
 async function loadCommute() {
@@ -231,7 +239,7 @@ async function saveCommute() {
 
 let places = [];
 
-async function searchPlaces(keyword) {
+async function searchPlaces(keyword, target, mode) {
 
     const text = keyword.trim();
 
@@ -254,7 +262,9 @@ async function searchPlaces(keyword) {
 
         places = await response.json();
 
-        renderPlaces();
+        places = filterCommutePlaces(places);
+
+        renderPlaces(target, mode);
 
     } catch (e) {
 
@@ -264,14 +274,14 @@ async function searchPlaces(keyword) {
 
 }
 
-function renderPlaces() {
+function renderPlaces(target, mode) {
 
-    const html = places.map((place,index)=>`
+    target.innerHTML = places.map((place, index) => `
 
         <div
             class="commute-result"
             data-index="${index}"
-            data-mode="departure">
+            data-mode="${mode}">
 
             <b>📍 ${place.display_name}</b>
 
@@ -327,3 +337,27 @@ document.addEventListener("click", (e) => {
     renderSelected();
 
 });
+
+function filterCommutePlaces(results) {
+
+    const keywords =
+        editingType === "train"
+            ? ["駅", "station", "railway"]
+            : ["バス停", "停留所", "bus_stop", "bus station"];
+
+    const filtered = results.filter(place => {
+
+        const text =
+            `${place.display_name} ${place.type} ${place.class}`;
+
+        return keywords.some(keyword =>
+            text.includes(keyword)
+        );
+
+    });
+
+    return filtered.length > 0
+        ? filtered
+        : results;
+
+}
