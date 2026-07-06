@@ -117,6 +117,7 @@ async function loadCommute() {
     const current = commute[editingType] ?? {};
 
     departure = current.departure ?? null;
+    via = current.via ?? null;
     arrival = current.arrival ?? null;
 
     renderSelected();
@@ -155,6 +156,16 @@ function renderCurrent(commute){
                 🚩 <b>${commute.train.departure.name}</b>
             </p>
 
+            ${commute.train.via ? `
+            <div style="text-align:center;font-size:24px;">
+                ↓
+            </div>
+
+            <p>
+                🚏 <b>${commute.train.via.name}</b>
+            </p>
+            ` : ""}
+
             <div style="text-align:center;font-size:24px;">
                 ↓
             </div>
@@ -190,6 +201,16 @@ function renderCurrent(commute){
             <p>
                 🚩 <b>${commute.bus.departure.name}</b>
             </p>
+
+            ${commute.bus.via ? `
+            <div style="text-align:center;font-size:24px;">
+                ↓
+            </div>
+
+            <p>
+                🚏 <b>${commute.bus.via.name}</b>
+            </p>
+            ` : ""}
 
             <div style="text-align:center;font-size:24px;">
                 ↓
@@ -241,6 +262,7 @@ async function saveCommute() {
     ] = {
 
         departure,
+        via,
         arrival,
         departureTime: departureTime.value,
         durationMinutes: Number(durationMinutes.value)
@@ -262,15 +284,19 @@ async function saveCommute() {
     renderCurrent(snap.data().commute);
 
     departure = null;
+    via = null;
     arrival = null;
 
     departureSearch.value = "";
+    viaSearch.value = "";
     arrivalSearch.value = "";
 
     departureResults.innerHTML = "";
+    viaResults.innerHTML = "";
     arrivalResults.innerHTML = "";
 
     departureSelected.innerHTML = "";
+    viaSelected.innerHTML = "";
     arrivalSelected.innerHTML = "";
 
     commuteEditor.style.display = "none";
