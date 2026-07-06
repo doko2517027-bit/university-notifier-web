@@ -51,14 +51,14 @@ const currentCommuteSetting =
 
 setupTheme(themeButton);
 
+let departure = null;
+let arrival = null;
+
 await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadCommute()
 ]);
-
-let departure = null;
-let arrival = null;
 
 saveButton.onclick = saveCommute;
 
