@@ -79,19 +79,11 @@ busSettingButton.onclick=()=>{
 };
 
 departureSearch.addEventListener("input", () => {
-    searchPlaces(
-        departureSearch.value,
-        departureResults,
-        "departure"
-    );
+    searchPlaces(departureSearch.value);
 });
 
 arrivalSearch.addEventListener("input", () => {
-    searchPlaces(
-        arrivalSearch.value,
-        arrivalResults,
-        "arrival"
-    );
+    searchPlaces(arrivalSearch.value);
 });
 
 async function loadCommute() {
@@ -237,102 +229,67 @@ async function saveCommute() {
 
 }
 
-const mockPlaces = [
-    {
-        id: "station_keikyu_kawasakidaishi",
-        name: "川崎大師駅",
-        type: "train"
-    },
-    {
-        id: "station_keikyu_kawasaki",
-        name: "京急川崎駅",
-        type: "train"
-    },
-    {
-        id: "station_jr_yokohama",
-        name: "横浜駅",
-        type: "train"
-    },
-    {
-        id: "station_jr_ishikawacho",
-        name: "石川町駅",
-        type: "train"
-    },
-    {
-        id: "bus_kawasakidaishi",
-        name: "川崎大師停留所",
-        type: "bus"
-    },
-    {
-        id: "bus_yokohama",
-        name: "横浜駅前停留所",
-        type: "bus"
-    }
-];
+let places = [];
 
-function searchPlaces(keyword, target, mode) {
+async function searchPlaces(keyword) {
 
     const text = keyword.trim();
 
     if (!text) {
-        target.innerHTML = "";
+
+        departureResults.innerHTML = "";
+        arrivalResults.innerHTML = "";
+
         return;
+
     }
 
-    const selectedType = editingType;
+    try {
 
-    const results = mockPlaces.filter(place => {
-        return (
-            place.type === selectedType &&
-            place.name.includes(text)
+        const response = await fetch(
+
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&countrycodes=jp&limit=10`
+
         );
-    });
 
-    if (results.length === 0) {
-        target.innerHTML = "候補がありません。";
-        return;
+        places = await response.json();
+
+        renderPlaces();
+
+    } catch (e) {
+
+        console.error(e);
+
     }
 
-    target.innerHTML = "";
+}
 
-    results.forEach(place => {
+function renderPlaces() {
 
-        target.innerHTML += `
-            <div
-                class="setting-row commute-result"
-                data-id="${place.id}"
-                data-name="${place.name}"
-                data-type="${place.type}"
-                data-mode="${mode}">
+    const html = places.map((place,index)=>`
 
-                <div>
+        <div
+            class="commute-result"
+            data-index="${index}"
+            data-mode="departure">
 
-                    <b>
+            <b>📍 ${place.display_name}</b>
 
-                        ${place.type === "train"
-                            ? "🚉"
-                            : "🚌"}
+        </div>
 
-                        ${place.name}
+    `).join("");
 
-                    </b>
+    departureResults.innerHTML =
+        html.replaceAll(
+            'data-mode="departure"',
+            'data-mode="departure"'
+        );
 
-                    <br>
-
-                    <small>
-
-                        ${place.type === "train"
-                            ? "駅"
-                            : "停留所"}
-
-                    </small>
-
-                </div>
-
-            </div>
-        `;
-
-    });
+    arrivalResults.innerHTML =
+        html.replaceAll(
+            'data-mode="departure"',
+            'data-mode="arrival"'
+        );
 
 }
 
@@ -342,23 +299,28 @@ document.addEventListener("click", (e) => {
 
     if (!item) return;
 
-    const place = {
-        id: item.dataset.id,
-        name: item.dataset.name,
-        type: item.dataset.type
+    const place = places[
+        Number(item.dataset.index)
+    ];
+
+    const selectedPlace = {
+        name: place.display_name,
+        latitude: Number(place.lat),
+        longitude: Number(place.lon),
+        type: editingType
     };
 
     if (item.dataset.mode === "departure") {
 
-        departure = place;
+        departure = selectedPlace;
         departureResults.innerHTML = "";
-        departureSearch.value = place.name;
+        departureSearch.value = selectedPlace.name;
 
     } else {
 
-        arrival = place;
+        arrival = selectedPlace;
         arrivalResults.innerHTML = "";
-        arrivalSearch.value = place.name;
+        arrivalSearch.value = selectedPlace.name;
 
     }
 
