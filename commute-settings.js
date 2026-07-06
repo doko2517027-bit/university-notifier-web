@@ -169,8 +169,18 @@ function renderCurrent(commute){
             <br>
 
             <small>
-            ${commute.train.arrival.fullname}
-            <small>
+            ${commute.train.arrival.fullName}
+            </small>
+
+            <br><br>
+
+            <button
+                class="btn btn-danger delete-route"
+                data-type="train">
+
+                電車ルートを削除
+
+            </button>
 
         </div>
         `;
@@ -207,6 +217,16 @@ function renderCurrent(commute){
             ${commute.bus.arrival.fullName}
 
             </small>
+
+            <br><br>
+
+            <button
+                class="btn btn-danger delete-route"
+                data-type="bus">
+
+                バスルートを削除
+
+            </button>
 
         </div>
         `;
@@ -439,3 +459,35 @@ function filterCommutePlaces(results) {
         : results;
 
 }
+
+document.addEventListener("click", async (e) => {
+
+    const button =
+        e.target.closest(".delete-route");
+
+    if (!button) return;
+
+    const type = button.dataset.type;
+
+    if (!confirm("このルートを削除しますか？")) {
+        return;
+    }
+
+    const updateData = {};
+
+    updateData[`commute.${type}`] = null;
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        updateData
+    );
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    renderCurrent(snap.data().commute ?? {});
+
+    showToast("削除しました");
+
+});
