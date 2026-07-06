@@ -285,30 +285,45 @@ async function searchPlaces(keyword, target, mode) {
 
 function renderPlaces(target, mode) {
 
-    target.innerHTML = places.map((place, index) => `
+    target.innerHTML = places.map((place, index) => {
 
-        <div
-            class="commute-result"
-            data-index="${index}"
-            data-mode="${mode}">
+        const name =
+            place.name ||
+            place.display_name.split(",")[0];
 
-            <b>📍 ${place.display_name}</b>
+        const subText =
+            place.display_name
+                .split(",")
+                .slice(1, 3)
+                .join(" / ");
 
-        </div>
+        return `
 
-    `).join("");
+            <div
+                class="setting-row commute-result"
+                data-index="${index}"
+                data-mode="${mode}">
 
-    departureResults.innerHTML =
-        html.replaceAll(
-            'data-mode="departure"',
-            'data-mode="departure"'
-        );
+                <div>
 
-    arrivalResults.innerHTML =
-        html.replaceAll(
-            'data-mode="departure"',
-            'data-mode="arrival"'
-        );
+                    <b>
+                        ${editingType === "train" ? "🚉" : "🚌"}
+                        ${name}
+                    </b>
+
+                    <br>
+
+                    <small>
+                        ${subText}
+                    </small>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }).join("");
 
 }
 
