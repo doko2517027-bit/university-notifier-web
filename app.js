@@ -799,6 +799,10 @@ function getWeatherText(code) {
     }
 
     if ([51, 53, 55, 56, 57].includes(code)) {
+        if (isNight) {
+            return { icon: "🌧️", text: "霧雨" };
+        }
+
         return { icon: "🌦", text: "霧雨" };
     }
 
