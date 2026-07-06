@@ -326,36 +326,37 @@ async function searchPlaces(keyword, target, mode) {
 
         target.innerHTML = "検索中...";
 
+        if (editingType === "bus") {
+            target.innerHTML =
+                "バス停検索は後で対応します。先に電車を設定してください。";
+            return;
+        }
+
         const response = await fetch(
-
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=10`
-
+            `https://express.heartrails.com/api/json?method=getStations&name=${encodeURIComponent(text)}`
         );
 
         const data = await response.json();
 
-        if (!data.features) {
-            target.innerHTML = "候補がありません。";
-            return;
-        }
+        const stations =
+            data.response.station || [];
 
-        places = data.features.map(feature => {
+        places = stations.map(station => {
+
             return {
-                name: feature.properties.name,
-                display_name: [
-                    feature.properties.name,
-                    feature.properties.city,
-                    feature.properties.state,
-                    feature.properties.country
-                ].filter(Boolean).join(", "),
-                lat: feature.geometry.coordinates[1],
-                lon: feature.geometry.coordinates[0],
-                type: feature.properties.osm_value || "",
-                class: feature.properties.osm_key || ""
+                name: `${station.name}駅`,
+                fullName: `${station.name}駅（${station.line}）`,
+                display_name: `${station.name}駅, ${station.line}, ${station.prefecture}`,
+                latitude: Number(station.y),
+                longitude: Number(station.x),
+                line: station.line,
+                prefecture: station.prefecture,
+                type: "train"
             };
+
         });
 
-        places = filterCommutePlaces(places);
+        places = removeDuplicatePlaces(places);
 
         if (places.length === 0) {
             target.innerHTML = "候補がありません。";
@@ -367,6 +368,7 @@ async function searchPlaces(keyword, target, mode) {
     } catch (e) {
 
         console.error(e);
+        target.innerHTML = "検索に失敗しました。";
 
     }
 
@@ -427,12 +429,12 @@ document.addEventListener("click", (e) => {
     ];
 
     const selectedPlace = {
-        name: place.name || place.display_name.split(",")[0],
-        fullName: place.display_name,
-        latitude: Number(place.lat),
-        longitude: Number(place.lon),
-        osmType: place.type,
-        osmClass: place.class,
+        name: place.name,
+        fullName: place.fullName,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        line: place.line,
+        prefecture: place.prefecture,
         type: editingType
     };
 
@@ -700,5 +702,26 @@ async function saveSelectedRoute(route) {
     showToast("ルートを保存しました");
 
     location.href = "index.html";
+
+}
+
+function removeDuplicatePlaces(list) {
+
+    const seen = new Set();
+
+    return list.filter(place => {
+
+        const key =
+            `${place.name}_${place.lat}_${place.lon}`;
+
+        if (seen.has(key)) {
+            return false;
+        }
+
+        seen.add(key);
+
+        return true;
+
+    });
 
 }
