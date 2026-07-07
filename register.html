@@ -30,24 +30,16 @@
 
 <div class="card setting-card">
 
-    <h3>学科</h3>
+    <h3>所属</h3>
 
+    <p><b>学科</b></p>
     <select id="department">
         <option value="">選択してください</option>
         <option>看護学科</option>
     </select>
 
-    <h3>専攻</h3>
-
-    <select id="major">
-        <option value="">選択してください</option>
-        <option>理学療法学専攻</option>
-        <option>作業療法学専攻</option>
-    </select>
-
-    <h3>学年</h3>
-
-    <select id="grade" disabled>
+    <p><b>学科の学年</b></p>
+    <select id="departmentGrade" disabled>
         <option value="">選択してください</option>
         <option>1年</option>
         <option>2年</option>
@@ -55,51 +47,89 @@
         <option>4年</option>
     </select>
 
-    <h3>学籍番号</h3>
+    <hr>
 
+    <p><b>専攻</b></p>
+    <select id="major">
+        <option value="">選択してください</option>
+        <option>理学療法学専攻</option>
+        <option>作業療法学専攻</option>
+    </select>
+
+    <p><b>専攻の学年</b></p>
+    <select id="majorGrade" disabled>
+        <option value="">選択してください</option>
+        <option>1年</option>
+        <option>2年</option>
+        <option>3年</option>
+        <option>4年</option>
+    </select>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>学生情報</h3>
+
+    <p><b>学籍番号 必須</b></p>
     <input
         id="studentNumber"
         type="text"
         maxlength="7"
         placeholder="例：2510044">
 
-    <h3>Active!Mail パスワード</h3>
-
+    <p><b>学生ページID 必須</b></p>
     <input
-        id="ActiveMailPassword"
-        type="password"
-        placeholder="ActiveMailのパスワード">
-
-    <h3>manaba ID</h3>
-
-    <input
-        id="manabaId"
+        id="studentPageId"
         type="text"
-        placeholder="manaba ID">
+        placeholder="学生ページID">
 
-    <h3>manaba パスワード</h3>
+    <p><b>学生ページパスワード 必須</b></p>
+    <input
+        id="studentPagePassword"
+        type="password"
+        placeholder="学生ページのパスワード">
 
+</div>
+
+<div class="card setting-card">
+
+    <h3>追加ログイン情報</h3>
+
+    <p><b>Active!Mailパスワード 任意</b></p>
+    <input
+        id="activeMailPassword"
+        type="password"
+        placeholder="未入力でも登録できます">
+
+    <p><b>manabaパスワード 任意</b></p>
     <input
         id="manabaPassword"
         type="password"
-        placeholder="manabaのパスワード">
+        placeholder="未入力でも登録できます">
 
-    <h3>アプリ用パスワード</h3>
+</div>
 
+<div class="card setting-card">
+
+    <h3>アプリログイン</h3>
+
+    <p><b>アプリ用パスワード 必須</b></p>
     <input
         id="appPassword"
         type="password"
         placeholder="アプリにログインするパスワード">
 
-        <h3>アプリ用パスワード（確認）</h3>
-
+    <p><b>アプリ用パスワード確認 必須</b></p>
     <input
         id="appPasswordConfirm"
         type="password"
         placeholder="もう一度入力">
 
+    <br><br>
+
     <button id="subscribe" class="btn btn-primary">
-    通知を許可
+        登録
     </button>
 
 </div>

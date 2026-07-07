@@ -24,13 +24,15 @@ const PUBLIC_KEY =
 
 const department = document.getElementById("department");
 const major = document.getElementById("major");
-const grade = document.getElementById("grade");
+const departmentGrade = document.getElementById("departmentGrade");
+const majorGrade = document.getElementById("majorGrade");
 const studentNumber = document.getElementById("studentNumber");
-const ActiveMailPassword = document.getElementById("ActiveMailPassword");
-const manabaId = document.getElementById("manabaId");
+const studentPageId = document.getElementById("studentPageId");
+const studentPagePassword = document.getElementById("studentPagePassword");
+const activeMailPassword = document.getElementById("activeMailPassword");
 const manabaPassword = document.getElementById("manabaPassword");
-const appPassword =document.getElementById("appPassword");
-const appPasswordConfirm =document.getElementById("appPasswordConfirm");
+const appPassword = document.getElementById("appPassword");
+const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
 
@@ -64,7 +66,13 @@ major.addEventListener("change", () => {
 
 });
 
-grade.addEventListener("change", () => {
+departmentGrade.addEventListener("change", () => {
+
+    updateState();
+
+});
+
+majorGrade.addEventListener("change", () => {
 
     updateState();
 
@@ -76,13 +84,7 @@ studentNumber.addEventListener("input", () => {
 
 });
 
-ActiveMailPassword.addEventListener("input", () => {
-
-    updateState();
-
-});
-
-manabaId.addEventListener("input", () => {
+activeMailPassword.addEventListener("input", () => {
 
     updateState();
 
@@ -121,24 +123,40 @@ function updateState() {
         return;
     }
 
-    const selected =
-        department.value !== "" ||
+    const selectedDepartment =
+        department.value !== "";
+
+    const selectedMajor =
         major.value !== "";
 
-    grade.disabled = !selected;
-    console.log(selected, grade.disabled);
+    department.disabled = selectedMajor;
+    departmentGrade.disabled = !selectedDepartment;
 
-    if (!selected) {
-        grade.value = "";
+    major.disabled = selectedDepartment;
+    majorGrade.disabled = !selectedMajor;
+
+    if (!selectedDepartment) {
+        departmentGrade.value = "";
     }
+
+    if (!selectedMajor) {
+        majorGrade.value = "";
+    }
+
+    const selected =
+        selectedDepartment || selectedMajor;
+
+    const selectedGrade =
+        selectedDepartment
+            ? departmentGrade.value
+            : majorGrade.value;
 
     button.disabled =
         !selected ||
-        grade.value === "" ||
+        selectedGrade === "" ||
         studentNumber.value.trim() === "" ||
-        ActiveMailPassword.value.trim() === "" ||
-        manabaId.value.trim() === "" ||
-        manabaPassword.value.trim() === "" ||
+        studentPageId.value.trim() === "" ||
+        studentPagePassword.value.trim() === "" ||
         appPassword.value.trim() === "" ||
         appPasswordConfirm.value.trim() === "";
 
@@ -164,7 +182,10 @@ button.addEventListener("click", async () => {
 
         const selectedDepartment = department.value;
         const selectedMajor = major.value;
-        const selectedGrade = grade.value;
+        const selectedGrade =
+            selectedDepartment
+                ? departmentGrade.value
+                : majorGrade.value;
 
         if (!/^\d{7}$/.test(value)) {
 
@@ -267,8 +288,18 @@ button.addEventListener("click", async () => {
 
     }
 
-    const encryptedPassword =
-        await encrypt(manabaPassword.value);
+    const studentPagePasswordEncrypted =
+        await encrypt(studentPagePassword.value);
+
+    const activeMailPasswordEncrypted =
+        activeMailPassword.value.trim()
+            ? await encrypt(activeMailPassword.value)
+            : "";
+
+    const manabaPasswordEncrypted =
+        manabaPassword.value.trim()
+            ? await encrypt(manabaPassword.value)
+            : "";
 
     const appPasswordHash =
     await hashPassword(appPassword.value);
@@ -296,8 +327,8 @@ try {
             localStorage.setItem("department", selectedDepartment);
             localStorage.setItem("major", selectedMajor);
             localStorage.setItem("grade", selectedGrade);
+            localStorage.setItem("manabaId",studentNumber.value);
             localStorage.setItem("studentNumber", studentNumber.value);
-            localStorage.setItem("manabaId", manabaId.value);
             localStorage.setItem("migrated", "true");
             localStorage.setItem("loggedIn", "true");
 
@@ -315,20 +346,32 @@ try {
             department: selectedDepartment,
             major: selectedMajor,
             grade: selectedGrade,
-            manabaId: manabaId.value,
-            manabaPasswordEncrypted: encryptedPassword,
+
+            studentPageId: studentPageId.value,
+            studentPagePasswordEncrypted,
+
+            activeMailAddress: `${studentNumber.value}@sums.ac.jp`,
+            activeMailPasswordEncrypted,
+
+            manabaId: studentNumber.value,
+            manabaPasswordEncrypted,
+
             appPasswordHash: appPasswordHash,
             subscription: JSON.parse(JSON.stringify(subscription)),
+
             notificationSettings: {
                 schedule: true,
                 assignment: true,
                 reminder: true,
                 courseNews: true,
-                systemNews: true
+                systemNews: true,
+                sharePost: true,
+                like: true,
+                comment: true
             },
+
             manabaVerified: false,
             manabaVerifiedAt: null
-
         }
             
     );
@@ -338,7 +381,7 @@ try {
     localStorage.setItem("major", selectedMajor);
     localStorage.setItem("grade", selectedGrade);
     localStorage.setItem("studentNumber", studentNumber.value);
-    localStorage.setItem("manabaId", manabaId.value);
+    localStorage.setItem("manabaId",studentNumber.value);
 
     localStorage.setItem("migrated", "true");
 
