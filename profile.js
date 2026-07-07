@@ -194,15 +194,10 @@ const user = snap.data();
 document.getElementById("userName").textContent =
     user.name;
 
-if (user.photo) {
+const photo =
+    await getProfilePhoto(studentNumber);
 
-    profileImage.src = user.photo;
-
-} else {
-
-    profileImage.src = "images/default.png";
-
-}
+profileImage.src = photo;
 
 document.getElementById("postCount").textContent =
     postSnap.size;
