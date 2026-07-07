@@ -350,7 +350,6 @@ try {
             studentPageId: studentPageId.value,
             studentPagePasswordEncrypted,
 
-            activeMailAddress: `${studentNumber.value}@sums.ac.jp`,
             activeMailPasswordEncrypted,
 
             manabaId: studentNumber.value,

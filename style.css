@@ -1446,3 +1446,34 @@ white-space:pre-wrap;
     color:var(--primary);
 
 }
+
+.notification-badge {
+
+    position: absolute;
+    top: -6px;
+    right: -6px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 4px;
+
+    border-radius: 999px;
+
+    background: #ef4444;
+    color: white;
+
+    font-size: 11px;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.icon-button {
+
+    position: relative;
+
+}

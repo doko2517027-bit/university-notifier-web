@@ -48,6 +48,8 @@ const manabaId = localStorage.getItem("manabaId");
 const migrated = localStorage.getItem("migrated");
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
+const activeMailButton = document.getElementById("activeMailButton");
+const activeMailBadge = document.getElementById("activeMailBadge");
 
 let courses = {};
 
@@ -159,6 +161,15 @@ async function startApp() {
 	});
 	setupAdminTab();
 
+    await loadActiveMailBadge();
+
+}
+
+async function loadActiveMailBadge() {
+
+    activeMailBadge.hidden = false;
+    activeMailBadge.textContent = "3";
+
 }
 
 startApp();
@@ -190,6 +201,12 @@ weatherCard.onclick = () => {
 
 commuteCard.onclick = () => {
     location.href = "commute-settings.html";
+};
+
+activeMailButton.onclick = () => {
+
+    location.href = "activemail.html";
+
 };
 
 async function loadNews() {
