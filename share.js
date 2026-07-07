@@ -47,6 +47,24 @@ const topProfileImage = document.getElementById("topProfileImage");
 
 setupTheme(themeButton);
 
+await checkManabaVerified();
+
+async function checkManabaVerified() {
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (
+        !snap.exists() ||
+        snap.data().manabaVerified !== true
+    ) {
+        alert("共有機能はManaba認証後に利用できます。");
+        location.href = "index.html";
+    }
+
+}
+
 await initializePage([
 
 	setupAdminTab(),

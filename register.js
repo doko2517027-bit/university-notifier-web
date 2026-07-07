@@ -316,8 +316,12 @@ try {
                 reminder: true,
                 courseNews: true,
                 systemNews: true
-}
+            },
+            manabaVerified: false,
+            manabaVerifiedAt: null
+
         }
+            
     );
 
     localStorage.setItem("registered", "true");

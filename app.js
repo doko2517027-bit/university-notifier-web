@@ -326,7 +326,20 @@ async function loadHomeCourseNews() {
 
 }
 
-function loadHomeSystemNews() {
+async function loadHomeSystemNews() {
+
+    const userSnap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (
+        !userSnap.exists() ||
+        userSnap.data().manabaVerified !== true
+    ) {
+        homeSystemNews.innerHTML =
+            "Manaba認証後に表示されます。";
+        return;
+    }
 
     const q = query(
         collection(db, "systemNews"),
