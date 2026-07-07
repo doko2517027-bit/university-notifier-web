@@ -26,7 +26,7 @@ const department = document.getElementById("department");
 const major = document.getElementById("major");
 const grade = document.getElementById("grade");
 const studentNumber = document.getElementById("studentNumber");
-const ActiveMailPassword = document.getElementById("ActiveMailPassword");
+const manabaID = document.getElementById("manabaID");
 const manabaPassword = document.getElementById("manabaPassword");
 const appPassword =document.getElementById("appPassword");
 const appPasswordConfirm =document.getElementById("appPasswordConfirm");
@@ -75,7 +75,7 @@ studentNumber.addEventListener("input", () => {
 
 });
 
-ActiveMailPassword.addEventListener("input", () => {
+manabaID.addEventListener("input", () => {
 
     updateState();
 
@@ -128,7 +128,7 @@ function updateState() {
         !selected ||
         grade.value === "" ||
         studentNumber.value.trim() === "" ||
-        ActiveMailPassword.value.trim() === "" ||
+        manabaID.value.trim() === "" ||
         manabaPassword.value.trim() === "" ||
         appPassword.value.trim() === "" ||
         appPasswordConfirm.value.trim() === "";
