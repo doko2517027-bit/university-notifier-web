@@ -147,9 +147,10 @@ async function startApp() {
     }
 
     await initializePage([
-	    loadUserName(userName),
-	    loadProfileImage(topProfileImage)
-	]);
+        loadUserName(userName),
+        loadProfileImage(topProfileImage),
+        loadActiveMailBadge()
+    ]);
 	
 	loadWeather();
 	loadCommuteCard();
@@ -160,8 +161,6 @@ async function startApp() {
 	    loadTodaySchedule();
 	});
 	setupAdminTab();
-
-    await loadActiveMailBadge();
 
 }
 
