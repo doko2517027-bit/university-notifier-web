@@ -225,7 +225,20 @@ document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
 };
 
-function loadSystemNews() {
+async function loadSystemNews() {
+
+    const userSnap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (
+        !userSnap.exists() ||
+        userSnap.data().manabaVerified !== true
+    ) {
+        systemNews.innerHTML =
+            "Manaba認証後に表示されます。";
+        return;
+    }
 
     const q = query(
         collection(db, "systemNews"),
