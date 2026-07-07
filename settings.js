@@ -154,6 +154,19 @@ async function loadnotificationSettings() {
 
     if (!snap.exists()) return;
 
+    const manabaVerified =
+        snap.data().manabaVerified === true;
+
+    document
+        .getElementById("systemNewsRow")
+        .style.display =
+        manabaVerified ? "flex" : "none";
+
+    document
+        .getElementById("shareNotificationGroup")
+        .style.display =
+        manabaVerified ? "block" : "none";
+
     const switchs =
         snap.data().notificationSettings || {};
 
@@ -190,8 +203,10 @@ function setupNotificationEvents() {
         notifyAssignment,
         notifyReminder,
         notifyCourseNews,
-        notifySystemNews
-
+        notifySystemNews,
+        notifySharePost,
+        notifyLike,
+        notifyComment
     ].forEach(input => {
 
         input.addEventListener("change", savenotificationSettings);

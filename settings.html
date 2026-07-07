@@ -113,13 +113,17 @@ if(localStorage.getItem("theme")==="dark"){
         <input type="checkbox" id="notifyReminder">
     </label>
 
-    <label class="setting-row">
+    <label
+        id="systemNewsRow"
+        class="setting-row">
         <span>
             <b>💙 CareMateからのお知らせ</b><br>
             <small>運営からのお知らせが投稿された時</small>
         </span>
         <input type="checkbox" id="notifySystemNews">
     </label>
+
+    <div id="shareNotificationGroup">
 
     <label class="setting-row">
         <span>
@@ -144,6 +148,8 @@ if(localStorage.getItem("theme")==="dark"){
         </span>
         <input type="checkbox" id="notifyComment">
     </label>
+
+    </div>
 
 </div>
 
