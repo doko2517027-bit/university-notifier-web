@@ -126,6 +126,7 @@ function updateState() {
         major.value !== "";
 
     grade.disabled = !selected;
+    console.log(selected, grade.disabled);
 
     if (!selected) {
         grade.value = "";
