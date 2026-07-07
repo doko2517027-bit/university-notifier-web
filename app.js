@@ -166,8 +166,31 @@ async function startApp() {
 
 async function loadActiveMailBadge() {
 
+    if (!studentNumber) return;
+
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    if (!snap.exists()) {
+        activeMailBadge.hidden = true;
+        return;
+    }
+
+    const unreadCount =
+        snap.data().activeMailUnreadCount || 0;
+
+    if (unreadCount <= 0) {
+        activeMailBadge.hidden = true;
+        return;
+    }
+
     activeMailBadge.hidden = false;
-    activeMailBadge.textContent = "3";
+
+    activeMailBadge.textContent =
+        unreadCount > 99
+            ? "99+"
+            : unreadCount;
 
 }
 
