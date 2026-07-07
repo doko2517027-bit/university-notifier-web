@@ -158,7 +158,11 @@ button.onclick = async () => {
             ),
 
             likeCount: 0,
-            commentCount: 0
+            commentCount: 0,
+
+            notifyTarget: "allUsers",
+            notificationSentAt: null,
+            notificationType: "sharePost",
 
         });
 
