@@ -1,6 +1,7 @@
 import {
     db,
-    studentNumber
+    studentNumber,
+    showToast
 } from "./common.js";
 
 import {
@@ -29,6 +30,20 @@ openMailButton.onclick = () => {
 
 readButton.onclick = async () => {
 
+    const snap = await getDoc(
+        doc(db, "users", studentNumber)
+    );
+
+    const unread =
+        snap.data().activeMailUnreadCount || 0;
+
+    if (unread === 0) {
+
+        showToast("✓ 確認済みです");
+        return;
+
+    }
+
     await updateDoc(
         doc(db, "users", studentNumber),
         {
@@ -39,7 +54,7 @@ readButton.onclick = async () => {
     mailCount.textContent =
         "新着メールはありません";
 
-    alert("確認済みにしました。");
+    showToast("✓ 確認しました");
 
 };
 
