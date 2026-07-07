@@ -163,7 +163,7 @@ async function loadCourseNews() {
 
     if (snapshot.empty) {
 
-        courseNews.innerHTML = "コースニュースはありません。";
+        courseNews.innerHTML = "実装準備中...。";
 
         return;
 
