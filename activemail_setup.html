@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Active!Mail設定</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-loading">
+
+<header class="header">
+    <div class="logo">📧</div>
+    <h1>Active!Mail設定</h1>
+    <p>大学メール通知の設定</p>
+</header>
+
+<div class="card setting-card">
+
+    <p>
+        大学メールの新着通知を受け取るため、
+        Active!Mailのパスワードを入力してください。
+    </p>
+
+    <h3>メールアドレス</h3>
+    <input id="mailAddress" type="text" readonly>
+
+    <h3>Active!Mailパスワード</h3>
+    <input
+        id="mailPassword"
+        type="password"
+        placeholder="パスワードを入力">
+
+    <br><br>
+
+    <button id="saveButton" class="btn btn-primary">
+        保存
+    </button>
+
+    <br><br>
+
+    <button id="skipButton" class="btn btn-secondary">
+        後で設定する
+    </button>
+
+</div>
+
+<script type="module" src="activemail_setup.js"></script>
+
+</body>
+</html>

@@ -117,6 +117,26 @@ async function startApp() {
     try {
 
         await checkMaintenance();
+        
+        const userSnap = await getDoc(
+		    doc(db, "users", studentNumber)
+		);
+		
+		if (userSnap.exists()) {
+		
+		    const user = userSnap.data();
+		
+		    if (
+		        !user.activeMailPasswordEncrypted &&
+		        !user.activeMailSetupSkipped
+		    ) {
+		
+		        location.href = "activemail_setup.html";
+		        return;
+		
+		    }
+		
+		}
 
     } catch (e) {
 
