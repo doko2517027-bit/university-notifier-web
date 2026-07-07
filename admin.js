@@ -54,6 +54,9 @@ const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
 const notifySystemNews = document.getElementById("notifySystemNews");
+const notifySharePost = document.getElementById("notifySharePost");
+const notifyLike = document.getElementById("notifyLike");
+const notifyComment = document.getElementById("notifyComment");
 
 setupTheme(themeButton);
 
@@ -335,6 +338,15 @@ async function loadNotificationSettings() {
     notifySystemNews.checked =
         settings.systemNews ?? true;
 
+    notifySharePost.checked =
+        settings.sharePost ?? true;
+
+    notifyLike.checked =
+        settings.like ?? true;
+
+    notifyComment.checked =
+        settings.comment ?? true;
+
 }
 
 function setupEvents() {
@@ -360,8 +372,10 @@ function setupEvents() {
         notifyAssignment,
         notifyReminder,
         notifyCourseNews,
-        notifySystemNews
-
+        notifySystemNews,
+        notifySharePost,
+        notifyLike,
+        notifyComment
     ].forEach(input => {
 
         input.addEventListener(
@@ -456,9 +470,9 @@ async function saveNotificationSettings() {
                 reminder: notifyReminder.checked,
                 courseNews: notifyCourseNews.checked,
                 systemNews: notifySystemNews.checked,
-                sharePost: true,
-                like: true,
-                comment: true
+                sharePost: notifySharePost.checked,
+                like: notifyLike.checked,
+                comment: notifyComment.checked
             }
         }
     );
