@@ -20,6 +20,29 @@ const openMailButton =
 
 load();
 
+openMailButton.onclick = () => {
+    window.open(
+        "https://activemail.kagoyamail.jp",
+        "_blank"
+    );
+};
+
+readButton.onclick = async () => {
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        {
+            activeMailUnreadCount: 0
+        }
+    );
+
+    mailCount.textContent =
+        "新着メールはありません";
+
+    alert("確認済みにしました。");
+
+};
+
 async function load(){
 
     const snap = await getDoc(
