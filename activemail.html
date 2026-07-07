@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+<title>Active!Mail</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if(localStorage.getItem("theme")==="dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+<body>
+
+<h1>📧 Active!Mail</h1>
+
+<div class="card setting-card">
+
+    <h3 id="mailCount">
+        新着メールはありません
+    </h3>
+
+    <p>
+
+        大学のActive!Mailで
+        メールを確認してください。
+
+    </p>
+
+</div>
+
+<button
+    id="openMailButton"
+    class="btn btn-primary">
+
+    Active!Mailを開く
+
+</button>
+
+<br><br>
+
+<button
+    id="readButton"
+    class="btn btn-secondary">
+
+    確認しました
+
+</button>
+
+<br><br>
+
+<button
+    class="btn btn-secondary"
+    onclick="history.back()">
+
+    戻る
+
+</button>
+
+<script type="module" src="activemail.js"></script>
+
+</body>
+</html>
