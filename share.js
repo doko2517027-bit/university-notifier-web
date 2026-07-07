@@ -367,7 +367,10 @@ document.addEventListener("click", async (e) => {
     } else {
 
         await setDoc(likeRef, {
-            likedAt: new Date()
+            likedAt: new Date(),
+            studentNumber,
+            notificationType: "like",
+            notificationSentAt: null
         });
 
         await updateDoc(postRef, {

@@ -455,7 +455,10 @@ async function saveNotificationSettings() {
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,
                 courseNews: notifyCourseNews.checked,
-                systemNews: notifySystemNews.checked
+                systemNews: notifySystemNews.checked,
+                sharePost: true,
+                like: true,
+                comment: true
             }
         }
     );

@@ -240,13 +240,11 @@ sendComment.onclick = async () => {
             ),
 
             {
-
                 studentNumber,
-
                 text,
-
-                createdAt: serverTimestamp()
-
+                createdAt: serverTimestamp(),
+                notificationType: "comment",
+                notificationSentAt: null
             }
 
         );

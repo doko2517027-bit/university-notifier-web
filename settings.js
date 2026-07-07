@@ -55,6 +55,9 @@ const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
 const notifySystemNews = document.getElementById("notifySystemNews");
+const notifySharePost = document.getElementById("notifySharePost");
+const notifyLike = document.getElementById("notifyLike");
+const notifyComment = document.getElementById("notifyComment");
 
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
@@ -169,6 +172,15 @@ async function loadnotificationSettings() {
     notifySystemNews.checked =
         switchs.systemNews ?? true;
 
+    notifySharePost.checked = 
+        switchs.sharePost ?? true;
+
+    notifyLike.checked = 
+        switchs.like ?? true;
+
+    notifyComment.checked = 
+        switchs.comment ?? true;
+
 }
 
 function setupNotificationEvents() {
@@ -200,7 +212,10 @@ async function savenotificationSettings() {
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,
                 courseNews: notifyCourseNews.checked,
-                systemNews: notifySystemNews.checked
+                systemNews: notifySystemNews.checked,
+                sharePost: notifySharePost.checked,
+                like: notifyLike.checked,
+                comment: notifyComment.checked
             }
         }
     );
