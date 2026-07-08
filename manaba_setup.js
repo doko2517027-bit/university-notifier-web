@@ -14,9 +14,17 @@ const manabaPassword = document.getElementById("manabaPassword");
 const savePassword = document.getElementById("savePassword");
 const studentNumber = document.getElementById("studentNumber");
 
-savePassword.addEventListener("click", async () => {
+await initializePage();
 
-    const value = localStorage.getItem("studentNumber");
+const value = localStorage.getItem("studentNumber");
+
+if (!value) {
+    location.href = "login.html";
+}
+
+studentNumber.value = value;
+
+savePassword.addEventListener("click", async () => {
 
     if (manabaPassword.value.trim() === "") {
         alert("Manabaパスワードを入力してください。");
@@ -34,8 +42,6 @@ savePassword.addEventListener("click", async () => {
     }
 
     const user = userSnap.data();
-
-    studentNumber.value = user.studentNumber;
 
     const encrypted = await encryptData(
     manabaPassword.value.trim()
