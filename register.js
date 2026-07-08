@@ -404,7 +404,10 @@ try {
                 activeMailPassword.value.trim() === "",
 
             manabaSetupSkipped:
-                manabaPassword.value.trim() === ""
+                manabaPassword.value.trim() === "",
+
+            activeMailResetRequired: false,
+            manabaResetRequired: false
 
         }
             

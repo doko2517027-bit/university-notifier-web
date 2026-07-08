@@ -146,13 +146,6 @@ async function startApp() {
 
         renderAuthSetupCards(user);
 
-        if (user.activeMailResetRequired === true) {
-
-            location.href = "activemail_setup.html?reset=1";
-            return;
-
-        }
-
     } catch (e) {
 
         console.error(e);
