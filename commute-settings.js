@@ -633,8 +633,6 @@ async function saveSelectedRoute(route) {
     const lineCode =
         findRouteLineCode(route);
 
-    alert("保存するlineCode: " + lineCode);
-
     const selectedRoute = {
         type: "commute",
 

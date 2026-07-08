@@ -1132,11 +1132,15 @@ async function loadTrainInformation(route) {
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
+            route.operationStatus = "運行情報はありません";
+            commuteContent.innerHTML =
+                renderCommuteHomeCard(route);
             return;
         }
 
         route.operationStatus =
-            data[0]["odpt:trainInformationText"]?.ja ??
+            data[0]?.text ||
+            data[0]?.status ||
             "情報なし";
 
         commuteContent.innerHTML =
@@ -1145,6 +1149,12 @@ async function loadTrainInformation(route) {
     } catch (e) {
 
         console.error(e);
+
+        route.operationStatus =
+            "運行情報を取得できませんでした";
+
+        commuteContent.innerHTML =
+            renderCommuteHomeCard(route);
 
     }
 
