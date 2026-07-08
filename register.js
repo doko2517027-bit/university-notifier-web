@@ -37,6 +37,14 @@ const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
 
+document
+    .getElementById("backButton")
+    .onclick = () => {
+
+    history.back();
+
+};
+
 department.addEventListener("change", () => {
 
     if (department.value !== "") {
