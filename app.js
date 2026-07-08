@@ -48,6 +48,7 @@ const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
+const authSetupCards = document.getElementById("authSetupCards");
 
 let courses = {};
 
@@ -133,22 +134,14 @@ async function startApp() {
 		
 		const user = userSnap.data();
 
+        renderAuthSetupCards(user);
+
         if (user.activeMailResetRequired === true) {
 
             location.href = "activemail_setup.html?reset=1";
             return;
 
         }
-		
-		if (
-		    !user.activeMailPasswordEncrypted &&
-		    !user.activeMailSetupSkipped
-		) {
-		
-		    location.href = "activemail_setup.html";
-		    return;
-		
-		}
 
     } catch (e) {
 
@@ -170,6 +163,46 @@ async function startApp() {
 	    loadTodaySchedule();
 	});
 	setupAdminTab();
+
+}
+
+function renderAuthSetupCards(user) {
+
+    if (!authSetupCards) return;
+
+    const cards = [];
+
+    if (!user.manabaPasswordEncrypted) {
+        cards.push(`
+            <div class="card setting-card"
+                onclick="location.href='manaba_setup.html'"
+                style="margin:12px 16px; border-radius:18px; cursor:pointer;">
+
+                <b>📚 Manaba認証へ進む</b><br>
+                <small>
+                    課題取得・課題通知・Manaba関連機能を使うには設定が必要です。
+                </small>
+
+            </div>
+        `);
+    }
+
+    if (!user.activeMailPasswordEncrypted) {
+        cards.push(`
+            <div class="card setting-card"
+                onclick="location.href='activemail_setup.html'"
+                style="margin:12px 16px; border-radius:18px; cursor:pointer;">
+
+                <b>💌 Active!Mail認証へ進む</b><br>
+                <small>
+                    大学メール通知・未読件数表示を使うには設定が必要です。
+                </small>
+
+            </div>
+        `);
+    }
+
+    authSetupCards.innerHTML = cards.join("");
 
 }
 

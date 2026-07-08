@@ -243,6 +243,34 @@ button.addEventListener("click", async () => {
 
         }
 
+    const missing = [];
+
+    if (!manabaPassword.value.trim()) {
+        missing.push(
+            "Manabaパスワード未入力\n・課題取得\n・課題通知\n・Manaba関連機能"
+        );
+    }
+
+    if (!activeMailPassword.value.trim()) {
+        missing.push(
+            "Active!Mailパスワード未入力\n・大学メール通知\n・未読件数表示"
+        );
+    }
+
+    if (missing.length > 0) {
+
+        const ok = confirm(
+            "一部機能が利用できません。\n\n" +
+            missing.join("\n\n") +
+            "\n\nあとからホーム画面で設定できます。\n\nこのまま登録しますか？"
+        );
+
+        if (!ok) {
+            return;
+        }
+
+    }
+
     const permission = await Notification.requestPermission();
 
     if (permission !== "granted") {
@@ -371,7 +399,13 @@ try {
             },
 
             manabaVerified: false,
-            manabaVerifiedAt: null
+            manabaVerifiedAt: null,
+            activeMailSetupSkipped:
+                activeMailPassword.value.trim() === "",
+
+            manabaSetupSkipped:
+                manabaPassword.value.trim() === ""
+                
         }
             
     );
