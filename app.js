@@ -166,10 +166,10 @@ async function startApp() {
     await initializePage([
         loadUserName(userName),
         loadProfileImage(topProfileImage),
-        loadActiveMailBadge()
+        loadActiveMailBadge(user)
     ]);
 	
-	loadWeather();
+	loadWeather();s
 	loadNews();
 	loadHomeCourseNews();
 	loadHomeSystemNews();
@@ -220,21 +220,12 @@ function renderAuthSetupCards(user) {
 
 }
 
-async function loadActiveMailBadge() {
+function loadActiveMailBadge(user) {
 
-    if (!studentNumber) return;
-
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (!snap.exists()) {
-        activeMailBadge.hidden = true;
-        return;
-    }
+    if (!activeMailBadge) return;
 
     const unreadCount =
-        snap.data().activeMailUnreadCount || 0;
+        user.activeMailUnreadCount || 0;
 
     if (unreadCount <= 0) {
         activeMailBadge.hidden = true;
