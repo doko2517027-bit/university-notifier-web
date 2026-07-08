@@ -356,7 +356,22 @@ try {
             await updateDoc(
                 userRef,
                 {
-                    subscription: JSON.parse(JSON.stringify(subscription))
+                    subscription: JSON.parse(JSON.stringify(subscription)),
+
+                    manabaPasswordEncrypted,
+                    activeMailPasswordEncrypted,
+
+                    manabaSetupSkipped:
+                        manabaPassword.value.trim() === "",
+
+                    activeMailSetupSkipped:
+                        activeMailPassword.value.trim() === "",
+
+                    manabaResetRequired: false,
+                    activeMailResetRequired: false,
+
+                    manabaVerified: false,
+                    manabaVerifiedAt: null
                 }
             );
 
