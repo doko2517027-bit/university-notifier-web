@@ -115,15 +115,21 @@ async function checkMaintenance() {
 
 async function startApp() {
 
+console.log("studentNumber =", studentNumber);
+
     let user = null;
 
     try {
 
         if (!studentNumber) {
-            localStorage.removeItem("loggedIn");
-            location.href = "login.html";
-            return;
-        }
+
+	    localStorage.removeItem("loggedIn");
+	    localStorage.removeItem("studentNumber");
+	
+	    location.href = "login.html";
+	    return;
+	
+	}
 
         await checkMaintenance();
 
@@ -132,11 +138,16 @@ async function startApp() {
         );
 
         if (!userSnap.exists()) {
-            alert("ユーザー情報を取得できませんでした。もう一度ログインしてください。");
-            localStorage.removeItem("loggedIn");
-            location.href = "login.html";
-            return;
-        }
+	
+	    localStorage.removeItem("loggedIn");
+	    localStorage.removeItem("studentNumber");
+	
+	    alert("ユーザー情報を取得できませんでした。もう一度ログインしてください。");
+	
+	    location.href = "login.html";
+	    return;
+	
+	}
 
         user = userSnap.data();
 
