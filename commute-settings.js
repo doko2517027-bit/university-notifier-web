@@ -523,6 +523,17 @@ async function findOdptRailwayCode(lineName) {
 
     const railways = await loadOdptRailways();
 
+    alert(
+        JSON.stringify(
+            railways.find(r =>
+                String(r["dc:title"] || "")
+                    .includes("京急")
+            ),
+            null,
+            2
+        )
+    );
+
     const target =
         normalizeLineName(lineName);
 
