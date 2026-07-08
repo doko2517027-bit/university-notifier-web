@@ -47,6 +47,23 @@ let odptRailways = [];
 const ODPT_WORKER_URL =
     "https://caremate-odpt-api.kidokohei-shonaniryo2517027.workers.dev";
 
+const HEART_RAILS_TO_ODPT = {
+    "京浜急行大師線": "Keikyu.Daishi",
+    "京急大師線": "Keikyu.Daishi",
+
+    "京浜急行本線": "Keikyu.Main",
+    "京急本線": "Keikyu.Main",
+
+    "JR東海道本線": "JR-East.Tokaido",
+    "東海道本線": "JR-East.Tokaido",
+
+    "JR京浜東北線": "JR-East.KeihinTohokuNegishi",
+    "京浜東北線": "JR-East.KeihinTohokuNegishi",
+
+    "JR根岸線": "JR-East.KeihinTohokuNegishi",
+    "根岸線": "JR-East.KeihinTohokuNegishi"
+};
+
 await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
@@ -409,8 +426,14 @@ function findOdptRailwayCode(lineName) {
 
     if (!lineName) return "";
 
+    if (HEART_RAILS_TO_ODPT[lineName]) {
+        return HEART_RAILS_TO_ODPT[lineName];
+    }
+
     const target =
         normalizeLineName(lineName);
+
+    // 以下は今ある検索処理のまま
 
     const matched = odptRailways.find(railway => {
 
