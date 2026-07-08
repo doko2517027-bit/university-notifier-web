@@ -23,7 +23,7 @@ load();
 
 openMailButton.onclick = () => {
     window.open(
-        "https://activemail.kagoyamail.jp",
+        "https://activemail.kagoyamail.jp/am_bin/slogin",
         "_blank"
     );
 };
