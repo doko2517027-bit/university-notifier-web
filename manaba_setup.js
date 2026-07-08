@@ -13,6 +13,7 @@ import {
 const manabaPassword = document.getElementById("manabaPassword");
 const savePassword = document.getElementById("savePassword");
 const studentNumber = document.getElementById("studentNumber");
+const skipButton = document.getElementById("skipButton");
 
 await initializePage();
 
@@ -69,3 +70,17 @@ savePassword.addEventListener("click", async () => {
     location.href = "index.html";
 
 });
+
+skipButton.onclick = async () => {
+
+    await updateDoc(
+        doc(db, "users", value),
+        {
+            manabaSetupSkipped: true,
+            manabaResetRequired: false
+        }
+    );
+
+    location.href = "index.html";
+
+};
