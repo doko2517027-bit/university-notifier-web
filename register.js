@@ -293,12 +293,12 @@ button.addEventListener("click", async () => {
 
     const activeMailPasswordEncrypted =
         activeMailPassword.value.trim()
-            ? await encrypt(activeMailPassword.value)
+            ? await encryptData(activeMailPassword.value.trim())
             : "";
 
     const manabaPasswordEncrypted =
         manabaPassword.value.trim()
-            ? await encrypt(manabaPassword.value)
+            ? await encryptData(manabaPassword.value.trim())
             : "";
 
     const appPasswordHash =
