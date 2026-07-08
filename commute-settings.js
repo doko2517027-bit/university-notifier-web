@@ -508,6 +508,7 @@ async function loadOdptRailways() {
 function normalizeLineName(name) {
 
     return String(name || "")
+        .replaceAll("京浜急行", "京急")
         .replaceAll("ＪＲ", "JR")
         .replaceAll("地下鉄", "")
         .replaceAll("線", "")
@@ -522,17 +523,6 @@ async function findOdptRailwayCode(lineName) {
     if (!lineName) return "";
 
     const railways = await loadOdptRailways();
-
-    alert(
-        JSON.stringify(
-            railways.find(r =>
-                String(r["dc:title"] || "")
-                    .includes("京急")
-            ),
-            null,
-            2
-        )
-    );
 
     const target =
         normalizeLineName(lineName);
