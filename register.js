@@ -1,7 +1,8 @@
 import {
     db,
     initializePage,
-    updateAccentColor
+    updateAccentColor,
+    encryptData
 } from "./common.js";
 
 import {
