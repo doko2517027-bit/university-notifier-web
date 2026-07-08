@@ -394,8 +394,10 @@ function normalizeLineName(name) {
 
     return String(name || "")
         .replaceAll("京浜急行", "京急")
+        .replaceAll("京急電鉄", "京急")
         .replaceAll("ＪＲ", "JR")
         .replaceAll("地下鉄", "")
+        .replaceAll("本線", "")
         .replaceAll("線", "")
         .replaceAll("　", "")
         .replaceAll(" ", "")
@@ -413,14 +415,18 @@ function findOdptRailwayCode(lineName) {
     const matched = odptRailways.find(railway => {
 
         const title =
-            normalizeLineName(railway.titleJa || railway.title);
+            normalizeLineName(
+                railway.titleJa || railway.title
+            );
 
-        return (
-            title.includes(target) ||
-            target.includes(title)
-        );
+        return title === target;
 
     });
+
+    alert(
+        "検索：" + target + "\n" +
+        "一致：" + (matched ? matched.titleJa : "なし")
+    );
 
     return matched?.id || "";
 
