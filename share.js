@@ -12,11 +12,10 @@ import {
 } from "./common.js";
 
 import {
-    
     collection,
     query,
     orderBy,
-    getDocs,
+    limit,
     doc,
     getDoc,
     setDoc,
@@ -205,7 +204,8 @@ async function loadPosts() {
 
     const q = query(
         collection(db, "posts"),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
+        limit(20)
     );
 
     onSnapshot(q, async (snapshot) => {
