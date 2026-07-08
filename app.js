@@ -193,7 +193,7 @@ function renderAuthSetupCards(user) {
                 onclick="location.href='activemail_setup.html'"
                 style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>💌 Active!Mail認証へ進む</b><br>
+                <b>📧 Active!Mail認証へ進む</b><br>
                 <small>
                     大学メール通知・未読件数表示を使うには設定が必要です。
                 </small>
