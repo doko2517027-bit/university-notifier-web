@@ -87,7 +87,7 @@ export async function loadProfileImage(img){
 
 }
 
-export async function loadUserName(element){
+export async function loadUserName(element, user = null){
 
     if(!studentNumber){
 

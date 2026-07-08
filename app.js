@@ -115,35 +115,30 @@ async function checkMaintenance() {
 
 async function startApp() {
 
+    let user = null;
+
     try {
 
-        await checkMaintenance();
-        
-        const userSnap = await getDoc(
-		    doc(db, "users", studentNumber)
-		);
-		
-		if (!studentNumber) {
-
+        if (!studentNumber) {
             localStorage.removeItem("loggedIn");
-
             location.href = "login.html";
             return;
-
         }
+
+        await checkMaintenance();
+
+        const userSnap = await getDoc(
+            doc(db, "users", studentNumber)
+        );
 
         if (!userSnap.exists()) {
-
             alert("ユーザー情報を取得できませんでした。もう一度ログインしてください。");
-
             localStorage.removeItem("loggedIn");
-
             location.href = "login.html";
             return;
-
         }
-		
-		const user = userSnap.data();
+
+        user = userSnap.data();
 
         if (user.activeMailResetRequired === true) {
             location.href = "activemail_setup.html";
@@ -158,9 +153,8 @@ async function startApp() {
         renderAuthSetupCards(user);
 
     } catch (e) {
-
         console.error(e);
-
+        return;
     }
 
     await initializePage([
@@ -168,15 +162,15 @@ async function startApp() {
         loadProfileImage(topProfileImage),
         loadActiveMailBadge(user)
     ]);
-	
-	loadWeather(user);
-	loadNews();
-	loadHomeCourseNews();
-	loadHomeSystemNews();
-	loadCourseLinks().then(() => {
-	    loadTodaySchedule();
-	});
-	setupAdminTab();
+
+    loadWeather(user);
+    loadNews();
+    loadHomeCourseNews();
+    loadHomeSystemNews();
+    loadCourseLinks().then(() => {
+        loadTodaySchedule();
+    });
+    setupAdminTab();
 
 }
 
