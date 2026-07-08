@@ -19,8 +19,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const appPassword = document.getElementById("appPassword");
-const appPasswordConfirm = document.getElementById("appPasswordConfirm");
+const manabaPassword = document.getElementById("manabaPassword");
+const manabaPasswordConfirm = document.getElementById("manabaPasswordConfirm");
 const savePassword = document.getElementById("savePassword");
 const studentNumber = document.getElementById("studentNumber");
 
@@ -35,14 +35,14 @@ savePassword.addEventListener("click", async () => {
 
     }
 
-    if (appPassword.value.length < 6) {
+    if (manabaPassword.value.length < 6) {
 
         alert("アプリ用パスワードは6文字以上で入力してください。");
         return;
 
     }
 
-    if (appPassword.value !== appPasswordConfirm.value) {
+    if (manabaPassword.value !== manabaPasswordConfirm.value) {
 
         alert("アプリ用パスワードが一致しません。");
         return;
@@ -61,11 +61,11 @@ savePassword.addEventListener("click", async () => {
 
     const user = userSnap.data();
 
-    const appPasswordHash =
-        await hashPassword(appPassword.value);
+    const manabaPasswordHash =
+        await hashPassword(manabaPassword.value);
 
     await updateDoc(userRef, {
-        appPasswordHash: appPasswordHash
+        manabaPasswordHash: manabaPasswordHash
     });
 
     localStorage.setItem("registered", "true");
