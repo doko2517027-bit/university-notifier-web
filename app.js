@@ -123,14 +123,25 @@ async function startApp() {
 		    doc(db, "users", studentNumber)
 		);
 		
-		if (!userSnap.exists()) {
-		
-		    localStorage.clear();
-		
-		    location.href = "login.html";
-		    return;
-		
-		}
+		if (!studentNumber) {
+
+            localStorage.removeItem("loggedIn");
+
+            location.href = "login.html";
+            return;
+
+        }
+
+        if (!userSnap.exists()) {
+
+            alert("ユーザー情報を取得できませんでした。もう一度ログインしてください。");
+
+            localStorage.removeItem("loggedIn");
+
+            location.href = "login.html";
+            return;
+
+        }
 		
 		const user = userSnap.data();
 
