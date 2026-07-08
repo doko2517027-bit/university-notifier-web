@@ -386,11 +386,43 @@ async function loadOdptRailways() {
 
     odptRailways = await response.json();
 
-    alert(
-        `ODPT路線数: ${odptRailways.length}`
-    );
-
     return odptRailways;
+
+}
+
+function normalizeLineName(name) {
+
+    return String(name || "")
+        .replaceAll("京浜急行", "京急")
+        .replaceAll("ＪＲ", "JR")
+        .replaceAll("地下鉄", "")
+        .replaceAll("線", "")
+        .replaceAll("　", "")
+        .replaceAll(" ", "")
+        .toLowerCase();
+
+}
+
+function findOdptRailwayCode(lineName) {
+
+    if (!lineName) return "";
+
+    const target =
+        normalizeLineName(lineName);
+
+    const matched = odptRailways.find(railway => {
+
+        const title =
+            normalizeLineName(railway.titleJa || railway.title);
+
+        return (
+            title.includes(target) ||
+            target.includes(title)
+        );
+
+    });
+
+    return matched?.id || "";
 
 }
 
@@ -405,6 +437,11 @@ async function searchRouteCandidates() {
     }
 
     const baseTime = routeTime.value || "09:00";
+
+    alert(
+        "HeartRails line: " + departure.line + "\n" +
+        "ODPT code: " + findOdptRailwayCode(departure.line)
+    );
 
     const routes = [
 
