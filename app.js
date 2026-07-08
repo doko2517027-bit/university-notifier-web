@@ -134,6 +134,16 @@ async function startApp() {
 		
 		const user = userSnap.data();
 
+        if (user.activeMailResetRequired === true) {
+            location.href = "activemail_setup.html";
+            return;
+        }
+
+        if (user.manabaResetRequired === true) {
+            location.href = "manaba_setup.html";
+            return;
+        }
+
         renderAuthSetupCards(user);
 
         if (user.activeMailResetRequired === true) {
