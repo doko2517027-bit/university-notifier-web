@@ -455,6 +455,30 @@ function findOdptRailwayCode(lineName) {
 
 }
 
+function findRouteLineCode(route) {
+
+    const lineCandidates = [
+        departure?.line,
+        via?.line,
+        arrival?.line,
+        route?.line
+    ].filter(Boolean);
+
+    for (const lineName of lineCandidates) {
+
+        const code =
+            findOdptRailwayCode(lineName);
+
+        if (code) {
+            return code;
+        }
+
+    }
+
+    return "";
+
+}
+
 async function searchRouteCandidates() {
 
     if (!departure || !arrival) {
@@ -606,6 +630,9 @@ async function saveSelectedRoute(route) {
         time: route.arriveTime
     });
 
+    const lineCode =
+        findRouteLineCode(route);
+
     const selectedRoute = {
         type: "commute",
 
@@ -618,6 +645,7 @@ async function saveSelectedRoute(route) {
         durationMinutes: route.duration,
         transfers: route.transfers,
         lineSummary: route.line,
+        lineCode,
 
         stops,
 
