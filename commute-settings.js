@@ -386,7 +386,9 @@ async function loadOdptRailways() {
 
     odptRailways = await response.json();
 
-    console.log("ODPT railways:", odptRailways);
+    alert(
+        `ODPT路線数: ${odptRailways.length}`
+    );
 
     return odptRailways;
 
