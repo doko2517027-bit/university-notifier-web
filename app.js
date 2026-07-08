@@ -693,6 +693,123 @@ async function loadFixedTimetables() {
 
 }
 
+function getTodayTimetableKey() {
+
+    const day = new Date().getDay();
+
+    if (day === 0) {
+        return "holiday";
+    }
+
+    if (day === 6) {
+        return "saturday";
+    }
+
+    return "weekday";
+
+}
+
+function normalizeStationName(name) {
+
+    return String(name || "")
+        .replaceAll("駅", "")
+        .trim();
+
+}
+
+function getFixedTimetableResult(stationName) {
+
+    const key =
+        normalizeStationName(stationName);
+
+    const setting =
+        fixedTimetables[key];
+
+    if (!setting) {
+        return null;
+    }
+
+    const timetableKey =
+        getTodayTimetableKey();
+
+    const departures =
+        setting[timetableKey] || [];
+
+    const now = new Date();
+
+    const departureDates =
+        departures
+            .map(time => {
+
+                const [hour, minute] =
+                    time.split(":").map(Number);
+
+                const date = new Date();
+
+                date.setHours(hour, minute, 0, 0);
+
+                return date;
+
+            })
+            .sort((a, b) => a - b);
+
+    if (departureDates.length === 0) {
+        return {
+            source: "fixed",
+            status: "afterLast",
+            text: "固定時刻表が登録されていません",
+            notice: setting.notice || "固定時刻表による案内です。"
+        };
+    }
+
+    if (now < departureDates[0]) {
+
+        const diff =
+            Math.ceil((departureDates[0] - now) / 60000);
+
+        return {
+            source: "fixed",
+            status: "beforeFirst",
+            nextDeparture: departures[0],
+            remainingMinutes: diff,
+            text: `始発 ${departures[0]} まであと${diff}分`,
+            notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
+        };
+
+    }
+
+    for (let i = 0; i < departureDates.length; i++) {
+
+        const departureDate =
+            departureDates[i];
+
+        if (departureDate > now) {
+
+            const diff =
+                Math.ceil((departureDate - now) / 60000);
+
+            return {
+                source: "fixed",
+                status: "running",
+                nextDeparture: departures[i],
+                remainingMinutes: diff,
+                text: `次の発車 ${departures[i]}（あと${diff}分）`,
+                notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
+            };
+
+        }
+
+    }
+
+    return {
+        source: "fixed",
+        status: "afterLast",
+        text: "本日の運行は終了しました",
+        notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
+    };
+
+}
+
 async function loadWeather() {
 
     try {
@@ -1045,8 +1162,17 @@ function setWeatherCardStyle(weatherText) {
 
 function renderCommuteHomeCard(route) {
 
+    const fixedResult =
+        getFixedTimetableResult(route.departure?.name);
+
     const status =
+        fixedResult?.text ||
         getCommuteStatus(route);
+
+    const fixedNotice =
+        fixedResult
+            ? `<br><small style="color:gray;">※ ${fixedResult.notice}</small>`
+            : "";
 
     const stopsHtml =
         route.stops
@@ -1085,6 +1211,7 @@ function renderCommuteHomeCard(route) {
             <br><br>
 
             <b>${status}</b>
+            ${fixedNotice}
 
             <br><br>
 
