@@ -52,7 +52,6 @@ const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
 
 let courses = {};
-let fixedTimetables = {};
 
 const root = document.documentElement;
 
@@ -157,8 +156,6 @@ async function startApp() {
         loadProfileImage(topProfileImage),
         loadActiveMailBadge()
     ]);
-
-    await loadFixedTimetables();
 	
 	loadWeather();
 	loadCommuteCard();
@@ -663,159 +660,6 @@ async function updateLastActive() {
 
 }
 
-async function loadFixedTimetables() {
-
-    try {
-
-        const response = await fetch(
-            "./data/fixed-timetable.json"
-        );
-
-        if (!response.ok) {
-            throw new Error("固定時刻表JSONの取得に失敗しました");
-        }
-
-        fixedTimetables =
-            await response.json();
-
-        console.log(
-            "固定時刻表:",
-            fixedTimetables
-        );
-
-    } catch (e) {
-
-        console.error(e);
-
-        fixedTimetables = {};
-
-    }
-
-}
-
-function getTodayTimetableKey() {
-
-    const day = new Date().getDay();
-
-    if (day === 0) return "sunday";
-    if (day === 1) return "monday";
-    if (day === 2) return "tuesday";
-    if (day === 3) return "wednesday";
-    if (day === 4) return "thursday";
-    if (day === 5) return "friday";
-    if (day === 6) return "saturday";
-
-    return "monday";
-
-}
-
-function normalizeStationName(name) {
-
-    return String(name || "")
-        .replaceAll("駅", "")
-        .trim();
-
-}
-
-function getFixedTimetableResult(stationName) {
-
-    const key =
-        normalizeStationName(stationName);
-
-    const matchedKey =
-        Object.keys(fixedTimetables).find(name => {
-            return normalizeStationName(name).startsWith(key);
-        });
-
-    const setting =
-        fixedTimetables[key] ||
-        fixedTimetables[matchedKey];
-
-    if (!setting) {
-        return null;
-    }
-
-    const timetableKey =
-        getTodayTimetableKey();
-
-    const departures =
-        setting[timetableKey] || [];
-
-    const now = new Date();
-
-    const departureDates =
-        departures
-            .map(time => {
-
-                const [hour, minute] =
-                    time.split(":").map(Number);
-
-                const date = new Date();
-
-                date.setHours(hour, minute, 0, 0);
-
-                return date;
-
-            })
-            .sort((a, b) => a - b);
-
-    if (departureDates.length === 0) {
-        return {
-            source: "fixed",
-            status: "afterLast",
-            text: "固定時刻表が登録されていません",
-            notice: setting.notice || "固定時刻表による案内です。"
-        };
-    }
-
-    if (now < departureDates[0]) {
-
-        const diff =
-            Math.ceil((departureDates[0] - now) / 60000);
-
-        return {
-            source: "fixed",
-            status: "beforeFirst",
-            nextDeparture: departures[0],
-            remainingMinutes: diff,
-            text: `始発 ${departures[0]} まであと${diff}分`,
-            notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
-        };
-
-    }
-
-    for (let i = 0; i < departureDates.length; i++) {
-
-        const departureDate =
-            departureDates[i];
-
-        if (departureDate > now) {
-
-            const diff =
-                Math.ceil((departureDate - now) / 60000);
-
-            return {
-                source: "fixed",
-                status: "running",
-                nextDeparture: departures[i],
-                remainingMinutes: diff,
-                text: `次の発車 ${departures[i]}（あと${diff}分）`,
-                notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
-            };
-
-        }
-
-    }
-
-    return {
-        source: "fixed",
-        status: "afterLast",
-        text: "本日の運行は終了しました",
-        notice: setting.notice || "固定時刻表による案内です。リアルタイムではありません。"
-    };
-
-}
-
 async function loadWeather() {
 
     try {
@@ -1167,9 +1011,6 @@ function setWeatherCardStyle(weatherText) {
 }
 
 function renderCommuteHomeCard(route) {
-
-    const fixedResult =
-        getFixedTimetableResult(route.departure?.name);
 
     const status =
         fixedResult?.text ||
