@@ -16,7 +16,7 @@ const studentNumber = document.getElementById("studentNumber");
 
 savePassword.addEventListener("click", async () => {
 
-    const value = studentNumber.value.trim();
+    const value = localStorage.getItem("studentNumber");
 
     if (manabaPassword.value.trim() === "") {
         alert("Manabaパスワードを入力してください。");
@@ -35,6 +35,20 @@ savePassword.addEventListener("click", async () => {
 
     const user = userSnap.data();
 
+    studentNumber.value = user.studentNumber;
+
+    const encrypted = await encryptData(
+    manabaPassword.value.trim()
+);
+
+    await updateDoc(userRef, {
+        manabaPasswordEncrypted: encrypted,
+        manabaSetupSkipped: false,
+        manabaResetRequired: false,
+        manabaVerified: false,
+        manabaVerifiedAt: null
+    });
+
     localStorage.setItem("registered", "true");
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("studentNumber", value);
@@ -49,23 +63,3 @@ savePassword.addEventListener("click", async () => {
     location.href = "index.html";
 
 });
-
-async function hashPassword(password) {
-
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-
-    const hashBuffer = await crypto.subtle.digest(
-        "SHA-256",
-        data
-    );
-
-    const hashArray = Array.from(
-        new Uint8Array(hashBuffer)
-    );
-
-    return hashArray
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("");
-
-}
