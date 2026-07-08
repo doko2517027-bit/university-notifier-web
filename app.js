@@ -968,6 +968,8 @@ async function loadCommuteCard() {
         commuteContent.innerHTML =
             renderCommuteHomeCard(route);
 
+        await loadTrainInformation(route);
+
     } else {
 
         commuteContent.innerHTML = `
@@ -1113,5 +1115,36 @@ function renderRouteLine(route) {
             index === currentIndex ? "◉" : "○"
         )
         .join("ーー");
+
+}
+
+async function loadTrainInformation(route) {
+
+    if (!route?.lineCode) return;
+
+    try {
+
+        const response = await fetch(
+            `https://caremate-odpt-api.kidokohei-shonaniryo2517027.workers.dev/train-info?railway=${route.lineCode}`
+        );
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+            return;
+        }
+
+        route.operationStatus =
+            data[0]["odpt:trainInformationText"]?.ja ??
+            "情報なし";
+
+        commuteContent.innerHTML =
+            renderCommuteHomeCard(route);
+
+    } catch (e) {
+
+        console.error(e);
+
+    }
 
 }

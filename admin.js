@@ -72,7 +72,7 @@ if (!admin) {
 await initializePage([
     setupAdminTab(),
     loadUserName(userName),
-    loadReports()
+    loadReports(),
     loadProfileImage(topProfileImage),
     loadDashboard(),
     loadSystemNews(),
