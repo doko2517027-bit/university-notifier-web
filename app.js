@@ -52,6 +52,7 @@ const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
 
 let courses = {};
+let fixedTimetables = {};
 
 const root = document.documentElement;
 
@@ -156,6 +157,8 @@ async function startApp() {
         loadProfileImage(topProfileImage),
         loadActiveMailBadge()
     ]);
+
+    await loadFixedTimetables();
 	
 	loadWeather();
 	loadCommuteCard();
@@ -655,6 +658,36 @@ async function updateLastActive() {
     } catch (e) {
 
         console.error(e);
+
+    }
+
+}
+
+async function loadFixedTimetables() {
+
+    try {
+
+        const response = await fetch(
+            "./data/fixed-timetable.json"
+        );
+
+        if (!response.ok) {
+            throw new Error("固定時刻表JSONの取得に失敗しました");
+        }
+
+        fixedTimetables =
+            await response.json();
+
+        console.log(
+            "固定時刻表:",
+            fixedTimetables
+        );
+
+    } catch (e) {
+
+        console.error(e);
+
+        fixedTimetables = {};
 
     }
 
