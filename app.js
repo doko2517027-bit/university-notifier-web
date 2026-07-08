@@ -1078,6 +1078,7 @@ function renderCommuteHomeCard(route) {
             <br>
 
             <small>
+                路線コード：${route.lineCode || "未取得"}<br>
                 運行情報：${route.operationStatus || "確認中"}
             </small>
 
