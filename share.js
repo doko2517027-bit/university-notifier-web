@@ -8,8 +8,7 @@ import {
     showPostSkeleton,
     formatDateTime,
     getProfilePhoto,
-    setupAdminTab,
-    addDoc
+    setupAdminTab
 } from "./common.js";
 
 import {
@@ -24,7 +23,8 @@ import {
     deleteDoc,
     updateDoc,
     onSnapshot,
-    increment
+    increment,
+    addDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const postMenu =
