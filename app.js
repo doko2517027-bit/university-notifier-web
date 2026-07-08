@@ -158,7 +158,6 @@ async function startApp() {
     ]);
 	
 	loadWeather();
-	loadCommuteCard();
 	loadNews();
 	loadHomeCourseNews();
 	loadHomeSystemNews();
@@ -224,10 +223,6 @@ weatherCard.onclick = () => {
     location.href =
         "weather-settings.html";
 
-};
-
-commuteCard.onclick = () => {
-    location.href = "commute-settings.html";
 };
 
 activeMailButton.onclick = () => {
@@ -899,89 +894,6 @@ function getWeatherText(code) {
 
 }
 
-function getCommuteStatus(route) {
-
-    if (!route.departTime || !route.durationMinutes) {
-        return "時刻未設定";
-    }
-
-    const now = new Date();
-
-    const [hour, minute] =
-        route.departTime.split(":").map(Number);
-
-    const departureDate = new Date();
-    departureDate.setHours(hour, minute, 0, 0);
-
-    const arrivalDate = new Date(
-        departureDate.getTime() +
-        route.durationMinutes * 60 * 1000
-    );
-
-    if (now < departureDate) {
-
-        const diff =
-            Math.ceil((departureDate - now) / 60000);
-
-        return `あと${diff}分で出発`;
-
-    }
-
-    if (now >= departureDate && now <= arrivalDate) {
-
-        const diff =
-            Math.ceil((arrivalDate - now) / 60000);
-
-        return `移動中・あと${diff}分で到着`;
-
-    }
-
-    return "到着予定時刻を過ぎています";
-
-}
-
-async function loadCommuteCard() {
-
-    if (!studentNumber) return;
-
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const user = snap.data();
-
-    let route = null;
-
-    if (user.commuteEncrypted) {
-
-        const commute =
-            await decryptData(user.commuteEncrypted);
-
-        route = commute.route;
-
-    }
-
-    if (route?.departure) {
-
-        commuteContent.innerHTML =
-            renderCommuteHomeCard(route);
-
-        await loadTrainInformation(route);
-
-    } else {
-
-        commuteContent.innerHTML = `
-            <button class="btn btn-primary">
-                設定する
-            </button>
-        `;
-
-    }
-
-}
-
 function setWeatherCardStyle(weatherText) {
 
     weatherCard.style.background = "";
@@ -1006,163 +918,6 @@ function setWeatherCardStyle(weatherText) {
     } else if (weatherText.includes("雷")) {
         weatherCard.style.background =
             "linear-gradient(135deg, #EDE9FE, #DBEAFE)";
-    }
-
-}
-
-function renderCommuteHomeCard(route) {
-
-    const status =
-        fixedResult?.text ||
-        getCommuteStatus(route);
-
-    const fixedNotice =
-        fixedResult
-            ? `<br><small style="color:gray;">※ ${fixedResult.notice}</small>`
-            : "";
-
-    const stopsHtml =
-        route.stops
-            .map(stop => `
-                <div style="text-align:center;">
-                    <b>${stop.name}</b><br>
-                    <small>${stop.time}</small>
-                </div>
-            `)
-            .join("");
-
-    return `
-        <div>
-
-            <b>${route.departure.name}</b>
-
-            <br>
-
-            <small>${route.lineSummary}</small>
-
-            <br><br>
-
-            <b>
-                ${route.departTime}
-                →
-                ${route.arriveTime}
-            </b>
-
-            <br>
-
-            <small>
-                ${route.durationMinutes}分　
-                乗換${route.transfers}回
-            </small>
-
-            <br><br>
-
-            <b>${status}</b>
-            ${fixedNotice}
-
-            <br><br>
-
-            <div style="
-                text-align:center;
-                font-size:20px;
-                letter-spacing:2px;
-            ">
-                ${renderRouteLine(route)}
-            </div>
-
-            <br>
-
-            <div style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:8px;
-                font-size:12px;
-            ">
-                ${stopsHtml}
-            </div>
-
-            <br>
-
-            <small>
-                <br>
-                運行情報：${route.operationStatus || "確認中"}
-            </small>
-
-        </div>
-    `;
-
-}
-
-function renderRouteLine(route) {
-
-    if (!route.stops || route.stops.length === 0) {
-        return "○";
-    }
-
-    const now = new Date();
-
-    let currentIndex = 0;
-
-    route.stops.forEach((stop, index) => {
-
-        const [hour, minute] =
-            stop.time.split(":").map(Number);
-
-        const stopDate = new Date();
-        stopDate.setHours(hour, minute, 0, 0);
-
-        if (now >= stopDate) {
-            currentIndex = index;
-        }
-
-    });
-
-    return route.stops
-        .map((stop, index) =>
-            index === currentIndex ? "◉" : "○"
-        )
-        .join("ーー");
-
-}
-
-async function loadTrainInformation(route) {
-
-    if (!route?.lineCode) return;
-
-    try {
-
-        const response = await fetch(
-            `https://caremate-odpt-api.kidokohei-shonaniryo2517027.workers.dev/train-info?railway=${route.lineCode}`
-        );
-
-        const data = await response.json();
-
-        if (!Array.isArray(data) || data.length === 0) {
-            route.operationStatus = "運行情報はありません";
-            commuteContent.innerHTML =
-                renderCommuteHomeCard(route);
-            return;
-        }
-
-        route.operationStatus =
-            data[0]?.text ||
-            data[0]?.status ||
-            "情報なし";
-
-        commuteContent.innerHTML =
-            renderCommuteHomeCard(route);
-
-    } catch (e) {
-
-        console.error(e);
-
-        route.operationStatus =
-            "運行情報を取得できませんでした";
-
-        commuteContent.innerHTML =
-            renderCommuteHomeCard(route);
-
     }
 
 }
