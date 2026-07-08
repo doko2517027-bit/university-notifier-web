@@ -41,7 +41,7 @@ document
     .getElementById("backButton")
     .onclick = () => {
 
-    history.back();
+    location.href = "login.html";
 
 };
 
