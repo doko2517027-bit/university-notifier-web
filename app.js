@@ -249,6 +249,9 @@ function loadActiveMailBadge(user) {
 startApp();
 setupTheme(themeButton);
 
+// 5分ごと
+setInterval(updateLastActive, 5 * 60 * 1000);
+
 // アプリへ戻った時
 document.addEventListener("visibilitychange", () => {
 
