@@ -697,15 +697,15 @@ function getTodayTimetableKey() {
 
     const day = new Date().getDay();
 
-    if (day === 0) {
-        return "holiday";
-    }
+    if (day === 0) return "sunday";
+    if (day === 1) return "monday";
+    if (day === 2) return "tuesday";
+    if (day === 3) return "wednesday";
+    if (day === 4) return "thursday";
+    if (day === 5) return "friday";
+    if (day === 6) return "saturday";
 
-    if (day === 6) {
-        return "saturday";
-    }
-
-    return "weekday";
+    return "monday";
 
 }
 
