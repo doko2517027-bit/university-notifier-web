@@ -509,6 +509,9 @@ function normalizeLineName(name) {
 
     return String(name || "")
         .replaceAll("京浜急行", "京急")
+        .replaceAll("京急本線", "京急本")
+        .replaceAll("京浜急行本線", "京急本")
+        .replaceAll("本線", "本")
         .replaceAll("ＪＲ", "JR")
         .replaceAll("地下鉄", "")
         .replaceAll("線", "")
@@ -590,11 +593,6 @@ async function saveSelectedRoute(route) {
             await findOdptRailwayCode(
                 departure.line || route.line
             );
-
-        alert(
-            "HeartRails line: " + departure.line + "\n" +
-            "ODPT lineCode: " + lineCode
-        );
 
     } catch (e) {
 
