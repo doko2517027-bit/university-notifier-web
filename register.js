@@ -405,7 +405,7 @@ try {
 
             manabaSetupSkipped:
                 manabaPassword.value.trim() === ""
-                
+
         }
             
     );
