@@ -35,8 +35,6 @@ const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
 const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
-const commuteContent = document.getElementById("commuteContent");
-const commuteCard = document.getElementById("commuteCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
