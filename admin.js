@@ -57,6 +57,8 @@ const notifySystemNews = document.getElementById("notifySystemNews");
 const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
+const reportList =
+document.getElementById("reportList");
 
 setupTheme(themeButton);
 
@@ -70,6 +72,7 @@ if (!admin) {
 await initializePage([
     setupAdminTab(),
     loadUserName(userName),
+    loadReports()
     loadProfileImage(topProfileImage),
     loadDashboard(),
     loadSystemNews(),
@@ -292,6 +295,88 @@ function loadSystemNews() {
 
 }
 
+function loadReports() {
+
+    const q = query(
+        collection(db, "reports"),
+        orderBy("createdAt", "desc")
+    );
+
+    onSnapshot(q, (snapshot) => {
+
+        if (snapshot.empty) {
+
+            reportList.innerHTML =
+                "通報はありません。";
+
+            return;
+
+        }
+
+        reportList.innerHTML = "";
+
+        snapshot.forEach(reportDoc => {
+
+            const report = reportDoc.data();
+
+            reportList.innerHTML += `
+
+            <div class="card setting-card">
+
+                <p>
+                    <b>種類：</b>
+                    ${report.type === "post" ? "投稿" : "コメント"}
+                </p>
+
+                <p>
+                    <b>対象者：</b>
+                    ${report.targetStudentNumber || "-"}
+                </p>
+
+                <p>
+                    <b>通報者：</b>
+                    ${report.reporterStudentNumber || "-"}
+                </p>
+
+                <p>
+                    <b>理由：</b><br>
+                    ${(report.reason || "").replace(/\n/g, "<br>")}
+                </p>
+
+                <p>
+                    <b>状態：</b>
+                    ${report.status || "open"}
+                </p>
+
+                <button
+                    class="btn btn-danger delete-reported-post"
+                    data-report-id="${reportDoc.id}"
+                    data-post-id="${report.postId || ""}">
+
+                    投稿を削除
+
+                </button>
+
+                <br><br>
+
+                <button
+                    class="btn btn-secondary close-report"
+                    data-report-id="${reportDoc.id}">
+
+                    対応済みにする
+
+                </button>
+
+            </div>
+
+            `;
+
+        });
+
+    });
+
+}
+
 async function loadMaintenance() {
 
     const snap = await getDoc(
@@ -386,27 +471,64 @@ function setupEvents() {
     });
 
     document.addEventListener("click", async (e) => {
+    
+    if (e.target.classList.contains("close-report")) {
 
-        if (!e.target.classList.contains("delete-system-news")) {
-            return;
-        }
-
-        const ok =
-            confirm("このお知らせを削除しますか？");
-
-        if (!ok) return;
-
-        await deleteDoc(
-            doc(db, "systemNews", e.target.dataset.id)
-        );
-
-        showToast("削除しました");
-
-        
-
-    });
-
-}
+	    await updateDoc(
+	        doc(db, "reports", e.target.dataset.reportId),
+	        {
+	            status: "closed"
+	        }
+	    );
+	
+	    showToast("対応済みにしました");
+	    return;
+	
+	}
+	
+	if (e.target.classList.contains("delete-reported-post")) {
+	
+	    const ok =
+	        confirm("この投稿を削除しますか？");
+	
+	    if (!ok) return;
+	
+	    await deleteDoc(
+	        doc(db, "posts", e.target.dataset.postId)
+	    );
+	
+	    await updateDoc(
+	        doc(db, "reports", e.target.dataset.reportId),
+	        {
+	            status: "closed"
+	        }
+	    );
+	
+	    showToast("投稿を削除しました");
+	    return;
+	
+	}
+	
+	        if (!e.target.classList.contains("delete-system-news")) {
+	            return;
+	        }
+	
+	        const ok =
+	            confirm("このお知らせを削除しますか？");
+	
+	        if (!ok) return;
+	
+	        await deleteDoc(
+	            doc(db, "systemNews", e.target.dataset.id)
+	        );
+	
+	        showToast("削除しました");
+	
+	        
+	
+	    });
+	
+	}
 
 async function postNews() {
 
@@ -548,6 +670,24 @@ ${user.lastLoginAt.toDate().toLocaleString()}
 
     }
 
-    alert(text);
+    const ok = confirm(
+	    text + "\n\nこのユーザーを削除しますか？"
+	);
+	
+	if (!ok) return;
+	
+	const deleteOk = confirm(
+	    "本当に削除しますか？\nこの操作は元に戻せません。"
+	);
+	
+	if (!deleteOk) return;
+	
+	await deleteDoc(
+	    doc(db, "users", studentNumber)
+	);
+	
+	showToast("ユーザーを削除しました");
+	
+	loadDashboard();
 
 }

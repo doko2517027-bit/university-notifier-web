@@ -124,19 +124,24 @@ async function startApp() {
 		    doc(db, "users", studentNumber)
 		);
 		
-		if (userSnap.exists()) {
+		if (!userSnap.exists()) {
 		
-		    const user = userSnap.data();
+		    localStorage.clear();
 		
-		    if (
-		        !user.activeMailPasswordEncrypted &&
-		        !user.activeMailSetupSkipped
-		    ) {
+		    location.href = "login.html";
+		    return;
 		
-		        location.href = "activemail_setup.html";
-		        return;
+		}
 		
-		    }
+		const user = userSnap.data();
+		
+		if (
+		    !user.activeMailPasswordEncrypted &&
+		    !user.activeMailSetupSkipped
+		) {
+		
+		    location.href = "activemail_setup.html";
+		    return;
 		
 		}
 

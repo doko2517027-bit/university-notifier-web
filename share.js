@@ -8,7 +8,8 @@ import {
     showPostSkeleton,
     formatDateTime,
     getProfilePhoto,
-    setupAdminTab
+    setupAdminTab,
+    addDoc
 } from "./common.js";
 
 import {
@@ -108,13 +109,12 @@ async function renderPost(postDoc, liked) {
 
         </div>
 
-        ${post.studentNumber === studentNumber ? `
-            <button
-                class="delete-button"
-                data-id="${postDoc.id}">
-                ⋯
-            </button>
-        ` : ""}
+        <button
+		    class="delete-button"
+		    data-id="${postDoc.id}"
+		    data-owner="${post.studentNumber}">
+		    ⋯
+		</button>
 
     </div>
 
@@ -434,8 +434,40 @@ deletePost.onclick = async () => {
 
 };
 
-reportPost.onclick = () => {
+reportPost.onclick = async () => {
 
-    alert("通報機能は準備中です。");
+    const reason = prompt(
+        "通報理由を入力してください。"
+    );
+
+    if (!reason) return;
+
+    const postSnap = await getDoc(
+        doc(db, "posts", selectedPostId)
+    );
+
+    if (!postSnap.exists()) {
+        alert("投稿が見つかりません。");
+        return;
+    }
+
+    const post = postSnap.data();
+
+    await addDoc(
+        collection(db, "reports"),
+        {
+            type: "post",
+            postId: selectedPostId,
+            targetStudentNumber: post.studentNumber,
+            reporterStudentNumber: studentNumber,
+            reason,
+            status: "open",
+            createdAt: new Date()
+        }
+    );
+
+    postMenu.style.display = "none";
+
+    alert("通報しました。");
 
 };
