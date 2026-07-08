@@ -722,8 +722,14 @@ function getFixedTimetableResult(stationName) {
     const key =
         normalizeStationName(stationName);
 
+    const matchedKey =
+        Object.keys(fixedTimetables).find(name => {
+            return normalizeStationName(name).startsWith(key);
+        });
+
     const setting =
-        fixedTimetables[key];
+        fixedTimetables[key] ||
+        fixedTimetables[matchedKey];
 
     if (!setting) {
         return null;
