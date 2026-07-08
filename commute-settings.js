@@ -525,35 +525,19 @@ async function searchRouteCandidates() {
 
     const baseTime = routeTime.value || "09:00";
 
-    const routes = [
+    const route = {
+        departTime: baseTime,
+        arriveTime: "",
+        duration: 0,
+        transfers: via ? 1 : 0,
+        line: [
+            departure.line,
+            via?.line,
+            arrival.line
+        ].filter(Boolean).join(" → ")
+    };
 
-        {
-            departTime: baseTime,
-            arriveTime: addMinutes(baseTime, 34),
-            duration: 34,
-            transfers: 2,
-            line: departure.line || "路線未設定"
-        },
-
-        {
-            departTime: addMinutes(baseTime, 5),
-            arriveTime: addMinutes(baseTime, 42),
-            duration: 37,
-            transfers: 1,
-            line: "京急川崎"
-        },
-
-        {
-            departTime: addMinutes(baseTime, 10),
-            arriveTime: addMinutes(baseTime, 48),
-            duration: 38,
-            transfers: 2,
-            line: "横浜"
-        }
-
-    ];
-
-    renderRouteCandidates(routes);
+    renderRouteCandidates([route]);
 
 }
 
