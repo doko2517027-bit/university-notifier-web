@@ -46,6 +46,11 @@ let odptRailways = null;
 
 const ODPT_WORKER_URL = "https://caremate-odpt-api.kidokohei-shonaniryo2517027.workers.dev";
 
+const ODPT_LINE_ALIASES = {
+    "京浜急行本線": "Keikyu.Main",
+    "京急本線": "Keikyu.Main"
+};
+
 await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
@@ -524,6 +529,10 @@ function normalizeLineName(name) {
 async function findOdptRailwayCode(lineName) {
 
     if (!lineName) return "";
+
+    if (ODPT_LINE_ALIASES[lineName]) {
+        return ODPT_LINE_ALIASES[lineName];
+    }
 
     const railways = await loadOdptRailways();
 
