@@ -561,9 +561,13 @@ async function findOdptRailwayCode(lineName) {
         return "";
     }
 
-    return String(matched["@id"] || "")
-        .replace("urn:ucode:", "")
-        .replace("odpt.Railway:", "");
+    return String(
+        matched["owl:sameAs"] ||
+        matched["@id"] ||
+        ""
+    )
+        .replace("odpt.Railway:", "")
+        .replace("urn:ucode:", "");
 
 }
 
