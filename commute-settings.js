@@ -42,6 +42,9 @@ setupTheme(themeButton);
 let departure = null;
 let via = null;
 let arrival = null;
+let odptRailways = null;
+
+const ODPT_WORKER_URL = "https://caremate-odpt-api.kidokohei-shonaniryo2517027.workers.dev";
 
 await initializePage([
     loadUserName(userName),
@@ -388,7 +391,7 @@ async function searchRouteCandidates() {
             arriveTime: addMinutes(baseTime, 34),
             duration: 34,
             transfers: 2,
-            line: "京急川崎・横浜"
+            line: departure.line || "路線未設定"
         },
 
         {
@@ -482,6 +485,77 @@ document.addEventListener("click", async (e) => {
 
 });
 
+async function loadOdptRailways() {
+
+    if (odptRailways) {
+        return odptRailways;
+    }
+
+    const response = await fetch(
+        `${ODPT_WORKER_URL}/railways`
+    );
+
+    if (!response.ok) {
+        throw new Error("ODPT路線一覧の取得に失敗しました");
+    }
+
+    odptRailways = await response.json();
+
+    return odptRailways;
+
+}
+
+function normalizeLineName(name) {
+
+    return String(name || "")
+        .replaceAll("ＪＲ", "JR")
+        .replaceAll("地下鉄", "")
+        .replaceAll("線", "")
+        .replaceAll("　", "")
+        .replaceAll(" ", "")
+        .toLowerCase();
+
+}
+
+async function findOdptRailwayCode(lineName) {
+
+    if (!lineName) return "";
+
+    const railways = await loadOdptRailways();
+
+    const target =
+        normalizeLineName(lineName);
+
+    const matched = railways.find(railway => {
+
+        const titleJa =
+            railway["dc:title"] ||
+            railway["odpt:railwayTitle"]?.ja ||
+            "";
+
+        const sameTitle =
+            normalizeLineName(titleJa).includes(target) ||
+            target.includes(normalizeLineName(titleJa));
+
+        const sameOperator =
+            normalizeLineName(
+                railway["odpt:operator"]
+            ).includes(target);
+
+        return sameTitle || sameOperator;
+
+    });
+
+    if (!matched) {
+        return "";
+    }
+
+    return String(matched["@id"] || "")
+        .replace("urn:ucode:", "")
+        .replace("odpt.Railway:", "");
+
+}
+
 async function saveSelectedRoute(route) {
 
     const stops = [
@@ -503,6 +577,21 @@ async function saveSelectedRoute(route) {
         time: route.arriveTime
     });
 
+    let lineCode = "";
+
+    try {
+
+        lineCode =
+            await findOdptRailwayCode(
+                departure.line || route.line
+            );
+
+    } catch (e) {
+
+        console.error(e);
+
+    }
+
     const selectedRoute = {
         type: "commute",
 
@@ -515,6 +604,7 @@ async function saveSelectedRoute(route) {
         durationMinutes: route.duration,
         transfers: route.transfers,
         lineSummary: route.line,
+        lineCode,
 
         stops,
 
