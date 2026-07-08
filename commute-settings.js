@@ -64,6 +64,21 @@ const HEART_RAILS_TO_ODPT = {
     "根岸線": "JR-East.KeihinTohokuNegishi"
 };
 
+const OFFICIAL_LINKS = {
+    Keikyu: {
+        name: "京急公式 運行情報",
+        url: "https://unkou.keikyu.co.jp/"
+    },
+    "JR-East": {
+        name: "JR東日本 運行情報",
+        url: "https://traininfo.jreast.co.jp/train_info/kanto.aspx"
+    },
+    YokohamaMunicipal: {
+        name: "横浜市営地下鉄 運行情報",
+        url: "https://www.city.yokohama.lg.jp/kotsu/"
+    }
+};
+
 await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
@@ -446,11 +461,6 @@ function findOdptRailwayCode(lineName) {
 
     });
 
-    alert(
-        "検索：" + target + "\n" +
-        "一致：" + (matched ? matched.titleJa : "なし")
-    );
-
     return matched?.id || "";
 
 }
@@ -479,6 +489,30 @@ function findRouteLineCode(route) {
 
 }
 
+function getOperatorFromLineCode(lineCode) {
+
+    if (!lineCode) return "";
+
+    return lineCode.split(".")[0];
+
+}
+
+function findOfficialLinks(lineCodes) {
+
+    const operators = [
+        ...new Set(
+            lineCodes
+                .map(code => getOperatorFromLineCode(code))
+                .filter(Boolean)
+        )
+    ];
+
+    return operators
+        .map(operator => OFFICIAL_LINKS[operator])
+        .filter(Boolean);
+
+}
+
 async function searchRouteCandidates() {
 
     if (!departure || !arrival) {
@@ -490,23 +524,6 @@ async function searchRouteCandidates() {
     }
 
     const baseTime = routeTime.value || "09:00";
-
-    const lineCandidates = [
-        departure?.line,
-        via?.line,
-        arrival?.line
-    ].filter(Boolean);
-
-    const checkResult =
-        lineCandidates
-            .map(line => {
-                return `${line} → ${findOdptRailwayCode(line) || "なし"}`;
-            })
-            .join("\n");
-
-    alert(
-        "候補路線:\n" + checkResult
-    );
 
     const routes = [
 
@@ -630,8 +647,26 @@ async function saveSelectedRoute(route) {
         time: route.arriveTime
     });
 
+    const lineCandidates = [
+        departure?.line,
+        via?.line,
+        arrival?.line,
+        route?.line
+    ].filter(Boolean);
+
+    const lineCodes = [
+        ...new Set(
+            lineCandidates
+                .map(line => findOdptRailwayCode(line))
+                .filter(Boolean)
+        )
+    ];
+
     const lineCode =
-        findRouteLineCode(route);
+        lineCodes[0] || "";
+
+    const officialLinks =
+        findOfficialLinks(lineCodes);
 
     const selectedRoute = {
         type: "commute",
@@ -646,10 +681,12 @@ async function saveSelectedRoute(route) {
         transfers: route.transfers,
         lineSummary: route.line,
         lineCode,
+        lineCodes,
+        officialLinks,
 
         stops,
 
-        operationStatus: "通常運転"
+        operationStatus: ""
     };
 
     const encrypted =
