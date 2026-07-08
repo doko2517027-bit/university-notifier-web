@@ -56,7 +56,8 @@ skipButton.onclick = async () => {
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            activeMailSetupSkipped: true
+            activeMailSetupSkipped: true,
+            activeMailResetRequired: false
         }
     );
 
