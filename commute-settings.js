@@ -586,6 +586,9 @@ async function saveSelectedRoute(route) {
                 departure.line || route.line
             );
 
+        console.log("HeartRails line:", departure.line);
+        console.log("ODPT lineCode:", lineCode);
+
     } catch (e) {
 
         console.error(e);
