@@ -444,9 +444,21 @@ async function searchRouteCandidates() {
 
     const baseTime = routeTime.value || "09:00";
 
+    const lineCandidates = [
+        departure?.line,
+        via?.line,
+        arrival?.line
+    ].filter(Boolean);
+
+    const checkResult =
+        lineCandidates
+            .map(line => {
+                return `${line} → ${findOdptRailwayCode(line) || "なし"}`;
+            })
+            .join("\n");
+
     alert(
-        "HeartRails line: " + departure.line + "\n" +
-        "ODPT code: " + findOdptRailwayCode(departure.line)
+        "候補路線:\n" + checkResult
     );
 
     const routes = [
