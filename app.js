@@ -169,7 +169,7 @@ async function startApp() {
         loadActiveMailBadge(user)
     ]);
 	
-	loadWeather();s
+	loadWeather(user);
 	loadNews();
 	loadHomeCourseNews();
 	loadHomeSystemNews();
@@ -698,7 +698,7 @@ async function updateLastActive() {
 
 }
 
-async function loadWeather() {
+async function loadWeather(user) {
 
     try {
 
@@ -706,28 +706,14 @@ async function loadWeather() {
         let longitude = 139.6500;
         let locationName = "横浜市中区";
 
-        if (studentNumber) {
+        if (user?.weatherEncrypted) {
 
-            const snap = await getDoc(
-                doc(db, "users", studentNumber)
-            );
+            const weatherSetting =
+                await decryptData(user.weatherEncrypted);
 
-            if (snap.exists()) {
-
-                const user = snap.data();
-
-                if (user.weatherEncrypted) {
-
-                    const weatherSetting =
-                        await decryptData(user.weatherEncrypted);
-
-                    latitude = weatherSetting.latitude;
-                    longitude = weatherSetting.longitude;
-                    locationName = weatherSetting.name;
-
-                }
-
-            }
+            latitude = weatherSetting.latitude;
+            longitude = weatherSetting.longitude;
+            locationName = weatherSetting.name;
 
         }
 
