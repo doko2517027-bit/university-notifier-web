@@ -132,6 +132,13 @@ async function startApp() {
 		}
 		
 		const user = userSnap.data();
+
+        if (user.activeMailResetRequired === true) {
+
+            location.href = "activemail_setup.html?reset=1";
+            return;
+
+        }
 		
 		if (
 		    !user.activeMailPasswordEncrypted &&

@@ -42,7 +42,8 @@ saveButton.onclick = async () => {
         doc(db, "users", studentNumber),
         {
             activeMailPasswordEncrypted: encrypted,
-            activeMailSetupSkipped: false
+            activeMailSetupSkipped: false,
+            activeMailResetRequired: false
         }
     );
 
