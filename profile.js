@@ -1,4 +1,4 @@
-alert("profile.js 読み込み成功");
+alert("profile.js あなたの読み込み成功");
 
 import {
     db,
