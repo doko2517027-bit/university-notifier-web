@@ -75,7 +75,72 @@ if(localStorage.getItem("theme")==="dark"){
 
     <h3>⚙️ 基本設定</h3>
 
-    <p>準備中</p>
+    <label class="setting-row">
+        <span>
+            <b>テストモード</b><br>
+            <small>ONにするとホームにテスト対策を表示します</small>
+        </span>
+        <input type="checkbox" id="examEnabled">
+    </label>
+
+    <h3>試験名</h3>
+
+    <input
+        id="examTitle"
+        type="text"
+        placeholder="例：前期定期試験">
+
+    <h3>開始日</h3>
+
+    <input
+        id="examStartDate"
+        type="date">
+
+    <h3>終了日</h3>
+
+    <input
+        id="examEndDate"
+        type="date">
+
+    <br><br>
+
+    <label class="setting-row">
+        <span>
+            <b>初回ポップアップ</b><br>
+            <small>その日初めて開いた時に表示</small>
+        </span>
+        <input type="checkbox" id="examShowPopup">
+    </label>
+
+    <label class="setting-row">
+        <span>
+            <b>カウントダウン表示</b><br>
+            <small>ホーム上部にあと何日か表示</small>
+        </span>
+        <input type="checkbox" id="examShowCountdown">
+    </label>
+
+    <label class="setting-row">
+        <span>
+            <b>テスト対策ボタン</b><br>
+            <small>ホームの天気横に表示</small>
+        </span>
+        <input type="checkbox" id="examShowHomeButton">
+    </label>
+
+    <label class="setting-row">
+        <span>
+            <b>今日の1問</b><br>
+            <small>ホームに今日の1問を表示</small>
+        </span>
+        <input type="checkbox" id="examShowDailyQuestion">
+    </label>
+
+    <br>
+
+    <button id="saveExamSettings" class="btn btn-primary">
+        テスト設定を保存
+    </button>
 
 </div>
 
