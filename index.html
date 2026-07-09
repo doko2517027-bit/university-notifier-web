@@ -66,6 +66,14 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
+<div id="examStatusText" style="
+    font-size:13px;
+    font-weight:bold;
+    color:var(--primary);
+    text-align:center;
+">
+</div>
+
 <div id="authSetupCards"></div>
 
 <header class="header">
@@ -76,9 +84,21 @@ if(localStorage.getItem("theme")==="dark"){
 
 <hr>
 
-<h2>🚶 通学・天気 ☀️</h2>
+<h2>📝 便利タブ ☀️</h2>
 
 <div class="home-slider">
+
+    <div class="home-slide">
+        <div
+            id="examCard"
+            class="card setting-card home-card"
+            style="display:none;">
+
+            <h2>📚 テスト対策</h2>
+            <p>AI穴埋め・四択・今日の1問</p>
+
+        </div>
+    </div>
 
     <div class="home-slide">
 
@@ -151,22 +171,6 @@ if(localStorage.getItem("theme")==="dark"){
                     font-size:12px;
                     color:gray;
                 ">
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="home-slide">
-
-        <div
-            id="commuteCard"
-            class="card setting-card home-card">
-
-            <h3>ComingSoon</h3>
-
-            <div id="commuteContent">
-                準備中...
             </div>
 
         </div>

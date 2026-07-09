@@ -36,6 +36,8 @@ const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
 const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
+const examStatusText = document.getElementById("examStatusText");
+const examCard = document.getElementById("examCard");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
@@ -175,6 +177,7 @@ console.log("studentNumber =", studentNumber);
         loadActiveMailBadge(user)
     ]);
 
+    loadExamMode();
     loadWeather(user);
     loadNews();
     loadHomeCourseNews();
@@ -249,6 +252,7 @@ function loadActiveMailBadge(user) {
 
 startApp();
 setupTheme(themeButton);
+setupOfflineAlert();
 
 // 5分ごと
 setInterval(updateLastActive, 5 * 60 * 1000);
@@ -940,6 +944,95 @@ function setWeatherCardStyle(weatherText) {
     } else if (weatherText.includes("雷")) {
         weatherCard.style.background =
             "linear-gradient(135deg, #EDE9FE, #DBEAFE)";
+    }
+
+}
+
+async function loadExamMode() {
+
+    const examSlide =
+        examCard?.closest(".home-slide");
+
+    if (examSlide) {
+
+        examSlide.style.display = "none";
+
+    }
+
+    const snap = await getDoc(
+        doc(db, "system", "exam")
+    );
+
+    if (!snap.exists()) return;
+
+    const exam = snap.data();
+
+    if (exam.enabled !== true) return;
+
+    const today = new Date();
+    const start = new Date(exam.startDate);
+    const end = new Date(exam.endDate);
+
+    const diffToStart =
+        Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+
+    const diffToEnd =
+        Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+    if (examStatusText && exam.showCountdown) {
+
+        if (today < start) {
+            examStatusText.textContent =
+                `${exam.title}まであと${diffToStart}日`;
+        } else if (today <= end) {
+            examStatusText.textContent =
+                `${exam.title}終了まであと${diffToEnd}日`;
+        } else {
+            examStatusText.textContent = "";
+        }
+
+    }
+
+    if (examCard && examSlide) {
+
+        if (exam.showHomeButton) {
+
+            examSlide.style.display = "";
+
+            examCard.style.display = "block";
+
+            examCard.onclick = () => {
+                location.href = "exam.html";
+            };
+
+        } else {
+
+            examSlide.style.display = "none";
+
+        }
+
+    }
+
+    if (exam.showPopup) {
+
+        const todayKey =
+            new Date().toISOString().slice(0, 10);
+
+        const popupKey =
+            `examPopupShown_${todayKey}`;
+
+        if (!localStorage.getItem(popupKey)) {
+
+            if (today < start) {
+                alert(`${exam.title}まであと${diffToStart}日です`);
+            } else if (today <= end) {
+                alert(`${exam.title}終了まであと${diffToEnd}日です`);
+            }
+
+            localStorage.setItem(popupKey, "true");
+
+        }
+
     }
 
 }
