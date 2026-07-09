@@ -80,19 +80,27 @@ const picker = document.getElementById("photoPicker");
 
 setupTheme(themeButton);
 
-await initializePage([
-    loadProfile()
-]);
+/* 先にボタン登録 */
 
 document
 .getElementById("profileImage")
 .onclick = () => {
-
-    alert("画像押された");
-
     menu.style.display = "flex";
-
 };
+
+document
+.getElementById("backButton")
+.onclick = () => {
+    history.back();
+};
+
+/* その後で読み込み */
+
+await initializePage([
+    loadProfile().catch(e => {
+        console.error("プロフィール取得エラー", e);
+    })
+]);
 
 document
 .getElementById("choosePhoto")
@@ -252,16 +260,6 @@ document.getElementById("likeCount").textContent =
     `${receivedLikes} / ${likedCount}`;
 
 }
-
-document
-.getElementById("backButton")
-.onclick = () => {
-
-    alert("戻るボタン押された");
-
-    history.back();
-
-};
 
 document
 .getElementById("myPosts")
