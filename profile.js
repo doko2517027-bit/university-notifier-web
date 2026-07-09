@@ -397,13 +397,82 @@ document
 
 document
 .getElementById("myComments")
-.onclick = () => {
+.onclick = async () => {
 
     changeTab(document.getElementById("myComments"));
 
-    document.getElementById("profileContent")
-    .innerHTML =
-    "<p>コメントした投稿を表示します。</p>";
+    const content =
+        document.getElementById("profileContent");
+
+    content.innerHTML = "";
+
+    const snapshot = await getDocs(
+        query(
+            collection(db, "posts"),
+            orderBy("createdAt", "desc")
+        )
+    );
+
+    const commentedPosts = [];
+
+    for (const postDoc of snapshot.docs) {
+
+        const commentSnap = await getDocs(
+            collection(
+                db,
+                "posts",
+                postDoc.id,
+                "comments"
+            )
+        );
+
+        const hasMyComment =
+            commentSnap.docs.some(commentDoc =>
+                commentDoc.data().studentNumber === studentNumber
+            );
+
+        if (hasMyComment) {
+            commentedPosts.push(postDoc);
+        }
+
+    }
+
+    if (commentedPosts.length === 0) {
+        content.innerHTML = "<p>コメントした投稿はありません。</p>";
+        return;
+    }
+
+    for (const postDoc of commentedPosts) {
+
+        const post = postDoc.data();
+
+        const photo =
+            await getProfilePhoto(post.studentNumber);
+
+        const time =
+            formatDateTime(post.createdAt);
+
+        const likeSnap = await getDoc(
+            doc(
+                db,
+                "posts",
+                postDoc.id,
+                "likes",
+                studentNumber
+            )
+        );
+
+        content.innerHTML += renderPostCard({
+            postId: postDoc.id,
+            post,
+            photo,
+            time,
+            liked: likeSnap.exists(),
+            showMenu: false,
+            clickable: false
+        });
+
+    }
 
 };
 
