@@ -262,6 +262,26 @@ for (const post of postSnap.docs) {
 document.getElementById("likeCount").textContent =
     `${receivedLikes} / ${likedCount}`;
 
+let commentCount = 0;
+
+for (const post of postSnap.docs) {
+
+    const commentSnap = await getDocs(
+        collection(
+            db,
+            "posts",
+            post.id,
+            "comments"
+        )
+    );
+
+    commentCount += commentSnap.size;
+
+}
+
+document.getElementById("commentCount").textContent =
+    commentCount;
+
 }
 
 document
@@ -413,7 +433,7 @@ document
         )
     );
 
-    const commentedPosts = [];
+    const myComments = [];
 
     for (const postDoc of snapshot.docs) {
 
@@ -426,53 +446,51 @@ document
             )
         );
 
-        const hasMyComment =
-            commentSnap.docs.some(commentDoc =>
-                commentDoc.data().studentNumber === studentNumber
-            );
+        commentSnap.forEach(commentDoc => {
 
-        if (hasMyComment) {
-            commentedPosts.push(postDoc);
-        }
+            const comment = commentDoc.data();
+
+            if (comment.studentNumber === studentNumber) {
+                myComments.push({
+                    postId: postDoc.id,
+                    post: postDoc.data(),
+                    comment
+                });
+            }
+
+        });
 
     }
 
-    if (commentedPosts.length === 0) {
+    if (myComments.length === 0) {
         content.innerHTML = "<p>コメントした投稿はありません。</p>";
         return;
     }
 
-    for (const postDoc of commentedPosts) {
+    myComments.forEach(item => {
 
-        const post = postDoc.data();
+        content.innerHTML += `
 
-        const photo =
-            await getProfilePhoto(post.studentNumber);
+<div class="card post-card"
+    onclick="location.href='comments.html?postId=${item.postId}'">
 
-        const time =
-            formatDateTime(post.createdAt);
+    <div class="post-time">
+        コメント先：${item.post.studentNumber}
+    </div>
 
-        const likeSnap = await getDoc(
-            doc(
-                db,
-                "posts",
-                postDoc.id,
-                "likes",
-                studentNumber
-            )
-        );
+    <div class="post-text">
+        ${item.comment.text}
+    </div>
 
-        content.innerHTML += renderPostCard({
-            postId: postDoc.id,
-            post,
-            photo,
-            time,
-            liked: likeSnap.exists(),
-            showMenu: false,
-            clickable: false
-        });
+    <div class="news-link">
+        💬 コメント画面を開く
+    </div>
 
-    }
+</div>
+
+`;
+
+    });
 
 };
 
