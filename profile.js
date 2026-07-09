@@ -1,3 +1,5 @@
+alert("profile.js 読み込み成功");
+
 import {
     db,
     studentNumber,
