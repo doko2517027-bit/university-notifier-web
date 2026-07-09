@@ -88,6 +88,8 @@ document
 .getElementById("profileImage")
 .onclick = () => {
 
+    alert("画像押された");
+
     menu.style.display = "flex";
 
 };
@@ -252,8 +254,10 @@ document.getElementById("likeCount").textContent =
 }
 
 document
-    .getElementById("backButton")
-    .onclick = () => {
+.getElementById("backButton")
+.onclick = () => {
+
+    alert("戻るボタン押された");
 
     history.back();
 
