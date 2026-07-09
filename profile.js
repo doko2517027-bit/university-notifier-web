@@ -371,27 +371,25 @@ document
         const photo = await getProfilePhoto(post.studentNumber);
         const time = formatDateTime(post.createdAt);
 
-        content.innerHTML += `
+        const likeSnap = await getDoc(
+            doc(
+                db,
+                "posts",
+                postDoc.id,
+                "likes",
+                studentNumber
+            )
+        );
 
-<div class="card post-card"
-    onclick="location.href='comments.html?postId=${postDoc.id}'">
-
-    <div class="student-number">
-        <img src="${photo}" class="top-profile-image">
-        ${post.studentNumber}
-    </div>
-
-    <div class="post-time">
-        ${time}
-    </div>
-
-    <div class="post-text">
-        ${post.text}
-    </div>
-
-</div>
-
-`;
+        content.innerHTML += renderPostCard({
+            postId: postDoc.id,
+            post,
+            photo,
+            time,
+            liked: likeSnap.exists(),
+            showMenu: false,
+            clickable: false
+        });
 
     }
 
