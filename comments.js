@@ -247,6 +247,63 @@ document.addEventListener("click", async (e) => {
 
     }
 
+    if (e.target.classList.contains("like-button")) {
+
+        const postId = e.target.dataset.id;
+
+        const likeRef = doc(
+            db,
+            "posts",
+            postId,
+            "likes",
+            studentNumber
+        );
+
+        const postRef = doc(
+            db,
+            "posts",
+            postId
+        );
+
+        const countSpan = e.target.nextElementSibling;
+        const count = Number(countSpan.textContent);
+        const wasLiked = e.target.classList.contains("liked");
+
+        if (wasLiked) {
+
+            e.target.textContent = "🤍";
+            e.target.classList.remove("liked");
+            countSpan.textContent = count - 1;
+
+            await deleteDoc(likeRef);
+
+            await updateDoc(postRef, {
+                likeCount: increment(-1)
+            });
+
+        } else {
+
+            e.target.textContent = "❤️";
+            e.target.classList.add("liked");
+            countSpan.textContent = count + 1;
+
+            await setDoc(likeRef, {
+                likedAt: new Date(),
+                studentNumber,
+                notificationType: "like",
+                notificationSentAt: null
+            });
+
+            await updateDoc(postRef, {
+                likeCount: increment(1)
+            });
+
+        }
+
+        return;
+
+    }
+
     if (!e.target.classList.contains("delete-comment")) return;
 
     const ok = confirm("コメントを削除しますか？");
