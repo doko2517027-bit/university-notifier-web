@@ -380,13 +380,68 @@ document
 
 document
 .getElementById("likedPosts")
-.onclick = () => {
+.onclick = async () => {
 
     changeTab(document.getElementById("likedPosts"));
 
-    document.getElementById("profileContent")
-    .innerHTML =
-    "<p>いいねした投稿を表示します。</p>";
+    const content = document.getElementById("profileContent");
+    content.innerHTML = "";
+
+    const snapshot = await getDocs(
+        query(
+            collection(db, "posts"),
+            orderBy("createdAt", "desc")
+        )
+    );
+
+    const likedPosts = [];
+
+    for (const postDoc of snapshot.docs) {
+
+        const likeSnap = await getDoc(
+            doc(db, "posts", postDoc.id, "likes", studentNumber)
+        );
+
+        if (likeSnap.exists()) {
+            likedPosts.push(postDoc);
+        }
+
+    }
+
+    if (likedPosts.length === 0) {
+        content.innerHTML = "<p>いいねした投稿はありません。</p>";
+        return;
+    }
+
+    for (const postDoc of likedPosts) {
+
+        const post = postDoc.data();
+        const photo = await getProfilePhoto(post.studentNumber);
+        const time = formatDateTime(post.createdAt);
+
+        content.innerHTML += `
+
+<div class="card post-card"
+    onclick="location.href='comments.html?postId=${postDoc.id}'">
+
+    <div class="student-number">
+        <img src="${photo}" class="top-profile-image">
+        ${post.studentNumber}
+    </div>
+
+    <div class="post-time">
+        ${time}
+    </div>
+
+    <div class="post-text">
+        ${post.text}
+    </div>
+
+</div>
+
+`;
+
+    }
 
 };
 
