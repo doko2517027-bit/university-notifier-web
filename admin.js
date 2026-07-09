@@ -57,8 +57,9 @@ const notifySystemNews = document.getElementById("notifySystemNews");
 const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
-const reportList =
-document.getElementById("reportList");
+const reportList = document.getElementById("reportList");
+const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
+const enablePushButton = document.getElementById("enablePushButton");
 
 setupTheme(themeButton);
 
@@ -436,6 +437,8 @@ async function loadNotificationSettings() {
 
 function setupEvents() {
 
+    enablePushButton.onclick = enablePushNotification;
+
     postSystemNews.onclick = postNews;
 
     saveMaintenance.onclick = saveMaintenanceSettings;
@@ -689,5 +692,59 @@ ${user.lastLoginAt.toDate().toLocaleString()}
 	showToast("ユーザーを削除しました");
 	
 	loadDashboard();
+
+}
+
+async function enablePushNotification() {
+
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+        alert("通知が許可されませんでした。");
+        return;
+    }
+
+    const registration =
+        await navigator.serviceWorker.register("sw.js");
+
+    const oldSubscription =
+        await registration.pushManager.getSubscription();
+
+    if (oldSubscription) {
+        await oldSubscription.unsubscribe();
+    }
+
+    const subscription =
+        await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+        });
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        {
+            subscription: JSON.parse(JSON.stringify(subscription))
+        }
+    );
+
+    showToast("通知を再登録しました");
+
+}
+
+function urlBase64ToUint8Array(base64String) {
+
+    const padding =
+        "=".repeat((4 - base64String.length % 4) % 4);
+
+    const base64 =
+        (base64String + padding)
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+    const rawData = atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(c => c.charCodeAt(0))
+    );
 
 }
