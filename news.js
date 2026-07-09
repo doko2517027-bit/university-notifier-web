@@ -283,3 +283,9 @@ async function loadSystemNews() {
     });
 
 }
+
+const params = new URLSearchParams(location.search);
+
+if (params.get("tab") === "course") {
+    courseTab.click();
+}
