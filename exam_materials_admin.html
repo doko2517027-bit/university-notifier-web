@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>資料管理 | CareMate</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if(localStorage.getItem("theme")==="dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <button id="backButton" class="circle-button">
+        ←
+    </button>
+
+    <h2>📄 資料管理</h2>
+
+    <div class="top-right">
+
+        <button id="themeButton" class="circle-button">
+            🌙
+        </button>
+
+        <button id="profileButton" class="circle-button">
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image">
+        </button>
+
+    </div>
+
+</div>
+
+<div class="card setting-card">
+
+    <h2>📄 資料管理</h2>
+
+    <p id="unitInfo">
+        読み込み中...
+    </p>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>資料アップロード</h3>
+
+    <input
+        type="file"
+        id="materialFile"
+        accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,audio/*">
+
+    <br><br>
+
+    <button id="uploadMaterial" class="btn btn-primary">
+        アップロード
+    </button>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>登録済み資料</h3>
+
+    <div id="materialList">
+        読み込み中...
+    </div>
+
+</div>
+
+<script type="module" src="exam_materials_admin.js"></script>
+
+</body>
+
+</html>

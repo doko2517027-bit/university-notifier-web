@@ -187,18 +187,47 @@ async function loadSubjects() {
             const unit = unitDoc.data();
 
             unitHtml += `
-                <div class="setting-row">
-                    <span>
-                        <b>${unit.name}</b><br>
+                <div class="card setting-card">
+
+                    <p>
+                        <b>単元：${unit.name}</b><br>
                         <small>${unit.range || ""}</small>
-                    </span>
+                    </p>
+
+                    <button
+                        class="btn btn-secondary manage-materials"
+                        data-subject-id="${subjectDoc.id}"
+                        data-unit-id="${unitDoc.id}">
+                        📄 資料管理
+                    </button>
+
+                    <br><br>
+
+                    <button
+                        class="btn btn-secondary manage-questions"
+                        data-subject-id="${subjectDoc.id}"
+                        data-unit-id="${unitDoc.id}">
+                        📝 問題一覧
+                    </button>
+
+                    <br><br>
+
+                    <button
+                        class="btn btn-primary generate-ai"
+                        data-subject-id="${subjectDoc.id}"
+                        data-unit-id="${unitDoc.id}">
+                        🤖 AI生成
+                    </button>
+
+                    <br><br>
 
                     <button
                         class="btn btn-danger delete-unit"
                         data-subject-id="${subjectDoc.id}"
                         data-unit-id="${unitDoc.id}">
-                        削除
+                        単元を削除
                     </button>
+
                 </div>
             `;
 
@@ -308,6 +337,47 @@ document.addEventListener("click", async (e) => {
         );
 
         await loadSubjects();
+
+        return;
+
+    }
+
+        // 資料管理
+    if (e.target.classList.contains("manage-materials")) {
+
+        const subjectId =
+            e.target.dataset.subjectId;
+
+        const unitId =
+            e.target.dataset.unitId;
+
+        location.href =
+            `exam_materials_admin.html?subjectId=${subjectId}&unitId=${unitId}`;
+
+        return;
+
+    }
+
+    // 問題一覧
+    if (e.target.classList.contains("manage-questions")) {
+
+        const subjectId =
+            e.target.dataset.subjectId;
+
+        const unitId =
+            e.target.dataset.unitId;
+
+        location.href =
+            `exam_questions_admin.html?subjectId=${subjectId}&unitId=${unitId}`;
+
+        return;
+
+    }
+
+    // AI生成
+    if (e.target.classList.contains("generate-ai")) {
+
+        alert("AI生成は次に実装します。");
 
         return;
 
