@@ -157,37 +157,27 @@ async function loadNews() {
 
 async function loadCourseNews() {
 
-    const snapshot = await getDocs(
-        collection(db, "courseNews")
+    const q = query(
+        collection(db, "courseNews", studentNumber, "news"),
+        orderBy("createdAt", "desc")
     );
+
+    const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
 
-        courseNews.innerHTML = "実装準備中...。";
+        courseNews.innerHTML =
+            "コースニュースはありません。";
 
         return;
 
     }
 
-    const notices = [];
-
-    snapshot.forEach(doc => {
-
-        notices.push(doc.data());
-
-    });
-
-    notices.sort((a, b) =>
-        b.createdAt.seconds - a.createdAt.seconds
-    );
-
     courseNews.innerHTML = "";
 
-    notices.forEach(notice => {
+    snapshot.forEach(newsDoc => {
 
-        const isNew =
-            (Date.now() - notice.createdAt.toDate().getTime()) <
-            1000 * 60 * 60 * 24 * 3;
+        const notice = newsDoc.data();
 
         courseNews.innerHTML += `
 
@@ -203,14 +193,11 @@ async function loadCourseNews() {
             </div>
 
             <div class="news-date">
-                👤 ${notice.author}<br>
-                🕒 ${notice.posted}
+                ${notice.posted || ""}
             </div>
 
             <div class="news-link">
-
                 🗞️ コースニュースを開く
-
             </div>
 
         </div>
