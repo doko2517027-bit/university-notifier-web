@@ -5,7 +5,8 @@ import {
     initializePage,
     loadProfileImage,
     loadUserName,
-    setupAdminTab
+    setupAdminTab,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

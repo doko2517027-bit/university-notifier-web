@@ -2,7 +2,8 @@ import {
     db,
     initializePage,
     updateAccentColor,
-    encryptData
+    encryptData,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

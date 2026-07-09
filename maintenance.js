@@ -1,6 +1,7 @@
 import {
     db,
-    initializePage
+    initializePage,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

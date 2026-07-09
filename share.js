@@ -8,7 +8,9 @@ import {
     showPostSkeleton,
     formatDateTime,
     getProfilePhoto,
-    setupAdminTab
+    setupAdminTab,
+    setupOfflineAlert,
+    renderPostCard
 } from "./common.js";
 
 import {

@@ -5,7 +5,9 @@ import {
     loadProfileImage,
     initializePage,
     formatDateTime,
-    getProfilePhoto
+    getProfilePhoto,
+    setupOfflineAlert,
+    renderPostCard
 } from "./common.js";
 
 import {

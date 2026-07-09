@@ -2,7 +2,8 @@ import {
     db,
     studentNumber,
     initializePage,
-    encryptData
+    encryptData,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

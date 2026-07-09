@@ -4,7 +4,8 @@ import {
     setupTheme,
     loadProfileImage,
     initializePage,
-    showToast
+    showToast,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

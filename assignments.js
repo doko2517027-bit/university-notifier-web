@@ -6,7 +6,8 @@ import {
     loadUserName,
     initializePage,
     showAssignmentSkeleton,
-    setupAdminTab
+    setupAdminTab,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

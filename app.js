@@ -7,7 +7,8 @@ import {
     initializePage,
     showNewsSkeleton,
     setupAdminTab,
-    decryptData
+    decryptData,
+    setupOfflineAlert
 } from "./common.js";
 
 import {

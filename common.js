@@ -469,3 +469,96 @@ document.addEventListener("touchend", e => {
     lastTouchEnd = now;
 
 }, { passive: false });
+
+export function renderPostCard({
+    postId,
+    post,
+    photo,
+    time,
+    liked = false,
+    showMenu = false,
+    clickable = false
+}) {
+
+    return `
+
+<div class="card post-card ${clickable ? "clickable-post" : ""}"
+    ${clickable ? `data-post-id="${postId}"` : ""}>
+
+    <div class="post-header">
+
+        <div>
+            <div class="student-number">
+                <img src="${photo}" class="top-profile-image">
+                ${post.studentNumber}
+            </div>
+
+            <div class="post-time">
+                ${time}
+            </div>
+        </div>
+
+        ${showMenu ? `
+        <button
+            class="delete-button"
+            data-id="${postId}"
+            data-owner="${post.studentNumber}">
+            ⋯
+        </button>
+        ` : ""}
+
+    </div>
+
+    <div class="post-text">
+        ${post.text || ""}
+    </div>
+
+    ${post.images?.length ? `
+    <div class="post-images">
+        ${post.images.map(image => `
+            <img
+                src="${image.url}"
+                class="post-image"
+                data-url="${image.url}">
+        `).join("")}
+    </div>
+    ` : ""}
+
+    ${post.pdfs?.length ? `
+        ${post.pdfs.map(pdf => `
+            <div class="post-pdf" data-url="${pdf.url}">
+                <div class="pdf-title">📄 ${pdf.name}</div>
+                <div class="pdf-subtitle">タップして開く</div>
+            </div>
+        `).join("")}
+    ` : ""}
+
+    <div class="post-footer">
+
+        <button
+            class="like-button ${liked ? "liked" : ""}"
+            data-id="${postId}">
+            ${liked ? "❤️" : "🤍"}
+        </button>
+
+        <span class="like-count">
+            ${post.likeCount ?? 0}
+        </span>
+
+        <button
+            class="comment-button"
+            data-id="${postId}">
+            💬
+        </button>
+
+        <span class="comment-count">
+            ${post.commentCount ?? 0}
+        </span>
+
+    </div>
+
+</div>
+
+`;
+
+}

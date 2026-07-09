@@ -8,7 +8,8 @@ import {
     showToast,
     setupAdminTab,
     encryptData,
-    decryptData
+    decryptData,
+    setupOfflineAlert
 } from "./common.js";
 
 import {
