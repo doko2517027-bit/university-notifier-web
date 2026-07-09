@@ -369,9 +369,12 @@ async function loadNews() {
 
 async function loadHomeCourseNews() {
 
-    const snapshot = await getDocs(
-        collection(db, "courseNews")
+    const q = query(
+        collection(db, "courseNews", studentNumber, "news"),
+        orderBy("createdAt", "desc")
     );
+
+    const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
 
@@ -382,26 +385,16 @@ async function loadHomeCourseNews() {
 
     }
 
-    const notices = [];
-
-    snapshot.forEach(doc => {
-
-        notices.push(doc.data());
-
-    });
-
-    notices.sort((a, b) =>
-        b.createdAt.seconds - a.createdAt.seconds
-    );
-
     homeCourseNews.innerHTML = "";
 
-    notices.slice(0, 3).forEach(notice => {
+    snapshot.docs.slice(0, 3).forEach(newsDoc => {
+
+        const notice = newsDoc.data();
 
         homeCourseNews.innerHTML += `
 
         <div class="card news-card"
-            onclick="location.href='news.html'">
+            onclick="location.href='news.html?tab=course'">
 
             <div class="news-title">
                 📘 ${notice.course}
@@ -411,18 +404,15 @@ async function loadHomeCourseNews() {
                 ${notice.title}
             </div>
 
-            <div class="news-date">
-                ${notice.posted}
-            </div>
-
         </div>
 
         `;
+
     });
 
     homeCourseNews.innerHTML += `
         <div style="text-align:center; margin-top:20px;">
-            <a href="news.html">
+            <a href="news.html?tab=course">
                 もっと見る →
             </a>
         </div>
