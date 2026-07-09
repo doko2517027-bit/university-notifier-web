@@ -409,7 +409,7 @@ document
 
 };
 
-document.addEventListener("click",(e)=>{
+document.addEventListener("click", async (e)=>{
 
     const pdf = e.target.closest(".post-pdf");
 
