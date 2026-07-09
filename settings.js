@@ -17,6 +17,9 @@ import {
     updateDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+const PUBLIC_KEY =
+"BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
+
 const root = document.documentElement;
 
 const department =
@@ -58,6 +61,7 @@ const notifySystemNews = document.getElementById("notifySystemNews");
 const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
+const enablePushButton = document.getElementById("enablePushButton");
 
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
@@ -244,3 +248,60 @@ document
     location.href = "profile.html";
 
 };
+
+enablePushButton.onclick = async () => {
+
+    const permission =
+        await Notification.requestPermission();
+
+    if (permission !== "granted") {
+        alert("通知が許可されませんでした。iPhoneの設定から通知を許可してください。");
+        return;
+    }
+
+    const registration =
+        await navigator.serviceWorker.register("sw.js");
+
+    await navigator.serviceWorker.ready;
+
+    const oldSubscription =
+        await registration.pushManager.getSubscription();
+
+    if (oldSubscription) {
+        await oldSubscription.unsubscribe();
+    }
+
+    const subscription =
+        await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+        });
+
+    await updateDoc(
+        doc(db, "users", studentNumber),
+        {
+            subscription: JSON.parse(JSON.stringify(subscription))
+        }
+    );
+
+    alert("通知を再登録しました。");
+
+};
+
+function urlBase64ToUint8Array(base64String) {
+
+    const padding =
+        "=".repeat((4 - base64String.length % 4) % 4);
+
+    const base64 =
+        (base64String + padding)
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+    const rawData = atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(c => c.charCodeAt(0))
+    );
+
+}
