@@ -3,7 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import {
     getFirestore,
     doc,
-    getDoc
+    getDoc,
+    setupOfflineAlert
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -52,6 +53,18 @@ export function setupTheme(themeButton){
         }
 
     };
+
+}
+
+export function setupOfflineAlert() {
+
+    if (!navigator.onLine) {
+        alert("電波が悪い、またはオフラインです。保存済みの情報を表示します。");
+    }
+
+    window.addEventListener("offline", () => {
+        alert("電波が悪い、またはオフラインになりました。保存済みの情報を表示します。");
+    });
 
 }
 
