@@ -43,7 +43,9 @@ const saveExamSettings = document.getElementById("saveExamSettings");
 
 await initializePage([
     loadProfileImage(topProfileImage),
-    loadExamSettings()
+    loadExamSettings().catch(e => {
+        console.error("テスト設定読み込み失敗", e);
+    })
 ]);
 
 document
@@ -85,25 +87,34 @@ async function loadExamSettings() {
 
 saveExamSettings.onclick = async () => {
 
-    await setDoc(
-        doc(db, "system", "exam"),
-        {
-            enabled: examEnabled.checked,
-            title: examTitle.value.trim(),
-            startDate: examStartDate.value,
-            endDate: examEndDate.value,
-            showPopup: examShowPopup.checked,
-            showCountdown: examShowCountdown.checked,
-            showHomeButton: examShowHomeButton.checked,
-            showDailyQuestion: examShowDailyQuestion.checked,
-            updatedAt: new Date(),
-            updatedBy: studentNumber
-        },
-        {
-            merge: true
-        }
-    );
+    try {
 
-    alert("テスト設定を保存しました。");
+        await setDoc(
+            doc(db, "system", "exam"),
+            {
+                enabled: examEnabled.checked,
+                title: examTitle.value.trim(),
+                startDate: examStartDate.value,
+                endDate: examEndDate.value,
+                showPopup: examShowPopup.checked,
+                showCountdown: examShowCountdown.checked,
+                showHomeButton: examShowHomeButton.checked,
+                showDailyQuestion: examShowDailyQuestion.checked,
+                updatedAt: new Date(),
+                updatedBy: studentNumber
+            },
+            {
+                merge: true
+            }
+        );
+
+        alert("テスト設定を保存しました。");
+
+    } catch (e) {
+
+        console.error("テスト設定保存失敗", e);
+        alert("保存に失敗しました。Firestore Rulesを確認してください。");
+
+    }
 
 };
