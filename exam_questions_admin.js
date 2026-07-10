@@ -237,6 +237,16 @@ function renderQuizItem(item, index = null) {
                 data-index="${quizIndex}"
                 rows="3">${item.question || ""}</textarea>
 
+            ${index !== null ? `
+                <br><br>
+
+                <button
+                    class="btn btn-danger delete-quiz"
+                    data-index="${index}">
+                    🗑 この四択問題を削除
+                </button>
+            ` : ""}
+
             <p>選択肢</p>
 
             ${(item.choices || []).map((choice, choiceIndex) => `
@@ -406,44 +416,50 @@ saveEditedQuestions.onclick = async () => {
             .filter(item => item !== null);
 
         const quiz =
-            (current.quiz || []).map((item, index) => {
+            (current.quiz || [])
+                .map((item, index) => {
 
-            const question =
-                document
-                    .querySelector(`.edit-quiz-question[data-index="${index}"]`)
-                    .value
-                    .trim();
+                    const questionInput =
+                        document.querySelector(
+                            `.edit-quiz-question[data-index="${index}"]`
+                        );
 
-            const choices = [];
+                    if (!questionInput) return null;
 
-            document
-                .querySelectorAll(`.edit-quiz-choice[data-index="${index}"]`)
-                .forEach(input => {
-                    choices.push(input.value.trim());
-                });
+                    const question =
+                        questionInput.value.trim();
 
-            const answer =
-                Number(
+                    const choices = [];
+
                     document
-                        .querySelector(`.edit-quiz-answer[data-index="${index}"]`)
-                        .value
-                ) - 1;
+                        .querySelectorAll(`.edit-quiz-choice[data-index="${index}"]`)
+                        .forEach(input => {
+                            choices.push(input.value.trim());
+                        });
 
-            const explanation =
-                document
-                    .querySelector(`.edit-quiz-explanation[data-index="${index}"]`)
-                    .value
-                    .trim();
+                    const answer =
+                        Number(
+                            document
+                                .querySelector(`.edit-quiz-answer[data-index="${index}"]`)
+                                .value
+                        ) - 1;
 
-            return {
-                ...item,
-                question,
-                choices,
-                answer,
-                explanation
-            };
+                    const explanation =
+                        document
+                            .querySelector(`.edit-quiz-explanation[data-index="${index}"]`)
+                            .value
+                            .trim();
 
-        });
+                    return {
+                        ...item,
+                        question,
+                        choices,
+                        answer,
+                        explanation
+                    };
+
+                })
+                .filter(item => item !== null);
 
     let today_question = current.today_question || null;
 
@@ -548,6 +564,18 @@ document.addEventListener("click", (e) => {
 
         const card =
             e.target.closest(".fill-edit-card");
+
+        card.remove();
+
+        return;
+    }
+
+    if (e.target.classList.contains("delete-quiz")) {
+
+        if (!confirm("この四択問題を削除しますか？")) return;
+
+        const card =
+            e.target.closest(".card");
 
         card.remove();
 
