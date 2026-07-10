@@ -35,6 +35,7 @@ const unitInfo = document.getElementById("unitInfo");
 const materialFile = document.getElementById("materialFile");
 const uploadMaterial = document.getElementById("uploadMaterial");
 const materialList = document.getElementById("materialList");
+const generateAiQuestions = document.getElementById("generateAiQuestions");
 
 setupTheme(themeButton);
 
@@ -223,3 +224,26 @@ document.addEventListener("click", async (e) => {
     await loadMaterials();
 
 });
+
+generateAiQuestions.onclick = async () => {
+
+    const q = query(
+        collection(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "materials"
+        ),
+        orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        alert("先に資料をアップロードしてください。");
+        return;
+    }
+
+    const materials =
