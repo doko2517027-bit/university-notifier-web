@@ -362,7 +362,8 @@ saveEditedQuestions.onclick = async () => {
             .filter(text => text !== "");
 
     const fill_blank =
-        (current.fill_blank || []).map((item, index) => {
+        (current.fill_blank || [])
+            .map((item, index) => {
 
             const question =
                 document
@@ -395,10 +396,17 @@ saveEditedQuestions.onclick = async () => {
                 answers
             };
 
-        });
+        })
+        .filter(item => item !== null);
 
     const quiz =
         (current.quiz || []).map((item, index) => {
+
+            const card = document.querySelector(
+                `.fill-edit-card[data-index="${index}"]`
+            );
+
+            if (!card) return null;
 
             const question =
                 document
