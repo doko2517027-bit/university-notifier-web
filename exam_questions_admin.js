@@ -9,7 +9,8 @@ import {
 
 import {
     doc,
-    getDoc
+    getDoc,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const params = new URLSearchParams(location.search);
@@ -21,6 +22,7 @@ const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const unitInfo = document.getElementById("unitInfo");
 const questionList = document.getElementById("questionList");
+const publishQuestions = document.getElementById("publishQuestions");
 
 setupTheme(themeButton);
 
@@ -164,3 +166,45 @@ function renderQuizItem(item, index = null) {
         </div>
     `;
 }
+
+publishQuestions.onclick = async () => {
+
+    if (!confirm("この問題を学生へ公開しますか？")) return;
+
+    const aiSnap = await getDoc(
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        )
+    );
+
+    if (!aiSnap.exists()) {
+        alert("AI生成結果がありません。");
+        return;
+    }
+
+    await setDoc(
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "publishedQuestions",
+            "generated"
+        ),
+        {
+            ...aiSnap.data(),
+            publishedAt: new Date(),
+            publishedBy: studentNumber
+        }
+    );
+
+    alert("公開しました。");
+
+};

@@ -1,93 +1,92 @@
 import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    db,
+    setupTheme,
+    initializePage,
+    loadProfileImage
+} from "./common.js";
 
 import {
-  getFirestore,
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
-    authDomain: "universitynotifier-67517.firebaseapp.com",
-    projectId: "universitynotifier-67517",
-    storageBucket: "universitynotifier-67517.firebasestorage.app",
-    messagingSenderId: "908622250178",
-    appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const themeButton = document.getElementById("themeButton");
+const topProfileImage = document.getElementById("topProfileImage");
+const questions = document.getElementById("questions");
 
 const params = new URLSearchParams(location.search);
-
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 
+setupTheme(themeButton);
+
+await initializePage([
+    loadProfileImage(topProfileImage),
+    loadQuestions()
+]);
+
+document.getElementById("backButton").onclick = () => {
+    history.back();
+};
+
+document.getElementById("profileButton").onclick = () => {
+    location.href = "profile.html";
+};
+
 async function loadQuestions() {
 
-    const ref = doc(
-        db,
-        "examSubjects",
-        subjectId,
-        "units",
-        unitId,
-        "ai",
-        "generated"
+    if (!subjectId || !unitId) {
+        questions.innerHTML = "科目または単元が指定されていません。";
+        return;
+    }
+
+    const snap = await getDoc(
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        )
     );
 
-    const snap = await getDoc(ref);
-
     if (!snap.exists()) {
-        alert("AI問題がありません");
+        questions.innerHTML = "AI問題がありません。";
         return;
     }
 
     const data = snap.data();
+    const fillBlank = data.fill_blank || [];
 
-    console.log(data);
+    if (fillBlank.length === 0) {
+        questions.innerHTML = "穴埋め問題が生成されていません。";
+        return;
+    }
 
-    const container = document.getElementById("questions");
+    questions.innerHTML = "";
 
-    console.log(container);
-    console.log(data.fill_blank);
+    fillBlank.forEach((q, index) => {
 
-    data.fill_blank.forEach((q, index) => {
-
-        console.log(q);
-
-        container.innerHTML += `
-            <div style="border:1px solid #ccc;padding:15px;margin:15px;border-radius:10px;background:white;color:black;">
+        questions.innerHTML += `
+            <div class="card setting-card fill-card" data-answer="${q.answer}">
                 <h3>問題 ${index + 1}</h3>
+
                 <p>${q.question}</p>
 
                 <input
-                    id="answer_${index}"
+                    class="fill-answer"
                     type="text"
-                    placeholder="答えを入力"
-                    style="padding:10px;width:100%;max-width:300px;">
+                    placeholder="答えを入力">
 
                 <br><br>
 
-                <button
-                    onclick="
-                        const userAnswer = document.getElementById('answer_${index}').value.trim();
-                        const correctAnswer = '${q.answer}';
-                        const result = document.getElementById('result_${index}');
-
-                        if (userAnswer === correctAnswer) {
-                            result.textContent = '⭕ 正解！';
-                            result.style.color = 'green';
-                        } else {
-                            result.textContent = '❌ 不正解。正解：' + correctAnswer;
-                            result.style.color = 'red';
-                        }
-                    ">
+                <button class="btn btn-primary check-fill">
                     判定
                 </button>
 
-                <p id="result_${index}"></p>
+                <p class="fill-result"></p>
             </div>
         `;
 
@@ -95,6 +94,23 @@ async function loadQuestions() {
 
 }
 
-loadQuestions().finally(() => {
-    document.body.classList.remove("page-loading");
+document.addEventListener("click", (e) => {
+
+    if (!e.target.classList.contains("check-fill")) return;
+
+    const card = e.target.closest(".fill-card");
+    const input = card.querySelector(".fill-answer");
+    const result = card.querySelector(".fill-result");
+
+    const userAnswer = input.value.trim();
+    const correctAnswer = card.dataset.answer;
+
+    if (userAnswer === correctAnswer) {
+        result.textContent = "⭕ 正解！";
+        result.style.color = "green";
+    } else {
+        result.textContent = `❌ 不正解。正解：${correctAnswer}`;
+        result.style.color = "red";
+    }
+
 });
