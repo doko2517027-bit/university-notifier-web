@@ -7,6 +7,10 @@ import {
     getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import {
+    getStorage
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
     authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -19,6 +23,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export const studentNumber =
     localStorage.getItem("studentNumber");

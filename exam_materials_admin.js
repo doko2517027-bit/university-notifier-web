@@ -18,6 +18,12 @@ import {
     orderBy
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import {
+    ref,
+    uploadBytes,
+    getDownloadURL
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+
 const params = new URLSearchParams(location.search);
 
 const subjectId = params.get("subjectId");
@@ -108,6 +114,14 @@ async function loadMaterials() {
                     <small>${material.type || ""}</small>
                 </p>
 
+                ${material.url ? `
+                <p>
+                    <a href="${material.url}" target="_blank">
+                        📄 資料を開く
+                    </a>
+                </p>
+                ` : ""}
+
                 <button
                     class="btn btn-danger delete-material"
                     data-id="${materialDoc.id}">
@@ -130,29 +144,61 @@ uploadMaterial.onclick = async () => {
         return;
     }
 
-    await addDoc(
-        collection(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "materials"
-        ),
-        {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            createdAt: new Date(),
-            createdBy: studentNumber
-        }
-    );
+    try {
 
-    materialFile.value = "";
+        const formData = new FormData();
 
-    await loadMaterials();
+        formData.append("file", file);
+        formData.append("upload_preset", "caremate_upload");
 
-    alert("資料情報を登録しました。次にファイルアップロード本体を実装します。");
+        const resourceType =
+            file.type === "application/pdf"
+                ? "raw"
+                : "auto";
+
+        const res = await fetch(
+            `https://api.cloudinary.com/v1_1/vpctonjf/${resourceType}/upload`,
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await res.json();
+
+        await addDoc(
+            collection(
+                db,
+                "examSubjects",
+                subjectId,
+                "units",
+                unitId,
+                "materials"
+            ),
+            {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                url: data.secure_url,
+                publicId: data.public_id,
+                createdAt: new Date(),
+                createdBy: studentNumber
+            }
+        );
+
+        materialFile.value = "";
+
+        await loadMaterials();
+
+        alert("アップロード完了");
+
+    } catch (e) {
+
+        console.error(e);
+
+        alert("アップロード失敗");
+
+    }
 
 };
 
