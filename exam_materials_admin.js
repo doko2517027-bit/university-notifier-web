@@ -267,7 +267,9 @@ generateAiQuestions.onclick = async () => {
 
         const data = await res.json();
 
-        alert(data.message);
+        console.log("AI生成結果", data);
+
+        alert("AI生成できました。コンソールを確認してください。");
 
     } catch (e) {
 
