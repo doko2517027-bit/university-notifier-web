@@ -18,11 +18,7 @@ import {
     orderBy
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import {
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+const AI_SERVER = "https://caremate-ai-server.onrender.com";
 
 const params = new URLSearchParams(location.search);
 
@@ -254,6 +250,31 @@ generateAiQuestions.onclick = async () => {
 
     console.log("AIに送る資料", materials);
 
-    alert(`${materials.length}件の資料を取得できました。次にAI生成へ進みます。`);
+    try {
+
+        const res = await fetch(
+            `${AI_SERVER}/api/generate-exam`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    url: materials[0].url
+                })
+            }
+        );
+
+        const data = await res.json();
+
+        alert(data.message);
+
+    } catch (e) {
+
+        console.error(e);
+
+        alert("AIサーバーへ接続できませんでした。");
+
+    }
 
 };
