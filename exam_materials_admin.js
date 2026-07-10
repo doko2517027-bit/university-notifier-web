@@ -15,7 +15,8 @@ import {
     addDoc,
     deleteDoc,
     query,
-    orderBy
+    orderBy,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const AI_SERVER = "https://caremate-ai-server.onrender.com";
@@ -267,9 +268,33 @@ generateAiQuestions.onclick = async () => {
 
         const data = await res.json();
 
-        console.log("AI生成結果", data);
+        const generated =
+            typeof data === "string"
+                ? JSON.parse(data)
+                : data;
 
-        alert("AI生成できました。コンソールを確認してください。");
+        console.log("AI生成結果", generated);
+
+        await setDoc(
+            doc(
+                db,
+                "examSubjects",
+                subjectId,
+                "units",
+                unitId,
+                "ai",
+                "generated"
+            ),
+            {
+                ...generated,
+                generatedAt: new Date(),
+                generatedBy: studentNumber,
+                sourceMaterialUrl: materials[0].url,
+                sourceMaterialName: materials[0].name
+            }
+        );
+
+        alert("AI生成結果を保存しました。");
 
     } catch (e) {
 
