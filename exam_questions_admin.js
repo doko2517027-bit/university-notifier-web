@@ -362,25 +362,25 @@ saveEditedQuestions.onclick = async () => {
             .filter(text => text !== "");
 
     const fill_blank =
-        (current.fill_blank || [])
-            .map((item, index) => {
+    (current.fill_blank || [])
+        .map((item, index) => {
 
             const question =
-                document
-                    .querySelector(`.edit-fill-question[data-index="${index}"]`)
+                card
+                    .querySelector(".edit-fill-question")
                     .value
                     .trim();
 
             const answer =
-                document
-                    .querySelector(`.edit-fill-answer[data-index="${index}"]`)
+                card
+                    .querySelector(".edit-fill-answer")
                     .value
                     .trim();
 
             const answers = [];
 
-            document
-                .querySelectorAll(`.edit-fill-answer-box[data-index="${index}"]`)
+            card
+                .querySelectorAll(".edit-fill-answer-box")
                 .forEach(input => {
                     const value = input.value.trim();
 
