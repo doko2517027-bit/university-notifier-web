@@ -270,39 +270,53 @@ publishQuestions.onclick = async () => {
 
     if (!confirm("この問題を学生へ公開しますか？")) return;
 
-    const aiSnap = await getDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "generated"
-        )
-    );
-
-    if (!aiSnap.exists()) {
-        alert("AI生成結果がありません。");
-        return;
-    }
-
-    await setDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "publishedQuestions",
-            "published"
-        ),
-        {
-            ...aiSnap.data(),
-            publishedAt: new Date(),
-            publishedBy: studentNumber
-        }
-    );
+    const editedRef = doc(
+	    db,
+	    "examSubjects",
+	    subjectId,
+	    "units",
+	    unitId,
+	    "ai",
+	    "edited"
+	);
+	
+	const generatedRef = doc(
+	    db,
+	    "examSubjects",
+	    subjectId,
+	    "units",
+	    unitId,
+	    "ai",
+	    "generated"
+	);
+	
+	let sourceSnap = await getDoc(editedRef);
+	
+	if (!sourceSnap.exists()) {
+	    sourceSnap = await getDoc(generatedRef);
+	}
+	
+	if (!sourceSnap.exists()) {
+	    alert("AI生成結果がありません。");
+	    return;
+	}
+	
+	await setDoc(
+	    doc(
+	        db,
+	        "examSubjects",
+	        subjectId,
+	        "units",
+	        unitId,
+	        "publishedQuestions",
+	        "published"
+	    ),
+	    {
+	        ...sourceSnap.data(),
+	        publishedAt: new Date(),
+	        publishedBy: studentNumber
+	    }
+	);
 
     alert("公開しました。");
 
@@ -313,16 +327,16 @@ saveEditedQuestions.onclick = async () => {
     if (!confirm("編集内容を保存しますか？")) return;
 
     const aiSnap = await getDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "edited"
-        )
-    );
+	    doc(
+	        db,
+	        "examSubjects",
+	        subjectId,
+	        "units",
+	        unitId,
+	        "ai",
+	        "edited"
+	    )
+	);
 
     if (!aiSnap.exists()) {
         alert("AI生成結果がありません。");
