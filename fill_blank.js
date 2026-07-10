@@ -26,7 +26,7 @@ await initializePage([
 ]);
 
 document.getElementById("backButton").onclick = () => {
-    history.back();
+    location.href = "exam.html";
 };
 
 document.getElementById("profileButton").onclick = () => {
