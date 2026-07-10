@@ -66,7 +66,9 @@ async function loadQuestions() {
         `;
 
     });
-    
+
 }
 
-loadQuestions();
+loadQuestions().finally(() => {
+    document.body.classList.remove("page-loading");
+});
