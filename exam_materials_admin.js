@@ -246,4 +246,14 @@ generateAiQuestions.onclick = async () => {
         return;
     }
 
-    const materials =
+    const materials = [];
+
+    snap.forEach(doc => {
+        materials.push(doc.data());
+    });
+
+    console.log("AIに送る資料", materials);
+
+    alert(`${materials.length}件の資料を取得できました。次にAI生成へ進みます。`);
+
+};
