@@ -302,7 +302,7 @@ document.addEventListener("click", async (e) => {
             return;
         }
 
-        await addDoc(
+        const unitRef = await addDoc(
             collection(
                 db,
                 "examSubjects",
@@ -312,6 +312,27 @@ document.addEventListener("click", async (e) => {
             {
                 name,
                 range,
+                createdAt: new Date(),
+                createdBy: studentNumber
+            }
+        );
+
+        await setDoc(
+            doc(
+                db,
+                "examSubjects",
+                subjectId,
+                "units",
+                unitRef.id,
+                "features",
+                "menu"
+            ),
+            {
+                daily_question: true,
+                fill_blank: true,
+                quiz: true,
+                must_remember: true,
+                weakness: true,
                 createdAt: new Date(),
                 createdBy: studentNumber
             }
