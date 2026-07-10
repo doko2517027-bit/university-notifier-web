@@ -212,13 +212,6 @@ async function loadSubjects() {
 
                     <br><br>
 
-                    <button
-                        class="btn btn-primary generate-ai"
-                        data-subject-id="${subjectDoc.id}"
-                        data-unit-id="${unitDoc.id}">
-                        🤖 AI生成
-                    </button>
-
                     <br><br>
 
                     <button
@@ -390,15 +383,6 @@ document.addEventListener("click", async (e) => {
 
         location.href =
             `exam_questions_admin.html?subjectId=${subjectId}&unitId=${unitId}`;
-
-        return;
-
-    }
-
-    // AI生成
-    if (e.target.classList.contains("generate-ai")) {
-
-        alert("AI生成は次に実装します。");
 
         return;
 
