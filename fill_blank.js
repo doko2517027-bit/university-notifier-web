@@ -1,22 +1,48 @@
 import {
-    setupTheme,
-    initializePage,
-    loadProfileImage
-} from "./common.js";
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 
-const themeButton = document.getElementById("themeButton");
-const topProfileImage = document.getElementById("topProfileImage");
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-setupTheme(themeButton);
-
-await initializePage([
-    loadProfileImage(topProfileImage)
-]);
-
-document.getElementById("backButton").onclick = () => {
-    history.back();
+const firebaseConfig = {
+  // ここは他のJSと同じ設定をそのまま貼る
 };
 
-document.getElementById("profileButton").onclick = () => {
-    location.href = "profile.html";
-};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const params = new URLSearchParams(location.search);
+
+const subjectId = params.get("subjectId");
+const unitId = params.get("unitId");
+
+async function loadQuestions() {
+
+    const ref = doc(
+        db,
+        "examSubjects",
+        subjectId,
+        "units",
+        unitId,
+        "ai",
+        "generated"
+    );
+
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        alert("AI問題がありません");
+        return;
+    }
+
+    const data = snap.data();
+
+    console.log(data);
+
+}
+
+loadQuestions();
