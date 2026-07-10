@@ -152,18 +152,36 @@ function renderQuestions(data) {
 
         <div class="card setting-card">
             <h3>📝 穴埋め</h3>
-            ${fillBlank.length
-                ? fillBlank.map((item, index) => renderFillBlankItem(item, index)).join("")
-                : "<p>穴埋め問題はありません。</p>"
-            }
+
+            <button class="btn btn-secondary" id="addFillBlank">
+                ＋ 穴埋め問題を追加
+            </button>
+
+            <br><br>
+
+            <div id="fillBlankList">
+                ${fillBlank.length
+                    ? fillBlank.map((item, index) => renderFillBlankItem(item, index)).join("")
+                    : "<p>穴埋め問題はありません。</p>"
+                }
+            </div>
         </div>
 
         <div class="card setting-card">
             <h3>🧠 四択</h3>
-            ${quiz.length
-                ? quiz.map((item, index) => renderQuizItem(item, index)).join("")
-                : "<p>四択問題はありません。</p>"
-            }
+
+            <button class="btn btn-secondary" id="addQuiz">
+                ＋ 四択問題を追加
+            </button>
+
+            <br><br>
+
+            <div id="quizList">
+                ${quiz.length
+                    ? quiz.map((item, index) => renderQuizItem(item, index)).join("")
+                    : "<p>四択問題はありません。</p>"
+                }
+            </div>
         </div>
     `;
 }
@@ -372,14 +390,8 @@ saveEditedQuestions.onclick = async () => {
             .filter(text => text !== "");
 
     const fill_blank =
-        (current.fill_blank || [])
-            .map((item, index) => {
-
-                const card = document.querySelector(
-                    `.fill-edit-card[data-index="${index}"]`
-                );
-
-                if (!card) return null;
+        Array.from(document.querySelectorAll(".fill-edit-card"))
+            .map((card) => {
 
                 const question =
                     card
@@ -406,25 +418,21 @@ saveEditedQuestions.onclick = async () => {
                     });
 
                 return {
-                    ...item,
                     question,
                     answer,
                     answers
                 };
 
             })
-            .filter(item => item !== null);
+            .filter(item => item.question !== "");
 
         const quiz =
-            (current.quiz || [])
-                .map((item, index) => {
+            Array.from(
+                document.querySelectorAll(".edit-quiz-question[data-index]:not([data-index='today'])")
+            )
+                .map((questionInput) => {
 
-                    const questionInput =
-                        document.querySelector(
-                            `.edit-quiz-question[data-index="${index}"]`
-                        );
-
-                    if (!questionInput) return null;
+                    const index = questionInput.dataset.index;
 
                     const question =
                         questionInput.value.trim();
@@ -451,7 +459,6 @@ saveEditedQuestions.onclick = async () => {
                             .trim();
 
                     return {
-                        ...item,
                         question,
                         choices,
                         answer,
@@ -459,7 +466,7 @@ saveEditedQuestions.onclick = async () => {
                     };
 
                 })
-                .filter(item => item !== null);
+                .filter(item => item.question !== "");
 
     let today_question = current.today_question || null;
 
@@ -531,6 +538,51 @@ saveEditedQuestions.onclick = async () => {
 };
 
 document.addEventListener("click", (e) => {
+
+    if (e.target.id === "addFillBlank") {
+
+        const list = document.getElementById("fillBlankList");
+
+        const index =
+            document.querySelectorAll(".fill-edit-card").length;
+
+        list.insertAdjacentHTML(
+            "beforeend",
+            renderFillBlankItem(
+                {
+                    question: "",
+                    answer: "",
+                    answers: [""]
+                },
+                index
+            )
+        );
+
+        return;
+    }
+
+    if (e.target.id === "addQuiz") {
+
+        const list = document.getElementById("quizList");
+
+        const index =
+            document.querySelectorAll(".edit-quiz-question[data-index]:not([data-index='today'])").length;
+
+        list.insertAdjacentHTML(
+            "beforeend",
+            renderQuizItem(
+                {
+                    question: "",
+                    choices: ["", "", "", ""],
+                    answer: 0,
+                    explanation: ""
+                },
+                index
+            )
+        );
+
+        return;
+    }
 
     if (e.target.classList.contains("add-fill-answer-box")) {
 
