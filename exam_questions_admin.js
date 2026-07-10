@@ -516,27 +516,42 @@ saveEditedQuestions.onclick = async () => {
 
 document.addEventListener("click", (e) => {
 
-    if (!e.target.classList.contains("add-fill-answer-box")) return;
+    if (e.target.classList.contains("add-fill-answer-box")) {
 
-    const index = e.target.dataset.index;
+        const index = e.target.dataset.index;
 
-    const area =
-        document.querySelector(`.fill-answers-area[data-index="${index}"]`);
+        const area =
+            document.querySelector(`.fill-answers-area[data-index="${index}"]`);
 
-    const count =
-        area.querySelectorAll(".edit-fill-answer-box").length;
+        const count =
+            area.querySelectorAll(".edit-fill-answer-box").length;
 
-    area.insertAdjacentHTML(
-        "beforeend",
-        `
-        <input
-            class="edit-fill-answer-box"
-            data-index="${index}"
-            data-answer-index="${count}"
-            value=""
-            placeholder="解答 ${count + 1}">
-        <br><br>
-        `
-    );
+        area.insertAdjacentHTML(
+            "beforeend",
+            `
+            <input
+                class="edit-fill-answer-box"
+                data-index="${index}"
+                data-answer-index="${count}"
+                value=""
+                placeholder="解答 ${count + 1}">
+            <br><br>
+            `
+        );
+
+        return;
+    }
+
+    if (e.target.classList.contains("delete-fill")) {
+
+        if (!confirm("この穴埋め問題を削除しますか？")) return;
+
+        const card =
+            e.target.closest(".fill-edit-card");
+
+        card.remove();
+
+        return;
+    }
 
 });
