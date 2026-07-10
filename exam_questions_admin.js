@@ -404,13 +404,8 @@ saveEditedQuestions.onclick = async () => {
 
             })
             .filter(item => item !== null);
+
         (current.quiz || []).map((item, index) => {
-
-            const card = document.querySelector(
-                `.fill-edit-card[data-index="${index}"]`
-            );
-
-            if (!card) return null;
 
             const question =
                 document
