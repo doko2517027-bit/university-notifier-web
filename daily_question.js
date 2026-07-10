@@ -13,6 +13,9 @@ import {
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const questionArea = document.getElementById("questionArea");
+const params = new URLSearchParams(location.search);
+const subjectId = params.get("subjectId");
+const unitId = params.get("unitId");
 
 setupTheme(themeButton);
 
@@ -30,9 +33,6 @@ document.getElementById("profileButton").onclick = () => {
 };
 
 async function loadDailyQuestion() {
-
-    const subjectId = prompt("科目IDを入力してください");
-    const unitId = prompt("単元IDを入力してください");
 
     if (!subjectId || !unitId) {
         questionArea.innerHTML = "科目IDまたは単元IDがありません。";
