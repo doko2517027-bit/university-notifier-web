@@ -47,8 +47,8 @@ async function loadRemember() {
             subjectId,
             "units",
             unitId,
-            "ai",
-            "generated"
+            "publishedQuestions",
+            "published"
         )
     );
 

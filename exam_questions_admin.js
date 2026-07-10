@@ -66,27 +66,55 @@ async function loadQuestions() {
     unitInfo.textContent =
         `${subjectSnap.data().name} / ${unitSnap.data().name}`;
 
-    const aiSnap = await getDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "generated"
-        )
+    const editedRef = doc(
+        db,
+        "examSubjects",
+        subjectId,
+        "units",
+        unitId,
+        "ai",
+        "edited"
     );
 
-    if (!aiSnap.exists()) {
+    const generatedRef = doc(
+        db,
+        "examSubjects",
+        subjectId,
+        "units",
+        unitId,
+        "ai",
+        "generated"
+    );
+
+    const editedSnap = await getDoc(editedRef);
+
+    if (editedSnap.exists()) {
+        renderQuestions(editedSnap.data());
+        return;
+    }
+
+    const generatedSnap = await getDoc(generatedRef);
+
+    if (!generatedSnap.exists()) {
         questionList.innerHTML =
             "AI生成結果はまだありません。";
         return;
     }
 
-    const data = aiSnap.data();
+    await setDoc(
+        editedRef,
+        {
+            ...generatedSnap.data(),
+            editedCreatedAt: new Date(),
+            editedCreatedBy: studentNumber
+        }
+    );
 
-    renderQuestions(data);
+    renderQuestions({
+        ...generatedSnap.data(),
+        editedCreatedAt: new Date(),
+        editedCreatedBy: studentNumber
+    });
 }
 
 function renderQuestions(data) {
@@ -157,6 +185,15 @@ function renderFillBlankItem(item, index) {
                 class="edit-fill-answer"
                 data-index="${index}"
                 value="${item.answer || ""}">
+
+            <br><br>
+
+            <button
+                class="btn btn-danger delete-fill"
+                data-index="${index}">
+                🗑 この穴埋め問題を削除
+            </button>
+
         </div>
     `;
 }
@@ -234,7 +271,7 @@ publishQuestions.onclick = async () => {
             "units",
             unitId,
             "publishedQuestions",
-            "generated"
+            "published"
         ),
         {
             ...aiSnap.data(),
@@ -259,7 +296,7 @@ saveEditedQuestions.onclick = async () => {
             "units",
             unitId,
             "ai",
-            "generated"
+            "edited"
         )
     );
 
@@ -398,7 +435,7 @@ saveEditedQuestions.onclick = async () => {
             "units",
             unitId,
             "ai",
-            "generated"
+            "edited"
         ),
         {
             ...current,

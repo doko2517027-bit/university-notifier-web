@@ -47,8 +47,8 @@ async function loadQuestions() {
             subjectId,
             "units",
             unitId,
-            "ai",
-            "generated"
+            "publishedQuestions",
+            "published"
         )
     );
 

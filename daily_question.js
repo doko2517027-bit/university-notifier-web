@@ -46,8 +46,8 @@ async function loadDailyQuestion() {
             subjectId,
             "units",
             unitId,
-            "ai",
-            "generated"
+            "publishedQuestions",
+            "published"
         )
     );
 
