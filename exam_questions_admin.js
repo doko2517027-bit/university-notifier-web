@@ -170,8 +170,13 @@ function renderQuestions(data) {
 
 function renderFillBlankItem(item, index) {
 
+    const answers =
+        item.answers && item.answers.length > 0
+            ? item.answers
+            : [item.answer || ""];
+
     return `
-        <div class="card setting-card">
+        <div class="card setting-card fill-edit-card" data-index="${index}">
             <p><b>問題 ${index + 1}</b></p>
 
             <p>問題文</p>
@@ -180,11 +185,31 @@ function renderFillBlankItem(item, index) {
                 data-index="${index}"
                 rows="3">${item.question || ""}</textarea>
 
-            <p>答え</p>
+            <p>模範解答表示</p>
             <input
                 class="edit-fill-answer"
                 data-index="${index}"
-                value="${item.answer || ""}">
+                value="${item.answer || answers.join("・")}">
+
+            <p>解答ボックス</p>
+
+            <div class="fill-answers-area" data-index="${index}">
+                ${answers.map((answer, answerIndex) => `
+                    <input
+                        class="edit-fill-answer-box"
+                        data-index="${index}"
+                        data-answer-index="${answerIndex}"
+                        value="${answer}"
+                        placeholder="解答 ${answerIndex + 1}">
+                    <br><br>
+                `).join("")}
+            </div>
+
+            <button
+                class="btn btn-secondary add-fill-answer-box"
+                data-index="${index}">
+                ＋ 解答ボックスを追加
+            </button>
 
             <br><br>
 
@@ -193,7 +218,6 @@ function renderFillBlankItem(item, index) {
                 data-index="${index}">
                 🗑 この穴埋め問題を削除
             </button>
-
         </div>
     `;
 }
@@ -338,10 +362,23 @@ saveEditedQuestions.onclick = async () => {
                     .value
                     .trim();
 
+            const answers = [];
+
+            document
+                .querySelectorAll(`.edit-fill-answer-box[data-index="${index}"]`)
+                .forEach(input => {
+                    const value = input.value.trim();
+
+                    if (value !== "") {
+                        answers.push(value);
+                    }
+                });
+
             return {
                 ...item,
                 question,
-                answer
+                answer,
+                answers
             };
 
         });
@@ -454,3 +491,30 @@ saveEditedQuestions.onclick = async () => {
     await loadQuestions();
 
 };
+
+document.addEventListener("click", (e) => {
+
+    if (!e.target.classList.contains("add-fill-answer-box")) return;
+
+    const index = e.target.dataset.index;
+
+    const area =
+        document.querySelector(`.fill-answers-area[data-index="${index}"]`);
+
+    const count =
+        area.querySelectorAll(".edit-fill-answer-box").length;
+
+    area.insertAdjacentHTML(
+        "beforeend",
+        `
+        <input
+            class="edit-fill-answer-box"
+            data-index="${index}"
+            data-answer-index="${count}"
+            value=""
+            placeholder="解答 ${count + 1}">
+        <br><br>
+        `
+    );
+
+});
