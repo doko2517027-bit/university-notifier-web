@@ -50,21 +50,23 @@ async function loadQuestions() {
 
     const container = document.getElementById("questions");
 
+    console.log(container);
+    console.log(data.fill_blank);
+
     data.fill_blank.forEach((q, index) => {
 
+        console.log(q);
+
         container.innerHTML += `
-            <div style="border:1px solid #ccc;padding:15px;margin:15px;border-radius:10px;">
+            <div style="border:1px solid #ccc;padding:15px;margin:15px;border-radius:10px;background:white;color:black;">
                 <h3>問題 ${index + 1}</h3>
                 <p>${q.question}</p>
-
-                <button onclick="alert('${q.answer}')">
-                    答えを見る
-                </button>
+                <button>答え：${q.answer}</button>
             </div>
         `;
 
     });
-
+    
 }
 
 loadQuestions();
