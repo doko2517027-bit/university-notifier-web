@@ -23,6 +23,7 @@ const topProfileImage = document.getElementById("topProfileImage");
 const unitInfo = document.getElementById("unitInfo");
 const questionList = document.getElementById("questionList");
 const publishQuestions = document.getElementById("publishQuestions");
+const saveEditedQuestions = document.getElementById("saveEditedQuestions");
 
 setupTheme(themeButton);
 
@@ -99,18 +100,18 @@ function renderQuestions(data) {
     questionList.innerHTML = `
         <div class="card setting-card">
             <h3>📌 要約</h3>
-            ${summary.length
-                ? `<ul>${summary.map(item => `<li>${item}</li>`).join("")}</ul>`
-                : "<p>要約はありません。</p>"
-            }
+
+            <textarea
+                id="editSummary"
+                rows="6">${summary.join("\n")}</textarea>
         </div>
 
         <div class="card setting-card">
             <h3>⭐ 重要ポイント</h3>
-            ${importantPoints.length
-                ? `<ul>${importantPoints.map(item => `<li>${item}</li>`).join("")}</ul>`
-                : "<p>重要ポイントはありません。</p>"
-            }
+
+            <textarea
+                id="editImportantPoints"
+                rows="6">${importantPoints.join("\n")}</textarea>
         </div>
 
         <div class="card setting-card">
@@ -144,25 +145,62 @@ function renderFillBlankItem(item, index) {
     return `
         <div class="card setting-card">
             <p><b>問題 ${index + 1}</b></p>
-            <p>${item.question || ""}</p>
-            <p><b>答え：</b>${item.answer || ""}</p>
+
+            <p>問題文</p>
+            <textarea
+                class="edit-fill-question"
+                data-index="${index}"
+                rows="3">${item.question || ""}</textarea>
+
+            <p>答え</p>
+            <input
+                class="edit-fill-answer"
+                data-index="${index}"
+                value="${item.answer || ""}">
         </div>
     `;
 }
 
 function renderQuizItem(item, index = null) {
 
+    const quizIndex =
+        index !== null ? index : "today";
+
     return `
         <div class="card setting-card">
             ${index !== null ? `<p><b>問題 ${index + 1}</b></p>` : ""}
-            <p>${item.question || ""}</p>
 
-            <ol>
-                ${(item.choices || []).map(choice => `<li>${choice}</li>`).join("")}
-            </ol>
+            <p>問題文</p>
+            <textarea
+                class="edit-quiz-question"
+                data-index="${quizIndex}"
+                rows="3">${item.question || ""}</textarea>
 
-            <p><b>正解：</b>${Number(item.answer) + 1}</p>
-            <p><b>解説：</b>${item.explanation || ""}</p>
+            <p>選択肢</p>
+
+            ${(item.choices || []).map((choice, choiceIndex) => `
+                <input
+                    class="edit-quiz-choice"
+                    data-index="${quizIndex}"
+                    data-choice-index="${choiceIndex}"
+                    value="${choice}">
+                <br><br>
+            `).join("")}
+
+            <p>正解番号</p>
+            <input
+                class="edit-quiz-answer"
+                data-index="${quizIndex}"
+                type="number"
+                min="1"
+                max="4"
+                value="${Number(item.answer) + 1}">
+
+            <p>解説</p>
+            <textarea
+                class="edit-quiz-explanation"
+                data-index="${quizIndex}"
+                rows="3">${item.explanation || ""}</textarea>
         </div>
     `;
 }
@@ -206,5 +244,176 @@ publishQuestions.onclick = async () => {
     );
 
     alert("公開しました。");
+
+};
+
+saveEditedQuestions.onclick = async () => {
+
+    if (!confirm("編集内容を保存しますか？")) return;
+
+    const aiSnap = await getDoc(
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        )
+    );
+
+    if (!aiSnap.exists()) {
+        alert("AI生成結果がありません。");
+        return;
+    }
+
+    const current = aiSnap.data();
+
+    const summary =
+        document
+            .getElementById("editSummary")
+            .value
+            .split("\n")
+            .map(text => text.trim())
+            .filter(text => text !== "");
+
+    const important_points =
+        document
+            .getElementById("editImportantPoints")
+            .value
+            .split("\n")
+            .map(text => text.trim())
+            .filter(text => text !== "");
+
+    const fill_blank =
+        (current.fill_blank || []).map((item, index) => {
+
+            const question =
+                document
+                    .querySelector(`.edit-fill-question[data-index="${index}"]`)
+                    .value
+                    .trim();
+
+            const answer =
+                document
+                    .querySelector(`.edit-fill-answer[data-index="${index}"]`)
+                    .value
+                    .trim();
+
+            return {
+                ...item,
+                question,
+                answer
+            };
+
+        });
+
+    const quiz =
+        (current.quiz || []).map((item, index) => {
+
+            const question =
+                document
+                    .querySelector(`.edit-quiz-question[data-index="${index}"]`)
+                    .value
+                    .trim();
+
+            const choices = [];
+
+            document
+                .querySelectorAll(`.edit-quiz-choice[data-index="${index}"]`)
+                .forEach(input => {
+                    choices.push(input.value.trim());
+                });
+
+            const answer =
+                Number(
+                    document
+                        .querySelector(`.edit-quiz-answer[data-index="${index}"]`)
+                        .value
+                ) - 1;
+
+            const explanation =
+                document
+                    .querySelector(`.edit-quiz-explanation[data-index="${index}"]`)
+                    .value
+                    .trim();
+
+            return {
+                ...item,
+                question,
+                choices,
+                answer,
+                explanation
+            };
+
+        });
+
+    let today_question = current.today_question || null;
+
+    if (today_question) {
+
+        const question =
+            document
+                .querySelector(`.edit-quiz-question[data-index="today"]`)
+                .value
+                .trim();
+
+        const choices = [];
+
+        document
+            .querySelectorAll(`.edit-quiz-choice[data-index="today"]`)
+            .forEach(input => {
+                choices.push(input.value.trim());
+            });
+
+        const answer =
+            Number(
+                document
+                    .querySelector(`.edit-quiz-answer[data-index="today"]`)
+                    .value
+            ) - 1;
+
+        const explanation =
+            document
+                .querySelector(`.edit-quiz-explanation[data-index="today"]`)
+                .value
+                .trim();
+
+        today_question = {
+            ...today_question,
+            question,
+            choices,
+            answer,
+            explanation
+        };
+
+    }
+
+    await setDoc(
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        ),
+        {
+            ...current,
+            summary,
+            important_points,
+            fill_blank,
+            quiz,
+            today_question,
+            editedAt: new Date(),
+            editedBy: studentNumber
+        }
+    );
+
+    alert("編集内容を保存しました。");
+
+    await loadQuestions();
 
 };
