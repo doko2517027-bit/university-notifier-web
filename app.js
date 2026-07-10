@@ -268,6 +268,19 @@ document.addEventListener("visibilitychange", () => {
 
 });
 
+const aiCard =
+document.getElementById("aiCard");
+
+if (aiCard) {
+
+    aiCard.onclick = () => {
+
+        location.href = "ai_test.html";
+
+    };
+
+}
+
 weatherCard.onclick = () => {
 
     location.href =
