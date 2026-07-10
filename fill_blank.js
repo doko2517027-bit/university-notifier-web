@@ -48,6 +48,23 @@ async function loadQuestions() {
 
     console.log(data);
 
+    const container = document.getElementById("questions");
+
+    data.fill_blank.forEach((q, index) => {
+
+        container.innerHTML += `
+            <div style="border:1px solid #ccc;padding:15px;margin:15px;border-radius:10px;">
+                <h3>問題 ${index + 1}</h3>
+                <p>${q.question}</p>
+
+                <button onclick="alert('${q.answer}')">
+                    答えを見る
+                </button>
+            </div>
+        `;
+
+    });
+
 }
 
 loadQuestions();
