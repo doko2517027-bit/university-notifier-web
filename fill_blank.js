@@ -61,7 +61,33 @@ async function loadQuestions() {
             <div style="border:1px solid #ccc;padding:15px;margin:15px;border-radius:10px;background:white;color:black;">
                 <h3>問題 ${index + 1}</h3>
                 <p>${q.question}</p>
-                <button>答え：${q.answer}</button>
+
+                <input
+                    id="answer_${index}"
+                    type="text"
+                    placeholder="答えを入力"
+                    style="padding:10px;width:100%;max-width:300px;">
+
+                <br><br>
+
+                <button
+                    onclick="
+                        const userAnswer = document.getElementById('answer_${index}').value.trim();
+                        const correctAnswer = '${q.answer}';
+                        const result = document.getElementById('result_${index}');
+
+                        if (userAnswer === correctAnswer) {
+                            result.textContent = '⭕ 正解！';
+                            result.style.color = 'green';
+                        } else {
+                            result.textContent = '❌ 不正解。正解：' + correctAnswer;
+                            result.style.color = 'red';
+                        }
+                    ">
+                    判定
+                </button>
+
+                <p id="result_${index}"></p>
             </div>
         `;
 
