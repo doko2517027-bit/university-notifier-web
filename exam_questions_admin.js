@@ -153,28 +153,23 @@ function renderQuestions(data) {
         <div class="card setting-card">
             <h3>📝 穴埋め</h3>
 
-            <button class="btn btn-secondary" id="addFillBlank">
-                ＋ 穴埋め問題を追加
-            </button>
-
-            <br><br>
-
             <div id="fillBlankList">
                 ${fillBlank.length
                     ? fillBlank.map((item, index) => renderFillBlankItem(item, index)).join("")
                     : "<p>穴埋め問題はありません。</p>"
                 }
             </div>
+
+            <br>
+
+            <button class="btn btn-secondary" id="addFillBlank">
+                ＋ 穴埋め問題を追加
+            </button>
+
         </div>
 
         <div class="card setting-card">
             <h3>🧠 四択</h3>
-
-            <button class="btn btn-secondary" id="addQuiz">
-                ＋ 四択問題を追加
-            </button>
-
-            <br><br>
 
             <div id="quizList">
                 ${quiz.length
@@ -182,6 +177,13 @@ function renderQuestions(data) {
                     : "<p>四択問題はありません。</p>"
                 }
             </div>
+
+            <br>
+
+            <button class="btn btn-secondary" id="addQuiz">
+                ＋ 四択問題を追加
+            </button>
+
         </div>
     `;
 }
@@ -255,16 +257,6 @@ function renderQuizItem(item, index = null) {
                 data-index="${quizIndex}"
                 rows="3">${item.question || ""}</textarea>
 
-            ${index !== null ? `
-                <br><br>
-
-                <button
-                    class="btn btn-danger delete-quiz"
-                    data-index="${index}">
-                    🗑 この四択問題を削除
-                </button>
-            ` : ""}
-
             <p>選択肢</p>
 
             ${(item.choices || []).map((choice, choiceIndex) => `
@@ -290,6 +282,16 @@ function renderQuizItem(item, index = null) {
                 class="edit-quiz-explanation"
                 data-index="${quizIndex}"
                 rows="3">${item.explanation || ""}</textarea>
+
+            ${index !== null ? `
+                <br><br>
+
+                <button
+                    class="btn btn-danger delete-quiz"
+                    data-index="${index}">
+                    🗑 この四択問題を削除
+                </button>
+            ` : ""}
         </div>
     `;
 }
