@@ -362,44 +362,48 @@ saveEditedQuestions.onclick = async () => {
             .filter(text => text !== "");
 
     const fill_blank =
-    (current.fill_blank || [])
-        .map((item, index) => {
+        (current.fill_blank || [])
+            .map((item, index) => {
 
-            const question =
+                const card = document.querySelector(
+                    `.fill-edit-card[data-index="${index}"]`
+                );
+
+                if (!card) return null;
+
+                const question =
+                    card
+                        .querySelector(".edit-fill-question")
+                        .value
+                        .trim();
+
+                const answer =
+                    card
+                        .querySelector(".edit-fill-answer")
+                        .value
+                        .trim();
+
+                const answers = [];
+
                 card
-                    .querySelector(".edit-fill-question")
-                    .value
-                    .trim();
+                    .querySelectorAll(".edit-fill-answer-box")
+                    .forEach(input => {
+                        const value = input.value.trim();
 
-            const answer =
-                card
-                    .querySelector(".edit-fill-answer")
-                    .value
-                    .trim();
+                        if (value !== "") {
+                            answers.push(value);
+                        }
+                    });
 
-            const answers = [];
+                return {
+                    ...item,
+                    question,
+                    answer,
+                    answers
+                };
 
-            card
-                .querySelectorAll(".edit-fill-answer-box")
-                .forEach(input => {
-                    const value = input.value.trim();
-
-                    if (value !== "") {
-                        answers.push(value);
-                    }
-                });
-
-            return {
-                ...item,
-                question,
-                answer,
-                answers
-            };
-
-        })
-        .filter(item => item !== null);
-
-    const quiz =
+            })
+            .filter(item => item !== null);
         (current.quiz || []).map((item, index) => {
 
             const card = document.querySelector(
