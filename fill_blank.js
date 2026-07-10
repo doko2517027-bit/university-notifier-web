@@ -20,18 +20,18 @@ const unitId = params.get("unitId");
 
 setupTheme(themeButton);
 
-await initializePage([
-    loadProfileImage(topProfileImage),
-    loadQuestions()
-]);
-
 document.getElementById("backButton").onclick = () => {
-    location.href = "exam.html";
+    history.back();
 };
 
 document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
 };
+
+await initializePage([
+    loadProfileImage(topProfileImage),
+    loadQuestions()
+]);
 
 async function loadQuestions() {
 
