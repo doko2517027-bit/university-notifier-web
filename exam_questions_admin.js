@@ -405,7 +405,8 @@ saveEditedQuestions.onclick = async () => {
             })
             .filter(item => item !== null);
 
-        (current.quiz || []).map((item, index) => {
+        const quiz =
+            (current.quiz || []).map((item, index) => {
 
             const question =
                 document
