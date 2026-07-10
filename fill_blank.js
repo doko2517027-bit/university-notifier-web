@@ -69,18 +69,28 @@ async function loadQuestions() {
 
     fillBlank.forEach((q, index) => {
 
+        const answers =
+            q.answers && q.answers.length > 0
+                ? q.answers
+                : [q.answer || ""];
+
         questions.innerHTML += `
-            <div class="card setting-card fill-card" data-answer="${q.answer}">
+            <div
+                class="card setting-card fill-card"
+                data-answer="${q.answer || answers.join("・")}"
+                data-answers='${JSON.stringify(answers)}'>
+
                 <h3>問題 ${index + 1}</h3>
 
                 <p>${q.question}</p>
 
-                <input
-                    class="fill-answer"
-                    type="text"
-                    placeholder="答えを入力">
-
-                <br><br>
+                ${answers.map((answer, answerIndex) => `
+                    <input
+                        class="fill-answer"
+                        type="text"
+                        placeholder="解答 ${answerIndex + 1}">
+                    <br><br>
+                `).join("")}
 
                 <button class="btn btn-primary check-fill">
                     判定
@@ -99,18 +109,37 @@ document.addEventListener("click", (e) => {
     if (!e.target.classList.contains("check-fill")) return;
 
     const card = e.target.closest(".fill-card");
-    const input = card.querySelector(".fill-answer");
     const result = card.querySelector(".fill-result");
 
-    const userAnswer = input.value.trim();
-    const correctAnswer = card.dataset.answer;
+    const correctAnswers =
+        JSON.parse(card.dataset.answers || "[]")
+            .map(answer => normalizeAnswer(answer));
 
-    if (userAnswer === correctAnswer) {
+    const userAnswers =
+        Array.from(card.querySelectorAll(".fill-answer"))
+            .map(input => normalizeAnswer(input.value))
+            .filter(answer => answer !== "");
+
+    const allCorrect =
+        correctAnswers.length === userAnswers.length &&
+        correctAnswers.every(answer => userAnswers.includes(answer));
+
+    if (allCorrect) {
         result.textContent = "⭕ 正解！";
         result.style.color = "green";
     } else {
-        result.textContent = `❌ 不正解。正解：${correctAnswer}`;
+        result.textContent = `❌ 不正解。正解：${card.dataset.answer}`;
         result.style.color = "red";
     }
 
 });
+
+function normalizeAnswer(text) {
+
+    return text
+        .trim()
+        .replace(/\s/g, "")
+        .replace(/　/g, "")
+        .toLowerCase();
+
+}
