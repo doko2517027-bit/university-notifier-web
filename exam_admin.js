@@ -89,6 +89,19 @@ async function loadExamSettings() {
     examTitle.value = data.title || "";
     examStartDate.value = data.startDate || "";
     examEndDate.value = data.endDate || "";
+    examSchedule.value =
+        Array.isArray(data.schedule)
+            ? data.schedule
+                .map(item =>
+                    [
+                        item.date || "",
+                        item.subject || "",
+                        item.time || "",
+                        item.room || ""
+                    ].join("｜")
+                )
+                .join("\n")
+            : "";
     examShowPopup.checked = data.showPopup ?? true;
     examShowCountdown.checked = data.showCountdown ?? true;
     examShowHomeButton.checked = data.showHomeButton ?? true;
@@ -99,6 +112,31 @@ async function loadExamSettings() {
 saveExamSettings.onclick = async () => {
 
     try {
+
+        const schedule =
+            examSchedule.value
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line !== "")
+                .map(line => {
+
+                    const [
+                        date = "",
+                        subject = "",
+                        time = "",
+                        room = ""
+                    ] = line
+                        .split("｜")
+                        .map(value => value.trim());
+
+                    return {
+                        date,
+                        subject,
+                        time,
+                        room
+                    };
+
+                });
 
         await setDoc(
             doc(db, "system", "exam"),
@@ -111,6 +149,7 @@ saveExamSettings.onclick = async () => {
                 showCountdown: examShowCountdown.checked,
                 showHomeButton: examShowHomeButton.checked,
                 showDailyQuestion: examShowDailyQuestion.checked,
+                schedule,
                 updatedAt: new Date(),
                 updatedBy: studentNumber
             },
