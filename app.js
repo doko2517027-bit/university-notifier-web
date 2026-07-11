@@ -533,18 +533,29 @@ async function loadHomeSystemNews() {
 
 async function loadTodaySchedule() {
 
-    const department = localStorage.getItem("department");
-    const major = localStorage.getItem("major");
-    const grade = localStorage.getItem("grade");
+    const department =
+        localStorage.getItem("department");
+
+    const major =
+        localStorage.getItem("major");
+
+    const grade =
+        localStorage.getItem("grade");
 
     let docId = "";
 
     if (department === "看護学科") {
+
         docId = "ns_yamate";
+
     } else if (major === "理学療法学専攻") {
+
         docId = "pt";
+
     } else if (major === "作業療法学専攻") {
+
         docId = "ot";
+
     }
 
     const snap = await getDoc(
@@ -552,39 +563,76 @@ async function loadTodaySchedule() {
     );
 
     if (!snap.exists()) {
-        document.getElementById("todaySchedule").innerHTML = "時間割がありません。";
-        document.getElementById("tomorrowSchedule").innerHTML = "時間割がありません。";
+
+        lectureScheduleLabel.textContent =
+            "講義予定";
+
+        lectureScheduleList.innerHTML =
+            `<p class="empty-text">時間割がありません。</p>`;
+
         return;
+
     }
 
     const data = snap.data();
 
-    const todayTitle = data.todayTitle;
-    const nextTitle = data.nextTitle;
+    lectureSchedules = [
+        {
+            title: data.todayTitle || "今日",
+            label: data.todayLabel || "",
+            schedules: data.today || []
+        },
+        {
+            title: data.nextTitle || "次回",
+            label: data.nextLabel || "",
+            schedules: data.next || []
+        }
+    ];
 
-    const todayLabel = data.todayLabel;
-    const nextLabel = data.nextLabel;
+    lectureScheduleIndex = 0;
 
-    const todaySchedules = data.today;
-    const nextSchedules = data.next;
+    renderCurrentLectureSchedule(grade);
 
-    document.getElementById("todayDate").textContent =
-    `${todayTitle}｜${todayLabel}`;
+}
 
-    document.getElementById("tomorrowDate").textContent =
-        `${nextTitle}｜${nextLabel}`;
+function renderCurrentLectureSchedule(grade) {
+
+    if (
+        !lectureScheduleLabel ||
+        !lectureScheduleList ||
+        lectureSchedules.length === 0
+    ) {
+        return;
+    }
+
+    const current =
+        lectureSchedules[lectureScheduleIndex];
+
+    lectureScheduleLabel.textContent =
+        current.label
+            ? `${current.title}｜${current.label}`
+            : current.title;
 
     renderSchedule(
-        "todaySchedule",
-        todaySchedules,
+        "lectureScheduleList",
+        current.schedules,
         grade
     );
 
-    renderSchedule(
-        "tomorrowSchedule",
-        nextSchedules,
-        grade
-    );
+    if (lecturePrev) {
+
+        lecturePrev.disabled =
+            lectureScheduleIndex === 0;
+
+    }
+
+    if (lectureNext) {
+
+        lectureNext.disabled =
+            lectureScheduleIndex ===
+            lectureSchedules.length - 1;
+
+    }
 
 }
 
