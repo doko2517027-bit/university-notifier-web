@@ -576,18 +576,40 @@ async function loadTodaySchedule() {
 
     const data = snap.data();
 
-    lectureSchedules = [
-        {
-            title: data.todayTitle || "今日",
-            label: data.todayLabel || "",
-            schedules: data.today || []
-        },
-        {
-            title: data.nextTitle || "次回",
-            label: data.nextLabel || "",
-            schedules: data.next || []
-        }
-    ];
+    if (
+        Array.isArray(data.days) &&
+        data.days.length > 0
+    ) {
+
+        lectureSchedules =
+            data.days.map(day => ({
+                date: day.date || "",
+                title: day.title || "次回講義日",
+                label: day.label || "",
+                schedules: Array.isArray(day.schedules)
+                    ? day.schedules
+                    : []
+            }));
+
+    } else {
+
+        // 古い形式との互換性
+        lectureSchedules = [
+            {
+                date: "",
+                title: data.todayTitle || "今日",
+                label: data.todayLabel || "",
+                schedules: data.today || []
+            },
+            {
+                date: "",
+                title: data.nextTitle || "次回",
+                label: data.nextLabel || "",
+                schedules: data.next || []
+            }
+        ];
+
+    }
 
     lectureScheduleIndex = 0;
 
