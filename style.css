@@ -1656,3 +1656,36 @@ white-space:pre-wrap;
     }
 
 }
+
+.exam-schedule-item{
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
+}
+
+.exam-schedule-item:last-child{
+    border-bottom:none;
+}
+
+.exam-date{
+    font-size:18px;
+    font-weight:700;
+    color:var(--primary);
+}
+
+.exam-time{
+    margin-top:2px;
+    font-size:14px;
+    color:var(--subtext);
+}
+
+.exam-subject{
+    margin-top:10px;
+    font-size:17px;
+    font-weight:600;
+}
+
+.exam-room{
+    margin-top:4px;
+    font-size:14px;
+    color:var(--subtext);
+}

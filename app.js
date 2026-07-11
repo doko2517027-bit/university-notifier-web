@@ -1036,34 +1036,27 @@ async function loadExamMode() {
                                 : "日付未設定";
 
                         return `
-                            <div class="lesson-card">
+                            <div class="exam-schedule-item">
 
-                                <div class="lesson-period">
-                                    📝
+                                <div class="exam-date">
+                                    ${dateText}
                                 </div>
 
-                                <div>
+                                ${
+                                    item.time
+                                    ? `<div class="exam-time">${item.time}</div>`
+                                    : ""
+                                }
 
-                                    <div class="lesson-subject">
-                                        ${item.subject || "科目未設定"}
-                                    </div>
-
-                                    <div class="lesson-room">
-                                        ${dateText}
-                                        ${item.time ? `｜${item.time}` : ""}
-                                    </div>
-
-                                    ${
-                                        item.room
-                                            ? `
-                                                <div class="lesson-teacher">
-                                                    ${item.room}
-                                                </div>
-                                            `
-                                            : ""
-                                    }
-
+                                <div class="exam-subject">
+                                    ${item.subject || "科目未設定"}
                                 </div>
+
+                                ${
+                                    item.room
+                                    ? `<div class="exam-room">${item.room}</div>`
+                                    : ""
+                                }
 
                             </div>
                         `;
