@@ -38,6 +38,13 @@ const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
 const examStatusText = document.getElementById("examStatusText");
 const examCard = document.getElementById("examCard");
+const examPopupOverlay = document.getElementById("examPopupOverlay");
+const closeExamPopup = document.getElementById("closeExamPopup");
+const examPopupLabel = document.getElementById("examPopupLabel");
+const examPopupTitle = document.getElementById("examPopupTitle");
+const examPopupCountdown = document.getElementById("examPopupCountdown");
+const examPopupPeriod = document.getElementById("examPopupPeriod");
+const openExamFromPopup = document.getElementById("openExamFromPopup");
 const userName = document.getElementById("userName");
 const newsList = document.getElementById("newsList");
 if(newsList){
@@ -1024,9 +1031,25 @@ async function loadExamMode() {
         if (!localStorage.getItem(popupKey)) {
 
             if (today < start) {
-                alert(`${exam.title}まであと${diffToStart}日です`);
+
+                showExamPopup({
+                    label: "テスト開始まで",
+                    title: exam.title || "定期試験",
+                    countdown: `あと ${diffToStart}日`,
+                    period:
+                        `${formatExamDate(start)} 〜 ${formatExamDate(end)}`
+                });
+
             } else if (today <= end) {
-                alert(`${exam.title}終了まであと${diffToEnd}日です`);
+
+                showExamPopup({
+                    label: "テスト期間中",
+                    title: exam.title || "定期試験",
+                    countdown: `終了まであと ${diffToEnd}日`,
+                    period:
+                        `${formatExamDate(start)} 〜 ${formatExamDate(end)}`
+                });
+
             }
 
             localStorage.setItem(popupKey, "true");
@@ -1034,5 +1057,69 @@ async function loadExamMode() {
         }
 
     }
+
+}
+
+function showExamPopup({
+    label,
+    title,
+    countdown,
+    period
+}) {
+
+    if (!examPopupOverlay) return;
+
+    examPopupLabel.textContent = label;
+    examPopupTitle.textContent = title;
+    examPopupCountdown.textContent = countdown;
+    examPopupPeriod.textContent = period;
+
+    examPopupOverlay.classList.add("show");
+
+}
+
+function hideExamPopup() {
+
+    if (!examPopupOverlay) return;
+
+    examPopupOverlay.classList.remove("show");
+
+}
+
+function formatExamDate(date) {
+
+    return (
+        `${date.getFullYear()}/` +
+        `${date.getMonth() + 1}/` +
+        `${date.getDate()}`
+    );
+
+}
+
+if (closeExamPopup) {
+
+    closeExamPopup.onclick = () => {
+        hideExamPopup();
+    };
+
+}
+
+if (openExamFromPopup) {
+
+    openExamFromPopup.onclick = () => {
+        location.href = "exam.html";
+    };
+
+}
+
+if (examPopupOverlay) {
+
+    examPopupOverlay.onclick = (e) => {
+
+        if (e.target === examPopupOverlay) {
+            hideExamPopup();
+        }
+
+    };
 
 }
