@@ -1848,3 +1848,53 @@ white-space:pre-wrap;
     color:var(--subtext);
 
 }
+
+.schedule-day-badge{
+
+    width:max-content;
+
+    margin:0 auto 14px;
+
+    padding:5px 12px;
+
+    border-radius:999px;
+
+    background:var(--accent);
+
+    color:var(--text);
+
+    font-size:12px;
+    font-weight:700;
+
+}
+
+.schedule-switch-label{
+
+    min-width:150px;
+
+    text-align:center;
+
+    font-size:18px;
+    font-weight:800;
+
+    color:var(--text);
+
+    white-space:nowrap;
+
+}
+
+.schedule-switcher{
+
+    display:grid;
+
+    grid-template-columns:42px minmax(150px, 1fr) 42px;
+
+    align-items:center;
+
+    gap:12px;
+
+    max-width:300px;
+
+    margin:0 auto 18px;
+
+}

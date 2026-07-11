@@ -609,14 +609,19 @@ function renderCurrentLectureSchedule(grade) {
         lectureSchedules[lectureScheduleIndex];
 
     lectureScheduleLabel.textContent =
-        current.label
-            ? `${current.title}｜${current.label}`
-            : current.title;
+        current.label || current.title;
+
+    lectureScheduleList.innerHTML = `
+        <div class="schedule-day-badge">
+            ${current.title}
+        </div>
+    `;
 
     renderSchedule(
         "lectureScheduleList",
         current.schedules,
-        grade
+        grade,
+        true
     );
 
     if (lecturePrev) {
@@ -636,7 +641,12 @@ function renderCurrentLectureSchedule(grade) {
 
 }
 
-function renderSchedule(targetId, schedules, grade) {
+function renderSchedule(
+    targetId,
+    schedules,
+    grade,
+    append = false
+) {
 
     const list = schedules
         .filter(item => item.grade === grade)
@@ -646,13 +656,28 @@ function renderSchedule(targetId, schedules, grade) {
 
     if (list.length === 0) {
 
-        document.getElementById(targetId).innerHTML =
+        const target =
+            document.getElementById(targetId);
+
+        const emptyHtml =
             `<p class="empty-text">授業はありません</p>`;
+
+        if (append) {
+            target.insertAdjacentHTML(
+                "beforeend",
+                emptyHtml
+            );
+        } else {
+            target.innerHTML = emptyHtml;
+        }
 
         return;
     }
 
-    document.getElementById(targetId).innerHTML =
+    const target =
+        document.getElementById(targetId);
+
+    const scheduleHtml =
         list.map(item => `
             <div class="lesson-card" onclick="openCourse('${item.subject}')">
                 <div class="lesson-period">${item.period}</div>
@@ -667,6 +692,20 @@ function renderSchedule(targetId, schedules, grade) {
                 </div>
             </div>
         `).join("");
+    
+    if (append) {
+
+        target.insertAdjacentHTML(
+            "beforeend",
+            scheduleHtml
+        );
+
+    } else {
+
+        target.innerHTML =
+            scheduleHtml;
+
+    }
 
 }
 
