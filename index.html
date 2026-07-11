@@ -146,53 +146,93 @@ if(localStorage.getItem("theme")==="dark"){
 
 <hr>
 
-<h2>📅 講義予定</h2>
+<h2>📅 講義・試験予定</h2>
 
 <div class="schedule-scroll">
-    <div class="card day-card">
-        <div id="todayDate" class="day-title"></div>
-        <div id="todaySchedule">取得中...</div>
-    </div>
 
-    <div class="card day-card">
-        <div id="tomorrowDate" class="day-title"></div>
-        <div id="tomorrowSchedule">取得中...</div>
-    </div>
-
+    <!-- 講義予定 -->
     <div
-        id="examScheduleCard"
-        class="card day-card"
-        style="display:none;">
+        id="lectureScheduleCard"
+        class="card day-card">
 
-        <div class="day-title">
-            📚 試験日程
+        <div class="schedule-card-title">
+            📅 講義予定
         </div>
 
-        <div class="exam-header">
+        <div class="schedule-switcher">
 
             <button
-                id="examPrev"
+                id="lecturePrev"
+                class="schedule-switch-button"
                 type="button">
                 ◀
             </button>
 
-            <span id="examPage">
-                1 / 1
-            </span>
+            <div
+                id="lectureScheduleLabel"
+                class="schedule-switch-label">
+                今日
+            </div>
 
             <button
-                id="examNext"
+                id="lectureNext"
+                class="schedule-switch-button"
                 type="button">
                 ▶
             </button>
 
         </div>
 
-        <div id="examScheduleList">
+        <div
+            id="lectureScheduleList"
+            class="schedule-content">
+            取得中...
+        </div>
+
+    </div>
+
+    <!-- 試験日程 -->
+    <div
+        id="examScheduleCard"
+        class="card day-card"
+        style="display:none;">
+
+        <div class="schedule-card-title">
+            📚 試験日程
+        </div>
+
+        <div class="schedule-switcher">
+
+            <button
+                id="examPrev"
+                class="schedule-switch-button"
+                type="button">
+                ◀
+            </button>
+
+            <div
+                id="examPage"
+                class="schedule-switch-label">
+                日付
+            </div>
+
+            <button
+                id="examNext"
+                class="schedule-switch-button"
+                type="button">
+                ▶
+            </button>
+
+        </div>
+
+        <div
+            id="examScheduleList"
+            class="schedule-content">
             読み込み中...
         </div>
 
     </div>
+
 </div>
 
 <h2>📝 便利タブ ☀️</h2>
