@@ -53,7 +53,10 @@ const newsList = document.getElementById("newsList");
 if(newsList){
     showNewsSkeleton(newsList);
 }
-const todaySchedule = document.getElementById("todaySchedule");
+const lectureScheduleLabel = document.getElementById("lectureScheduleLabel");
+const lectureScheduleList = document.getElementById("lectureScheduleList");
+const lecturePrev = document.getElementById("lecturePrev");
+const lectureNext = document.getElementById("lectureNext");
 const examScheduleCard = document.getElementById("examScheduleCard");
 const examScheduleList = document.getElementById("examScheduleList");
 const examPrev = document.getElementById("examPrev");
@@ -69,6 +72,9 @@ const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
 
 let courses = {};
+let lectureSchedules = [];
+let lectureScheduleIndex = 0;
+
 let examSchedules = [];
 let examScheduleIndex = 0;
 
