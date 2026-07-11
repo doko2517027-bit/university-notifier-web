@@ -27,6 +27,45 @@ if(localStorage.getItem("theme")==="dark"){
     </div>
 </div>
 
+<div id="examPopupOverlay" class="exam-popup-overlay">
+
+    <div class="exam-popup-card">
+
+        <button
+            id="closeExamPopup"
+            class="exam-popup-close"
+            type="button">
+            ×
+        </button>
+
+        <div class="exam-popup-icon">
+            📚
+        </div>
+
+        <p id="examPopupLabel" class="exam-popup-label">
+            テストのお知らせ
+        </p>
+
+        <h2 id="examPopupTitle">
+            試験情報
+        </h2>
+
+        <p id="examPopupCountdown" class="exam-popup-countdown">
+        </p>
+
+        <p id="examPopupPeriod" class="exam-popup-period">
+        </p>
+
+        <button
+            id="openExamFromPopup"
+            class="btn btn-primary">
+            テスト対策を開く
+        </button>
+
+    </div>
+
+</div>
+
 <div class="top-buttons">
 
     <div id="userName">
