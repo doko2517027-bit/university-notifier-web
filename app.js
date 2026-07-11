@@ -1085,7 +1085,24 @@ async function loadExamMode() {
 
             examScheduleCard.style.display = "";
 
-            examSchedules = validSchedule;
+            const grouped = {};
+
+            validSchedule.forEach(item => {
+
+                if (!grouped[item.date]) {
+                    grouped[item.date] = [];
+                }
+
+                grouped[item.date].push(item);
+
+            });
+
+            examSchedules =
+                Object.keys(grouped).map(date => ({
+                    date,
+                    schedules: grouped[date]
+                }));
+
             examScheduleIndex = 0;
 
             renderCurrentExamSchedule();
@@ -1208,61 +1225,63 @@ function renderCurrentExamSchedule() {
     }
 
     const item =
-        examSchedules[examScheduleIndex];
+    examSchedules[examScheduleIndex];
 
     const dateText =
         item.date
             ? formatExamScheduleDate(item.date)
             : "日付未設定";
 
-    examPage.textContent =
-        `${examScheduleIndex + 1} / ${examSchedules.length}`;
+    examPage.textContent = dateText;
 
     examScheduleList.innerHTML = `
         <div class="exam-schedule-item">
 
-            <div class="exam-date">
-                ${dateText}
-            </div>
-
             ${
-                item.time
-                    ? `
-                        <div class="exam-time">
-                            ${item.time}
-                        </div>
-                    `
-                    : ""
-            }
+                item.schedules.map(schedule => `
+                    <div class="lesson-card">
 
-            <div class="exam-subject">
-                ${item.subject || "科目未設定"}
-            </div>
+                        <div style="flex:1">
 
-            ${
-                item.room
-                    ? `
-                        <div class="exam-room">
-                            ${item.room}
+                            <div class="lesson-subject">
+                                ${schedule.subject || "科目未設定"}
+                            </div>
+
+                            ${
+                                schedule.time
+                                    ? `<div class="lesson-room">🕒 ${schedule.time}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                schedule.room
+                                    ? `<div class="lesson-teacher">📍 ${schedule.room}</div>`
+                                    : ""
+                            }
+
                         </div>
-                    `
-                    : ""
+
+                    </div>
+                `).join("")
             }
 
         </div>
     `;
 
     if (examPrev) {
+
         examPrev.disabled =
             examScheduleIndex === 0;
+
     }
 
     if (examNext) {
+
         examNext.disabled =
             examScheduleIndex ===
             examSchedules.length - 1;
-    }
 
+    }
 }
 
 function showExamPopup({
