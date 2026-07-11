@@ -2064,3 +2064,26 @@ html.dark{
 .btn-secondary{
     color:var(--on-accent);
 }
+
+/* 今日 */
+.lecture-calendar-day.is-today{
+    outline:2px solid var(--primary);
+    outline-offset:-2px;
+}
+
+/* 選択中 */
+.lecture-calendar-day.is-selected{
+    background:var(--primary);
+    color:#fff;
+    font-weight:800;
+}
+
+/* 選択中かつ授業あり */
+.lecture-calendar-day.is-selected.has-lecture::after{
+    background:#fff;
+}
+
+/* 今日と選択中が同じ日 */
+.lecture-calendar-day.is-today.is-selected{
+    outline:2px solid var(--text);
+}

@@ -1450,6 +1450,24 @@ function renderLectureCalendar() {
 
         button.textContent = day;
 
+        const today = new Date();
+
+        const todayString =
+            `${today.getFullYear()}-` +
+            `${String(today.getMonth() + 1).padStart(2, "0")}-` +
+            `${String(today.getDate()).padStart(2, "0")}`;
+
+        const selectedDate =
+            lectureSchedules[lectureScheduleIndex]?.date || "";
+
+        if (dateString === todayString) {
+            button.classList.add("is-today");
+        }
+
+        if (dateString === selectedDate) {
+            button.classList.add("is-selected");
+        }
+
         /* 授業がある日だけ点を付ける */
         if (hasLecture) {
 
@@ -1468,6 +1486,9 @@ function renderLectureCalendar() {
                     lectureSchedules.findIndex(
                         item => item.date === dateString
                     );
+                
+                lectureCalendarYear = yyyy;
+                lectureCalendarMonthIndex = date.getMonth();
 
                 lectureCalendarPopup.hidden = true;
 
@@ -1732,3 +1753,37 @@ document.addEventListener("click", (e) => {
     }
 
 });
+
+if (lectureCalendarPrevMonth) {
+
+    lectureCalendarPrevMonth.onclick = () => {
+
+        lectureCalendarMonthIndex--;
+
+        if (lectureCalendarMonthIndex < 0) {
+            lectureCalendarMonthIndex = 11;
+            lectureCalendarYear--;
+        }
+
+        renderLectureCalendar();
+
+    };
+
+}
+
+if (lectureCalendarNextMonth) {
+
+    lectureCalendarNextMonth.onclick = () => {
+
+        lectureCalendarMonthIndex++;
+
+        if (lectureCalendarMonthIndex > 11) {
+            lectureCalendarMonthIndex = 0;
+            lectureCalendarYear++;
+        }
+
+        renderLectureCalendar();
+
+    };
+
+}
