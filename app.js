@@ -404,6 +404,31 @@ async function loadNews() {
     }
 }
 
+function parseCourseNewsDate(value) {
+
+    if (!value) {
+        return 0;
+    }
+
+    const match =
+        String(value).match(
+            /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/
+        );
+
+    if (!match) {
+        return 0;
+    }
+
+    return new Date(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3]),
+        Number(match[4]),
+        Number(match[5])
+    ).getTime();
+
+}
+
 async function loadHomeCourseNews() {
 
     const q = query(
@@ -429,15 +454,13 @@ async function loadHomeCourseNews() {
 
     notices.sort((a, b) => {
 
-        const postedA =
-            String(a.posted || "")
-                .replace(/\D/g, "");
+        const dateA =
+            parseCourseNewsDate(a.posted);
 
-        const postedB =
-            String(b.posted || "")
-                .replace(/\D/g, "");
+        const dateB =
+            parseCourseNewsDate(b.posted);
 
-        return postedB.localeCompare(postedA);
+        return dateB - dateA;
 
     });
 
