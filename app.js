@@ -1434,17 +1434,11 @@ function renderLectureCalendar() {
         const grade =
             localStorage.getItem("grade");
 
-        const expectedTarget =
-            grade === "2年"
-                ? "看護 山手"
-                : "看護 東戸塚";
-
         const hasLecture =
             dayData &&
             Array.isArray(dayData.schedules) &&
-            dayData.schedules.some(schedule =>
-                schedule.grade === grade &&
-                schedule.target === expectedTarget
+            dayData.schedules.some(
+                schedule => schedule.grade === grade
             );
 
         const button =
