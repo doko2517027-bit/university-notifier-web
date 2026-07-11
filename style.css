@@ -2060,11 +2060,6 @@ html.dark{
     color:var(--on-accent);
 }
 
-/* 講義・試験予定の左右ボタン */
-.schedule-switch-button{
-    color:var(--on-accent);
-}
-
 /* 薄いアクセント背景を使う副ボタン */
 .btn-secondary{
     color:var(--on-accent);
