@@ -1689,3 +1689,154 @@ white-space:pre-wrap;
     font-size:14px;
     color:var(--subtext);
 }
+
+/* ===== Schedule Switcher ===== */
+
+.schedule-switcher{
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    gap:14px;
+
+    margin-bottom:18px;
+
+}
+
+.schedule-switch-button{
+
+    width:40px;
+    height:40px;
+
+    border:none;
+    border-radius:50%;
+
+    background:var(--bg);
+    color:var(--primary);
+
+    font-size:18px;
+    font-weight:bold;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 3px 10px rgba(15,23,42,.08);
+
+    transition:.2s;
+
+}
+
+.schedule-switch-button:hover{
+
+    transform:translateY(-2px);
+
+    background:var(--accent);
+
+}
+
+.schedule-switch-button:active{
+
+    transform:scale(.94);
+
+}
+
+.schedule-switch-button:disabled{
+
+    opacity:.3;
+    cursor:not-allowed;
+    transform:none;
+
+}
+
+.schedule-switch-label{
+
+    min-width:145px;
+
+    text-align:center;
+
+    font-size:17px;
+    font-weight:700;
+
+    color:var(--text);
+
+}
+
+.schedule-card-title{
+
+    text-align:center;
+
+    font-size:20px;
+    font-weight:800;
+
+    margin-bottom:16px;
+
+    color:var(--text);
+
+}
+
+.schedule-content{
+
+    min-height:150px;
+
+}
+
+.exam-schedule-item{
+
+    padding:14px 0;
+
+    border-bottom:1px solid var(--border);
+
+    text-align:left;
+
+}
+
+.exam-schedule-item:last-child{
+
+    border-bottom:none;
+
+}
+
+.exam-date{
+
+    font-size:18px;
+    font-weight:700;
+
+    color:var(--primary);
+
+}
+
+.exam-time{
+
+    margin-top:4px;
+
+    font-size:14px;
+
+    color:var(--subtext);
+
+}
+
+.exam-subject{
+
+    margin-top:10px;
+
+    font-size:17px;
+    font-weight:700;
+
+    color:var(--text);
+
+}
+
+.exam-room{
+
+    margin-top:4px;
+
+    font-size:14px;
+
+    color:var(--subtext);
+
+}
