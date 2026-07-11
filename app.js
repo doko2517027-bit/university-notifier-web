@@ -57,6 +57,12 @@ const lectureScheduleLabel = document.getElementById("lectureScheduleLabel");
 const lectureScheduleList = document.getElementById("lectureScheduleList");
 const lecturePrev = document.getElementById("lecturePrev");
 const lectureNext = document.getElementById("lectureNext");
+const lectureDatePickerButton = document.getElementById("lectureDatePickerButton");
+const lectureCalendarPopup = document.getElementById("lectureCalendarPopup");
+const lectureCalendarMonth = document.getElementById("lectureCalendarMonth");
+const lectureCalendarDays = document.getElementById("lectureCalendarDays");
+const lectureCalendarPrevMonth = document.getElementById("lectureCalendarPrevMonth");
+const lectureCalendarNextMonth = document.getElementById("lectureCalendarNextMonth");
 const examScheduleCard = document.getElementById("examScheduleCard");
 const examScheduleList = document.getElementById("examScheduleList");
 const examPrev = document.getElementById("examPrev");
@@ -74,6 +80,9 @@ const authSetupCards = document.getElementById("authSetupCards");
 let courses = {};
 let lectureSchedules = [];
 let lectureScheduleIndex = 0;
+
+let lectureCalendarYear = 0;
+let lectureCalendarMonthIndex = 0;
 
 let examSchedules = [];
 let examScheduleIndex = 0;
@@ -612,6 +621,17 @@ async function loadTodaySchedule() {
     }
 
     lectureScheduleIndex = 0;
+
+    const firstLectureDate =
+        lectureSchedules[0]?.date
+            ? new Date(`${lectureSchedules[0].date}T00:00:00`)
+            : new Date();
+
+    lectureCalendarYear =
+        firstLectureDate.getFullYear();
+
+    lectureCalendarMonthIndex =
+        firstLectureDate.getMonth();
 
     renderCurrentLectureSchedule(grade);
 
@@ -1345,6 +1365,119 @@ function renderCurrentExamSchedule() {
     }
 }
 
+function renderLectureCalendar() {
+
+    if (!lectureCalendarDays) {
+        return;
+    }
+
+    lectureCalendarDays.innerHTML = "";
+
+    lectureCalendarMonth.textContent =
+        `${lectureCalendarYear}年${lectureCalendarMonthIndex + 1}月`;
+
+    const firstDay =
+        new Date(
+            lectureCalendarYear,
+            lectureCalendarMonthIndex,
+            1
+        );
+
+    const lastDay =
+        new Date(
+            lectureCalendarYear,
+            lectureCalendarMonthIndex + 1,
+            0
+        );
+
+    const startWeek =
+        firstDay.getDay();
+
+    const totalDays =
+        lastDay.getDate();
+
+    // 月初まで空マス
+    for (let i = 0; i < startWeek; i++) {
+
+        const empty = document.createElement("div");
+        empty.className = "lecture-calendar-empty";
+        lectureCalendarDays.appendChild(empty);
+
+    }
+
+    // 日付
+    for (let day = 1; day <= totalDays; day++) {
+
+        const date =
+            new Date(
+                lectureCalendarYear,
+                lectureCalendarMonthIndex,
+                day
+            );
+
+        const yyyy = date.getFullYear();
+
+        const mm = String(date.getMonth() + 1)
+            .padStart(2, "0");
+
+        const dd = String(day)
+            .padStart(2, "0");
+
+        const dateString =
+            `${yyyy}-${mm}-${dd}`;
+
+        const dayData =
+            lectureSchedules.find(
+                item => item.date === dateString
+            );
+
+        const button =
+            document.createElement("button");
+
+        button.type = "button";
+        button.className =
+            "lecture-calendar-day";
+
+        button.textContent = day;
+
+        if (dayData) {
+
+            button.classList.add("has-lecture");
+
+            button.onclick = () => {
+
+                lectureScheduleIndex =
+                    lectureSchedules.findIndex(
+                        item => item.date === dateString
+                    );
+
+                lectureCalendarPopup.hidden = true;
+
+                lectureDatePickerButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+                const grade =
+                    localStorage.getItem("grade");
+
+                renderCurrentLectureSchedule(grade);
+
+            };
+
+        }
+        else {
+
+            button.disabled = true;
+
+        }
+
+        lectureCalendarDays.appendChild(button);
+
+    }
+
+}
+
 function showExamPopup({
     label,
     title,
@@ -1521,3 +1654,64 @@ if (lectureNext) {
     };
 
 }
+
+if (
+    lectureDatePickerButton &&
+    lectureCalendarPopup
+) {
+
+    lectureDatePickerButton.onclick = () => {
+
+        const willOpen =
+            lectureCalendarPopup.hidden;
+
+        lectureCalendarPopup.hidden =
+            !willOpen;
+
+        lectureDatePickerButton.setAttribute(
+            "aria-expanded",
+            String(willOpen)
+        );
+
+        if (willOpen) {
+            renderLectureCalendar();
+        }
+
+    };
+
+}
+
+document.addEventListener("click", (e) => {
+
+    if (
+        !lectureCalendarPopup ||
+        !lectureDatePickerButton
+    ) {
+        return;
+    }
+
+    if (lectureCalendarPopup.hidden) {
+        return;
+    }
+
+    const clickedInsideCalendar =
+        lectureCalendarPopup.contains(e.target);
+
+    const clickedDateButton =
+        lectureDatePickerButton.contains(e.target);
+
+    if (
+        !clickedInsideCalendar &&
+        !clickedDateButton
+    ) {
+
+        lectureCalendarPopup.hidden = true;
+
+        lectureDatePickerButton.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+    }
+
+});

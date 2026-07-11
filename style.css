@@ -1898,3 +1898,142 @@ white-space:pre-wrap;
     margin:0 auto 18px;
 
 }
+
+/* ===== 講義日付ピッカー ===== */
+
+.schedule-date-picker{
+    border:none;
+    background:transparent;
+    padding:0;
+    cursor:pointer;
+    text-align:center;
+    color:inherit;
+}
+
+.schedule-date-picker:hover .schedule-switch-label{
+    color:var(--primary);
+}
+
+.schedule-calendar-hint{
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--subtext);
+}
+
+.lecture-calendar-popup{
+    position:relative;
+    max-width:320px;
+    margin:0 auto 18px;
+    padding:16px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:var(--card);
+    box-shadow:0 12px 30px rgba(15,23,42,.14);
+}
+
+.lecture-calendar-popup::before{
+    content:"";
+    position:absolute;
+    top:-8px;
+    left:50%;
+    width:14px;
+    height:14px;
+    background:var(--card);
+    border-top:1px solid var(--border);
+    border-left:1px solid var(--border);
+    transform:translateX(-50%) rotate(45deg);
+}
+
+.lecture-calendar-header{
+    display:grid;
+    grid-template-columns:36px 1fr 36px;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.lecture-calendar-month{
+    text-align:center;
+    font-size:17px;
+    font-weight:800;
+    color:var(--text);
+}
+
+.lecture-calendar-nav{
+    width:36px;
+    height:36px;
+    border:none;
+    border-radius:50%;
+    background:var(--accent);
+    color:var(--primary);
+    font-size:15px;
+    cursor:pointer;
+}
+
+.lecture-calendar-nav:disabled{
+    opacity:.35;
+    cursor:default;
+}
+
+.lecture-calendar-weekdays,
+.lecture-calendar-days{
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    gap:6px;
+}
+
+.lecture-calendar-weekdays{
+    margin-bottom:6px;
+}
+
+.lecture-calendar-weekdays span{
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    color:var(--subtext);
+}
+
+.lecture-calendar-day,
+.lecture-calendar-empty{
+    aspect-ratio:1;
+}
+
+.lecture-calendar-day{
+    position:relative;
+    border:none;
+    border-radius:12px;
+    background:transparent;
+    color:var(--subtext);
+    font-size:14px;
+    cursor:default;
+}
+
+.lecture-calendar-day.has-lecture{
+    background:var(--accent);
+    color:var(--text);
+    font-weight:800;
+    cursor:pointer;
+}
+
+.lecture-calendar-day.has-lecture::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:4px;
+    width:4px;
+    height:4px;
+    border-radius:50%;
+    background:var(--primary);
+    transform:translateX(-50%);
+}
+
+.lecture-calendar-day.has-lecture:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 10px rgba(15,23,42,.1);
+}
+
+.lecture-calendar-day:disabled{
+    opacity:.35;
+}

@@ -168,11 +168,23 @@ if(localStorage.getItem("theme")==="dark"){
                 ◀
             </button>
 
-            <div
-                id="lectureScheduleLabel"
-                class="schedule-switch-label">
-                今日
-            </div>
+            <button
+                id="lectureDatePickerButton"
+                class="schedule-date-picker"
+                type="button"
+                aria-expanded="false">
+
+                <span
+                    id="lectureScheduleLabel"
+                    class="schedule-switch-label">
+                    今日
+                </span>
+
+                <span class="schedule-calendar-hint">
+                    📅 タップして日付を選択
+                </span>
+
+            </button>
 
             <button
                 id="lectureNext"
@@ -180,6 +192,52 @@ if(localStorage.getItem("theme")==="dark"){
                 type="button">
                 ▶
             </button>
+
+        </div>
+
+        <div
+            id="lectureCalendarPopup"
+            class="lecture-calendar-popup"
+            hidden>
+
+            <div class="lecture-calendar-header">
+
+                <button
+                    id="lectureCalendarPrevMonth"
+                    class="lecture-calendar-nav"
+                    type="button">
+                    ◀
+                </button>
+
+                <div
+                    id="lectureCalendarMonth"
+                    class="lecture-calendar-month">
+                    2026年7月
+                </div>
+
+                <button
+                    id="lectureCalendarNextMonth"
+                    class="lecture-calendar-nav"
+                    type="button">
+                    ▶
+                </button>
+
+            </div>
+
+            <div class="lecture-calendar-weekdays">
+                <span>日</span>
+                <span>月</span>
+                <span>火</span>
+                <span>水</span>
+                <span>木</span>
+                <span>金</span>
+                <span>土</span>
+            </div>
+
+            <div
+                id="lectureCalendarDays"
+                class="lecture-calendar-days">
+            </div>
 
         </div>
 
