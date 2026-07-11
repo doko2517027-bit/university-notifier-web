@@ -36,7 +36,10 @@ const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
 const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
+const examStatusCard = document.getElementById("examStatusCard");
+const examStatusLabel = document.getElementById("examStatusLabel");
 const examStatusText = document.getElementById("examStatusText");
+const examStatusTitle = document.getElementById("examStatusTitle");
 const examCard = document.getElementById("examCard");
 const examPopupOverlay = document.getElementById("examPopupOverlay");
 const closeExamPopup = document.getElementById("closeExamPopup");
@@ -960,6 +963,10 @@ async function loadExamMode() {
     const examSlide =
         examCard?.closest(".home-slide");
 
+    if (examStatusCard) {
+        examStatusCard.style.display = "none";
+    }
+
     if (examSlide) {
 
         examSlide.style.display = "none";
@@ -986,16 +993,38 @@ async function loadExamMode() {
     const diffToEnd =
         Math.ceil((end - today) / (1000 * 60 * 60 * 24));
 
-    if (examStatusText && exam.showCountdown) {
+    if (examStatusCard && exam.showCountdown) {
 
         if (today < start) {
+
+            examStatusCard.style.display = "";
+
+            examStatusLabel.textContent =
+                "📚 テスト開始まで";
+
             examStatusText.textContent =
-                `${exam.title}まであと${diffToStart}日`;
+                `あと ${diffToStart}日`;
+
+            examStatusTitle.textContent =
+                exam.title || "定期試験";
+
         } else if (today <= end) {
+
+            examStatusCard.style.display = "";
+
+            examStatusLabel.textContent =
+                "🔥 テスト期間中";
+
             examStatusText.textContent =
-                `${exam.title}終了まであと${diffToEnd}日`;
+                `終了まであと ${diffToEnd}日`;
+
+            examStatusTitle.textContent =
+                exam.title || "定期試験";
+
         } else {
-            examStatusText.textContent = "";
+
+            examStatusCard.style.display = "none";
+
         }
 
     }

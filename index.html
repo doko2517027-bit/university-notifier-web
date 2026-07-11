@@ -105,12 +105,35 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
-<div id="examStatusText" style="
-    font-size:13px;
-    font-weight:bold;
-    color:var(--primary);
-    text-align:center;
-">
+<div
+    id="examStatusCard"
+    class="card setting-card"
+    style="display:none;">
+    <div
+        id="examStatusLabel"
+        style="
+            font-size:13px;
+            font-weight:bold;
+            color:var(--primary);
+            margin-bottom:6px;
+        ">
+    </div>
+    <div
+        id="examStatusText"
+        style="
+            font-size:24px;
+            font-weight:800;
+            color:var(--text);
+        ">
+    </div>
+    <div
+        id="examStatusTitle"
+        style="
+            margin-top:6px;
+            font-size:14px;
+            color:var(--subtext);
+        ">
+    </div>
 </div>
 
 <div id="authSetupCards"></div>
