@@ -41,6 +41,7 @@ const examEnabled = document.getElementById("examEnabled");
 const examTitle = document.getElementById("examTitle");
 const examStartDate = document.getElementById("examStartDate");
 const examEndDate = document.getElementById("examEndDate");
+const examSchedule = document.getElementById("examSchedule");
 const examShowPopup = document.getElementById("examShowPopup");
 const examShowCountdown = document.getElementById("examShowCountdown");
 const examShowHomeButton = document.getElementById("examShowHomeButton");
