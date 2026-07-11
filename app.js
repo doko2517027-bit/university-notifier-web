@@ -54,6 +54,8 @@ if(newsList){
     showNewsSkeleton(newsList);
 }
 const todaySchedule = document.getElementById("todaySchedule");
+const examScheduleCard = document.getElementById("examScheduleCard");
+const examScheduleList = document.getElementById("examScheduleList");
 const registered = localStorage.getItem("registered");
 const manabaId = localStorage.getItem("manabaId");
 const migrated = localStorage.getItem("migrated");
@@ -979,6 +981,10 @@ async function loadExamMode() {
 
     if (!snap.exists()) return;
 
+    if (examScheduleCard) {
+        examScheduleCard.style.display = "none";
+    }
+
     const exam = snap.data();
 
     if (exam.enabled !== true) return;
@@ -992,6 +998,86 @@ async function loadExamMode() {
 
     const diffToEnd =
         Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+    const schedule =
+        Array.isArray(exam.schedule)
+            ? exam.schedule
+            : [];
+
+    if (examScheduleCard && examScheduleList) {
+
+        const validSchedule =
+            schedule
+                .filter(item =>
+                    item &&
+                    (
+                        item.date ||
+                        item.subject ||
+                        item.time ||
+                        item.room
+                    )
+                )
+                .sort((a, b) =>
+                    String(a.date || "")
+                        .localeCompare(String(b.date || ""))
+                );
+
+        if (validSchedule.length > 0) {
+
+            examScheduleCard.style.display = "";
+
+            examScheduleList.innerHTML =
+                validSchedule
+                    .map(item => {
+
+                        const dateText =
+                            item.date
+                                ? formatExamScheduleDate(item.date)
+                                : "日付未設定";
+
+                        return `
+                            <div class="lesson-card">
+
+                                <div class="lesson-period">
+                                    📝
+                                </div>
+
+                                <div>
+
+                                    <div class="lesson-subject">
+                                        ${item.subject || "科目未設定"}
+                                    </div>
+
+                                    <div class="lesson-room">
+                                        ${dateText}
+                                        ${item.time ? `｜${item.time}` : ""}
+                                    </div>
+
+                                    ${
+                                        item.room
+                                            ? `
+                                                <div class="lesson-teacher">
+                                                    ${item.room}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </div>
+                        `;
+
+                    })
+                    .join("");
+
+        } else {
+
+            examScheduleCard.style.display = "none";
+
+        }
+
+    }
 
     if (examStatusCard && exam.showCountdown) {
 
@@ -1121,6 +1207,43 @@ function formatExamDate(date) {
         `${date.getFullYear()}/` +
         `${date.getMonth() + 1}/` +
         `${date.getDate()}`
+    );
+
+}
+
+function formatExamScheduleDate(value) {
+
+    if (!value) return "";
+
+    const parts = value.split("-");
+
+    if (parts.length !== 3) {
+        return value;
+    }
+
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+
+    const date = new Date(
+        year,
+        month - 1,
+        day
+    );
+
+    const weekdays = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ];
+
+    return (
+        `${month}/${day}` +
+        `（${weekdays[date.getDay()]}）`
     );
 
 }
