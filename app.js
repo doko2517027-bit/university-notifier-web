@@ -1430,6 +1430,11 @@ function renderLectureCalendar() {
             lectureSchedules.find(
                 item => item.date === dateString
             );
+        
+        const hasLecture =
+            dayData &&
+            Array.isArray(dayData.schedules) &&
+            dayData.schedules.length > 0;
 
         const button =
             document.createElement("button");
@@ -1440,7 +1445,7 @@ function renderLectureCalendar() {
 
         button.textContent = day;
 
-        if (dayData) {
+        if (hasLecture) {
 
             button.classList.add("has-lecture");
 
