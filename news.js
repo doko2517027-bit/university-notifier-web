@@ -174,39 +174,54 @@ async function loadCourseNews() {
 
     }
 
-    courseNews.innerHTML = "";
+    const notices = [];
 
     snapshot.forEach(newsDoc => {
 
-        const notice = newsDoc.data();
+        notices.push(newsDoc.data());
 
-        console.log(
-            notice.title,
-            notice.createdAt?.toDate()
-        );
+    });
+
+    notices.sort((a, b) => {
+
+        const postedA =
+            String(a.posted || "")
+                .replace(/\D/g, "");
+
+        const postedB =
+            String(b.posted || "")
+                .replace(/\D/g, "");
+
+        return postedB.localeCompare(postedA);
+
+    });
+
+    courseNews.innerHTML = "";
+
+    notices.forEach(notice => {
 
         courseNews.innerHTML += `
 
-        <div class="card news-card"
-            onclick="window.open('${notice.url}','_blank')">
+            <div class="card news-card"
+                onclick="window.open('${notice.url}','_blank')">
 
-            <div class="news-title">
-                📘 ${notice.course}
+                <div class="news-title">
+                    📘 ${notice.course}
+                </div>
+
+                <div class="news-body">
+                    ${notice.title}
+                </div>
+
+                <div class="news-date">
+                    ${notice.posted || ""}
+                </div>
+
+                <div class="news-link">
+                    🗞️ コースニュースを開く
+                </div>
+
             </div>
-
-            <div class="news-body">
-                ${notice.title}
-            </div>
-
-            <div class="news-date">
-                ${notice.posted || ""}
-            </div>
-
-            <div class="news-link">
-                🗞️ コースニュースを開く
-            </div>
-
-        </div>
 
         `;
 

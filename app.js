@@ -422,11 +422,51 @@ async function loadHomeCourseNews() {
 
     }
 
+    const notices =
+        snapshot.docs.map(newsDoc =>
+            newsDoc.data()
+        );
+
+    notices.sort((a, b) => {
+
+        const postedA =
+            String(a.posted || "")
+                .replace(/\D/g, "");
+
+        const postedB =
+            String(b.posted || "")
+                .replace(/\D/g, "");
+
+        return postedB.localeCompare(postedA);
+
+    });
+
     homeCourseNews.innerHTML = "";
 
-    snapshot.docs.slice(0, 3).forEach(newsDoc => {
+    notices.slice(0, 3).forEach(notice => {
 
-        const notice = newsDoc.data();
+        homeCourseNews.innerHTML += `
+
+            <div class="card news-card"
+                onclick="location.href='news.html?tab=course'">
+
+                <div class="news-title">
+                    📘 ${notice.course}
+                </div>
+
+                <div class="news-body">
+                    ${notice.title}
+                </div>
+
+                <div class="news-date">
+                    ${notice.posted || ""}
+                </div>
+
+            </div>
+
+        `;
+
+    });
 
         homeCourseNews.innerHTML += `
 
