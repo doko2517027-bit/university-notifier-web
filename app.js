@@ -1445,9 +1445,17 @@ function renderLectureCalendar() {
 
         button.textContent = day;
 
+        /* 授業がある日だけ点を付ける */
         if (hasLecture) {
 
             button.classList.add("has-lecture");
+
+        }
+
+        /* days に存在する日は、授業がなくても押せる */
+        if (dayData) {
+
+            button.classList.add("has-schedule-date");
 
             button.onclick = () => {
 
@@ -1470,8 +1478,7 @@ function renderLectureCalendar() {
 
             };
 
-        }
-        else {
+        } else {
 
             button.disabled = true;
 
