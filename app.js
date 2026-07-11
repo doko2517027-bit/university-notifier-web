@@ -56,6 +56,9 @@ if(newsList){
 const todaySchedule = document.getElementById("todaySchedule");
 const examScheduleCard = document.getElementById("examScheduleCard");
 const examScheduleList = document.getElementById("examScheduleList");
+const examPrev = document.getElementById("examPrev");
+const examNext = document.getElementById("examNext");
+const examPage = document.getElementById("examPage");
 const registered = localStorage.getItem("registered");
 const manabaId = localStorage.getItem("manabaId");
 const migrated = localStorage.getItem("migrated");
@@ -66,6 +69,8 @@ const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
 
 let courses = {};
+let examSchedules = [];
+let examScheduleIndex = 0;
 
 const root = document.documentElement;
 
@@ -1026,45 +1031,15 @@ async function loadExamMode() {
 
             examScheduleCard.style.display = "";
 
-            examScheduleList.innerHTML =
-                validSchedule
-                    .map(item => {
+            examSchedules = validSchedule;
+            examScheduleIndex = 0;
 
-                        const dateText =
-                            item.date
-                                ? formatExamScheduleDate(item.date)
-                                : "日付未設定";
-
-                        return `
-                            <div class="exam-schedule-item">
-
-                                <div class="exam-date">
-                                    ${dateText}
-                                </div>
-
-                                ${
-                                    item.time
-                                    ? `<div class="exam-time">${item.time}</div>`
-                                    : ""
-                                }
-
-                                <div class="exam-subject">
-                                    ${item.subject || "科目未設定"}
-                                </div>
-
-                                ${
-                                    item.room
-                                    ? `<div class="exam-room">${item.room}</div>`
-                                    : ""
-                                }
-
-                            </div>
-                        `;
-
-                    })
-                    .join("");
+            renderCurrentExamSchedule();
 
         } else {
+
+            examSchedules = [];
+            examScheduleIndex = 0;
 
             examScheduleCard.style.display = "none";
 
@@ -1168,6 +1143,74 @@ async function loadExamMode() {
 
 }
 
+function renderCurrentExamSchedule() {
+
+    if (
+        !examScheduleList ||
+        !examPage ||
+        examSchedules.length === 0
+    ) {
+        return;
+    }
+
+    const item =
+        examSchedules[examScheduleIndex];
+
+    const dateText =
+        item.date
+            ? formatExamScheduleDate(item.date)
+            : "日付未設定";
+
+    examPage.textContent =
+        `${examScheduleIndex + 1} / ${examSchedules.length}`;
+
+    examScheduleList.innerHTML = `
+        <div class="exam-schedule-item">
+
+            <div class="exam-date">
+                ${dateText}
+            </div>
+
+            ${
+                item.time
+                    ? `
+                        <div class="exam-time">
+                            ${item.time}
+                        </div>
+                    `
+                    : ""
+            }
+
+            <div class="exam-subject">
+                ${item.subject || "科目未設定"}
+            </div>
+
+            ${
+                item.room
+                    ? `
+                        <div class="exam-room">
+                            ${item.room}
+                        </div>
+                    `
+                    : ""
+            }
+
+        </div>
+    `;
+
+    if (examPrev) {
+        examPrev.disabled =
+            examScheduleIndex === 0;
+    }
+
+    if (examNext) {
+        examNext.disabled =
+            examScheduleIndex ===
+            examSchedules.length - 1;
+    }
+
+}
+
 function showExamPopup({
     label,
     title,
@@ -1264,6 +1307,41 @@ if (examPopupOverlay) {
         if (e.target === examPopupOverlay) {
             hideExamPopup();
         }
+
+    };
+
+}
+
+if (examPrev) {
+
+    examPrev.onclick = () => {
+
+        if (examScheduleIndex <= 0) {
+            return;
+        }
+
+        examScheduleIndex--;
+
+        renderCurrentExamSchedule();
+
+    };
+
+}
+
+if (examNext) {
+
+    examNext.onclick = () => {
+
+        if (
+            examScheduleIndex >=
+            examSchedules.length - 1
+        ) {
+            return;
+        }
+
+        examScheduleIndex++;
+
+        renderCurrentExamSchedule();
 
     };
 
