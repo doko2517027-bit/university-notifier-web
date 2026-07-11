@@ -468,25 +468,6 @@ async function loadHomeCourseNews() {
 
     });
 
-        homeCourseNews.innerHTML += `
-
-        <div class="card news-card"
-            onclick="location.href='news.html?tab=course'">
-
-            <div class="news-title">
-                📘 ${notice.course}
-            </div>
-
-            <div class="news-body">
-                ${notice.title}
-            </div>
-
-        </div>
-
-        `;
-
-    });
-
     homeCourseNews.innerHTML += `
         <div style="text-align:center; margin-top:20px;">
             <a href="news.html?tab=course">
