@@ -98,7 +98,7 @@ async function loadExamSettings() {
                         item.subject || "",
                         item.time || "",
                         item.room || ""
-                    ].join("｜")
+                    ].join("|")
                 )
                 .join("\n")
             : "";
@@ -126,7 +126,7 @@ saveExamSettings.onclick = async () => {
                         time = "",
                         room = ""
                     ] = line
-                        .split("｜")
+                        .split("|")
                         .map(value => value.trim());
 
                     return {
