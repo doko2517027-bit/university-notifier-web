@@ -180,6 +180,11 @@ async function loadCourseNews() {
 
         const notice = newsDoc.data();
 
+        console.log(
+            notice.title,
+            notice.createdAt?.toDate()
+        );
+
         courseNews.innerHTML += `
 
         <div class="card news-card"
