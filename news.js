@@ -156,6 +156,37 @@ async function loadNews() {
 
 }
 
+function parseCourseNewsDate(value) {
+
+    if (!value) {
+        return 0;
+    }
+
+    const match =
+        String(value).match(
+            /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/
+        );
+
+    if (!match) {
+        return 0;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const hour = Number(match[4]);
+    const minute = Number(match[5]);
+
+    return new Date(
+        year,
+        month - 1,
+        day,
+        hour,
+        minute
+    ).getTime();
+
+}
+
 async function loadCourseNews() {
 
     const q = query(
@@ -184,15 +215,13 @@ async function loadCourseNews() {
 
     notices.sort((a, b) => {
 
-        const postedA =
-            String(a.posted || "")
-                .replace(/\D/g, "");
+        const dateA =
+            parseCourseNewsDate(a.posted);
 
-        const postedB =
-            String(b.posted || "")
-                .replace(/\D/g, "");
+        const dateB =
+            parseCourseNewsDate(b.posted);
 
-        return postedB.localeCompare(postedA);
+        return dateB - dateA;
 
     });
 
