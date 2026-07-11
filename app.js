@@ -1400,3 +1400,44 @@ if (examNext) {
     };
 
 }
+
+if (lecturePrev) {
+
+    lecturePrev.onclick = () => {
+
+        if (lectureScheduleIndex <= 0) {
+            return;
+        }
+
+        lectureScheduleIndex--;
+
+        const grade =
+            localStorage.getItem("grade");
+
+        renderCurrentLectureSchedule(grade);
+
+    };
+
+}
+
+if (lectureNext) {
+
+    lectureNext.onclick = () => {
+
+        if (
+            lectureScheduleIndex >=
+            lectureSchedules.length - 1
+        ) {
+            return;
+        }
+
+        lectureScheduleIndex++;
+
+        const grade =
+            localStorage.getItem("grade");
+
+        renderCurrentLectureSchedule(grade);
+
+    };
+
+}
