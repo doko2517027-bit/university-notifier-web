@@ -146,6 +146,66 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
+<h2>🗓 講義管理</h2>
+
+<div class="card setting-card">
+
+    <p>
+        時間割PDFから取得した講義を確認・編集します。
+    </p>
+
+    <label>
+        <b>時間割</b>
+    </label>
+
+    <select id="scheduleType">
+
+        <option value="ns_yamate">
+            看護学科・山手
+        </option>
+
+        <option value="pt">
+            理学療法学科
+        </option>
+
+        <option value="ot">
+            作業療法学科
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <label>
+        <b>日付</b>
+    </label>
+
+    <input
+        id="scheduleDate"
+        type="date">
+
+    <br><br>
+
+    <button
+        id="loadScheduleButton"
+        class="btn btn-primary">
+
+        講義を表示
+
+    </button>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>講義一覧</h3>
+
+    <div id="adminScheduleList">
+        時間割と日付を選択してください。
+    </div>
+
+</div>
+
 <h2>📚 テスト管理</h2>
 
 <div

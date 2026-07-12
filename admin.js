@@ -16,6 +16,7 @@ import {
 import {
     doc,
     getDoc,
+    setDoc,
     updateDoc,
     collection,
     getDocs,
@@ -61,6 +62,10 @@ const notifyComment = document.getElementById("notifyComment");
 const reportList = document.getElementById("reportList");
 const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 const enablePushButton = document.getElementById("enablePushButton");
+const scheduleType = document.getElementById("scheduleType");
+const scheduleDate = document.getElementById("scheduleDate");
+const loadScheduleButton = document.getElementById("loadScheduleButton");
+const adminScheduleList = document.getElementById("adminScheduleList");
 
 setupTheme(themeButton);
 
@@ -438,6 +443,8 @@ async function loadNotificationSettings() {
 
 function setupEvents() {
 
+    loadScheduleButton.onclick = loadAdminSchedule;
+
     enablePushButton.onclick = enablePushNotification;
 
     postSystemNews.onclick = postNews;
@@ -475,6 +482,17 @@ function setupEvents() {
     });
 
     document.addEventListener("click", async (e) => {
+
+        if (
+            e.target.classList.contains(
+                "save-schedule-override"
+            )
+        ) {
+
+            await saveScheduleOverride(e.target);
+            return;
+
+        }
     
     if (e.target.classList.contains("close-report")) {
 
@@ -533,6 +551,403 @@ function setupEvents() {
 	    });
 	
 	}
+
+async function loadAdminSchedule() {
+
+    const selectedType =
+        scheduleType.value;
+
+    const selectedDate =
+        scheduleDate.value;
+
+    if (!selectedDate) {
+
+        alert("日付を選択してください。");
+        return;
+
+    }
+
+    adminScheduleList.textContent =
+        "講義を読み込んでいます...";
+
+    try {
+
+        const scheduleSnap = await getDoc(
+            doc(db, "schedule", selectedType)
+        );
+
+        if (!scheduleSnap.exists()) {
+
+            adminScheduleList.textContent =
+                "時間割データが見つかりません。";
+
+            return;
+
+        }
+
+        const scheduleData =
+            scheduleSnap.data();
+
+        const days =
+            Array.isArray(scheduleData.days)
+                ? scheduleData.days
+                : [];
+
+        const selectedDay = days.find(
+            day => day.date === selectedDate
+        );
+
+        if (!selectedDay) {
+
+            adminScheduleList.textContent =
+                "選択した日付のデータはありません。";
+
+            return;
+
+        }
+
+        const schedules =
+            Array.isArray(selectedDay.schedules)
+                ? selectedDay.schedules
+                : [];
+
+        if (schedules.length === 0) {
+
+            adminScheduleList.textContent =
+                "この日の講義はありません。";
+
+            return;
+
+        }
+
+        const sortedSchedules = [...schedules].sort(
+            (a, b) => {
+
+                const gradeA =
+                    Number(a.grade) || 0;
+
+                const gradeB =
+                    Number(b.grade) || 0;
+
+                if (gradeA !== gradeB) {
+                    return gradeA - gradeB;
+                }
+
+                const periodA =
+                    Number(a.period) || 0;
+
+                const periodB =
+                    Number(b.period) || 0;
+
+                return periodA - periodB;
+
+            }
+        );
+
+        adminScheduleList.innerHTML =
+            sortedSchedules.map(
+                (schedule, index) => {
+
+                    const originalSubject =
+                        String(schedule.subject || "");
+
+                    const overrideId =
+                        createScheduleOverrideId({
+                            scheduleType: selectedType,
+                            date: selectedDate,
+                            grade: schedule.grade,
+                            period: schedule.period,
+                            target: schedule.target,
+                            kubun: schedule.kubun,
+                            subject: originalSubject
+                        });
+
+                    return `
+
+                    <div
+                        class="card setting-card admin-schedule-item"
+                        data-override-id="${escapeAdminHtml(overrideId)}"
+                        data-schedule-type="${escapeAdminHtml(selectedType)}"
+                        data-date="${escapeAdminHtml(selectedDate)}"
+                        data-grade="${escapeAdminHtml(schedule.grade || "")}"
+                        data-period="${escapeAdminHtml(schedule.period || "")}"
+                        data-target="${escapeAdminHtml(schedule.target || "")}"
+                        data-kubun="${escapeAdminHtml(schedule.kubun || "")}"
+                        data-original-subject="${escapeAdminHtml(originalSubject)}"
+                        data-original-building="${escapeAdminHtml(schedule.building || "")}"
+                        data-original-room="${escapeAdminHtml(schedule.room || "")}"
+                        data-original-teacher="${escapeAdminHtml(schedule.teacher || "")}">
+
+                        <p>
+                            <b>
+                                ${escapeAdminHtml(schedule.grade || "-")}年
+                                ${escapeAdminHtml(schedule.period || "-")}限
+                            </b>
+                        </p>
+
+                        <label>
+                            <b>科目</b>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="admin-schedule-subject"
+                            value="${escapeAdminHtml(schedule.subject || "")}">
+
+                        <br><br>
+
+                        <label>
+                            <b>校舎</b>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="admin-schedule-building"
+                            value="${escapeAdminHtml(schedule.building || "")}">
+
+                        <br><br>
+
+                        <label>
+                            <b>教室</b>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="admin-schedule-room"
+                            value="${escapeAdminHtml(schedule.room || "")}">
+
+                        <br><br>
+
+                        <label>
+                            <b>教員</b>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="admin-schedule-teacher"
+                            value="${escapeAdminHtml(schedule.teacher || "")}">
+
+                        <br><br>
+
+                        <button
+                            type="button"
+                            class="btn btn-primary save-schedule-override">
+
+                            手動変更を保存
+
+                        </button>
+
+                    </div>
+
+                    `;
+
+                }
+            ).join("");
+
+    } catch (error) {
+
+        console.error(
+            "講義一覧の取得に失敗しました:",
+            error
+        );
+
+        adminScheduleList.textContent =
+            "講義一覧の取得に失敗しました。";
+
+    }
+
+}
+
+async function saveScheduleOverride(button) {
+
+    const item =
+        button.closest(".admin-schedule-item");
+
+    if (!item) return;
+
+    const subjectInput =
+        item.querySelector(
+            ".admin-schedule-subject"
+        );
+
+    const buildingInput =
+        item.querySelector(
+            ".admin-schedule-building"
+        );
+
+    const roomInput =
+        item.querySelector(
+            ".admin-schedule-room"
+        );
+
+    const teacherInput =
+        item.querySelector(
+            ".admin-schedule-teacher"
+        );
+
+    const subject =
+        subjectInput.value.trim();
+
+    const building =
+        buildingInput.value.trim();
+
+    const room =
+        roomInput.value.trim();
+
+    const teacher =
+        teacherInput.value.trim();
+
+    const originalSubject =
+        item.dataset.originalSubject || "";
+
+    const originalBuilding =
+        item.dataset.originalBuilding || "";
+
+    const originalRoom =
+        item.dataset.originalRoom || "";
+
+    const originalTeacher =
+        item.dataset.originalTeacher || "";
+
+    if (!subject) {
+
+        alert("科目名は空にできません。");
+        return;
+
+    }
+
+    const overriddenFields = {
+        subject:
+            subject !== originalSubject,
+
+        building:
+            building !== originalBuilding,
+
+        room:
+            room !== originalRoom,
+
+        teacher:
+            teacher !== originalTeacher
+    };
+
+    const hasChanges =
+        Object.values(overriddenFields).some(
+            value => value === true
+        );
+
+    if (!hasChanges) {
+
+        showToast("変更された項目はありません");
+        return;
+
+    }
+
+    button.disabled = true;
+    button.textContent = "保存中...";
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "scheduleOverrides",
+                item.dataset.overrideId
+            ),
+            {
+                scheduleType:
+                    item.dataset.scheduleType,
+
+                date:
+                    item.dataset.date,
+
+                grade:
+                    item.dataset.grade,
+
+                period:
+                    item.dataset.period,
+
+                target:
+                    item.dataset.target,
+
+                kubun:
+                    item.dataset.kubun,
+
+                originalSubject,
+
+                subject,
+                building,
+                room,
+                teacher,
+
+                overriddenFields,
+
+                updatedBy:
+                    studentNumber,
+
+                updatedAt:
+                    serverTimestamp()
+            }
+        );
+
+        showToast(
+            "講義の手動変更を保存しました"
+        );
+
+        button.textContent = "保存済み";
+
+    } catch (error) {
+
+        console.error(
+            "講義の手動変更保存に失敗しました:",
+            error
+        );
+
+        alert(
+            "講義の手動変更を保存できませんでした。"
+        );
+
+        button.textContent =
+            "手動変更を保存";
+
+    } finally {
+
+        button.disabled = false;
+
+    }
+
+}
+
+
+function escapeAdminHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+function createScheduleOverrideId(schedule) {
+
+    const rawId = [
+        schedule.scheduleType,
+        schedule.date,
+        schedule.grade,
+        schedule.period,
+        schedule.target,
+        schedule.kubun,
+        schedule.subject
+    ].map(value =>
+        String(value || "").trim()
+    ).join("__");
+
+    return rawId
+        .replace(/\//g, "／")
+        .replace(/\s+/g, "_");
+
+}
 
 async function postNews() {
 
