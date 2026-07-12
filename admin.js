@@ -680,8 +680,8 @@ async function loadAdminSchedule() {
 
                         <p>
                             <b>
-                                ${escapeAdminHtml(schedule.grade || "-")}年
-                                ${escapeAdminHtml(schedule.period || "-")}限
+                                ${escapeAdminHtml(schedule.grade || "-")}
+                                ${escapeAdminHtml(schedule.period || "-")}
                             </b>
                         </p>
 
