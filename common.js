@@ -568,3 +568,70 @@ export function renderPostCard({
 `;
 
 }
+
+export async function updateAssignmentNavBadge() {
+
+    const badge =
+        document.getElementById(
+            "assignmentNavBadge"
+        );
+
+    if (!badge || !studentNumber) {
+        return;
+    }
+
+    try {
+
+        const snap = await getDoc(
+            doc(
+                db,
+                "assignments",
+                studentNumber
+            )
+        );
+
+        if (!snap.exists()) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        const assignments =
+            snap.data().assignments || [];
+
+        const count =
+            Array.isArray(assignments)
+                ? assignments.length
+                : 0;
+
+        if (count <= 0) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        badge.hidden = false;
+
+        badge.textContent =
+            count > 99
+                ? "99+"
+                : String(count);
+
+    } catch (error) {
+
+        console.error(
+            "課題バッジ取得エラー:",
+            error
+        );
+
+        badge.hidden = true;
+
+    }
+
+}

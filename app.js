@@ -8,7 +8,8 @@ import {
     showNewsSkeleton,
     setupAdminTab,
     decryptData,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -206,7 +207,8 @@ console.log("studentNumber =", studentNumber);
     await initializePage([
         loadUserName(userName),
         loadProfileImage(topProfileImage),
-        loadActiveMailBadge(user)
+        loadActiveMailBadge(user),
+        updateAssignmentNavBadge()
     ]);
 
     loadExamMode();
