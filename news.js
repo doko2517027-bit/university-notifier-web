@@ -136,7 +136,11 @@ async function loadNews() {
             <div class="card news-card">
 
                 <div class="news-date">
-                    ${posted.getFullYear()}/${posted.getMonth()+1}/${posted.getDate()}
+                    ${posted.getFullYear()}/
+                    ${posted.getMonth() + 1}/
+                    ${posted.getDate()}
+                    ${String(posted.getHours()).padStart(2, "0")}:
+                    ${String(posted.getMinutes()).padStart(2, "0")}
                 </div>
 
                 <div class="news-body">
@@ -164,7 +168,7 @@ function parseCourseNewsDate(value) {
 
     const match =
         String(value).match(
-            /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/
+            /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/
         );
 
     if (!match) {
@@ -234,16 +238,16 @@ async function loadCourseNews() {
             <div class="card news-card"
                 onclick="window.open('${notice.url}','_blank')">
 
+                <div class="news-date">
+                    ${notice.posted || ""}
+                </div>
+
                 <div class="news-title">
                     📘 ${notice.course}
                 </div>
 
                 <div class="news-body">
                     ${notice.title}
-                </div>
-
-                <div class="news-date">
-                    ${notice.posted || ""}
                 </div>
 
                 <div class="news-link">
@@ -305,7 +309,13 @@ async function loadSystemNews() {
                     : null;
 
             const dateText = created
-                ? `${created.getFullYear()}/${created.getMonth()+1}/${created.getDate()}`
+                ? (
+                    `${created.getFullYear()}/` +
+                    `${created.getMonth() + 1}/` +
+                    `${created.getDate()} ` +
+                    `${String(created.getHours()).padStart(2, "0")}:` +
+                    `${String(created.getMinutes()).padStart(2, "0")}`
+                )
                 : "";
 
             systemNews.innerHTML += `

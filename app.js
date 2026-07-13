@@ -412,7 +412,7 @@ function parseCourseNewsDate(value) {
 
     const match =
         String(value).match(
-            /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/
+            /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/
         );
 
     if (!match) {
@@ -544,7 +544,13 @@ async function loadHomeSystemNews() {
                     : null;
 
             const dateText = created
-                ? `${created.getFullYear()}/${created.getMonth() + 1}/${created.getDate()}`
+                ? (
+                    `${created.getFullYear()}/` +
+                    `${created.getMonth() + 1}/` +
+                    `${created.getDate()} ` +
+                    `${String(created.getHours()).padStart(2, "0")}:` +
+                    `${String(created.getMinutes()).padStart(2, "0")}`
+                )
                 : "";
 
             homeSystemNews.innerHTML += `
