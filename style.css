@@ -2280,3 +2280,47 @@ html.dark{
 
     text-align: right;
 }
+
+.news-actions{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    margin:-8px 0 16px;
+
+}
+
+.news-read-all-button{
+
+    border:none;
+
+    border-radius:999px;
+
+    padding:10px 16px;
+
+    background:var(--primary);
+
+    color:#fff;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.news-read-all-button:hover{
+
+    transform:translateY(-1px);
+
+}
+
+.news-read-all-button:active{
+
+    transform:scale(.97);
+
+}
