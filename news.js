@@ -531,6 +531,8 @@ newsList.addEventListener(
             universityNewsBadge
         );
 
+        await updateNewsNavBadge();
+
     }
 );
 
@@ -582,6 +584,8 @@ courseNews.addEventListener(
             decreaseNewsTabBadge(
                 courseNewsBadge
             );
+
+            await updateNewsNavBadge();
         }
 
         if (newsUrl) {
@@ -710,21 +714,6 @@ async function loadNewsTabBadges() {
 
         const user = userSnap.data();
 
-        const universityLastRead =
-            getTimestampMilliseconds(
-                user.universityNewsLastReadAt
-            );
-
-        const courseLastRead =
-            getTimestampMilliseconds(
-                user.courseNewsLastReadAt
-            );
-
-        const systemLastRead =
-            getTimestampMilliseconds(
-                user.systemNewsLastReadAt
-            );
-
         const department =
             localStorage.getItem("department") || "";
 
@@ -806,12 +795,10 @@ async function loadNewsTabBadges() {
 
         systemSnap.forEach(newsDoc => {
 
-            const createdAt =
-                getTimestampMilliseconds(
-                    newsDoc.data().createdAt
-                );
+            const readId =
+                `system_${newsDoc.id}`;
 
-            if (createdAt > systemLastRead) {
+            if (!readNewsIds.has(readId)) {
                 systemUnreadCount++;
             }
 
@@ -1122,6 +1109,8 @@ systemNews.addEventListener(
         decreaseNewsTabBadge(
             systemNewsBadge
         );
+
+        await updateNewsNavBadge();
 
     }
 );
