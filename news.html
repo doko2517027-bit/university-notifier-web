@@ -58,16 +58,49 @@ if(localStorage.getItem("theme")==="dark"){
 
 <div class="news-tabs">
 
-    <button id="universityTab" class="active">
-        📢大学
+    <button
+        id="universityTab"
+        class="active news-tab-with-badge">
+
+        <span>📢大学</span>
+
+        <span
+            id="universityNewsBadge"
+            class="news-tab-badge"
+            hidden>
+            0
+        </span>
+
     </button>
 
-    <button id="courseTab">
-        📘コース
+    <button
+        id="courseTab"
+        class="news-tab-with-badge">
+
+        <span>📘コース</span>
+
+        <span
+            id="courseNewsBadge"
+            class="news-tab-badge"
+            hidden>
+            0
+        </span>
+
     </button>
 
-    <button id="systemTab">
-        💙CareMate
+    <button
+        id="systemTab"
+        class="news-tab-with-badge">
+
+        <span>💙CareMate</span>
+
+        <span
+            id="systemNewsBadge"
+            class="news-tab-badge"
+            hidden>
+            0
+        </span>
+
     </button>
 
 </div>

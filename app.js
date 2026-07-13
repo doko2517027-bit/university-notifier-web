@@ -10,7 +10,8 @@ import {
     decryptData,
     setupOfflineAlert,
     updateAssignmentNavBadge,
-    updateShareNavBadge
+    updateShareNavBadge,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -210,7 +211,8 @@ console.log("studentNumber =", studentNumber);
         loadProfileImage(topProfileImage),
         loadActiveMailBadge(user),
         updateAssignmentNavBadge(),
-        updateShareNavBadge()
+        updateShareNavBadge(),
+        updateNewsNavBadge()
     ]);
 
     loadExamMode();

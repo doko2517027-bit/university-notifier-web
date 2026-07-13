@@ -728,3 +728,268 @@ export async function updateShareNavBadge() {
     }
 
 }
+
+function parseNewsPostedDate(value) {
+
+    if (!value) {
+        return 0;
+    }
+
+    const match =
+        String(value).match(
+            /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/
+        );
+
+    if (!match) {
+        return 0;
+    }
+
+    return new Date(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3]),
+        Number(match[4]),
+        Number(match[5])
+    ).getTime();
+
+}
+
+function getTimestampMilliseconds(timestamp) {
+
+    if (!timestamp) {
+        return 0;
+    }
+
+    if (
+        typeof timestamp.toMillis === "function"
+    ) {
+        return timestamp.toMillis();
+    }
+
+    if (
+        typeof timestamp.toDate === "function"
+    ) {
+        return timestamp.toDate().getTime();
+    }
+
+    return 0;
+
+}
+
+export async function updateNewsNavBadge() {
+
+    const badge =
+        document.getElementById(
+            "newsNavBadge"
+        );
+
+    if (!badge || !studentNumber) {
+        return;
+    }
+
+    try {
+
+        const userSnap = await getDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            )
+        );
+
+        if (!userSnap.exists()) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        const user =
+            userSnap.data();
+
+        const universityLastRead =
+            getTimestampMilliseconds(
+                user.universityNewsLastReadAt
+            );
+
+        const courseLastRead =
+            getTimestampMilliseconds(
+                user.courseNewsLastReadAt
+            );
+
+        const systemLastRead =
+            getTimestampMilliseconds(
+                user.systemNewsLastReadAt
+            );
+
+        const department =
+            localStorage.getItem("department") || "";
+
+        const major =
+            localStorage.getItem("major") || "";
+
+        const grade =
+            (
+                localStorage.getItem("grade") || ""
+            ).replace("年", "");
+
+        let universityUnreadCount = 0;
+
+        if (
+            grade &&
+            (
+                department ||
+                major
+            )
+        ) {
+
+            let universityQuery;
+
+            if (department) {
+
+                universityQuery = query(
+                    collection(db, "news"),
+                    where(
+                        "department",
+                        "==",
+                        department
+                    ),
+                    where(
+                        "grade",
+                        "==",
+                        grade
+                    )
+                );
+
+            } else {
+
+                universityQuery = query(
+                    collection(db, "news"),
+                    where(
+                        "major",
+                        "==",
+                        major
+                    ),
+                    where(
+                        "grade",
+                        "==",
+                        grade
+                    )
+                );
+
+            }
+
+            const universitySnap =
+                await getDocs(
+                    universityQuery
+                );
+
+            universitySnap.forEach(
+                newsDoc => {
+
+                    const postedAt =
+                        getTimestampMilliseconds(
+                            newsDoc.data().postedAt
+                        );
+
+                    if (
+                        postedAt >
+                        universityLastRead
+                    ) {
+                        universityUnreadCount++;
+                    }
+
+                }
+            );
+
+        }
+
+        const courseSnap =
+            await getDocs(
+                collection(
+                    db,
+                    "courseNews",
+                    studentNumber,
+                    "news"
+                )
+            );
+
+        let courseUnreadCount = 0;
+
+        courseSnap.forEach(newsDoc => {
+
+            const postedAt =
+                parseNewsPostedDate(
+                    newsDoc.data().posted
+                );
+
+            if (
+                postedAt >
+                courseLastRead
+            ) {
+                courseUnreadCount++;
+            }
+
+        });
+
+        const systemSnap =
+            await getDocs(
+                collection(
+                    db,
+                    "systemNews"
+                )
+            );
+
+        let systemUnreadCount = 0;
+
+        systemSnap.forEach(newsDoc => {
+
+            const createdAt =
+                getTimestampMilliseconds(
+                    newsDoc.data().createdAt
+                );
+
+            if (
+                createdAt >
+                systemLastRead
+            ) {
+                systemUnreadCount++;
+            }
+
+        });
+
+        const totalCount =
+            universityUnreadCount +
+            courseUnreadCount +
+            systemUnreadCount;
+
+        if (totalCount <= 0) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        badge.hidden = false;
+
+        badge.textContent =
+            totalCount > 99
+                ? "99+"
+                : String(totalCount);
+
+    } catch (error) {
+
+        console.error(
+            "お知らせバッジ取得エラー:",
+            error
+        );
+
+        badge.hidden = true;
+
+    }
+
+}
