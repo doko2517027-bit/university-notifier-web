@@ -789,39 +789,21 @@ export async function updateNewsNavBadge() {
 
     try {
 
-        const userSnap = await getDoc(
-            doc(
-                db,
-                "users",
-                studentNumber
-            )
-        );
-
-        if (!userSnap.exists()) {
-
-            badge.hidden = true;
-            badge.textContent = "0";
-
-            return;
-
-        }
-
-        const user =
-            userSnap.data();
-
-        const universityLastRead =
-            getTimestampMilliseconds(
-                user.universityNewsLastReadAt
+        const readSnapshot =
+            await getDocs(
+                collection(
+                    db,
+                    "users",
+                    studentNumber,
+                    "readNews"
+                )
             );
 
-        const courseLastRead =
-            getTimestampMilliseconds(
-                user.courseNewsLastReadAt
-            );
-
-        const systemLastRead =
-            getTimestampMilliseconds(
-                user.systemNewsLastReadAt
+        const readNewsIds =
+            new Set(
+                readSnapshot.docs.map(
+                    readDoc => readDoc.id
+                )
             );
 
         const department =
@@ -881,23 +863,18 @@ export async function updateNewsNavBadge() {
 
             }
 
-            const universitySnap =
+            const universitySnapshot =
                 await getDocs(
                     universityQuery
                 );
 
-            universitySnap.forEach(
+            universitySnapshot.forEach(
                 newsDoc => {
 
-                    const postedAt =
-                        getTimestampMilliseconds(
-                            newsDoc.data().postedAt
-                        );
+                    const readId =
+                        `university_${newsDoc.id}`;
 
-                    if (
-                        postedAt >
-                        universityLastRead
-                    ) {
+                    if (!readNewsIds.has(readId)) {
                         universityUnreadCount++;
                     }
 
@@ -906,7 +883,7 @@ export async function updateNewsNavBadge() {
 
         }
 
-        const courseSnap =
+        const courseSnapshot =
             await getDocs(
                 collection(
                     db,
@@ -918,23 +895,20 @@ export async function updateNewsNavBadge() {
 
         let courseUnreadCount = 0;
 
-        courseSnap.forEach(newsDoc => {
+        courseSnapshot.forEach(
+            newsDoc => {
 
-            const postedAt =
-                parseNewsPostedDate(
-                    newsDoc.data().posted
-                );
+                const readId =
+                    `course_${newsDoc.id}`;
 
-            if (
-                postedAt >
-                courseLastRead
-            ) {
-                courseUnreadCount++;
+                if (!readNewsIds.has(readId)) {
+                    courseUnreadCount++;
+                }
+
             }
+        );
 
-        });
-
-        const systemSnap =
+        const systemSnapshot =
             await getDocs(
                 collection(
                     db,
@@ -944,21 +918,18 @@ export async function updateNewsNavBadge() {
 
         let systemUnreadCount = 0;
 
-        systemSnap.forEach(newsDoc => {
+        systemSnapshot.forEach(
+            newsDoc => {
 
-            const createdAt =
-                getTimestampMilliseconds(
-                    newsDoc.data().createdAt
-                );
+                const readId =
+                    `system_${newsDoc.id}`;
 
-            if (
-                createdAt >
-                systemLastRead
-            ) {
-                systemUnreadCount++;
+                if (!readNewsIds.has(readId)) {
+                    systemUnreadCount++;
+                }
+
             }
-
-        });
+        );
 
         const totalCount =
             universityUnreadCount +

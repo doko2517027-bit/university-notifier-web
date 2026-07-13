@@ -8,7 +8,8 @@ import {
     setupAdminTab,
     setupOfflineAlert,
     updateAssignmentNavBadge,
-    updateShareNavBadge
+    updateShareNavBadge,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -323,7 +324,8 @@ await initializePage([
     loadSystemNews(),
     updateAssignmentNavBadge(),
     updateShareNavBadge(),
-    loadNewsTabBadges()
+    loadNewsTabBadges(),
+    updateNewsNavBadge()
 
 ]);
 
