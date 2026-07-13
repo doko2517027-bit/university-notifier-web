@@ -10,7 +10,8 @@ import {
     setupAdminTab,
     isAdmin,
     showToast,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -79,7 +80,8 @@ await initializePage([
     loadDashboard(),
     loadSystemNews(),
     loadMaintenance(),
-    loadNotificationSettings()
+    loadNotificationSettings(),
+    updateAssignmentNavBadge()
 ]);
 
 setupEvents();

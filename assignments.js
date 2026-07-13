@@ -7,7 +7,8 @@ import {
     initializePage,
     showAssignmentSkeleton,
     setupAdminTab,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -33,7 +34,8 @@ await initializePage([
     setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
-    loadAssignments()
+    loadAssignments(),
+    updateAssignmentNavBadge()
 
 ]);
 

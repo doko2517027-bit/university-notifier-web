@@ -7,7 +7,8 @@ import {
     loadProfileImage,
     loadUserName,
     setupAdminTab,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -72,10 +73,11 @@ setupTheme(themeButton);
 
 await initializePage([
 
-	setupAdminTab(),
+    setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
-    loadnotificationSettings()
+    loadnotificationSettings(),
+    updateAssignmentNavBadge()
 
 ]);
 

@@ -6,7 +6,8 @@ import {
     loadProfileImage,
     loadUserName,
     setupAdminTab,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -40,7 +41,8 @@ await initializePage([
     loadProfileImage(topProfileImage),
     loadNews(),
     loadCourseNews(),
-    loadSystemNews()
+    loadSystemNews(),
+    updateAssignmentNavBadge()
 
 ]);
 

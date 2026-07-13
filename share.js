@@ -10,7 +10,8 @@ import {
     getProfilePhoto,
     setupAdminTab,
     setupOfflineAlert,
-    renderPostCard
+    renderPostCard,
+    updateAssignmentNavBadge
 } from "./common.js";
 
 import {
@@ -69,10 +70,11 @@ async function checkManabaVerified() {
 
 await initializePage([
 
-	setupAdminTab(),
+    setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
-    loadPosts()
+    loadPosts(),
+    updateAssignmentNavBadge()
 
 ]);
 
