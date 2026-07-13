@@ -26,7 +26,8 @@ import {
     updateDoc,
     onSnapshot,
     increment,
-    addDoc
+    addDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const postMenu =
@@ -68,13 +69,55 @@ async function checkManabaVerified() {
 
 }
 
+async function markShareAsRead() {
+
+    if (!studentNumber) {
+        return;
+    }
+
+    try {
+
+        await updateDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
+            {
+                shareLastReadAt:
+                    serverTimestamp()
+            }
+        );
+
+        const badge =
+            document.getElementById(
+                "shareNavBadge"
+            );
+
+        if (badge) {
+            badge.hidden = true;
+            badge.textContent = "0";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "共有既読更新エラー:",
+            error
+        );
+
+    }
+
+}
+
 await initializePage([
 
     setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadPosts(),
-    updateAssignmentNavBadge()
+    updateAssignmentNavBadge(),
+    markShareAsRead()
 
 ]);
 

@@ -4,12 +4,12 @@ import {
     getFirestore,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-import {
-    getStorage
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
@@ -627,6 +627,95 @@ export async function updateAssignmentNavBadge() {
 
         console.error(
             "課題バッジ取得エラー:",
+            error
+        );
+
+        badge.hidden = true;
+
+    }
+
+}
+
+export async function updateShareNavBadge() {
+
+    const badge =
+        document.getElementById(
+            "shareNavBadge"
+        );
+
+    if (!badge || !studentNumber) {
+        return;
+    }
+
+    try {
+
+        const userSnap = await getDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            )
+        );
+
+        if (!userSnap.exists()) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        const shareLastReadAt =
+            userSnap.data().shareLastReadAt || null;
+
+        let postsQuery;
+
+        if (shareLastReadAt) {
+
+            postsQuery = query(
+                collection(db, "posts"),
+                where(
+                    "createdAt",
+                    ">",
+                    shareLastReadAt
+                )
+            );
+
+        } else {
+
+            postsQuery = query(
+                collection(db, "posts")
+            );
+
+        }
+
+        const postsSnap =
+            await getDocs(postsQuery);
+
+        const count =
+            postsSnap.size;
+
+        if (count <= 0) {
+
+            badge.hidden = true;
+            badge.textContent = "0";
+
+            return;
+
+        }
+
+        badge.hidden = false;
+
+        badge.textContent =
+            count > 99
+                ? "99+"
+                : String(count);
+
+    } catch (error) {
+
+        console.error(
+            "共有バッジ取得エラー:",
             error
         );
 
