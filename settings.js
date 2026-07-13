@@ -8,7 +8,8 @@ import {
     loadUserName,
     setupAdminTab,
     setupOfflineAlert,
-    updateAssignmentNavBadge
+    updateAssignmentNavBadge,
+    updateShareNavBadge
 } from "./common.js";
 
 import {
@@ -77,7 +78,8 @@ await initializePage([
     loadUserName(userName),
     loadProfileImage(topProfileImage),
     loadnotificationSettings(),
-    updateAssignmentNavBadge()
+    updateAssignmentNavBadge(),
+    updateShareNavBadge()
 
 ]);
 

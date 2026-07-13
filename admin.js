@@ -11,7 +11,8 @@ import {
     isAdmin,
     showToast,
     setupOfflineAlert,
-    updateAssignmentNavBadge
+    updateAssignmentNavBadge,
+    updateShareNavBadge
 } from "./common.js";
 
 import {
@@ -81,7 +82,8 @@ await initializePage([
     loadSystemNews(),
     loadMaintenance(),
     loadNotificationSettings(),
-    updateAssignmentNavBadge()
+    updateAssignmentNavBadge(),
+    updateShareNavBadge()
 ]);
 
 setupEvents();
