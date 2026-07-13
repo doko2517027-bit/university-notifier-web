@@ -136,7 +136,6 @@ async function loadNews() {
             <div class="card news-card">
 
                 <div class="news-date">
-                    ${posted.getFullYear()}/
                     ${posted.getMonth() + 1}/
                     ${posted.getDate()}
                     ${String(posted.getHours()).padStart(2, "0")}:

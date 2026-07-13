@@ -364,9 +364,7 @@ async function loadNews() {
             const posted = notice.postedAt.toDate();
 
             const postedText =
-                `${posted.getFullYear()}/` +
-                `${posted.getMonth() + 1}/` +
-                `${posted.getDate()} ` +
+                `${posted.getMonth() + 1}/${posted.getDate()} ` +
                 `${String(posted.getHours()).padStart(2, "0")}:` +
                 `${String(posted.getMinutes()).padStart(2, "0")}`;
 
