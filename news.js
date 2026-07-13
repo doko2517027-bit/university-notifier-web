@@ -609,15 +609,13 @@ async function loadNewsTabBadges() {
 
         courseSnap.forEach(newsDoc => {
 
-            const postedAt =
-                parseCourseNewsDate(
-                    newsDoc.data().posted
-                );
-
-            if (postedAt > courseLastRead) {
+            const readId =
+                `course_${newsDoc.id}`;
+        
+            if (!readNewsIds.has(readId)) {
                 courseUnreadCount++;
             }
-
+        
         });
 
         const systemSnap = await getDocs(
