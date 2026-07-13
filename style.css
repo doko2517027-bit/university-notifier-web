@@ -2208,11 +2208,10 @@ html.dark{
 }
 
 .news-tab-badge{
-
     position:absolute;
 
-    top:-7px;
-    right:-7px;
+    top:4px;
+    right:6px;
 
     min-width:18px;
     height:18px;
