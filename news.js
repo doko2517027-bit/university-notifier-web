@@ -354,6 +354,67 @@ newsList.addEventListener(
     }
 );
 
+courseNews.addEventListener(
+    "click",
+    async (event) => {
+
+        const card =
+            event.target.closest(
+                ".news-readable-card"
+            );
+
+        if (!card) {
+            return;
+        }
+
+        const type =
+            card.dataset.newsType;
+
+        const newsId =
+            card.dataset.newsId;
+
+        const newsUrl =
+            card.dataset.newsUrl;
+
+        const readId =
+            `${type}_${newsId}`;
+
+        if (!readNewsIds.has(readId)) {
+
+            const saved =
+                await markNewsAsRead(
+                    type,
+                    newsId
+                );
+
+            if (!saved) {
+                return;
+            }
+
+            card
+                .querySelector(".news-new-label")
+                ?.remove();
+
+            card
+                .querySelector(".news-read-hint")
+                ?.remove();
+
+            decreaseNewsTabBadge(
+                courseNewsBadge
+            );
+        }
+
+        if (newsUrl) {
+            window.open(
+                newsUrl,
+                "_blank",
+                "noopener,noreferrer"
+            );
+        }
+
+    }
+);
+
 function parseCourseNewsDate(value) {
 
     if (!value) {
@@ -680,31 +741,56 @@ async function loadCourseNews() {
 
     notices.forEach(notice => {
 
+        const readId =
+            `course_${notice.id}`;
+    
+        const isUnread =
+            !readNewsIds.has(readId);
+    
         courseNews.innerHTML += `
-
-            <div class="card news-card"
-                onclick="window.open('${notice.url}','_blank')">
-
+    
+            <div
+                class="card news-card news-readable-card"
+                data-news-type="course"
+                data-news-id="${notice.id}"
+                data-news-url="${notice.url || ""}">
+    
+                ${
+                    isUnread
+                        ? `<span class="news-new-label">NEW</span>`
+                        : ""
+                }
+    
                 <div class="news-date">
                     ${formatCourseNewsDate(notice.posted)}
                 </div>
-
+    
                 <div class="news-title">
                     📘 ${notice.course}
                 </div>
-
+    
                 <div class="news-body">
                     ${notice.title}
                 </div>
-
+    
                 <div class="news-link">
                     🗞️ コースニュースを開く
                 </div>
-
+    
+                ${
+                    isUnread
+                        ? `
+                            <div class="news-read-hint">
+                                タップで既読
+                            </div>
+                        `
+                        : ""
+                }
+    
             </div>
-
+    
         `;
-
+    
     });
 
 }
