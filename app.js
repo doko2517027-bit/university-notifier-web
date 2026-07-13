@@ -363,10 +363,7 @@ async function loadNews() {
 
             const posted = notice.postedAt.toDate();
 
-            const postedText =
-                `${posted.getMonth() + 1}/${posted.getDate()} ` +
-                `${String(posted.getHours()).padStart(2, "0")}:` +
-                `${String(posted.getMinutes()).padStart(2, "0")}`;
+            const postedText = formatDateTime(posted);
 
             newsList.innerHTML += `
                 <div class="card news-card"
@@ -427,6 +424,37 @@ function parseCourseNewsDate(value) {
 
 }
 
+function formatDateTime(date) {
+
+    if (!date) {
+        return "";
+    }
+
+    return (
+        `${date.getFullYear()}/` +
+        `${String(date.getMonth() + 1).padStart(2, "0")}/` +
+        `${String(date.getDate()).padStart(2, "0")} ` +
+        `${String(date.getHours()).padStart(2, "0")}:` +
+        `${String(date.getMinutes()).padStart(2, "0")}`
+    );
+
+}
+
+function formatCourseNewsDate(value) {
+
+    const timestamp =
+        parseCourseNewsDate(value);
+
+    if (!timestamp) {
+        return value || "";
+    }
+
+    return formatDateTime(
+        new Date(timestamp)
+    );
+
+}
+
 async function loadHomeCourseNews() {
 
     const q = query(
@@ -480,7 +508,7 @@ async function loadHomeCourseNews() {
                 </div>
 
                 <div class="news-date">
-                    ${notice.posted || ""}
+                    ${formatCourseNewsDate(notice.posted)}
                 </div>
 
             </div>
@@ -541,15 +569,7 @@ async function loadHomeSystemNews() {
                     ? notice.createdAt.toDate()
                     : null;
 
-            const dateText = created
-                ? (
-                    `${created.getFullYear()}/` +
-                    `${created.getMonth() + 1}/` +
-                    `${created.getDate()} ` +
-                    `${String(created.getHours()).padStart(2, "0")}:` +
-                    `${String(created.getMinutes()).padStart(2, "0")}`
-                )
-                : "";
+            const dateText = formatDateTime(created);
 
             homeSystemNews.innerHTML += `
 
