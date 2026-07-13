@@ -37,6 +37,7 @@ const topProfileImage = document.getElementById("topProfileImage");
 const universityNewsBadge = document.getElementById("universityNewsBadge");
 const courseNewsBadge = document.getElementById("courseNewsBadge");
 const systemNewsBadge = document.getElementById("systemNewsBadge");
+const markAllReadButton = document.getElementById("markAllReadButton");
 
 let readNewsIds = new Set();
 
@@ -130,6 +131,183 @@ async function markNewsAsRead(
     }
 
 }
+
+async function markCurrentTabAllAsRead() {
+
+    if (!studentNumber || !markAllReadButton) {
+        return;
+    }
+
+    let type;
+    let targetContainer;
+    let targetBadge;
+    let newsIds = [];
+
+    try {
+
+        if (universityTab.classList.contains("active")) {
+
+            type = "university";
+            targetContainer = newsList;
+            targetBadge = universityNewsBadge;
+
+            const department =
+                localStorage.getItem("department") || "";
+
+            const major =
+                localStorage.getItem("major") || "";
+
+            const grade =
+                (
+                    localStorage.getItem("grade") || ""
+                ).replace("年", "");
+
+            if (!grade || (!department && !major)) {
+                return;
+            }
+
+            let universityQuery;
+
+            if (department) {
+
+                universityQuery = query(
+                    collection(db, "news"),
+                    where("department", "==", department),
+                    where("grade", "==", grade)
+                );
+
+            } else {
+
+                universityQuery = query(
+                    collection(db, "news"),
+                    where("major", "==", major),
+                    where("grade", "==", grade)
+                );
+
+            }
+
+            const snapshot =
+                await getDocs(universityQuery);
+
+            newsIds = snapshot.docs
+                .map(newsDoc => newsDoc.id)
+                .filter(newsId =>
+                    !readNewsIds.has(
+                        `university_${newsId}`
+                    )
+                );
+
+        } else if (
+            courseTab.classList.contains("active")
+        ) {
+
+            type = "course";
+            targetContainer = courseNews;
+            targetBadge = courseNewsBadge;
+
+            const snapshot = await getDocs(
+                collection(
+                    db,
+                    "courseNews",
+                    studentNumber,
+                    "news"
+                )
+            );
+
+            newsIds = snapshot.docs
+                .map(newsDoc => newsDoc.id)
+                .filter(newsId =>
+                    !readNewsIds.has(
+                        `course_${newsId}`
+                    )
+                );
+
+        } else {
+
+            type = "system";
+            targetContainer = systemNews;
+            targetBadge = systemNewsBadge;
+
+            const snapshot = await getDocs(
+                collection(db, "systemNews")
+            );
+
+            newsIds = snapshot.docs
+                .map(newsDoc => newsDoc.id)
+                .filter(newsId =>
+                    !readNewsIds.has(
+                        `system_${newsId}`
+                    )
+                );
+
+        }
+
+        if (newsIds.length === 0) {
+
+            targetBadge.hidden = true;
+            targetBadge.textContent = "0";
+
+            alert("未読のお知らせはありません。");
+            return;
+
+        }
+
+        const ok = confirm(
+            `${newsIds.length}件のお知らせを全て既読にしますか？`
+        );
+
+        if (!ok) {
+            return;
+        }
+
+        markAllReadButton.disabled = true;
+        markAllReadButton.textContent = "既読処理中...";
+
+        const results = await Promise.all(
+            newsIds.map(newsId =>
+                markNewsAsRead(type, newsId)
+            )
+        );
+
+        if (results.some(result => result !== true)) {
+            throw new Error(
+                "一部のお知らせを既読にできませんでした。"
+            );
+        }
+
+        targetContainer
+            .querySelectorAll(".news-new-label")
+            .forEach(label => label.remove());
+
+        targetContainer
+            .querySelectorAll(".news-read-hint")
+            .forEach(hint => hint.remove());
+
+        targetBadge.hidden = true;
+        targetBadge.textContent = "0";
+
+    } catch (error) {
+
+        console.error(
+            "全て既読エラー:",
+            error
+        );
+
+        alert(
+            "全て既読にできませんでした。"
+        );
+
+    } finally {
+
+        markAllReadButton.disabled = false;
+        markAllReadButton.textContent =
+            "✓ 全て既読";
+
+    }
+
+}
+
+markAllReadButton.onclick = markCurrentTabAllAsRead;
 
 setupTheme(themeButton);
 
