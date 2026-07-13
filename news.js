@@ -704,16 +704,6 @@ async function loadNewsTabBadges() {
 
     try {
 
-        const userSnap = await getDoc(
-            doc(db, "users", studentNumber)
-        );
-
-        if (!userSnap.exists()) {
-            return;
-        }
-
-        const user = userSnap.data();
-
         const department =
             localStorage.getItem("department") || "";
 

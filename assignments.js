@@ -9,7 +9,8 @@ import {
     setupAdminTab,
     setupOfflineAlert,
     updateAssignmentNavBadge,
-    updateShareNavBadge
+    updateShareNavBadge,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -37,7 +38,8 @@ await initializePage([
     loadProfileImage(topProfileImage),
     loadAssignments(),
     updateAssignmentNavBadge(),
-    updateShareNavBadge()
+    updateShareNavBadge(),
+    updateNewsNavBadge()
 
 ]);
 

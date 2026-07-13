@@ -9,7 +9,8 @@ import {
     setupAdminTab,
     encryptData,
     decryptData,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -36,7 +37,8 @@ await initializePage([
     setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
-    loadWeatherSetting()
+    loadWeatherSetting(),
+    updateNewsNavBadge()
 ]);
 
 document

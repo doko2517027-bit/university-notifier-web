@@ -11,7 +11,8 @@ import {
     setupAdminTab,
     setupOfflineAlert,
     renderPostCard,
-    updateAssignmentNavBadge
+    updateAssignmentNavBadge,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -117,7 +118,8 @@ await initializePage([
     loadProfileImage(topProfileImage),
     loadPosts(),
     updateAssignmentNavBadge(),
-    markShareAsRead()
+    markShareAsRead(),
+    updateNewsNavBadge()
 
 ]);
 

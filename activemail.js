@@ -2,7 +2,8 @@ import {
     db,
     studentNumber,
     showToast,
-    setupOfflineAlert
+    setupOfflineAlert,
+    updateNewsNavBadge
 } from "./common.js";
 
 import {
@@ -20,7 +21,10 @@ const readButton =
 const openMailButton =
     document.getElementById("openMailButton");
 
-load();
+await Promise.all([
+    load(),
+    updateNewsNavBadge()
+]);
 
 openMailButton.onclick = () => {
     window.open(
