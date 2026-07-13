@@ -1,6 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
+    getStorage
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+
+import {
     getFirestore,
     doc,
     setDoc,
