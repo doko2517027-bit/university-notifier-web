@@ -1022,9 +1022,24 @@ async function loadSystemNews() {
 
             const dateText = formatDateTime(created);
 
+            const readId =
+                `system_${notice.id}`;
+
+            const isUnread =
+                !readNewsIds.has(readId);
+
             systemNews.innerHTML += `
 
-            <div class="card news-card">
+            <div
+                class="card news-card news-readable-card"
+                data-news-type="system"
+                data-news-id="${notice.id}">
+
+                ${
+                    isUnread
+                        ? `<span class="news-new-label">NEW</span>`
+                        : ""
+                }
 
                 <div class="news-title">
                     💙 ${notice.title}
@@ -1038,6 +1053,16 @@ async function loadSystemNews() {
                     ${dateText}
                 </div>
 
+                ${
+                    isUnread
+                        ? `
+                            <div class="news-read-hint">
+                                タップで既読
+                            </div>
+                        `
+                        : ""
+                }
+
             </div>
 
             `;
@@ -1047,6 +1072,57 @@ async function loadSystemNews() {
     });
 
 }
+
+systemNews.addEventListener(
+    "click",
+    async (event) => {
+
+        const card =
+            event.target.closest(
+                ".news-readable-card"
+            );
+
+        if (!card) {
+            return;
+        }
+
+        const type =
+            card.dataset.newsType;
+
+        const newsId =
+            card.dataset.newsId;
+
+        const readId =
+            `${type}_${newsId}`;
+
+        if (readNewsIds.has(readId)) {
+            return;
+        }
+
+        const saved =
+            await markNewsAsRead(
+                type,
+                newsId
+            );
+
+        if (!saved) {
+            return;
+        }
+
+        card
+            .querySelector(".news-new-label")
+            ?.remove();
+
+        card
+            .querySelector(".news-read-hint")
+            ?.remove();
+
+        decreaseNewsTabBadge(
+            systemNewsBadge
+        );
+
+    }
+);
 
 const params = new URLSearchParams(location.search);
 
