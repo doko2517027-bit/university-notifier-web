@@ -523,16 +523,14 @@ async function loadNewsTabBadges() {
                 await getDocs(universityQuery);
 
             universitySnap.forEach(newsDoc => {
-
-                const postedAt =
-                    getTimestampMilliseconds(
-                        newsDoc.data().postedAt
-                    );
-
-                if (postedAt > universityLastRead) {
+        
+                const readId =
+                    `university_${newsDoc.id}`;
+            
+                if (!readNewsIds.has(readId)) {
                     universityUnreadCount++;
                 }
-
+            
             });
 
         }
