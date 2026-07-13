@@ -347,6 +347,10 @@ newsList.addEventListener(
             .querySelector(".news-read-hint")
             ?.remove();
 
+        decreaseNewsTabBadge(
+            universityNewsBadge
+        );
+
     }
 );
 
@@ -419,6 +423,31 @@ function setNewsTabBadge(badge, count) {
         count > 99
             ? "99+"
             : String(count);
+
+}
+
+function decreaseNewsTabBadge(badge) {
+
+    if (!badge || badge.hidden) {
+        return;
+    }
+
+    const currentCount =
+        Number(badge.textContent);
+
+    if (
+        !Number.isFinite(currentCount) ||
+        currentCount <= 1
+    ) {
+
+        badge.textContent = "0";
+        badge.hidden = true;
+
+        return;
+    }
+
+    badge.textContent =
+        String(currentCount - 1);
 
 }
 
