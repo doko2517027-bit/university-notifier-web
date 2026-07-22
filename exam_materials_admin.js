@@ -304,7 +304,7 @@ generateAiQuestions.onclick = async () => {
             typeof data === "string"
                 ? JSON.parse(data)
                 : data;
-
+        
         await setDoc(
             doc(
                 db,
@@ -329,7 +329,7 @@ generateAiQuestions.onclick = async () => {
                 merge: true
             }
         );
-
+        
         alert("AI生成結果を保存しました。");
 
     } catch (e) {
