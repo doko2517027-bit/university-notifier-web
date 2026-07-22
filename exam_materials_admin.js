@@ -312,8 +312,8 @@ generateAiQuestions.onclick = async () => {
                 subjectId,
                 "units",
                 unitId,
-                "ai",
-                "generated"
+                "publishedQuestions",
+                "published"
             ),
             {
                 ...generated,
@@ -324,6 +324,9 @@ generateAiQuestions.onclick = async () => {
                     type: material.type,
                     url: material.url
                 }))
+            },
+            {
+                merge: true
             }
         );
 
