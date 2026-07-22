@@ -47,8 +47,8 @@ async function loadQuestions() {
             subjectId,
             "units",
             unitId,
-            "publishedQuestions",
-            "published"
+            "ai",
+            "generated"
         )
     );
 
@@ -58,8 +58,11 @@ async function loadQuestions() {
     }
 
     const data = snap.data();
-    const fillBlank = data.fill_blank || [];
 
+    console.log("Firestoreから取得したAIデータ", data);
+    console.log("穴埋め問題", data.fill_blank);
+
+    const fillBlank = data.fill_blank || [];
     if (fillBlank.length === 0) {
         questions.innerHTML = "穴埋め問題が生成されていません。";
         return;

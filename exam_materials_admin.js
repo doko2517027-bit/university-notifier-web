@@ -304,29 +304,49 @@ generateAiQuestions.onclick = async () => {
             typeof data === "string"
                 ? JSON.parse(data)
                 : data;
-        
+                
+        const generatedData = {
+            ...generated,
+            generatedAt: new Date(),
+            generatedBy: studentNumber,
+            sourceMaterials: materials.map(material => ({
+                name: material.name,
+                type: material.type,
+                url: material.url
+            }))
+        };
+
+        const generatedRef = doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        );
+
+        const editedRef = doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "edited"
+        );
+
         await setDoc(
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId,
-                "publishedQuestions",
-                "published"
-            ),
+            generatedRef,
+            generatedData
+        );
+
+        await setDoc(
+            editedRef,
             {
-                ...generated,
-                generatedAt: new Date(),
-                generatedBy: studentNumber,
-                sourceMaterials: materials.map(material => ({
-                    name: material.name,
-                    type: material.type,
-                    url: material.url
-                }))
-            },
-            {
-                merge: true
+                ...generatedData,
+                editedCreatedAt: new Date(),
+                editedCreatedBy: studentNumber
             }
         );
         
