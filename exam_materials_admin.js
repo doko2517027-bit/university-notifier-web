@@ -261,7 +261,10 @@ generateAiQuestions.onclick = async () => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    url: materials[0].url
+                    materials: selectedMaterials.map(material => ({
+                        name: material.name,
+                        url: material.url
+                    }))
                 })
             }
         );
