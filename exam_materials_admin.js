@@ -245,11 +245,29 @@ generateAiQuestions.onclick = async () => {
 
     const materials = [];
 
-    snap.forEach(doc => {
-        materials.push(doc.data());
+    snap.forEach(materialDoc => {
+
+        const material = materialDoc.data();
+
+        if (!material.url) return;
+
+        materials.push({
+            name: material.name,
+            type: material.type,
+            url: material.url
+        });
+
     });
 
+    if (materials.length === 0) {
+        alert("読み込める資料URLがありません。");
+        return;
+    }
+
     console.log("AIに送る資料", materials);
+
+    generateAiQuestions.disabled = true;
+    generateAiQuestions.textContent = "AI生成中...";
 
     try {
 
@@ -261,22 +279,31 @@ generateAiQuestions.onclick = async () => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    materials: selectedMaterials.map(material => ({
-                        name: material.name,
-                        url: material.url
-                    }))
+                    materials: materials
                 })
             }
         );
 
         const data = await res.json();
 
+        console.log("AI生成結果", data);
+
+        if (!res.ok) {
+
+            const detail =
+                typeof data.detail === "string"
+                    ? data.detail
+                    : JSON.stringify(data.detail);
+
+            throw new Error(
+                detail || "AI生成に失敗しました。"
+            );
+        }
+
         const generated =
             typeof data === "string"
                 ? JSON.parse(data)
                 : data;
-
-        console.log("AI生成結果", generated);
 
         await setDoc(
             doc(
@@ -292,8 +319,11 @@ generateAiQuestions.onclick = async () => {
                 ...generated,
                 generatedAt: new Date(),
                 generatedBy: studentNumber,
-                sourceMaterialUrl: materials[0].url,
-                sourceMaterialName: materials[0].name
+                sourceMaterials: materials.map(material => ({
+                    name: material.name,
+                    type: material.type,
+                    url: material.url
+                }))
             }
         );
 
@@ -301,9 +331,17 @@ generateAiQuestions.onclick = async () => {
 
     } catch (e) {
 
-        console.error(e);
+        console.error("AI生成エラー:", e);
 
-        alert("AIサーバーへ接続できませんでした。");
+        alert(
+            "AI生成に失敗しました。\n" +
+            e.message
+        );
+
+    } finally {
+
+        generateAiQuestions.disabled = false;
+        generateAiQuestions.textContent = "AI問題を生成";
 
     }
 
