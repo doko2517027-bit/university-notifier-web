@@ -316,16 +316,6 @@ generateAiQuestions.onclick = async () => {
             }))
         };
 
-        const generatedRef = doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "generated"
-        );
-
         const editedRef = doc(
             db,
             "examSubjects",
@@ -336,6 +326,24 @@ generateAiQuestions.onclick = async () => {
             "edited"
         );
 
+        const oldEditedSnap =
+            await getDoc(editedRef);
+
+        const oldEdited =
+            oldEditedSnap.exists()
+                ? oldEditedSnap.data()
+                : {};
+
+        const generatedRef = doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "generated"
+        );
+
         await setDoc(
             generatedRef,
             generatedData
@@ -344,9 +352,73 @@ generateAiQuestions.onclick = async () => {
         await setDoc(
             editedRef,
             {
+
                 ...generatedData,
-                editedCreatedAt: new Date(),
-                editedCreatedBy: studentNumber
+
+                /*
+                * 手動入力があるなら優先
+                */
+                summary:
+                    oldEdited.manual_summary ??
+                    generatedData.summary,
+
+                important_points:
+                    oldEdited.manual_important_points ??
+                    generatedData.important_points,
+
+                fill_blank: [
+
+                    ...(generatedData.fill_blank || []),
+
+                    ...(
+                        oldEdited.fill_blank || []
+                    ).filter(item =>
+                        item.preserve_original === true
+                    )
+
+                ],
+
+                quiz: [
+
+                    ...(generatedData.quiz || []),
+
+                    ...(
+                        oldEdited.quiz || []
+                    ).filter(item =>
+                        item.preserve_original === true
+                    )
+
+                ],
+
+                today_question:
+
+                    oldEdited.today_question &&
+                    oldEdited.today_question.preserve_original
+
+                        ? oldEdited.today_question
+
+                        : generatedData.today_question,
+
+                manual_summary:
+                    oldEdited.manual_summary ?? null,
+
+                manual_important_points:
+                    oldEdited.manual_important_points ?? null,
+
+                editedCreatedAt:
+                    oldEdited.editedCreatedAt ??
+                    new Date(),
+
+                editedCreatedBy:
+                    oldEdited.editedCreatedBy ??
+                    studentNumber,
+
+                editedAt:
+                    new Date(),
+
+                editedBy:
+                    studentNumber
+
             }
         );
         
