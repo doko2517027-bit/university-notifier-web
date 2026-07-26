@@ -165,7 +165,10 @@ function renderQuestions(data) {
     const summary =
         Array.isArray(data.summary)
             ? data.summary
-            : [];
+            : typeof data.summary === "string" &&
+            data.summary.trim() !== ""
+                ? [data.summary.trim()]
+                : [];
 
     const importantPoints =
         Array.isArray(data.important_points)
@@ -1232,43 +1235,47 @@ previewJson.onclick = () => {
 
 importJson.onclick = async () => {
 
-    try{
+    try {
 
         const data =
             JSON.parse(jsonImport.value);
 
+        const editedRef = doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId,
+            "ai",
+            "edited"
+        );
+
         await setDoc(
-
             editedRef,
-
             {
-
                 ...data,
 
-                editedAt:new Date(),
-
-                editedBy:studentNumber
-
+                editedAt: new Date(),
+                editedBy: studentNumber
             },
-
             {
-
-                merge:true
-
+                merge: true
             }
-
         );
 
         alert("保存しました");
 
-        loadQuestions();
+        await loadQuestions();
 
-    }catch(e){
+    } catch (e) {
 
-        console.error(e);
+        console.error(
+            "JSON一括保存エラー:",
+            e
+        );
 
-        alert("保存できませんでした");
-
+        alert(
+            `保存できませんでした。\n${e.message}`
+        );
     }
-
 };
