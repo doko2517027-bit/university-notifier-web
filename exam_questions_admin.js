@@ -54,12 +54,22 @@ async function loadQuestions() {
     );
 
     const unitSnap = await getDoc(
-        doc(db, "examSubjects", subjectId, "units", unitId)
+        doc(
+            db,
+            "examSubjects",
+            subjectId,
+            "units",
+            unitId
+        )
     );
 
     if (!subjectSnap.exists() || !unitSnap.exists()) {
-        unitInfo.textContent = "科目または単元が見つかりません。";
+
+        unitInfo.textContent =
+            "科目または単元が見つかりません。";
+
         questionList.innerHTML = "";
+
         return;
     }
 
@@ -86,102 +96,229 @@ async function loadQuestions() {
         "generated"
     );
 
+    /*
+     * すでに編集済み・手動作成済みのデータがあれば、
+     * それを最優先で表示する
+     */
     const editedSnap = await getDoc(editedRef);
 
     if (editedSnap.exists()) {
+
         renderQuestions(editedSnap.data());
+
         return;
     }
 
+    /*
+     * AI生成結果がある場合は、
+     * 編集用データとしてコピーして表示する
+     */
     const generatedSnap = await getDoc(generatedRef);
 
-    if (!generatedSnap.exists()) {
-        questionList.innerHTML =
-            "AI生成結果はまだありません。";
-        return;
-    }
+    if (generatedSnap.exists()) {
 
-    await setDoc(
-        editedRef,
-        {
+        const editedData = {
             ...generatedSnap.data(),
             editedCreatedAt: new Date(),
             editedCreatedBy: studentNumber
-        }
-    );
+        };
 
-    renderQuestions({
-        ...generatedSnap.data(),
+        await setDoc(
+            editedRef,
+            editedData
+        );
+
+        renderQuestions(editedData);
+
+        return;
+    }
+
+    /*
+     * AI生成結果がなくても、
+     * 空の編集データを作って手動入力を開始できるようにする
+     */
+    const emptyData = {
+        summary: [],
+        important_points: [],
+        fill_blank: [],
+        quiz: [],
+        today_question: null,
+
+        manual_summary: [],
+        manual_important_points: [],
+
+        createdManually: true,
         editedCreatedAt: new Date(),
         editedCreatedBy: studentNumber
-    });
+    };
+
+    await setDoc(
+        editedRef,
+        emptyData
+    );
+
+    renderQuestions(emptyData);
 }
 
 function renderQuestions(data) {
 
-    const summary = data.summary || [];
-    const importantPoints = data.important_points || [];
-    const fillBlank = data.fill_blank || [];
-    const quiz = data.quiz || [];
-    const todayQuestion = data.today_question || null;
+    const summary =
+        Array.isArray(data.summary)
+            ? data.summary
+            : [];
+
+    const importantPoints =
+        Array.isArray(data.important_points)
+            ? data.important_points
+            : [];
+
+    const fillBlank =
+        Array.isArray(data.fill_blank)
+            ? data.fill_blank
+            : [];
+
+    const quiz =
+        Array.isArray(data.quiz)
+            ? data.quiz
+            : [];
+
+    const todayQuestion =
+        data.today_question || null;
 
     questionList.innerHTML = `
         <div class="card setting-card">
+
             <h3>📌 要約</h3>
+
+            <p>
+                1行につき1項目入力してください。
+            </p>
 
             <textarea
                 id="editSummary"
-                rows="6">${summary.join("\n")}</textarea>
+                rows="6"
+                placeholder="例：心不全では心拍出量が低下する。">${summary.join("\n")}</textarea>
+
         </div>
 
+
         <div class="card setting-card">
+
             <h3>⭐ 重要ポイント</h3>
+
+            <p>
+                1行につき1項目入力してください。
+            </p>
 
             <textarea
                 id="editImportantPoints"
-                rows="6">${importantPoints.join("\n")}</textarea>
+                rows="6"
+                placeholder="例：左心不全では肺うっ血が起こりやすい。">${importantPoints.join("\n")}</textarea>
+
         </div>
 
+
         <div class="card setting-card">
+
             <h3>🎯 今日の1問</h3>
-            ${todayQuestion
-                ? renderQuizItem(todayQuestion)
-                : "<p>今日の1問はありません。</p>"
-            }
+
+            <div id="todayQuestionArea">
+
+                ${
+                    todayQuestion
+                        ? renderQuizItem(
+                            todayQuestion,
+                            null,
+                            "today"
+                        )
+                        : `
+                            <p id="noTodayQuestion">
+                                今日の1問はありません。
+                            </p>
+
+                            <button
+                                class="btn btn-secondary"
+                                id="addTodayQuestion">
+                                ＋ 今日の1問を手動作成
+                            </button>
+                        `
+                }
+
+            </div>
+
         </div>
 
+
         <div class="card setting-card">
+
             <h3>📝 穴埋め</h3>
 
             <div id="fillBlankList">
-                ${fillBlank.length
-                    ? fillBlank.map((item, index) => renderFillBlankItem(item, index)).join("")
-                    : "<p>穴埋め問題はありません。</p>"
+
+                ${
+                    fillBlank.length
+                        ? fillBlank
+                            .map(
+                                (item, index) =>
+                                    renderFillBlankItem(
+                                        item,
+                                        index
+                                    )
+                            )
+                            .join("")
+                        : `
+                            <p id="noFillBlank">
+                                穴埋め問題はありません。
+                            </p>
+                        `
                 }
+
             </div>
 
             <br>
 
-            <button class="btn btn-secondary" id="addFillBlank">
-                ＋ 穴埋め問題を追加
+            <button
+                class="btn btn-secondary"
+                id="addFillBlank">
+                ＋ 穴埋め問題を手動作成
             </button>
 
         </div>
 
+
         <div class="card setting-card">
+
             <h3>🧠 四択</h3>
 
             <div id="quizList">
-                ${quiz.length
-                    ? quiz.map((item, index) => renderQuizItem(item, index)).join("")
-                    : "<p>四択問題はありません。</p>"
+
+                ${
+                    quiz.length
+                        ? quiz
+                            .map(
+                                (item, index) =>
+                                    renderQuizItem(
+                                        item,
+                                        index,
+                                        "quiz"
+                                    )
+                            )
+                            .join("")
+                        : `
+                            <p id="noQuiz">
+                                四択問題はありません。
+                            </p>
+                        `
                 }
+
             </div>
 
             <br>
 
-            <button class="btn btn-secondary" id="addQuiz">
-                ＋ 四択問題を追加
+            <button
+                class="btn btn-secondary"
+                id="addQuiz">
+                ＋ 四択問題を手動作成
             </button>
 
         </div>
@@ -191,38 +328,67 @@ function renderQuestions(data) {
 function renderFillBlankItem(item, index) {
 
     const answers =
-        item.answers && item.answers.length > 0
+        Array.isArray(item.answers) &&
+        item.answers.length > 0
             ? item.answers
             : [item.answer || ""];
 
+    const sourceType =
+        item.source_type || "ai";
+
+    const preserveOriginal =
+        item.preserve_original === true;
+
     return `
-        <div class="card setting-card fill-edit-card" data-index="${index}">
-            <p><b>問題 ${index + 1}</b></p>
+        <div
+            class="card setting-card fill-edit-card"
+            data-index="${index}"
+            data-source-type="${sourceType}"
+            data-preserve-original="${preserveOriginal}">
+
+            <p>
+                <b>問題 ${index + 1}</b>
+            </p>
 
             <p>問題文</p>
+
             <textarea
                 class="edit-fill-question"
                 data-index="${index}"
-                rows="3">${item.question || ""}</textarea>
+                rows="3"
+                placeholder="例：心臓から送り出される血液量を〇〇という。">${item.question || ""}</textarea>
 
             <p>模範解答表示</p>
+
             <input
                 class="edit-fill-answer"
                 data-index="${index}"
-                value="${item.answer || answers.join("・")}">
+                value="${item.answer || answers.join("・")}"
+                placeholder="例：心拍出量">
 
             <p>解答ボックス</p>
 
-            <div class="fill-answers-area" data-index="${index}">
-                ${answers.map((answer, answerIndex) => `
-                    <input
-                        class="edit-fill-answer-box"
-                        data-index="${index}"
-                        data-answer-index="${answerIndex}"
-                        value="${answer}"
-                        placeholder="解答 ${answerIndex + 1}">
-                    <br><br>
-                `).join("")}
+            <div
+                class="fill-answers-area"
+                data-index="${index}">
+
+                ${
+                    answers
+                        .map(
+                            (answer, answerIndex) => `
+                                <input
+                                    class="edit-fill-answer-box"
+                                    data-index="${index}"
+                                    data-answer-index="${answerIndex}"
+                                    value="${answer}"
+                                    placeholder="解答 ${answerIndex + 1}">
+
+                                <br><br>
+                            `
+                        )
+                        .join("")
+                }
+
             </div>
 
             <button
@@ -238,60 +404,125 @@ function renderFillBlankItem(item, index) {
                 data-index="${index}">
                 🗑 この穴埋め問題を削除
             </button>
+
         </div>
     `;
 }
 
-function renderQuizItem(item, index = null) {
+function renderQuizItem(
+    item,
+    index = null,
+    type = "quiz"
+) {
 
     const quizIndex =
-        index !== null ? index : "today";
+        type === "today"
+            ? "today"
+            : index;
+
+    const choices =
+        Array.isArray(item.choices)
+            ? [...item.choices]
+            : [];
+
+    /*
+     * 選択肢が4つ未満でも、
+     * 必ず4つの入力欄を表示する
+     */
+    while (choices.length < 4) {
+        choices.push("");
+    }
+
+    const sourceType =
+        item.source_type || "ai";
+
+    const preserveOriginal =
+        item.preserve_original === true;
 
     return `
-        <div class="card setting-card">
-            ${index !== null ? `<p><b>問題 ${index + 1}</b></p>` : ""}
+        <div
+            class="card setting-card quiz-edit-card"
+            data-index="${quizIndex}"
+            data-question-type="${type}"
+            data-source-type="${sourceType}"
+            data-preserve-original="${preserveOriginal}">
+
+            ${
+                type === "quiz"
+                    ? `<p><b>問題 ${Number(index) + 1}</b></p>`
+                    : ""
+            }
 
             <p>問題文</p>
+
             <textarea
                 class="edit-quiz-question"
                 data-index="${quizIndex}"
-                rows="3">${item.question || ""}</textarea>
+                rows="3"
+                placeholder="問題文を入力してください。">${item.question || ""}</textarea>
 
             <p>選択肢</p>
 
-            ${(item.choices || []).map((choice, choiceIndex) => `
-                <input
-                    class="edit-quiz-choice"
-                    data-index="${quizIndex}"
-                    data-choice-index="${choiceIndex}"
-                    value="${choice}">
-                <br><br>
-            `).join("")}
+            ${
+                choices
+                    .slice(0, 4)
+                    .map(
+                        (choice, choiceIndex) => `
+                            <input
+                                class="edit-quiz-choice"
+                                data-index="${quizIndex}"
+                                data-choice-index="${choiceIndex}"
+                                value="${choice}"
+                                placeholder="選択肢 ${choiceIndex + 1}">
+
+                            <br><br>
+                        `
+                    )
+                    .join("")
+            }
 
             <p>正解番号</p>
+
             <input
                 class="edit-quiz-answer"
                 data-index="${quizIndex}"
                 type="number"
                 min="1"
                 max="4"
-                value="${Number(item.answer) + 1}">
+                value="${
+                    Number.isInteger(Number(item.answer))
+                        ? Number(item.answer) + 1
+                        : 1
+                }">
 
             <p>解説</p>
+
             <textarea
                 class="edit-quiz-explanation"
                 data-index="${quizIndex}"
-                rows="3">${item.explanation || ""}</textarea>
+                rows="3"
+                placeholder="解説を入力してください。">${item.explanation || ""}</textarea>
 
-            ${index !== null ? `
-                <br><br>
+            <br><br>
 
-                <button
-                    class="btn btn-danger delete-quiz"
-                    data-index="${index}">
-                    🗑 この四択問題を削除
-                </button>
-            ` : ""}
+            ${
+                type === "today"
+                    ? `
+                        <button
+                            class="btn btn-danger"
+                            id="deleteTodayQuestion">
+                            🗑 今日の1問を削除
+                        </button>
+                    `
+                    : `
+                        <button
+                            class="btn btn-danger delete-quiz"
+                            data-index="${index}">
+                            🗑 この四択問題を削除
+                        </button>
+                    `
+            }
+
         </div>
     `;
 }
@@ -354,180 +585,331 @@ publishQuestions.onclick = async () => {
 
 saveEditedQuestions.onclick = async () => {
 
-    if (!confirm("編集内容を保存しますか？")) return;
-
-    const aiSnap = await getDoc(
-	    doc(
-	        db,
-	        "examSubjects",
-	        subjectId,
-	        "units",
-	        unitId,
-	        "ai",
-	        "edited"
-	    )
-	);
-
-    if (!aiSnap.exists()) {
-        alert("AI生成結果がありません。");
+    if (!confirm("編集内容を保存しますか？")) {
         return;
     }
 
-    const current = aiSnap.data();
+    const editedRef = doc(
+        db,
+        "examSubjects",
+        subjectId,
+        "units",
+        unitId,
+        "ai",
+        "edited"
+    );
+
+    const editedSnap =
+        await getDoc(editedRef);
+
+    /*
+     * AI生成結果がなくても保存可能にする
+     */
+    const current =
+        editedSnap.exists()
+            ? editedSnap.data()
+            : {};
+
+    const summaryInput =
+        document.getElementById("editSummary");
+
+    const importantPointsInput =
+        document.getElementById(
+            "editImportantPoints"
+        );
+
+    if (!summaryInput || !importantPointsInput) {
+
+        alert(
+            "問題入力欄を読み込めませんでした。"
+        );
+
+        return;
+    }
 
     const summary =
-        document
-            .getElementById("editSummary")
+        summaryInput
             .value
             .split("\n")
             .map(text => text.trim())
             .filter(text => text !== "");
 
     const important_points =
-        document
-            .getElementById("editImportantPoints")
+        importantPointsInput
             .value
             .split("\n")
             .map(text => text.trim())
             .filter(text => text !== "");
 
+    /*
+     * 穴埋め問題
+     */
     const fill_blank =
-        Array.from(document.querySelectorAll(".fill-edit-card"))
-            .map((card) => {
+        Array.from(
+            document.querySelectorAll(
+                ".fill-edit-card"
+            )
+        )
+            .map(card => {
 
                 const question =
                     card
-                        .querySelector(".edit-fill-question")
-                        .value
-                        .trim();
+                        .querySelector(
+                            ".edit-fill-question"
+                        )
+                        ?.value
+                        .trim() || "";
 
                 const answer =
                     card
-                        .querySelector(".edit-fill-answer")
-                        .value
-                        .trim();
+                        .querySelector(
+                            ".edit-fill-answer"
+                        )
+                        ?.value
+                        .trim() || "";
 
-                const answers = [];
-
-                card
-                    .querySelectorAll(".edit-fill-answer-box")
-                    .forEach(input => {
-                        const value = input.value.trim();
-
-                        if (value !== "") {
-                            answers.push(value);
-                        }
-                    });
+                const answers =
+                    Array.from(
+                        card.querySelectorAll(
+                            ".edit-fill-answer-box"
+                        )
+                    )
+                        .map(input =>
+                            input.value.trim()
+                        )
+                        .filter(value =>
+                            value !== ""
+                        );
 
                 return {
                     question,
                     answer,
-                    answers
+                    answers,
+
+                    /*
+                     * 保存ボタンを押した内容は、
+                     * 次回のAI生成で消さない
+                     */
+                    source_type: "manual",
+                    preserve_original: true,
+                    edited_manually: true
                 };
 
             })
-            .filter(item => item.question !== "");
+            .filter(item =>
+                item.question !== ""
+            );
 
-        const quiz =
-            Array.from(
-                document.querySelectorAll(".edit-quiz-question[data-index]:not([data-index='today'])")
+    /*
+     * 四択問題
+     */
+    const quiz =
+        Array.from(
+            document.querySelectorAll(
+                `.quiz-edit-card[data-question-type="quiz"]`
             )
-                .map((questionInput) => {
+        )
+            .map(card => {
 
-                    const index = questionInput.dataset.index;
+                const index =
+                    card.dataset.index;
 
-                    const question =
-                        questionInput.value.trim();
+                const question =
+                    card
+                        .querySelector(
+                            ".edit-quiz-question"
+                        )
+                        ?.value
+                        .trim() || "";
 
-                    const choices = [];
+                const choices =
+                    Array.from(
+                        card.querySelectorAll(
+                            ".edit-quiz-choice"
+                        )
+                    )
+                        .map(input =>
+                            input.value.trim()
+                        );
 
-                    document
-                        .querySelectorAll(`.edit-quiz-choice[data-index="${index}"]`)
-                        .forEach(input => {
-                            choices.push(input.value.trim());
-                        });
+                const answerInput =
+                    card.querySelector(
+                        ".edit-quiz-answer"
+                    );
 
-                    const answer =
-                        Number(
-                            document
-                                .querySelector(`.edit-quiz-answer[data-index="${index}"]`)
-                                .value
-                        ) - 1;
+                const explanation =
+                    card
+                        .querySelector(
+                            ".edit-quiz-explanation"
+                        )
+                        ?.value
+                        .trim() || "";
 
-                    const explanation =
-                        document
-                            .querySelector(`.edit-quiz-explanation[data-index="${index}"]`)
-                            .value
-                            .trim();
+                const answer =
+                    Math.max(
+                        0,
+                        Math.min(
+                            3,
+                            Number(
+                                answerInput?.value || 1
+                            ) - 1
+                        )
+                    );
 
-                    return {
-                        question,
-                        choices,
-                        answer,
-                        explanation
-                    };
+                return {
+                    question,
+                    choices,
+                    answer,
+                    explanation,
 
-                })
-                .filter(item => item.question !== "");
+                    source_type: "manual",
+                    preserve_original: true,
+                    edited_manually: true
+                };
 
-    let today_question = current.today_question || null;
+            })
+            .filter(item =>
+                item.question !== ""
+            );
 
-    if (today_question) {
+    /*
+     * 今日の1問
+     */
+    let today_question = null;
+
+    const todayCard =
+        document.querySelector(
+            `.quiz-edit-card[data-question-type="today"]`
+        );
+
+    if (todayCard) {
 
         const question =
-            document
-                .querySelector(`.edit-quiz-question[data-index="today"]`)
-                .value
-                .trim();
+            todayCard
+                .querySelector(
+                    ".edit-quiz-question"
+                )
+                ?.value
+                .trim() || "";
 
-        const choices = [];
+        const choices =
+            Array.from(
+                todayCard.querySelectorAll(
+                    ".edit-quiz-choice"
+                )
+            )
+                .map(input =>
+                    input.value.trim()
+                );
 
-        document
-            .querySelectorAll(`.edit-quiz-choice[data-index="today"]`)
-            .forEach(input => {
-                choices.push(input.value.trim());
-            });
+        const answerInput =
+            todayCard.querySelector(
+                ".edit-quiz-answer"
+            );
 
         const answer =
-            Number(
-                document
-                    .querySelector(`.edit-quiz-answer[data-index="today"]`)
-                    .value
-            ) - 1;
+            Math.max(
+                0,
+                Math.min(
+                    3,
+                    Number(
+                        answerInput?.value || 1
+                    ) - 1
+                )
+            );
 
         const explanation =
-            document
-                .querySelector(`.edit-quiz-explanation[data-index="today"]`)
-                .value
-                .trim();
+            todayCard
+                .querySelector(
+                    ".edit-quiz-explanation"
+                )
+                ?.value
+                .trim() || "";
 
-        today_question = {
-            ...today_question,
-            question,
-            choices,
-            answer,
-            explanation
-        };
+        if (question !== "") {
 
+            today_question = {
+                question,
+                choices,
+                answer,
+                explanation,
+
+                source_type: "manual",
+                preserve_original: true,
+                edited_manually: true
+            };
+        }
+    }
+
+    /*
+     * 入力チェック
+     */
+    const invalidFillBlank =
+        fill_blank.find(item =>
+            item.answers.length === 0 &&
+            item.answer === ""
+        );
+
+    if (invalidFillBlank) {
+
+        alert(
+            "穴埋め問題の解答を入力してください。"
+        );
+
+        return;
+    }
+
+    const invalidQuiz =
+        quiz.find(item =>
+            item.choices.length !== 4 ||
+            item.choices.some(choice =>
+                choice === ""
+            )
+        );
+
+    if (invalidQuiz) {
+
+        alert(
+            "四択問題の選択肢を4つすべて入力してください。"
+        );
+
+        return;
+    }
+
+    if (
+        today_question &&
+        today_question.choices.some(
+            choice => choice === ""
+        )
+    ) {
+
+        alert(
+            "今日の1問の選択肢を4つすべて入力してください。"
+        );
+
+        return;
     }
 
     await setDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "edited"
-        ),
+        editedRef,
         {
             ...current,
+
             summary,
             important_points,
             fill_blank,
             quiz,
             today_question,
+
+            /*
+             * AI再生成時に残すための項目
+             */
+            manual_summary: summary,
+            manual_important_points:
+                important_points,
+
+            hasManualContent: true,
+
             editedAt: new Date(),
             editedBy: studentNumber
         }
@@ -536,17 +918,93 @@ saveEditedQuestions.onclick = async () => {
     alert("編集内容を保存しました。");
 
     await loadQuestions();
-
 };
 
 document.addEventListener("click", (e) => {
 
+    /*
+     * 今日の1問を手動作成
+     */
+    if (e.target.id === "addTodayQuestion") {
+
+        const area =
+            document.getElementById(
+                "todayQuestionArea"
+            );
+
+        area.innerHTML =
+            renderQuizItem(
+                {
+                    question: "",
+                    choices: [
+                        "",
+                        "",
+                        "",
+                        ""
+                    ],
+                    answer: 0,
+                    explanation: "",
+                    source_type: "manual",
+                    preserve_original: true
+                },
+                null,
+                "today"
+            );
+
+        return;
+    }
+
+    /*
+     * 今日の1問を削除
+     */
+    if (e.target.id === "deleteTodayQuestion") {
+
+        if (
+            !confirm(
+                "今日の1問を削除しますか？"
+            )
+        ) {
+            return;
+        }
+
+        const area =
+            document.getElementById(
+                "todayQuestionArea"
+            );
+
+        area.innerHTML = `
+            <p id="noTodayQuestion">
+                今日の1問はありません。
+            </p>
+
+            <button
+                class="btn btn-secondary"
+                id="addTodayQuestion">
+                ＋ 今日の1問を手動作成
+            </button>
+        `;
+
+        return;
+    }
+
+    /*
+     * 穴埋め問題を手動作成
+     */
     if (e.target.id === "addFillBlank") {
 
-        const list = document.getElementById("fillBlankList");
+        const list =
+            document.getElementById(
+                "fillBlankList"
+            );
+
+        document
+            .getElementById("noFillBlank")
+            ?.remove();
 
         const index =
-            document.querySelectorAll(".fill-edit-card").length;
+            document.querySelectorAll(
+                ".fill-edit-card"
+            ).length;
 
         list.insertAdjacentHTML(
             "beforeend",
@@ -554,7 +1012,9 @@ document.addEventListener("click", (e) => {
                 {
                     question: "",
                     answer: "",
-                    answers: [""]
+                    answers: [""],
+                    source_type: "manual",
+                    preserve_original: true
                 },
                 index
             )
@@ -563,77 +1023,174 @@ document.addEventListener("click", (e) => {
         return;
     }
 
+    /*
+     * 四択問題を手動作成
+     */
     if (e.target.id === "addQuiz") {
 
-        const list = document.getElementById("quizList");
+        const list =
+            document.getElementById(
+                "quizList"
+            );
+
+        document
+            .getElementById("noQuiz")
+            ?.remove();
 
         const index =
-            document.querySelectorAll(".edit-quiz-question[data-index]:not([data-index='today'])").length;
+            document.querySelectorAll(
+                `.quiz-edit-card[data-question-type="quiz"]`
+            ).length;
 
         list.insertAdjacentHTML(
             "beforeend",
             renderQuizItem(
                 {
                     question: "",
-                    choices: ["", "", "", ""],
+                    choices: [
+                        "",
+                        "",
+                        "",
+                        ""
+                    ],
                     answer: 0,
-                    explanation: ""
+                    explanation: "",
+                    source_type: "manual",
+                    preserve_original: true
                 },
-                index
+                index,
+                "quiz"
             )
         );
 
         return;
     }
 
-    if (e.target.classList.contains("add-fill-answer-box")) {
+    /*
+     * 穴埋めの解答ボックス追加
+     */
+    if (
+        e.target.classList.contains(
+            "add-fill-answer-box"
+        )
+    ) {
 
-        const index = e.target.dataset.index;
+        const card =
+            e.target.closest(
+                ".fill-edit-card"
+            );
+
+        if (!card) {
+            return;
+        }
 
         const area =
-            document.querySelector(`.fill-answers-area[data-index="${index}"]`);
+            card.querySelector(
+                ".fill-answers-area"
+            );
 
         const count =
-            area.querySelectorAll(".edit-fill-answer-box").length;
+            area.querySelectorAll(
+                ".edit-fill-answer-box"
+            ).length;
 
         area.insertAdjacentHTML(
             "beforeend",
             `
-            <input
-                class="edit-fill-answer-box"
-                data-index="${index}"
-                data-answer-index="${count}"
-                value=""
-                placeholder="解答 ${count + 1}">
-            <br><br>
+                <input
+                    class="edit-fill-answer-box"
+                    data-answer-index="${count}"
+                    value=""
+                    placeholder="解答 ${count + 1}">
+
+                <br><br>
             `
         );
 
         return;
     }
 
-    if (e.target.classList.contains("delete-fill")) {
+    /*
+     * 穴埋め問題削除
+     */
+    if (
+        e.target.classList.contains(
+            "delete-fill"
+        )
+    ) {
 
-        if (!confirm("この穴埋め問題を削除しますか？")) return;
+        if (
+            !confirm(
+                "この穴埋め問題を削除しますか？"
+            )
+        ) {
+            return;
+        }
 
-        const card =
-            e.target.closest(".fill-edit-card");
+        e.target
+            .closest(".fill-edit-card")
+            ?.remove();
 
-        card.remove();
+        const list =
+            document.getElementById(
+                "fillBlankList"
+            );
+
+        if (
+            document.querySelectorAll(
+                ".fill-edit-card"
+            ).length === 0
+        ) {
+
+            list.innerHTML = `
+                <p id="noFillBlank">
+                    穴埋め問題はありません。
+                </p>
+            `;
+        }
 
         return;
     }
 
-    if (e.target.classList.contains("delete-quiz")) {
+    /*
+     * 四択問題削除
+     */
+    if (
+        e.target.classList.contains(
+            "delete-quiz"
+        )
+    ) {
 
-        if (!confirm("この四択問題を削除しますか？")) return;
+        if (
+            !confirm(
+                "この四択問題を削除しますか？"
+            )
+        ) {
+            return;
+        }
 
-        const card =
-            e.target.closest(".card");
+        e.target
+            .closest(".quiz-edit-card")
+            ?.remove();
 
-        card.remove();
+        const list =
+            document.getElementById(
+                "quizList"
+            );
+
+        if (
+            document.querySelectorAll(
+                `.quiz-edit-card[data-question-type="quiz"]`
+            ).length === 0
+        ) {
+
+            list.innerHTML = `
+                <p id="noQuiz">
+                    四択問題はありません。
+                </p>
+            `;
+        }
 
         return;
     }
-
 });
