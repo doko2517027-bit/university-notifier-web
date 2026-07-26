@@ -1194,3 +1194,81 @@ document.addEventListener("click", (e) => {
         return;
     }
 });
+
+const jsonImport =
+    document.getElementById("jsonImport");
+
+const previewJson =
+    document.getElementById("previewJson");
+
+const importJson =
+    document.getElementById("importJson");
+
+const jsonPreview =
+    document.getElementById("jsonPreview");
+
+previewJson.onclick = () => {
+
+    try{
+
+        const data =
+            JSON.parse(jsonImport.value);
+
+        jsonPreview.innerHTML = `
+            <p>要約 : ${data.summary ? "〇" : "×"}</p>
+            <p>重要ポイント : ${data.important_points?.length || 0}</p>
+            <p>穴埋め : ${data.fill_blank?.length || 0}</p>
+            <p>選択問題 : ${data.quiz?.length || 0}</p>
+            <p>今日の1問 : ${data.today_question ? "〇" : "×"}</p>
+        `;
+
+    }catch(e){
+
+        alert("JSONが正しくありません");
+
+    }
+
+};
+
+importJson.onclick = async () => {
+
+    try{
+
+        const data =
+            JSON.parse(jsonImport.value);
+
+        await setDoc(
+
+            editedRef,
+
+            {
+
+                ...data,
+
+                editedAt:new Date(),
+
+                editedBy:studentNumber
+
+            },
+
+            {
+
+                merge:true
+
+            }
+
+        );
+
+        alert("保存しました");
+
+        loadQuestions();
+
+    }catch(e){
+
+        console.error(e);
+
+        alert("保存できませんでした");
+
+    }
+
+};
