@@ -213,27 +213,95 @@ async function loadSubjects() {
 
         const subject = subjectDoc.data();
 
+        const subjectCard = document.createElement("div");
+        subjectCard.className = "card setting-card";
+
+        const subjectHeader = document.createElement("div");
+        subjectHeader.innerHTML = `
+            <h3>📚 ${subject.name}</h3>
+            <p>タップして単元を表示</p>
+        `;
+
+        const subjectContent = document.createElement("div");
+        subjectContent.style.display = "none";
+
+        subjectHeader.onclick = () => {
+            subjectContent.style.display =
+                subjectContent.style.display === "none"
+                    ? "block"
+                    : "none";
+        };
+
+        subjectContent.innerHTML = `
+            <input
+                id="unitName_${subjectDoc.id}"
+                type="text"
+                placeholder="単元名 例：循環器">
+
+            <br><br>
+
+            <input
+                id="unitRange_${subjectDoc.id}"
+                type="text"
+                placeholder="試験範囲 任意 例：第1回〜第3回">
+
+            <br><br>
+
+            <button
+                class="btn btn-primary add-unit"
+                data-subject-id="${subjectDoc.id}">
+                単元を追加
+            </button>
+
+            <br><br>
+        `;
+
+        const unitList = document.createElement("div");
+
         const unitSnap = await getDocs(
             query(
-                collection(db, "examSubjects", subjectDoc.id, "units"),
+                collection(
+                    db,
+                    "examSubjects",
+                    subjectDoc.id,
+                    "units"
+                ),
                 orderBy("createdAt", "desc")
             )
         );
 
-        let unitHtml = "";
+        if (unitSnap.empty) {
 
-        unitSnap.forEach(unitDoc => {
+            unitList.innerHTML =
+                "<p>単元はまだありません。</p>";
 
-            const unit = unitDoc.data();
+        } else {
 
-            unitHtml += `
-                <div class="card setting-card">
+            unitSnap.forEach(unitDoc => {
 
-                    <p>
-                        <b>単元：${unit.name}</b><br>
-                        <small>${unit.range || ""}</small>
-                    </p>
+                const unit = unitDoc.data();
 
+                const unitCard =
+                    document.createElement("div");
+
+                unitCard.className =
+                    "card setting-card";
+
+                const unitHeader =
+                    document.createElement("div");
+
+                unitHeader.innerHTML = `
+                    <h4>📘 ${unit.name}</h4>
+                    <small>${unit.range || ""}</small>
+                    <p>タップして管理項目を表示</p>
+                `;
+
+                const unitMenu =
+                    document.createElement("div");
+
+                unitMenu.style.display = "none";
+
+                unitMenu.innerHTML = `
                     <button
                         class="btn btn-secondary manage-materials"
                         data-subject-id="${subjectDoc.id}"
@@ -252,49 +320,34 @@ async function loadSubjects() {
 
                     <br><br>
 
-                    <br><br>
-
                     <button
                         class="btn btn-danger delete-unit"
                         data-subject-id="${subjectDoc.id}"
                         data-unit-id="${unitDoc.id}">
                         単元を削除
                     </button>
+                `;
 
-                </div>
-            `;
+                unitHeader.onclick = () => {
+                    unitMenu.style.display =
+                        unitMenu.style.display === "none"
+                            ? "block"
+                            : "none";
+                };
 
-        });
+                unitCard.appendChild(unitHeader);
+                unitCard.appendChild(unitMenu);
+                unitList.appendChild(unitCard);
 
-        subjectList.innerHTML += `
-            <div class="card setting-card">
+            });
 
-                <h3>${subject.name}</h3>
+        }
 
-                <input
-                    id="unitName_${subjectDoc.id}"
-                    type="text"
-                    placeholder="単元名 例：循環器">
+        subjectContent.appendChild(unitList);
 
-                <br><br>
-
-                <input
-                    id="unitRange_${subjectDoc.id}"
-                    type="text"
-                    placeholder="試験範囲 任意 例：第1回〜第3回">
-
-                <br><br>
-
-                <button
-                    class="btn btn-primary add-unit"
-                    data-subject-id="${subjectDoc.id}">
-                    単元を追加
-                </button>
-
-                <br><br>
-
-                ${unitHtml || "<p>単元はまだありません。</p>"}
-
+        subjectContent.insertAdjacentHTML(
+            "beforeend",
+            `
                 <br>
 
                 <button
@@ -302,9 +355,12 @@ async function loadSubjects() {
                     data-id="${subjectDoc.id}">
                     科目を削除
                 </button>
+            `
+        );
 
-            </div>
-        `;
+        subjectCard.appendChild(subjectHeader);
+        subjectCard.appendChild(subjectContent);
+        subjectList.appendChild(subjectCard);
 
     }
 
