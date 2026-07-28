@@ -62,11 +62,19 @@ async function loadQuestions() {
     console.log("Firestoreから取得したAIデータ", data);
     console.log("穴埋め問題", data.fill_blank);
 
-    const fillBlank = data.fill_blank || [];
-    if (fillBlank.length === 0) {
-        questions.innerHTML = "穴埋め問題が生成されていません。";
-        return;
-    }
+    const fillBlank = (data.fill_blank || []).filter(q =>
+        q &&
+        typeof q.question === "string" &&
+        q.question.trim() !== "" &&
+        (
+            (Array.isArray(q.answers) &&
+                q.answers.some(answer =>
+                    String(answer).trim() !== ""
+                )
+            ) ||
+            String(q.answer || "").trim() !== ""
+        )
+    );
 
     questions.innerHTML = "";
 

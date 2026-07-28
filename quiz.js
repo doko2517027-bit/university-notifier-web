@@ -58,12 +58,16 @@ async function loadQuiz() {
     }
 
     const data = snap.data();
-    const quiz = data.quiz || [];
-
-    if (quiz.length === 0) {
-        quizArea.innerHTML = "四択問題が生成されていません。";
-        return;
-    }
+    const quiz = (data.quiz || []).filter(q =>
+        q &&
+        typeof q.question === "string" &&
+        q.question.trim() !== "" &&
+        Array.isArray(q.choices) &&
+        q.choices.length > 0 &&
+        q.choices.every(choice => String(choice).trim() !== "") &&
+        q.answer !== undefined &&
+        q.answer !== null
+    );
 
     quizArea.innerHTML = "";
 

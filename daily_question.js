@@ -59,8 +59,13 @@ async function loadDailyQuestion() {
     const data = snap.data();
     const q = data.today_question;
 
-    if (!q) {
-        questionArea.innerHTML = "今日の1問が生成されていません。";
+    if (
+        !q ||
+        !q.question ||
+        !Array.isArray(q.choices) ||
+        q.choices.length === 0
+    ) {
+        questionArea.innerHTML = "今日の1問はまだありません。";
         return;
     }
 

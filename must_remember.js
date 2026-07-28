@@ -58,7 +58,10 @@ async function loadRemember() {
     }
 
     const data = snap.data();
-    const points = data.important_points || [];
+    const points = (data.important_points || []).filter(point =>
+        typeof point === "string" &&
+        point.trim() !== ""
+    );
 
     if (points.length === 0) {
         rememberArea.innerHTML = "重要ポイントが生成されていません。";
