@@ -173,9 +173,126 @@ async function loadSubjectUnits() {
 
         } else {
 
-            unitSnap.forEach(unitDoc => {
+            for (const unitDoc of unitSnap.docs) {
 
                 const unit = unitDoc.data();
+
+                const publishedSnap = await getDoc(
+                    doc(
+                        db,
+                        "examSubjects",
+                        subjectDoc.id,
+                        "units",
+                        unitDoc.id,
+                        "publishedQuestions",
+                        "published"
+                    )
+                );
+
+                const data = publishedSnap.exists()
+                    ? publishedSnap.data()
+                    : {};
+
+                const hasDailyQuestion =
+                    data.today_question &&
+                    typeof data.today_question.question === "string" &&
+                    data.today_question.question.trim() !== "" &&
+                    Array.isArray(data.today_question.choices) &&
+                    data.today_question.choices.length > 0;
+
+                const hasFillBlank =
+                    Array.isArray(data.fill_blank) &&
+                    data.fill_blank.some(q =>
+                        q &&
+                        typeof q.question === "string" &&
+                        q.question.trim() !== "" &&
+                        (
+                            (
+                                Array.isArray(q.answers) &&
+                                q.answers.some(answer =>
+                                    String(answer).trim() !== ""
+                                )
+                            ) ||
+                            String(q.answer || "").trim() !== ""
+                        )
+                    );
+
+                const hasQuiz =
+                    Array.isArray(data.quiz) &&
+                    data.quiz.some(q =>
+                        q &&
+                        typeof q.question === "string" &&
+                        q.question.trim() !== "" &&
+                        Array.isArray(q.choices) &&
+                        q.choices.length > 0 &&
+                        q.choices.every(choice =>
+                            String(choice).trim() !== ""
+                        ) &&
+                        q.answer !== undefined &&
+                        q.answer !== null
+                    );
+
+                const hasImportantPoints =
+                    Array.isArray(data.important_points) &&
+                    data.important_points.some(point =>
+                        typeof point === "string" &&
+                        point.trim() !== ""
+                    );
+
+                let menuHtml = "";
+
+                if (hasDailyQuestion) {
+                    menuHtml += `
+                        <div
+                            class="card setting-card"
+                            onclick="location.href='daily_question.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
+                            <h3>🎯 今日の1問</h3>
+                            <p>日替わり問題</p>
+                        </div>
+                    `;
+                }
+
+                if (hasFillBlank) {
+                    menuHtml += `
+                        <div
+                            class="card setting-card"
+                            onclick="location.href='fill_blank.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
+                            <h3>📝 穴埋め問題</h3>
+                            <p>穴埋め問題に挑戦</p>
+                        </div>
+                    `;
+                }
+
+                if (hasQuiz) {
+                    menuHtml += `
+                        <div
+                            class="card setting-card"
+                            onclick="location.href='quiz.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
+                            <h3>🧠 四択問題</h3>
+                            <p>四択問題に挑戦</p>
+                        </div>
+                    `;
+                }
+
+                if (hasImportantPoints) {
+                    menuHtml += `
+                        <div
+                            class="card setting-card"
+                            onclick="location.href='must_remember.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
+                            <h3>⭐ ここだけ覚えろ</h3>
+                            <p>重要ポイントを確認</p>
+                        </div>
+                    `;
+                }
+
+                if (
+                    !hasDailyQuestion &&
+                    !hasFillBlank &&
+                    !hasQuiz &&
+                    !hasImportantPoints
+                ) {
+                    continue;
+                }
 
                 const unitCard =
                     document.createElement("div");
@@ -196,42 +313,7 @@ async function loadSubjectUnits() {
 
                 menu.style.display = "none";
 
-                menu.innerHTML = `
-                    <div
-                        class="card setting-card"
-                        onclick="location.href='daily_question.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>🎯 今日の1問</h3>
-                        <p>日替わり問題</p>
-                    </div>
-
-                    <div
-                        class="card setting-card"
-                        onclick="location.href='fill_blank.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>📝 穴埋め問題</h3>
-                        <p>穴埋め問題に挑戦</p>
-                    </div>
-
-                    <div
-                        class="card setting-card"
-                        onclick="location.href='quiz.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>🧠 四択問題</h3>
-                        <p>四択問題に挑戦</p>
-                    </div>
-
-                    <div
-                        class="card setting-card"
-                        onclick="location.href='must_remember.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>⭐ ここだけ覚えろ</h3>
-                        <p>重要ポイントを確認</p>
-                    </div>
-
-                    <div
-                        class="card setting-card"
-                        onclick="location.href='weakness.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>📊 苦手ランキング</h3>
-                        <p>間違えやすい問題を確認</p>
-                    </div>
-                `;
+                menu.innerHTML = menuHtml;
 
                 unitHeader.onclick = () => {
                     menu.style.display =
@@ -244,14 +326,23 @@ async function loadSubjectUnits() {
                 unitCard.appendChild(menu);
                 unitList.appendChild(unitCard);
 
-            });
+            }
 
+        }
+
+        if (unitList.children.length === 0) {
+            continue;
         }
 
         subjectCard.appendChild(subjectHeader);
         subjectCard.appendChild(unitList);
         subjectUnitList.appendChild(subjectCard);
 
+    }
+
+    if (subjectUnitList.children.length === 0) {
+        subjectUnitList.innerHTML =
+            "表示できる問題はまだありません。";
     }
 
 }
