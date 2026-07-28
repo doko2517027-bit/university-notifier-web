@@ -135,6 +135,25 @@ async function loadSubjectUnits() {
 
         const subject = subjectDoc.data();
 
+        const subjectCard = document.createElement("div");
+        subjectCard.className = "card setting-card";
+
+        const subjectHeader = document.createElement("div");
+        subjectHeader.innerHTML = `
+            <h2>📚 ${subject.name}</h2>
+            <p>タップして単元を表示</p>
+        `;
+
+        const unitList = document.createElement("div");
+        unitList.style.display = "none";
+
+        subjectHeader.onclick = () => {
+            unitList.style.display =
+                unitList.style.display === "none"
+                    ? "block"
+                    : "none";
+        };
+
         const unitSnap = await getDocs(
             query(
                 collection(
@@ -147,47 +166,63 @@ async function loadSubjectUnits() {
             )
         );
 
-        let unitHtml = "";
+        if (unitSnap.empty) {
 
-        unitSnap.forEach(unitDoc => {
+            unitList.innerHTML =
+                "<p>単元はまだありません。</p>";
 
-            const unit = unitDoc.data();
+        } else {
 
-            unitHtml += `
-                <div class="card setting-card">
+            unitSnap.forEach(unitDoc => {
 
+                const unit = unitDoc.data();
+
+                const unitCard =
+                    document.createElement("div");
+
+                unitCard.className =
+                    "card setting-card";
+
+                const unitHeader =
+                    document.createElement("div");
+
+                unitHeader.innerHTML = `
                     <h3>📘 ${unit.name}</h3>
+                    <p>${unit.range || ""}</p>
+                `;
 
-                    <p>
-                        ${unit.range || ""}
-                    </p>
+                const menu =
+                    document.createElement("div");
 
+                menu.style.display = "none";
+
+                menu.innerHTML = `
                     <div
                         class="card setting-card"
                         onclick="location.href='daily_question.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
                         <h3>🎯 今日の1問</h3>
-                        <p>AIが作成した日替わり問題</p>
+                        <p>日替わり問題</p>
                     </div>
 
                     <div
                         class="card setting-card"
                         onclick="location.href='fill_blank.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>📝 AI穴埋め</h3>
-                        <p>講義資料から作成した穴埋め問題</p>
+                        <h3>📝 穴埋め問題</h3>
+                        <p>穴埋め問題に挑戦</p>
                     </div>
 
                     <div
                         class="card setting-card"
                         onclick="location.href='quiz.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
-                        <h3>🧠 AI四択</h3>
-                        <p>講義資料から作成した四択問題</p>
+                        <h3>🧠 四択問題</h3>
+                        <p>四択問題に挑戦</p>
                     </div>
 
                     <div
                         class="card setting-card"
                         onclick="location.href='must_remember.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
                         <h3>⭐ ここだけ覚えろ</h3>
-                        <p>重要ポイントだけ確認</p>
+                        <p>重要ポイントを確認</p>
                     </div>
 
                     <div
@@ -196,21 +231,26 @@ async function loadSubjectUnits() {
                         <h3>📊 苦手ランキング</h3>
                         <p>間違えやすい問題を確認</p>
                     </div>
+                `;
 
-                </div>
-            `;
+                unitHeader.onclick = () => {
+                    menu.style.display =
+                        menu.style.display === "none"
+                            ? "block"
+                            : "none";
+                };
 
-        });
+                unitCard.appendChild(unitHeader);
+                unitCard.appendChild(menu);
+                unitList.appendChild(unitCard);
 
-        subjectUnitList.innerHTML += `
-            <div class="card setting-card">
+            });
 
-                <h2>📚 ${subject.name}</h2>
+        }
 
-                ${unitHtml || "<p>単元はまだありません。</p>"}
-
-            </div>
-        `;
+        subjectCard.appendChild(subjectHeader);
+        subjectCard.appendChild(unitList);
+        subjectUnitList.appendChild(subjectCard);
 
     }
 
