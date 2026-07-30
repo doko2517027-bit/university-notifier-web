@@ -202,6 +202,32 @@ async function loadSubjects() {
 
     const snap = await getDocs(q);
 
+    const subjects = await Promise.all(
+
+        snap.docs.map(async (subjectDoc) => {
+
+            const unitSnap = await getDocs(
+                query(
+                    collection(
+                        db,
+                        "examSubjects",
+                        subjectDoc.id,
+                        "units"
+                    ),
+                    orderBy("createdAt", "desc")
+                )
+            );
+
+            return {
+                subjectDoc,
+                subject: subjectDoc.data(),
+                unitSnap
+            };
+
+        })
+
+    );
+
     if (snap.empty) {
         subjectList.innerHTML = "科目はまだありません。";
         return;
@@ -209,9 +235,7 @@ async function loadSubjects() {
 
     subjectList.innerHTML = "";
 
-    for (const subjectDoc of snap.docs) {
-
-        const subject = subjectDoc.data();
+    for (const { subjectDoc, subject, unitSnap } of subjects) {
 
         const subjectCard = document.createElement("div");
         subjectCard.className = "card setting-card";
@@ -257,18 +281,6 @@ async function loadSubjects() {
         `;
 
         const unitList = document.createElement("div");
-
-        const unitSnap = await getDocs(
-            query(
-                collection(
-                    db,
-                    "examSubjects",
-                    subjectDoc.id,
-                    "units"
-                ),
-                orderBy("createdAt", "desc")
-            )
-        );
 
         if (unitSnap.empty) {
 
