@@ -321,7 +321,13 @@ export function formatDateTime(timestamp) {
 
 }
 
+const profilePhotoCache = new Map();
+
 export async function getProfilePhoto(studentNumber) {
+
+    if (profilePhotoCache.has(studentNumber)) {
+        return profilePhotoCache.get(studentNumber);
+    }
 
     const publicSnap = await getDoc(
         doc(db, "publicUsers", studentNumber)
@@ -331,7 +337,14 @@ export async function getProfilePhoto(studentNumber) {
         publicSnap.exists() &&
         publicSnap.data().photo
     ) {
+
+        profilePhotoCache.set(
+            studentNumber,
+            publicSnap.data().photo
+        );
+
         return publicSnap.data().photo;
+
     }
 
     const userSnap = await getDoc(
@@ -342,8 +355,20 @@ export async function getProfilePhoto(studentNumber) {
         userSnap.exists() &&
         userSnap.data().profile?.photo
     ) {
+
+        profilePhotoCache.set(
+            studentNumber,
+            userSnap.data().profile.photo
+        );
+
         return userSnap.data().profile.photo;
+
     }
+
+    profilePhotoCache.set(
+        studentNumber,
+        "images/default.png"
+    );
 
     return "images/default.png";
 
