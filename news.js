@@ -416,7 +416,7 @@ async function loadNews() {
         b.postedAt.seconds - a.postedAt.seconds
     );
 
-    newsList.innerHTML = "";
+    let html = "";
 
     notices.forEach(notice => {
 
@@ -429,7 +429,7 @@ async function loadNews() {
         const isUnread =
             !readNewsIds.has(readId);
 
-        newsList.innerHTML += `
+        html += `
 
             <div
                 class="card news-card news-readable-card"
@@ -480,6 +480,8 @@ async function loadNews() {
         `;
 
     });
+
+    newsList.innerHTML = html;
 
 }
 
@@ -892,7 +894,7 @@ async function loadCourseNews() {
 
     });
 
-    courseNews.innerHTML = "";
+    let html = "";
 
     notices.forEach(notice => {
 
@@ -902,7 +904,7 @@ async function loadCourseNews() {
         const isUnread =
             !readNewsIds.has(readId);
     
-        courseNews.innerHTML += `
+        html += `
     
             <div
                 class="card news-card news-readable-card"
@@ -948,6 +950,8 @@ async function loadCourseNews() {
     
     });
 
+    courseNews.innerHTML = html;
+
 }
 
 document.getElementById("profileButton").onclick = () => {
@@ -985,7 +989,7 @@ async function loadSystemNews() {
 
         }
 
-        systemNews.innerHTML = "";
+        let html = "";
 
         snapshot.forEach(newsDoc => {
 
@@ -1007,7 +1011,7 @@ async function loadSystemNews() {
             const isUnread =
                 !readNewsIds.has(readId);
 
-            systemNews.innerHTML += `
+            html += `
 
             <div
                 class="card news-card news-readable-card"
@@ -1047,6 +1051,8 @@ async function loadSystemNews() {
             `;
 
         });
+
+        systemNews.innerHTML = html;
 
     });
 
