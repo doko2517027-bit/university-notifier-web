@@ -9,7 +9,6 @@ import {
 } from "./common.js";
 
 import {
-  
   doc,
   getDoc,
   collection,
@@ -333,13 +332,13 @@ document.addEventListener("click", (e) => {
 
 function renderSelectedFiles() {
 
-    selectedFile.innerHTML = "";
+    let html = "";
 
     if (uploadMode === "image") {
 
             selectedImages.forEach((file, index) => {
 
-                selectedFile.innerHTML += `
+                html += `
 
             <div class="selected-item">
 
@@ -366,7 +365,7 @@ function renderSelectedFiles() {
 
             selectedPdfs.forEach((file, index) => {
 
-                selectedFile.innerHTML += `
+                html += `
 
             <div class="selected-item">
 
@@ -387,6 +386,8 @@ function renderSelectedFiles() {
 
             });
         };
+
+        selectedFile.innerHTML = html;
 
 }
 
