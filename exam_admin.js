@@ -182,6 +182,7 @@ addSubject.onclick = async () => {
         collection(db, "examSubjects"),
         {
             name,
+            completed: false,
             createdAt: new Date(),
             createdBy: studentNumber
         }
@@ -268,6 +269,17 @@ async function loadSubjects() {
                 id="unitRange_${subjectDoc.id}"
                 type="text"
                 placeholder="試験範囲 任意 例：第1回〜第3回">
+
+            <br><br>
+
+            <label>
+                <input
+                    type="checkbox"
+                    class="completed-toggle"
+                    data-subject-id="${subjectDoc.id}"
+                    ${subject.completed ? "checked" : ""}>
+                この科目を実施済みにする
+            </label>
 
             <br><br>
 
@@ -377,6 +389,28 @@ async function loadSubjects() {
     }
 
 }
+
+document.addEventListener("change", async (e) => {
+
+    if (!e.target.classList.contains("completed-toggle")) {
+        return;
+    }
+
+    await setDoc(
+        doc(
+            db,
+            "examSubjects",
+            e.target.dataset.subjectId
+        ),
+        {
+            completed: e.target.checked
+        },
+        {
+            merge: true
+        }
+    );
+
+});
 
 document.addEventListener("click", async (e) => {
 
