@@ -134,31 +134,6 @@ async function searchWeatherLocation(keyword) {
 
         displayWeatherResults(data.results);
 
-        data.results.forEach(location => {
-
-            weatherResults.innerHTML += `
-                <div
-                    class="setting-row weather-result"
-                    data-id="${location.id}"
-                    data-name="${location.name}"
-                    data-prefecture="${location.admin1 ?? ""}"
-                    data-country="${location.country ?? ""}"
-                    data-latitude="${location.latitude}"
-                    data-longitude="${location.longitude}">
-
-                    <div>
-                        <b>🌤 ${location.name}</b><br>
-                        <small>
-                            ${location.admin1 ?? ""}
-                            ${location.country ?? ""}
-                        </small>
-                    </div>
-
-                </div>
-            `;
-
-        });
-
     } catch (e) {
 
         console.error(e);
@@ -270,31 +245,27 @@ document
 
 function displayWeatherResults(results) {
 
-    weatherResults.innerHTML = "";
+    const html = results.map(location => `
+        <div
+            class="setting-row weather-result"
+            data-id="${location.id}"
+            data-name="${location.name}"
+            data-prefecture="${location.admin1 ?? ""}"
+            data-country="${location.country ?? ""}"
+            data-latitude="${location.latitude}"
+            data-longitude="${location.longitude}">
 
-    results.forEach(location => {
-
-        weatherResults.innerHTML += `
-            <div
-                class="setting-row weather-result"
-                data-id="${location.id}"
-                data-name="${location.name}"
-                data-prefecture="${location.admin1 ?? ""}"
-                data-country="${location.country ?? ""}"
-                data-latitude="${location.latitude}"
-                data-longitude="${location.longitude}">
-
-                <div>
-                    <b>🌤 ${location.name}</b><br>
-                    <small>
-                        ${location.admin1 ?? ""}
-                        ${location.country ?? ""}
-                    </small>
-                </div>
-
+            <div>
+                <b>🌤 ${location.name}</b><br>
+                <small>
+                    ${location.admin1 ?? ""}
+                    ${location.country ?? ""}
+                </small>
             </div>
-        `;
 
-    });
+        </div>
+    `).join("");
+
+    weatherResults.innerHTML = html;
 
 }
