@@ -70,7 +70,7 @@ async function loadAssignments() {
         return;
     }
 
-    assignmentList.innerHTML = "";
+    let html = "";
 
     assignments.forEach(item => {
 
@@ -100,7 +100,7 @@ async function loadAssignments() {
                 ? "https://sums.manaba.jp/ct/" + item.url
                 : "";
 
-        assignmentList.innerHTML += `
+        html += `
             <div class="switch-card">
                 <h3>📚 ${course}</h3>
 
@@ -124,6 +124,8 @@ async function loadAssignments() {
         `;
 
     });
+
+    assignmentList.innerHTML = html;
 
 }
 

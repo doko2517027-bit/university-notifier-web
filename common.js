@@ -159,11 +159,11 @@ export function showNewsSkeleton(target, count = 3){
 
     if(!target) return;
 
-    target.innerHTML="";
+    let html = "";
 
     for(let i=0;i<count;i++){
 
-        target.innerHTML+=`
+        html += `
 
         <div class="news-card skeleton-card">
 
@@ -179,17 +179,19 @@ export function showNewsSkeleton(target, count = 3){
 
     }
 
+    target.innerHTML = html;
+
 }
 
 export function showPostSkeleton(target, count = 5){
 
     if(!target) return;
 
-    target.innerHTML="";
+    let html = "";
 
     for(let i=0;i<count;i++){
 
-        target.innerHTML+=`
+        html += `
 
         <div class="card post-card">
 
@@ -217,17 +219,19 @@ export function showPostSkeleton(target, count = 5){
 
     }
 
+    target.innerHTML = html;
+
 }
 
 export function showAssignmentSkeleton(target,count=4){
 
     if(!target) return;
 
-    target.innerHTML="";
+    let html = "";
 
     for(let i=0;i<count;i++){
 
-        target.innerHTML+=`
+        html += `
 
         <div class="card setting-card">
 
@@ -242,6 +246,8 @@ export function showAssignmentSkeleton(target,count=4){
         `;
 
     }
+
+    target.innerHTML = html;
 
 }
 

@@ -112,65 +112,80 @@ async function loadComments() {
 
     const snapshot = await getDocs(q);
 
-    for (const commentDoc of snapshot.docs) {
+    const comments = await Promise.all(
 
-        const comment = commentDoc.data();
+        snapshot.docs.map(async (commentDoc) => {
 
-        const photo =
-            await getProfilePhoto(comment.studentNumber);
+            const comment = commentDoc.data();
+
+            return {
+                commentDoc,
+                comment,
+                photo: await getProfilePhoto(comment.studentNumber)
+            };
+
+        })
+
+    );
+
+    let html = "";
+
+    for (const { commentDoc, comment, photo } of comments) {
 
         const time =
             formatDateTime(comment.createdAt);
 
-        commentList.innerHTML += `
+        html += `
 
-<div class="card post-card">
+    <div class="card post-card">
 
-    <div class="post-header">
+        <div class="post-header">
 
-        <div>
+            <div>
 
-            <div class="student-number">
+                <div class="student-number">
 
-                <img
-                    src="${photo}"
-                    class="top-profile-image">
+                    <img
+                        src="${photo}"
+                        class="top-profile-image">
 
-                ${comment.studentNumber}
+                    ${comment.studentNumber}
+
+                </div>
+
+                <div class="post-time">
+
+                    ${time}
+
+                </div>
 
             </div>
 
-            <div class="post-time">
+            ${comment.studentNumber === studentNumber ? `
 
-                ${time}
+            <button
+                class="delete-comment"
+                data-id="${commentDoc.id}">
+                ⋯
+            </button>
 
-            </div>
+            ` : ""}
 
         </div>
 
-        ${comment.studentNumber === studentNumber ? `
+        <div class="post-text">
 
-        <button
-            class="delete-comment"
-            data-id="${commentDoc.id}">
-            ⋯
-        </button>
+            ${comment.text}
 
-        ` : ""}
+        </div>
 
     </div>
 
-    <div class="post-text">
-
-        ${comment.text}
-
-    </div>
-
-</div>
-
-`;
+    `;
 
     }
+
+    commentList.innerHTML = html;
 
 }
 

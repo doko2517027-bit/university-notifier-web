@@ -215,14 +215,16 @@ console.log("studentNumber =", studentNumber);
         updateNewsNavBadge()
     ]);
 
-    loadExamMode();
-    loadWeather(user);
-    loadNews();
-    loadHomeCourseNews();
-    loadHomeSystemNews();
-    loadCourseLinks().then(() => {
-        loadTodaySchedule();
-    });
+    await Promise.all([
+        loadExamMode(),
+        loadWeather(user),
+        loadNews(),
+        loadHomeCourseNews(),
+        loadHomeSystemNews(),
+        loadCourseLinks(),
+        loadTodaySchedule()
+    ]);
+
     setupAdminTab();
 
 }
