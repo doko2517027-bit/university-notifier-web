@@ -217,67 +217,69 @@ profileImage.src = photo;
 document.getElementById("postCount").textContent =
     postSnap.size;
 
+const likeSnapshots = await Promise.all(
+    posts.docs.map(post =>
+        getDocs(
+            collection(
+                db,
+                "posts",
+                post.id,
+                "likes"
+            )
+        )
+    )
+);
+
 let likedCount = 0;
 
-for (const post of posts.docs) {
-
-    const likeSnap = await getDocs(
-        collection(
-            db,
-            "posts",
-            post.id,
-            "likes"
-        )
-    );
-
-    likeSnap.forEach((like) => {
-
+likeSnapshots.forEach(likeSnap => {
+    likeSnap.forEach(like => {
         if (like.id === studentNumber) {
-
             likedCount++;
-
         }
-
     });
+});
 
-}
+const receivedLikeSnapshots = await Promise.all(
+    postSnap.docs.map(post =>
+        getDocs(
+            collection(
+                db,
+                "posts",
+                post.id,
+                "likes"
+            )
+        )
+    )
+);
 
 let receivedLikes = 0;
 
-for (const post of postSnap.docs) {
-
-    const likes = await getDocs(
-        collection(
-            db,
-            "posts",
-            post.id,
-            "likes"
-        )
-    );
-
+receivedLikeSnapshots.forEach(likes => {
     receivedLikes += likes.size;
-
-}
+});
 
 document.getElementById("likeCount").textContent =
     `${receivedLikes} / ${likedCount}`;
 
 let commentCount = 0;
 
-for (const post of postSnap.docs) {
-
-    const commentSnap = await getDocs(
-        collection(
-            db,
-            "posts",
-            post.id,
-            "comments"
+const commentSnapshots = await Promise.all(
+    postSnap.docs.map(post =>
+        getDocs(
+            collection(
+                db,
+                "posts",
+                post.id,
+                "comments"
+            )
         )
-    );
+    )
+);
 
+commentSnapshots.forEach(commentSnap => {
     commentCount += commentSnap.size;
-
-}
+});
 
 document.getElementById("commentCount").textContent =
     commentCount;
@@ -316,37 +318,38 @@ document
 
     }
 
-    for (const postDoc of myPosts) {
+    const cards = await Promise.all(
+        myPosts.map(async postDoc => {
 
-        const post = postDoc.data();
+            const post = postDoc.data();
 
-        const photo =
-            await getProfilePhoto(post.studentNumber);
+            const [photo, likeSnap] = await Promise.all([
+                getProfilePhoto(post.studentNumber),
+                getDoc(
+                    doc(
+                        db,
+                        "posts",
+                        postDoc.id,
+                        "likes",
+                        studentNumber
+                    )
+                )
+            ]);
 
-        const time =
-            formatDateTime(post.createdAt);
+            return renderPostCard({
+                postId: postDoc.id,
+                post,
+                photo,
+                time: formatDateTime(post.createdAt),
+                liked: likeSnap.exists(),
+                showMenu: false,
+                clickable: false
+            });
 
-        const likeSnap = await getDoc(
-            doc(
-                db,
-                "posts",
-                postDoc.id,
-                "likes",
-                studentNumber
-            )
-        );
+        })
+    );
 
-        content.innerHTML += renderPostCard({
-            postId: postDoc.id,
-            post,
-            photo,
-            time,
-            liked: likeSnap.exists(),
-            showMenu: false,
-            clickable: false
-        });
-
-    };
+    content.innerHTML = cards.join("");
 
 };
 
@@ -366,52 +369,58 @@ document
         )
     );
 
-    const likedPosts = [];
+    const likedResults = await Promise.all(
+        snapshot.docs.map(async postDoc => {
 
-    for (const postDoc of snapshot.docs) {
+            const likeSnap = await getDoc(
+                doc(
+                    db,
+                    "posts",
+                    postDoc.id,
+                    "likes",
+                    studentNumber
+                )
+            );
 
-        const likeSnap = await getDoc(
-            doc(db, "posts", postDoc.id, "likes", studentNumber)
-        );
+            return {
+                postDoc,
+                liked: likeSnap.exists()
+            };
 
-        if (likeSnap.exists()) {
-            likedPosts.push(postDoc);
-        }
+        })
+    );
 
-    }
+    const likedPosts = likedResults
+        .filter(item => item.liked)
+        .map(item => item.postDoc);
 
     if (likedPosts.length === 0) {
         content.innerHTML = "<p>いいねした投稿はありません。</p>";
         return;
     }
 
-    for (const postDoc of likedPosts) {
+    const cards = await Promise.all(
+        likedPosts.map(async postDoc => {
 
-        const post = postDoc.data();
-        const photo = await getProfilePhoto(post.studentNumber);
-        const time = formatDateTime(post.createdAt);
+            const post = postDoc.data();
 
-        const likeSnap = await getDoc(
-            doc(
-                db,
-                "posts",
-                postDoc.id,
-                "likes",
-                studentNumber
-            )
-        );
+            const photo =
+                await getProfilePhoto(post.studentNumber);
 
-        content.innerHTML += renderPostCard({
-            postId: postDoc.id,
-            post,
-            photo,
-            time,
-            liked: likeSnap.exists(),
-            showMenu: false,
-            clickable: false
-        });
+            return renderPostCard({
+                postId: postDoc.id,
+                post,
+                photo,
+                time: formatDateTime(post.createdAt),
+                liked: true,
+                showMenu: false,
+                clickable: false
+            });
 
-    }
+        })
+    );
+
+    content.innerHTML = cards.join("");
 
 };
 
@@ -467,30 +476,34 @@ document
         return;
     }
 
+    let html = "";
+
     myComments.forEach(item => {
 
-        content.innerHTML += `
+        html += `
 
-<div class="card post-card"
-    onclick="location.href='comments.html?postId=${item.postId}'">
+    <div class="card post-card"
+        onclick="location.href='comments.html?postId=${item.postId}'">
 
-    <div class="post-time">
-        コメント先：${item.post.studentNumber}
+        <div class="post-time">
+            コメント先：${item.post.studentNumber}
+        </div>
+
+        <div class="post-text">
+            ${item.comment.text}
+        </div>
+
+        <div class="news-link">
+            💬 コメント画面を開く
+        </div>
+
     </div>
 
-    <div class="post-text">
-        ${item.comment.text}
-    </div>
-
-    <div class="news-link">
-        💬 コメント画面を開く
-    </div>
-
-</div>
-
-`;
+    `;
 
     });
+
+    content.innerHTML = html;
 
 };
 
