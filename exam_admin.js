@@ -183,6 +183,8 @@ addSubject.onclick = async () => {
         {
             name,
             completed: false,
+            completedDate: "",
+            completedPeriod: "",
             createdAt: new Date(),
             createdBy: studentNumber
         }
@@ -193,6 +195,43 @@ addSubject.onclick = async () => {
     await loadSubjects();
 
 };
+
+function formatCompletedExamDate(dateValue) {
+
+    if (!dateValue) {
+        return "";
+    }
+
+    const [
+        year,
+        month,
+        day
+    ] = dateValue
+        .split("-")
+        .map(Number);
+
+    const date = new Date(
+        year,
+        month - 1,
+        day
+    );
+
+    const weekdays = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ];
+
+    return (
+        `${month}/${day}` +
+        `（${weekdays[date.getDay()]}）`
+    );
+
+}
 
 async function loadSubjects() {
 
@@ -242,9 +281,37 @@ async function loadSubjects() {
         subjectCard.className = "card setting-card";
 
         const subjectHeader = document.createElement("div");
+
         subjectHeader.innerHTML = `
-            <h3>📚 ${subject.name}</h3>
-            <p>タップして単元を表示</p>
+            <h3>
+                📚 ${subject.name}
+                ${
+                    subject.completed
+                        ? "　✅ 実施済"
+                        : ""
+                }
+            </h3>
+
+            ${
+                subject.completed &&
+                subject.completedDate &&
+                subject.completedPeriod
+                    ? `
+                        <p>
+                            ${formatCompletedExamDate(
+                                subject.completedDate
+                            )}
+                            ${subject.completedPeriod}限目
+                            実施済
+                        </p>
+                    `
+                    : `
+                        <p>
+                            タップして単元を表示
+                        </p>
+                    `
+            }
+
         `;
 
         const subjectContent = document.createElement("div");
@@ -269,6 +336,76 @@ async function loadSubjects() {
                 id="unitRange_${subjectDoc.id}"
                 type="text"
                 placeholder="試験範囲 任意 例：第1回〜第3回">
+
+            <br><br>
+
+            <label>
+                実施日
+            </label>
+
+            <br>
+
+            <input
+                type="date"
+                class="completed-date"
+                data-subject-id="${subjectDoc.id}"
+                value="${subject.completedDate || ""}">
+
+            <br><br>
+
+            <label>
+                実施時限
+            </label>
+
+            <br>
+
+            <select
+                class="completed-period"
+                data-subject-id="${subjectDoc.id}">
+
+                <option
+                    value=""
+                    ${!subject.completedPeriod ? "selected" : ""}>
+                    時限を選択
+                </option>
+
+                <option
+                    value="1"
+                    ${String(subject.completedPeriod) === "1" ? "selected" : ""}>
+                    1限目
+                </option>
+
+                <option
+                    value="2"
+                    ${String(subject.completedPeriod) === "2" ? "selected" : ""}>
+                    2限目
+                </option>
+
+                <option
+                    value="3"
+                    ${String(subject.completedPeriod) === "3" ? "selected" : ""}>
+                    3限目
+                </option>
+
+                <option
+                    value="4"
+                    ${String(subject.completedPeriod) === "4" ? "selected" : ""}>
+                    4限目
+                </option>
+
+                <option
+                    value="5"
+                    ${String(subject.completedPeriod) === "5" ? "selected" : ""}>
+                    5限目
+                </option>
+
+                <option
+                    value="6"
+                    ${String(subject.completedPeriod) === "6" ? "selected" : ""}>
+                    6限目
+                </option>
+
+            </select>
 
             <br><br>
 
@@ -392,23 +529,116 @@ async function loadSubjects() {
 
 document.addEventListener("change", async (e) => {
 
-    if (!e.target.classList.contains("completed-toggle")) {
+    const isCompletedToggle =
+        e.target.classList.contains(
+            "completed-toggle"
+        );
+
+    const isCompletedDate =
+        e.target.classList.contains(
+            "completed-date"
+        );
+
+    const isCompletedPeriod =
+        e.target.classList.contains(
+            "completed-period"
+        );
+
+    if (
+        !isCompletedToggle &&
+        !isCompletedDate &&
+        !isCompletedPeriod
+    ) {
         return;
     }
 
-    await setDoc(
-        doc(
-            db,
-            "examSubjects",
-            e.target.dataset.subjectId
-        ),
-        {
-            completed: e.target.checked
-        },
-        {
-            merge: true
-        }
-    );
+    const subjectId =
+        e.target.dataset.subjectId;
+
+    const completedToggle =
+        document.querySelector(
+            `.completed-toggle[data-subject-id="${subjectId}"]`
+        );
+
+    const completedDate =
+        document.querySelector(
+            `.completed-date[data-subject-id="${subjectId}"]`
+        );
+
+    const completedPeriod =
+        document.querySelector(
+            `.completed-period[data-subject-id="${subjectId}"]`
+        );
+
+    if (
+        completedToggle.checked &&
+        !completedDate.value
+    ) {
+
+        alert("実施日を入力してください。");
+
+        completedToggle.checked = false;
+
+        return;
+
+    }
+
+    if (
+        completedToggle.checked &&
+        !completedPeriod.value
+    ) {
+
+        alert("実施時限を選択してください。");
+
+        completedToggle.checked = false;
+
+        return;
+
+    }
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "examSubjects",
+                subjectId
+            ),
+            {
+                completed:
+                    completedToggle.checked,
+
+                completedDate:
+                    completedDate.value,
+
+                completedPeriod:
+                    completedPeriod.value,
+
+                updatedAt:
+                    new Date(),
+
+                updatedBy:
+                    studentNumber
+            },
+            {
+                merge: true
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "実施済み設定保存失敗:",
+            error
+        );
+
+        alert(
+            "実施済み設定の保存に失敗しました。"
+        );
+
+        await loadSubjects();
+
+    }
 
 });
 

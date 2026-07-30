@@ -1240,6 +1240,16 @@ importJson.onclick = async () => {
         const data =
             JSON.parse(jsonImport.value);
 
+        if (
+            !data ||
+            typeof data !== "object" ||
+            Array.isArray(data)
+        ) {
+            throw new Error(
+                "JSONの形式が正しくありません。"
+            );
+        }
+
         const editedRef = doc(
             db,
             "examSubjects",
@@ -1250,32 +1260,255 @@ importJson.onclick = async () => {
             "edited"
         );
 
+        const editedSnap =
+            await getDoc(editedRef);
+
+        const current =
+            editedSnap.exists()
+                ? editedSnap.data()
+                : {};
+
+        /*
+         * 現在保存されている要約
+         */
+        const currentSummary =
+            Array.isArray(current.summary)
+                ? current.summary
+                : typeof current.summary === "string" &&
+                  current.summary.trim() !== ""
+                    ? [current.summary.trim()]
+                    : [];
+
+        /*
+         * JSONから追加する要約
+         */
+        const importedSummary =
+            Array.isArray(data.summary)
+                ? data.summary
+                    .map(item =>
+                        String(item).trim()
+                    )
+                    .filter(item =>
+                        item !== ""
+                    )
+                : typeof data.summary === "string" &&
+                  data.summary.trim() !== ""
+                    ? [data.summary.trim()]
+                    : [];
+
+        /*
+         * 現在保存されている重要ポイント
+         */
+        const currentImportantPoints =
+            Array.isArray(
+                current.important_points
+            )
+                ? current.important_points
+                : [];
+
+        /*
+         * JSONから追加する重要ポイント
+         */
+        const importedImportantPoints =
+            Array.isArray(
+                data.important_points
+            )
+                ? data.important_points
+                    .map(item =>
+                        String(item).trim()
+                    )
+                    .filter(item =>
+                        item !== ""
+                    )
+                : [];
+
+        /*
+         * 現在保存されている穴埋め問題
+         */
+        const currentFillBlank =
+            Array.isArray(current.fill_blank)
+                ? current.fill_blank
+                : [];
+
+        /*
+         * JSONから追加する穴埋め問題
+         */
+        const importedFillBlank =
+            Array.isArray(data.fill_blank)
+                ? data.fill_blank
+                    .filter(item =>
+                        item &&
+                        typeof item === "object" &&
+                        typeof item.question === "string" &&
+                        item.question.trim() !== ""
+                    )
+                    .map(item => ({
+                        ...item,
+                        source_type:
+                            item.source_type ||
+                            "json",
+
+                        preserve_original:
+                            item.preserve_original ??
+                            true
+                    }))
+                : [];
+
+        /*
+         * 現在保存されている四択問題
+         */
+        const currentQuiz =
+            Array.isArray(current.quiz)
+                ? current.quiz
+                : [];
+
+        /*
+         * JSONから追加する四択問題
+         */
+        const importedQuiz =
+            Array.isArray(data.quiz)
+                ? data.quiz
+                    .filter(item =>
+                        item &&
+                        typeof item === "object" &&
+                        typeof item.question === "string" &&
+                        item.question.trim() !== ""
+                    )
+                    .map(item => ({
+                        ...item,
+                        source_type:
+                            item.source_type ||
+                            "json",
+
+                        preserve_original:
+                            item.preserve_original ??
+                            true
+                    }))
+                : [];
+
+        /*
+         * 今日の1問は1問しか保存できないため、
+         * すでにある場合は現在の問題を残す
+         */
+        let todayQuestion =
+            current.today_question || null;
+
+        if (
+            !todayQuestion &&
+            data.today_question &&
+            typeof data.today_question === "object" &&
+            typeof data.today_question.question ===
+                "string" &&
+            data.today_question.question.trim() !== ""
+        ) {
+
+            todayQuestion = {
+                ...data.today_question,
+
+                source_type:
+                    data.today_question.source_type ||
+                    "json",
+
+                preserve_original:
+                    data.today_question
+                        .preserve_original ??
+                    true
+            };
+
+        }
+
+        const addedCount =
+            importedSummary.length +
+            importedImportantPoints.length +
+            importedFillBlank.length +
+            importedQuiz.length +
+            (
+                !current.today_question &&
+                todayQuestion
+                    ? 1
+                    : 0
+            );
+
+        if (addedCount === 0) {
+
+            alert(
+                "追加できる内容がJSONにありません。"
+            );
+
+            return;
+
+        }
+
         await setDoc(
             editedRef,
             {
-                ...data,
+                /*
+                 * 元の内容を残して後ろに追加
+                 */
+                summary: [
+                    ...currentSummary,
+                    ...importedSummary
+                ],
 
-                editedAt: new Date(),
-                editedBy: studentNumber
+                important_points: [
+                    ...currentImportantPoints,
+                    ...importedImportantPoints
+                ],
+
+                fill_blank: [
+                    ...currentFillBlank,
+                    ...importedFillBlank
+                ],
+
+                quiz: [
+                    ...currentQuiz,
+                    ...importedQuiz
+                ],
+
+                today_question:
+                    todayQuestion,
+
+                /*
+                 * JSON内にあるその他の項目は
+                 *既存データを消さない
+                 */
+                jsonImportedAt:
+                    new Date(),
+
+                jsonImportedBy:
+                    studentNumber,
+
+                editedAt:
+                    new Date(),
+
+                editedBy:
+                    studentNumber
             },
             {
                 merge: true
             }
         );
 
-        alert("保存しました");
+        alert(
+            `${addedCount}件の内容を追加しました。`
+        );
+
+        jsonImport.value = "";
+        jsonPreview.innerHTML = "";
 
         await loadQuestions();
 
     } catch (e) {
 
         console.error(
-            "JSON一括保存エラー:",
+            "JSON一括追加エラー:",
             e
         );
 
         alert(
-            `保存できませんでした。\n${e.message}`
+            `追加できませんでした。\n${e.message}`
         );
+
     }
+
 };
