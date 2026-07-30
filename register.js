@@ -3,7 +3,6 @@ import {
     initializePage,
     updateAccentColor,
     encryptData,
-    setupOfflineAlert
 } from "./common.js";
 
 import {
@@ -88,7 +87,13 @@ majorGrade.addEventListener("change", () => {
 
 });
 
-studentNumber.addEventListener("input", () => {
+studentPageId.addEventListener("input", () => {
+
+    updateState();
+
+});
+
+studentPagePassword.addEventListener("input", () => {
 
     updateState();
 
@@ -326,21 +331,24 @@ button.addEventListener("click", async () => {
 
     }
 
-    const studentPagePasswordEncrypted =
-        await encrypt(studentPagePassword.value);
+    const [
+        studentPagePasswordEncrypted,
+        activeMailPasswordEncrypted,
+        manabaPasswordEncrypted,
+        appPasswordHash
+    ] = await Promise.all([
+        encrypt(studentPagePassword.value),
 
-    const activeMailPasswordEncrypted =
         activeMailPassword.value.trim()
-            ? await encryptData(activeMailPassword.value.trim())
-            : "";
+            ? encryptData(activeMailPassword.value.trim())
+            : Promise.resolve(""),
 
-    const manabaPasswordEncrypted =
         manabaPassword.value.trim()
-            ? await encryptData(manabaPassword.value.trim())
-            : "";
+            ? encryptData(manabaPassword.value.trim())
+            : Promise.resolve(""),
 
-    const appPasswordHash =
-    await hashPassword(appPassword.value);
+        hashPassword(appPassword.value)
+    ]);
 
 try {
 
