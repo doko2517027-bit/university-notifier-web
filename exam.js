@@ -173,25 +173,35 @@ async function loadSubjectUnits() {
 
         } else {
 
-            for (const unitDoc of unitSnap.docs) {
+            const published = await Promise.all(
 
-                const unit = unitDoc.data();
+                unitSnap.docs.map(async (unitDoc) => {
 
-                const publishedSnap = await getDoc(
-                    doc(
-                        db,
-                        "examSubjects",
-                        subjectDoc.id,
-                        "units",
-                        unitDoc.id,
-                        "publishedQuestions",
-                        "published"
-                    )
-                );
+                    const publishedSnap = await getDoc(
+                        doc(
+                            db,
+                            "examSubjects",
+                            subjectDoc.id,
+                            "units",
+                            unitDoc.id,
+                            "publishedQuestions",
+                            "published"
+                        )
+                    );
 
-                const data = publishedSnap.exists()
-                    ? publishedSnap.data()
-                    : {};
+                    return {
+                        unitDoc,
+                        unit: unitDoc.data(),
+                        data: publishedSnap.exists()
+                            ? publishedSnap.data()
+                            : {}
+                    };
+
+                })
+
+            );
+
+            for (const { unitDoc, unit, data } of published) {
 
                 const hasDailyQuestion =
                     data.today_question &&

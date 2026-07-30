@@ -97,13 +97,13 @@ async function loadMaterials() {
         return;
     }
 
-    materialList.innerHTML = "";
+    let html = "";
 
     snap.forEach(materialDoc => {
 
         const material = materialDoc.data();
 
-        materialList.innerHTML += `
+        html += `
             <div class="card setting-card">
 
                 <p><b>${material.name}</b></p>
@@ -130,6 +130,8 @@ async function loadMaterials() {
         `;
 
     });
+
+    materialList.innerHTML = html;
 
 }
 
