@@ -157,38 +157,37 @@ async function loadPosts() {
 
     onSnapshot(q, async (snapshot) => {
 
-        postList.innerHTML = "";
+        const cards = await Promise.all(
+            snapshot.docs.map(async postDoc => {
 
-    for (const postDoc of snapshot.docs) {
+                const likeRef = doc(
+                    db,
+                    "posts",
+                    postDoc.id,
+                    "likes",
+                    studentNumber
+                );
 
-        const post = postDoc.data();
+                let liked = false;
 
-        const likeRef = doc(
-            db,
-            "posts",
-            postDoc.id,
-            "likes",
-            studentNumber
+                try {
+
+                    const likeSnap = await getDoc(likeRef);
+
+                    liked = likeSnap.exists();
+
+                } catch (e) {
+
+                    console.error(e);
+
+                }
+
+                return renderPost(postDoc, liked);
+
+            })
         );
 
-        let liked = false;
-
-        try {
-
-            const likeSnap = await getDoc(likeRef);
-
-            liked = likeSnap.exists();
-
-        } catch (e) {
-
-            console.error(e);
-
-        }
-
-        postList.innerHTML +=
-            await renderPost(postDoc, liked);
-
-    };
+        postList.innerHTML = cards.join("");
 
     });
 
@@ -301,28 +300,28 @@ document.addEventListener("click", async (e) => {
 
     }
 
-    const likeSnap = await getDoc(likeRef);
+    if (wasLiked) {
 
-    if (likeSnap.exists()) {
-
-        await deleteDoc(likeRef);
-
-        await updateDoc(postRef, {
-            likeCount: increment(-1)
-        });
+        await Promise.all([
+            deleteDoc(likeRef),
+            updateDoc(postRef, {
+                likeCount: increment(-1)
+            })
+        ]);
 
     } else {
 
-        await setDoc(likeRef, {
-            likedAt: new Date(),
-            studentNumber,
-            notificationType: "like",
-            notificationSentAt: null
-        });
-
-        await updateDoc(postRef, {
-            likeCount: increment(1)
-        });
+        await Promise.all([
+            setDoc(likeRef, {
+                likedAt: new Date(),
+                studentNumber,
+                notificationType: "like",
+                notificationSentAt: null
+            }),
+            updateDoc(postRef, {
+                likeCount: increment(1)
+            })
+        ]);
 
     }
 
