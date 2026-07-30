@@ -12,6 +12,8 @@ import {
     updateDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+let unread = 0;
+
 const mailCount =
     document.getElementById("mailCount");
 
@@ -35,18 +37,9 @@ openMailButton.onclick = () => {
 
 readButton.onclick = async () => {
 
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    const unread =
-        snap.data().activeMailUnreadCount || 0;
-
     if (unread === 0) {
-
         showToast("✓ 確認済みです");
         return;
-
     }
 
     await updateDoc(
@@ -56,32 +49,25 @@ readButton.onclick = async () => {
         }
     );
 
+    unread = 0;
+
     mailCount.textContent =
         "新着メールはありません";
 
     showToast("✓ 確認しました");
-
 };
 
-async function load(){
+async function load() {
 
     const snap = await getDoc(
-        doc(db,"users",studentNumber)
+        doc(db, "users", studentNumber)
     );
 
-    const unread =
+    unread =
         snap.data().activeMailUnreadCount || 0;
 
-    if(unread===0){
-
-        mailCount.textContent =
-            "新着メールはありません";
-
-    }else{
-
-        mailCount.textContent =
-            `新着メール ${unread}件`;
-
-    }
-
+    mailCount.textContent =
+        unread === 0
+            ? "新着メールはありません"
+            : `新着メール ${unread}件`;
 }

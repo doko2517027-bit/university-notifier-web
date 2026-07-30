@@ -10,7 +10,6 @@ import {
     setupAdminTab,
     isAdmin,
     showToast,
-    setupOfflineAlert,
     updateAssignmentNavBadge,
     updateShareNavBadge,
     updateNewsNavBadge
@@ -65,6 +64,22 @@ const reportList = document.getElementById("reportList");
 const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 const enablePushButton = document.getElementById("enablePushButton");
 
+let systemAppPromise = null;
+
+function getSystemAppSnapshot() {
+
+    if (!systemAppPromise) {
+
+        systemAppPromise = getDoc(
+            doc(db, "system", "app")
+        );
+
+    }
+
+    return systemAppPromise;
+
+}
+
 setupTheme(themeButton);
 
 const admin = await isAdmin();
@@ -80,6 +95,7 @@ await initializePage([
     loadReports(),
     loadProfileImage(topProfileImage),
     loadDashboard(),
+    loadSystemStatus(),
     loadSystemNews(),
     loadMaintenance(),
     loadNotificationSettings(),
@@ -106,13 +122,13 @@ async function loadDashboard() {
         userCountDetail.textContent =
             `${usersSnap.size}人`;
 
-        userList.innerHTML = "";
+        let userListHtml = "";
+
+        const now = Date.now();
 
         usersSnap.forEach(userDoc => {
 
             const user = userDoc.data();
-
-            const now = Date.now();
 
             let status = "⚫";
 
@@ -137,7 +153,7 @@ async function loadDashboard() {
 
             }
 
-            userList.innerHTML += `
+            userListHtml += `
 
             <div
                 class="setting-row admin-user"
@@ -163,6 +179,9 @@ async function loadDashboard() {
 
         });
 
+        userList.innerHTML =
+            userListHtml || "登録ユーザーはいません。";
+
         firestoreStatus.textContent = "🟢 正常";
 
     } catch (e) {
@@ -175,17 +194,14 @@ async function loadDashboard() {
         firestoreStatus.textContent = "🔴 エラー";
 
     }
-
-    await loadSystemStatus();
 }
 
 async function loadSystemStatus() {
 
     try {
 
-        const snap = await getDoc(
-            doc(db, "system", "app")
-        );
+        const snap =
+            await getSystemAppSnapshot();
 
         if (!snap.exists()) {
             renderStatus.textContent = "⚫ 未確認";
@@ -387,9 +403,8 @@ function loadReports() {
 
 async function loadMaintenance() {
 
-    const snap = await getDoc(
-        doc(db, "system", "app")
-    );
+    const snap =
+        await getSystemAppSnapshot();
 
     if (!snap.exists()) return;
 
@@ -698,7 +713,7 @@ ${user.lastLoginAt.toDate().toLocaleString()}
 	
 	showToast("ユーザーを削除しました");
 	
-	loadDashboard();
+	await loadDashboard();
 
 }
 
