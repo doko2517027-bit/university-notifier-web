@@ -2324,3 +2324,16 @@ html.dark{
     transform:scale(.97);
 
 }
+
+.completed-subject-card {
+    opacity: 0.68;
+    filter: grayscale(0.25);
+}
+
+.completed-subject-card:hover {
+    opacity: 0.82;
+}
+
+.completed-subject-label {
+    font-weight: 700;
+}

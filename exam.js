@@ -114,6 +114,43 @@ async function loadExam() {
 
 }
 
+function formatCompletedExamDate(dateValue) {
+
+    if (!dateValue) {
+        return "";
+    }
+
+    const [
+        year,
+        month,
+        day
+    ] = dateValue
+        .split("-")
+        .map(Number);
+
+    const date = new Date(
+        year,
+        month - 1,
+        day
+    );
+
+    const weekdays = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ];
+
+    return (
+        `${month}/${day}` +
+        `（${weekdays[date.getDay()]}）`
+    );
+
+}
+
 async function loadSubjectUnits() {
 
     const subjectSnap = await getDocs(
@@ -131,17 +168,71 @@ async function loadSubjectUnits() {
 
     subjectUnitList.innerHTML = "";
 
-    for (const subjectDoc of subjectSnap.docs) {
+    const subjectDocs = [
+        ...subjectSnap.docs
+    ].sort((a, b) => {
+
+        const aCompleted =
+            a.data().completed === true;
+
+        const bCompleted =
+            b.data().completed === true;
+
+        if (aCompleted !== bCompleted) {
+
+            return Number(aCompleted) -
+                Number(bCompleted);
+
+        }
+
+        return 0;
+
+    });
+
+    for (const subjectDoc of subjectDocs) {
 
         const subject = subjectDoc.data();
 
-        const subjectCard = document.createElement("div");
-        subjectCard.className = "card setting-card";
+        const subjectCard =
+            document.createElement("div");
 
-        const subjectHeader = document.createElement("div");
+        subjectCard.className =
+            subject.completed === true
+                ? "card setting-card completed-subject-card"
+                : "card setting-card";
+
+        const subjectHeader =
+            document.createElement("div");
+
+        const hasCompletedInformation =
+            subject.completed === true &&
+            subject.completedDate &&
+            subject.completedPeriod;
+
         subjectHeader.innerHTML = `
-            <h2>📚 ${subject.name}</h2>
-            <p>タップして単元を表示</p>
+            <h2>
+                📚 ${subject.name}
+            </h2>
+
+            ${
+                hasCompletedInformation
+                    ? `
+                        <p class="completed-subject-label">
+                            ${formatCompletedExamDate(
+                                subject.completedDate
+                            )}${subject.completedPeriod}限目　実施済
+                        </p>
+
+                        <p>
+                            タップして復習する
+                        </p>
+                    `
+                    : `
+                        <p>
+                            タップして単元を表示
+                        </p>
+                    `
+            }
         `;
 
         const unitList = document.createElement("div");
