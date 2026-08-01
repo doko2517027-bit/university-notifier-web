@@ -150,6 +150,48 @@ if(localStorage.getItem("theme")==="dark"){
 
 <div class="schedule-scroll">
 
+    <!-- 試験日程 -->
+    <div
+        id="examScheduleCard"
+        class="card day-card"
+        style="display:none;">
+
+        <div class="schedule-card-title">
+            📚 試験日程
+        </div>
+
+        <div class="schedule-switcher">
+
+            <button
+                id="examPrev"
+                class="schedule-switch-button"
+                type="button">
+                ◀
+            </button>
+
+            <div
+                id="examPage"
+                class="schedule-switch-label">
+                日付
+            </div>
+
+            <button
+                id="examNext"
+                class="schedule-switch-button"
+                type="button">
+                ▶
+            </button>
+
+        </div>
+
+        <div
+            id="examScheduleList"
+            class="schedule-content">
+            読み込み中...
+        </div>
+
+    </div>
+
     <!-- 講義予定 -->
     <div
         id="lectureScheduleCard"
@@ -260,48 +302,6 @@ if(localStorage.getItem("theme")==="dark"){
             id="lectureScheduleList"
             class="schedule-content">
             取得中...
-        </div>
-
-    </div>
-
-    <!-- 試験日程 -->
-    <div
-        id="examScheduleCard"
-        class="card day-card"
-        style="display:none;">
-
-        <div class="schedule-card-title">
-            📚 試験日程
-        </div>
-
-        <div class="schedule-switcher">
-
-            <button
-                id="examPrev"
-                class="schedule-switch-button"
-                type="button">
-                ◀
-            </button>
-
-            <div
-                id="examPage"
-                class="schedule-switch-label">
-                日付
-            </div>
-
-            <button
-                id="examNext"
-                class="schedule-switch-button"
-                type="button">
-                ▶
-            </button>
-
-        </div>
-
-        <div
-            id="examScheduleList"
-            class="schedule-content">
-            読み込み中...
         </div>
 
     </div>
