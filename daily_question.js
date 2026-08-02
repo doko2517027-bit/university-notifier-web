@@ -126,6 +126,10 @@ document.addEventListener("click", async (e) => {
         const studentNumber =
             localStorage.getItem("studentNumber");
 
+        console.log(
+            localStorage.getItem("studentNumber")
+        );
+
         const questionId =
             `${subjectId}_${unitId}_today`;
 
@@ -179,6 +183,11 @@ document.addEventListener("click", async (e) => {
                 {
                     merge:true
                 }
+            );
+
+            console.log(
+                "ポイント追加:",
+                studentNumber
             );
 
 
