@@ -2337,3 +2337,40 @@ html.dark{
     margin-top: 3px;
     opacity: 0.75;
 }
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+
+.ranking-rank {
+    width: 40px;
+    text-align: center;
+    font-size: 26px;
+    line-height: 1;
+}
+
+
+.ranking-user {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 100px;
+}
+
+
+.ranking-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+.ranking-score {
+    font-size: 14px;
+    color: #64748b;
+}
