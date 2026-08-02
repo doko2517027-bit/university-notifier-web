@@ -8,6 +8,7 @@ import {
     initializePage,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     setupAdminTab,
     isAdmin,
     showToast,
@@ -101,6 +102,7 @@ if (!admin) {
 await initializePage([
     setupAdminTab(),
     loadUserName(userName),
+    loadMyRanking(),
     loadReports(),
     loadProfileImage(topProfileImage),
     loadDashboard(),
@@ -114,6 +116,8 @@ await initializePage([
 ]);
 
 startPresenceListener();
+
+loadMyRanking();
 
 setupEvents();
 

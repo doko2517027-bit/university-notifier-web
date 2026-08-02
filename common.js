@@ -146,6 +146,105 @@ export async function loadUserName(element, user = null){
 
 }
 
+export async function loadMyRanking(){
+
+    const element =
+        document.getElementById("myRanking");
+
+    if(!element || !studentNumber){
+        return;
+    }
+
+
+    try{
+
+        const rankingSnap =
+            await getDocs(
+                collection(
+                    db,
+                    "ranking"
+                )
+            );
+
+
+        let ranking = [];
+
+
+        rankingSnap.forEach(doc=>{
+
+            ranking.push({
+                studentNumber: doc.id,
+                point: doc.data().point || 0
+            });
+
+        });
+
+
+        //ポイント順
+        ranking.sort(
+            (a,b)=>b.point-a.point
+        );
+
+
+        const myIndex =
+            ranking.findIndex(
+                item =>
+                item.studentNumber === studentNumber
+            );
+
+
+        if(myIndex === -1){
+
+            element.innerHTML="";
+
+            return;
+
+        }
+
+
+        const rank =
+            myIndex + 1;
+
+
+        let medal="";
+
+        if(rank===1){
+            medal="🥇";
+        }else if(rank===2){
+            medal="🥈";
+        }else if(rank===3){
+            medal="🥉";
+        }
+
+
+        const point =
+            ranking[myIndex].point;
+
+
+        element.innerHTML=`
+
+        <div class="my-ranking">
+
+            ${medal}
+            ${rank}位　
+            ${point}pt
+
+        </div>
+
+        `;
+
+
+    }catch(error){
+
+        console.error(
+            "順位取得エラー",
+            error
+        );
+
+    }
+
+}
+
 export function showPage(){
 
     document.body.classList.remove("page-loading");

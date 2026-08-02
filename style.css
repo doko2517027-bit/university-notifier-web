@@ -2374,3 +2374,17 @@ html.dark{
     font-size: 14px;
     color: #64748b;
 }
+
+.my-ranking{
+
+    text-align:center;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    margin-top:10px;
+
+    color:#18233d;
+
+}

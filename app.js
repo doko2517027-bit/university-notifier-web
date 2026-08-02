@@ -4,6 +4,7 @@ import {
     setupTheme,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     initializePage,
     showNewsSkeleton,
     setupAdminTab,
@@ -64,6 +65,8 @@ const rankingList =
 
 const rankingDate =
     document.getElementById("rankingDate");
+const myRanking =
+    document.getElementById("myRanking");
 const closeExamPopup = document.getElementById("closeExamPopup");
 const examPopupLabel = document.getElementById("examPopupLabel");
 const examPopupTitle = document.getElementById("examPopupTitle");
@@ -227,6 +230,7 @@ console.log("studentNumber =", studentNumber);
 
     await initializePage([
         loadUserName(userName),
+        loadMyRanking(),
         loadProfileImage(topProfileImage),
         loadActiveMailBadge(user),
         updateAssignmentNavBadge(),
@@ -2056,5 +2060,84 @@ if(rankingPopupOverlay){
         }
 
     };
+
+}
+
+async function loadMyRankingCard(){
+
+    if(!studentNumber || !myRanking){
+        return;
+    }
+
+
+    const snap = await getDoc(
+        doc(db,"users",studentNumber)
+    );
+
+
+    if(!snap.exists()){
+        return;
+    }
+
+
+    const data = snap.data();
+
+
+    const point =
+        data.quizPoint || 0;
+
+
+    const rankingSnap =
+        await getDocs(
+            collection(db,"users")
+        );
+
+
+    const users =
+        rankingSnap.docs.map(d=>({
+            id:d.id,
+            ...d.data()
+        }));
+
+
+    users.sort((a,b)=>
+        (b.quizPoint || 0) -
+        (a.quizPoint || 0)
+    );
+
+
+    const rank =
+        users.findIndex(
+            user =>
+                user.id === studentNumber
+        ) + 1;
+
+
+
+    let medal="";
+
+    if(rank===1){
+        medal="🥇";
+    }
+    else if(rank===2){
+        medal="🥈";
+    }
+    else if(rank===3){
+        medal="🥉";
+    }
+
+
+
+    myRanking.innerHTML = `
+
+        <div class="my-ranking">
+
+            ${data.name || studentNumber}さん　
+            ${medal}${rank}位　
+            ${point}pt
+
+        </div>
+
+    `;
 
 }
