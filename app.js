@@ -340,18 +340,26 @@ document.addEventListener("visibilitychange", () => {
 
 });
 
-weatherCard.onclick = () => {
+if(weatherCard){
 
-    location.href =
-        "weather-settings.html";
+    weatherCard.onclick = () => {
 
-};
+        location.href =
+            "weather-settings.html";
 
-activeMailButton.onclick = () => {
+    };
 
-    location.href = "activemail.html";
+}
 
-};
+if(activeMailButton){
+
+    activeMailButton.onclick = () => {
+
+        location.href = "activemail.html";
+
+    };
+
+}
 
 async function loadNews() {
 
@@ -901,7 +909,10 @@ window.openCourse = openCourse;
 
 const splash = document.getElementById("splash");
 
-if (!sessionStorage.getItem("splashShown")) {
+if (
+    splash &&
+    !sessionStorage.getItem("splashShown")
+) {
 
     splash.style.display = "flex";
 
@@ -917,7 +928,7 @@ if (!sessionStorage.getItem("splashShown")) {
 
     sessionStorage.setItem("splashShown", "true");
 
-} else {
+} else if (splash) {
 
     splash.style.display = "none";
 
