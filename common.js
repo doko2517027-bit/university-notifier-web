@@ -341,15 +341,15 @@ export function showPage(){
 
 export async function initializePage(tasks = []){
 
-    try{
+    showPage();
 
-        await Promise.all(tasks);
-
-    }finally{
-
-        showPage();
-
-    }
+    Promise.all(tasks)
+        .catch(error => {
+            console.error(
+                "初期読み込みエラー:",
+                error
+            );
+        });
 
 }
 
