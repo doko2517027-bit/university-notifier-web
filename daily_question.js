@@ -7,7 +7,10 @@ import {
 
 import {
     doc,
-    getDoc
+    getDoc,
+    increment,
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const themeButton = document.getElementById("themeButton");
@@ -85,15 +88,24 @@ async function loadDailyQuestion() {
             <p id="result"></p>
         </div>
     `;
+
+    sessionStorage.setItem(
+        "quizPlaying",
+        "true"
+    );
 }
 
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
 
     if (!e.target.classList.contains("answer-button")) return;
 
     const selected = Number(e.target.dataset.index);
 
     const card = e.target.closest(".card");
+
+    if (card.dataset.finished === "true") {
+        return;
+    }
     const correct = Number(card.dataset.answer);
 
     const result = document.getElementById("result");
@@ -101,9 +113,55 @@ document.addEventListener("click", (e) => {
     if (selected === correct) {
         result.textContent = "⭕ 正解！";
         result.style.color = "green";
+
+        card.dataset.finished = "true";
+
+        sessionStorage.removeItem(
+            "quizPlaying"
+        );
+
+        const today =
+            new Date().toISOString().slice(0,10);
+
+        await setDoc(
+            doc(
+                db,
+                "dailyRanking",
+                today,
+                "users",
+                localStorage.getItem("studentNumber")
+            ),
+            {
+                lastAnsweredAt:
+                    serverTimestamp(),
+
+                point:
+                    increment(1),
+
+                solved:
+                    increment(1)
+            },
+            {
+                merge:true
+            }
+        );
+
     } else {
         result.textContent = "❌ 不正解";
         result.style.color = "red";
     }
+
+});
+
+window.addEventListener("beforeunload",(e)=>{
+
+    const unfinished =
+        document.querySelector(".card")?.dataset.finished !== "true";
+
+    if(!unfinished) return;
+
+    e.preventDefault();
+
+    e.returnValue="";
 
 });

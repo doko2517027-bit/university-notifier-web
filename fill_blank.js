@@ -7,7 +7,10 @@ import {
 
 import {
     doc,
-    getDoc
+    getDoc,
+    increment,
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const themeButton = document.getElementById("themeButton");
@@ -113,13 +116,22 @@ async function loadQuestions() {
 
     });
 
+    sessionStorage.setItem(
+        "quizPlaying",
+        "true"
+    );
+
 }
 
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
 
     if (!e.target.classList.contains("check-fill")) return;
 
     const card = e.target.closest(".fill-card");
+
+    if (card.dataset.finished === "true") {
+        return;
+    }
     const result = card.querySelector(".fill-result");
 
     const correctAnswers =
@@ -138,9 +150,55 @@ document.addEventListener("click", (e) => {
     if (allCorrect) {
         result.textContent = "⭕ 正解！";
         result.style.color = "green";
+
+        card.dataset.finished = "true";
+
+        const unfinished =
+            [...document.querySelectorAll(".fill-card")]
+            .some(card => card.dataset.finished !== "true");
+
+        if (!unfinished) {
+
+            sessionStorage.removeItem(
+                "quizPlaying"
+            );
+
+        }
+
+        const today =
+            new Date().toISOString().slice(0,10);
+
+        await setDoc(
+            doc(
+                db,
+                "dailyRanking",
+                today,
+                "users",
+                localStorage.getItem("studentNumber")
+            ),
+            {
+                lastAnsweredAt:
+                    serverTimestamp(),
+
+                point:
+                    increment(1),
+
+                solved:
+                    increment(1)
+            },
+            {
+                merge:true
+            }
+            
+        );
+
     } else {
-        result.textContent = `❌ 不正解。正解：${card.dataset.answer}`;
+
+        result.textContent =
+            `❌ 不正解。正解：${card.dataset.answer}`;
+
         result.style.color = "red";
+
     }
 
 });
@@ -154,3 +212,17 @@ function normalizeAnswer(text) {
         .toLowerCase();
 
 }
+
+window.addEventListener("beforeunload",(e)=>{
+
+    const unfinished =
+        [...document.querySelectorAll(".fill-card")]
+        .some(card=>card.dataset.finished!=="true");
+
+    if(!unfinished) return;
+
+    e.preventDefault();
+
+    e.returnValue="";
+
+});
