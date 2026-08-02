@@ -231,7 +231,6 @@ console.log("studentNumber =", studentNumber);
     await initializePage([
         loadUserName(userName),
         loadMyRanking(),
-        loadMyRankingCard(),
         loadProfileImage(topProfileImage),
         loadActiveMailBadge(user),
         updateAssignmentNavBadge(),
@@ -2061,83 +2060,5 @@ if(rankingPopupOverlay){
         }
 
     };
-
-}
-
-async function loadMyRankingCard(){
-
-    if(!studentNumber || !myRanking){
-        return;
-    }
-
-
-    const snap = await getDoc(
-        doc(db,"users",studentNumber)
-    );
-
-
-    if(!snap.exists()){
-        return;
-    }
-
-
-    const data = snap.data();
-
-
-    const point =
-        data.quizPoint || 0;
-
-
-    const rankingSnap =
-        await getDocs(
-            collection(db,"users")
-        );
-
-
-    const users =
-        rankingSnap.docs.map(d=>({
-            id:d.id,
-            ...d.data()
-        }));
-
-
-    users.sort((a,b)=>
-        (b.quizPoint || 0) -
-        (a.quizPoint || 0)
-    );
-
-
-    const rank =
-        users.findIndex(
-            user =>
-                user.id === studentNumber
-        ) + 1;
-
-
-
-    let medal="";
-
-    if(rank===1){
-        medal="🥇";
-    }
-    else if(rank===2){
-        medal="🥈";
-    }
-    else if(rank===3){
-        medal="🥉";
-    }
-
-
-
-    myRanking.innerHTML = `
-
-        <div class="my-ranking">
-
-            ${medal}${rank}位　
-            ${point}pt
-
-        </div>
-
-    `;
 
 }
