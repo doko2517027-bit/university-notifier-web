@@ -357,6 +357,17 @@ if(weatherCard){
 
 }
 
+if(attendanceCard){
+
+    attendanceCard.onclick = () => {
+
+        location.href =
+            "attendance.html";
+
+    };
+
+}
+
 if(activeMailButton){
 
     activeMailButton.onclick = () => {
