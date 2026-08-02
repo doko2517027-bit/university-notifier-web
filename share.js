@@ -4,6 +4,7 @@ import {
     setupTheme,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     initializePage,
     showPostSkeleton,
     formatDateTime,
@@ -115,6 +116,7 @@ await initializePage([
 
     setupAdminTab(),
     loadUserName(userName),
+    loadMyRanking(),
     loadProfileImage(topProfileImage),
     loadPosts(),
     updateAssignmentNavBadge(),

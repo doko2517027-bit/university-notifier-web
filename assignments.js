@@ -37,6 +37,7 @@ await initializePage([
     setupAdminTab(),
     loadUserName(userName),
     loadProfileImage(topProfileImage),
+    loadMyRanking(),
     loadAssignments(),
     updateAssignmentNavBadge(),
     updateShareNavBadge(),
