@@ -1492,9 +1492,7 @@ async function loadRanking(){
 
 
                         <div class="ranking-score">
-
                             ${data.point || 0}pt
-
                         </div>
 
                     </div>
