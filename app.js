@@ -1415,7 +1415,19 @@ function loadRankingPopup(){
     const key =
         `rankingPopupShown_${today}`;
 
+
+    // 今日すでに表示済みなら出さない
+    if(localStorage.getItem(key)){
+        return;
+    }
+
+
+    // 初回だけ表示
     rankingPopupOverlay.classList.add("show");
+
+
+    // 今日表示したことを保存
+    localStorage.setItem(key, "true");
 
 }
 
