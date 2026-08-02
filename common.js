@@ -193,20 +193,20 @@ export async function loadUserName(element, user = null){
     let point = 0;
 
 
-    const rankingSnap =
+    const userPointSnap =
         await getDoc(
             doc(
                 db,
-                "ranking",
+                "users",
                 studentNumber
             )
         );
 
 
-    if(rankingSnap.exists()){
+    if(userPointSnap.exists()){
 
         point =
-            rankingSnap.data().point || 0;
+            userPointSnap.data().totalPoint || 0;
 
     }
 
