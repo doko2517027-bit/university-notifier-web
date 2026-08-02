@@ -1437,7 +1437,7 @@ async function loadRanking(){
                 today,
                 "users"
             ),
-            orderBy("correctCount","desc"),
+            orderBy("point","desc"),
             limit(10)
         );
 
@@ -1492,19 +1492,11 @@ async function loadRanking(){
 
                         <div class="ranking-score">
 
-                            ${data.correctCount || 0}問 正解
+                            ${data.point || 0}pt
 
-                            ${
-                                data.accuracy
-                                ?
-                                `
-                                <span>
-                                    正答率 ${data.accuracy}%
-                                </span>
-                                `
-                                :
-                                ""
-                            }
+                            <span>
+                                ${data.solved || 0}問回答
+                            </span>
 
                         </div>
 
