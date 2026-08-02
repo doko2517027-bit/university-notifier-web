@@ -231,6 +231,7 @@ console.log("studentNumber =", studentNumber);
     await initializePage([
         loadUserName(userName),
         loadMyRanking(),
+        loadMyRankingCard(),
         loadProfileImage(topProfileImage),
         loadActiveMailBadge(user),
         updateAssignmentNavBadge(),
