@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+<title>出席管理 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if(localStorage.getItem("theme")==="dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+
+<body>
+
+<header class="header">
+
+    <div class="logo">
+        📅
+    </div>
+
+    <h1>
+        出席管理
+    </h1>
+
+    <p>
+        授業の出席状況を確認できます
+    </p>
+
+</header>
+
+
+<hr>
+
+
+<h2>
+📊 全体状況
+</h2>
+
+
+<div class="card setting-card">
+
+
+    <h3>
+        現在の出席率
+    </h3>
+
+
+    <div
+        style="
+        font-size:36px;
+        font-weight:bold;
+        margin:20px 0;
+        "
+    >
+
+        100%
+
+    </div>
+
+
+    <div>
+
+        出席 0回<br>
+
+        遅刻 0回<br>
+
+        早退 0回<br>
+
+        欠席 0回
+
+    </div>
+
+
+</div>
+
+
+
+<h2>
+📚 科目別
+</h2>
+
+
+
+<div id="attendanceList">
+
+
+    <div class="card setting-card">
+
+
+        <h3>
+        成人看護学
+        </h3>
+
+
+        <p>
+        出席率：100%
+        </p>
+
+
+        <p>
+        出席 10回<br>
+        遅刻 0回<br>
+        早退 0回<br>
+        欠席 0回
+        </p>
+
+
+    </div>
+
+
+
+    <div class="card setting-card">
+
+
+        <h3>
+        基礎看護学
+        </h3>
+
+
+        <p>
+        出席率：100%
+        </p>
+
+
+        <p>
+        出席 8回<br>
+        遅刻 0回<br>
+        早退 0回<br>
+        欠席 0回
+        </p>
+
+
+    </div>
+
+
+</div>
+
+
+
+<h2>
+⚠️ 試験資格
+</h2>
+
+
+<div class="card setting-card">
+
+
+    <h3>
+    定期試験受験資格
+    </h3>
+
+
+    <p>
+    現在：資格あり
+    </p>
+
+
+    <p>
+    出席率 2/3以上を維持してください
+    </p>
+
+
+</div>
+
+
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+
+        <span class="nav-icon-wrap">
+            <span class="nav-icon">🏠</span>
+        </span>
+
+        <span>
+        ホーム
+        </span>
+
+    </a>
+
+
+    <a href="attendance.html"
+       class="active">
+
+        <span class="nav-icon-wrap">
+            <span class="nav-icon">📅</span>
+        </span>
+
+        <span>
+        出席
+        </span>
+
+    </a>
+
+
+</nav>
+
+
+
+<script type="module" src="attendance.js"></script>
+
+
+</body>
+
+</html>
