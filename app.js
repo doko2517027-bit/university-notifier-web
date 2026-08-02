@@ -51,7 +51,8 @@ const examCard = document.getElementById("examCard");
 const examPopupOverlay = document.getElementById("examPopupOverlay");
 const rankingPopupOverlay =
     document.getElementById("rankingPopupOverlay");
-
+const attendanceCard =
+    document.getElementById("attendanceCard");
 const rankingPopupDate =
     document.getElementById("rankingPopupDate");
 
