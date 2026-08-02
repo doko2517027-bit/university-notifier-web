@@ -7,6 +7,7 @@ import {
     loadMyRanking,
     getRankMark,
     initializePage,
+    showPage,
     showNewsSkeleton,
     setupAdminTab,
     decryptData,
@@ -228,6 +229,8 @@ console.log("studentNumber =", studentNumber);
         console.error(e);
         return;
     }
+
+    showPage();
 
     Promise.all([
         loadUserName(userName),
