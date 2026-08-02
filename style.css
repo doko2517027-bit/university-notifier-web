@@ -331,10 +331,6 @@ select:focus{
     color:var(--text);
 }
 
-.lesson-card:last-child{
-    border-bottom:none;
-}
-
 .lesson-period{
     min-width:48px;
     height:48px;
@@ -1158,16 +1154,6 @@ white-space:pre-wrap;
 
 }
 
-.btn-secondary{
-
-    background:var(--card);
-
-    color:var(--text);
-
-    border:1px solid var(--border);
-
-}
-
 /* ===== Circle Button ===== */
 
 .circle-button{
@@ -1658,35 +1644,7 @@ white-space:pre-wrap;
     border-bottom:none;
 }
 
-.exam-date{
-    font-size:18px;
-    font-weight:700;
-    color:var(--primary);
-}
-
-.exam-time{
-    margin-top:2px;
-    font-size:14px;
-    color:var(--subtext);
-}
-
-.exam-subject{
-    margin-top:10px;
-    font-size:17px;
-    font-weight:600;
-}
-
-.exam-room{
-    margin-top:4px;
-    font-size:14px;
-    color:var(--subtext);
-}
-
 /* ===== Schedule Switcher ===== */
-
-.schedule-switcher{
-    margin-bottom:18px;
-}
 
 .schedule-switch-button{
 
@@ -1734,19 +1692,6 @@ white-space:pre-wrap;
     opacity:.3;
     cursor:not-allowed;
     transform:none;
-
-}
-
-.schedule-switch-label{
-
-    min-width:145px;
-
-    text-align:center;
-
-    font-size:17px;
-    font-weight:700;
-
-    color:var(--text);
 
 }
 
@@ -2016,9 +1961,12 @@ white-space:pre-wrap;
 
 /* ===== 淡いアクセント背景用の文字色 ===== */
 
-:root,
-html.dark{
+:root{
     --on-accent:#0f172a;
+}
+
+.dark{
+    --on-accent:#ffffff;
 }
 
 /* カレンダーの予定あり日 */
@@ -2394,4 +2342,18 @@ html.dark{
     align-items:center;
     gap:8px;
     font-weight:bold;
+}
+
+/* ===== Dark mode text fix ===== */
+
+.dark .schedule-pdf-link{
+    color:var(--text);
+}
+
+.dark .my-ranking{
+    color:var(--text);
+}
+
+.dark .ranking-score{
+    color:var(--subtext);
 }
