@@ -1505,7 +1505,7 @@ async function loadRanking(){
             }
 
             const mark =
-                getRankingMark(totalPoint);
+                getRankMark(totalPoint);
 
             rankingList.innerHTML += `
 
