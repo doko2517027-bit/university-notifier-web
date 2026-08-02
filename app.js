@@ -229,8 +229,6 @@ console.log("studentNumber =", studentNumber);
         return;
     }
 
-    showPage();
-
     Promise.all([
         loadUserName(userName),
         loadMyRanking(),
