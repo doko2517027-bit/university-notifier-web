@@ -1234,9 +1234,21 @@ async function loadExamMode() {
 
     if (exam.enabled !== true) return;
 
-    const today = new Date();
-    const start = new Date(exam.startDate);
-    const end = new Date(exam.endDate);
+    const now = new Date();
+
+    const today = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+    );
+
+    const start = new Date(
+        exam.startDate + "T00:00:00"
+    );
+
+    const end = new Date(
+        exam.endDate + "T23:59:59"
+    );
 
     const diffToStart =
         Math.ceil((start - today) / (1000 * 60 * 60 * 24));
