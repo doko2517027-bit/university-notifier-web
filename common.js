@@ -148,10 +148,7 @@ export async function loadUserName(element, user = null){
 
 export async function loadMyRanking(){
 
-    const element =
-        document.getElementById("myRanking");
-
-    if(!element || !studentNumber){
+    if(!studentNumber){
         return;
     }
 
@@ -173,14 +170,15 @@ export async function loadMyRanking(){
         rankingSnap.forEach(doc=>{
 
             ranking.push({
+
                 studentNumber: doc.id,
                 point: doc.data().point || 0
+
             });
 
         });
 
 
-        //ポイント順
         ranking.sort(
             (a,b)=>b.point-a.point
         );
@@ -194,11 +192,7 @@ export async function loadMyRanking(){
 
 
         if(myIndex === -1){
-
-            element.innerHTML="";
-
             return;
-
         }
 
 
@@ -206,32 +200,46 @@ export async function loadMyRanking(){
             myIndex + 1;
 
 
-        let medal="";
-
-        if(rank===1){
-            medal="🥇";
-        }else if(rank===2){
-            medal="🥈";
-        }else if(rank===3){
-            medal="🥉";
-        }
-
-
         const point =
             ranking[myIndex].point;
 
 
-        element.innerHTML=`
+        // 上の名前部分へ追加表示
+        const userNameElement =
+            document.getElementById("userName");
 
-        <div class="my-ranking">
 
-            ${medal}
-            ${rank}位　
-            ${point}pt
+        if(userNameElement){
 
-        </div>
+            const currentName =
+                userNameElement.textContent;
 
-        `;
+
+            userNameElement.textContent =
+                `${currentName} ${rank}位 ${point}pt`;
+
+        }
+
+
+        // 元のランキング表示も残す
+        const element =
+            document.getElementById("myRanking");
+
+
+        if(element){
+
+            element.innerHTML = `
+
+            <div class="my-ranking">
+
+                ${rank}位　
+                ${point}pt
+
+            </div>
+
+            `;
+
+        }
 
 
     }catch(error){
