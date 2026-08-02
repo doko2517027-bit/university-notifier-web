@@ -233,12 +233,15 @@ document.addEventListener("click", async (e) => {
             await setDoc(
                 doc(
                     db,
-                    "users",
+                    "totalRanking",
                     studentNumber
                 ),
                 {
-                    totalPoint:
-                        increment(1)
+                    point:
+                        increment(1),
+
+                    updatedAt:
+                        serverTimestamp()
                 },
                 {
                     merge:true

@@ -197,7 +197,7 @@ export async function loadUserName(element, user = null){
         await getDoc(
             doc(
                 db,
-                "users",
+                "totalRanking",
                 studentNumber
             )
         );
@@ -206,7 +206,7 @@ export async function loadUserName(element, user = null){
     if(userPointSnap.exists()){
 
         point =
-            userPointSnap.data().totalPoint || 0;
+            userPointSnap.data().point || 0;
 
     }
 
