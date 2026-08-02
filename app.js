@@ -24,7 +24,8 @@ import {
     where,
     getDocs,
     orderBy,
-    onSnapshot
+    onSnapshot,
+    limit
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { VERSION } from "./version.js";
@@ -45,6 +46,24 @@ const examStatusText = document.getElementById("examStatusText");
 const examStatusTitle = document.getElementById("examStatusTitle");
 const examCard = document.getElementById("examCard");
 const examPopupOverlay = document.getElementById("examPopupOverlay");
+const rankingPopupOverlay =
+    document.getElementById("rankingPopupOverlay");
+
+const rankingPopupDate =
+    document.getElementById("rankingPopupDate");
+
+const rankingPopupList =
+    document.getElementById("rankingPopupList");
+
+const closeRankingPopup =
+    document.getElementById("closeRankingPopup");
+
+// 追加 定数
+const rankingList =
+    document.getElementById("rankingList");
+
+const rankingDate =
+    document.getElementById("rankingDate");
 const closeExamPopup = document.getElementById("closeExamPopup");
 const examPopupLabel = document.getElementById("examPopupLabel");
 const examPopupTitle = document.getElementById("examPopupTitle");
@@ -222,8 +241,13 @@ console.log("studentNumber =", studentNumber);
         loadHomeCourseNews(),
         loadHomeSystemNews(),
         loadCourseLinks(),
-        loadTodaySchedule()
+        loadTodaySchedule(),
     ]);
+
+
+    loadRankingPopup();
+
+    loadRanking();
 
     setupAdminTab();
 
@@ -1371,6 +1395,145 @@ async function loadExamMode() {
 
 }
 
+function loadRankingPopup(){
+
+    if(!rankingPopupOverlay){
+        return;
+    }
+
+
+    const today =
+        new Date()
+        .toISOString()
+        .slice(0,10);
+
+
+    const key =
+        `rankingPopupShown_${today}`;
+
+    rankingPopupOverlay.classList.add("show");
+
+}
+
+async function loadRanking(){
+
+    if(!rankingList){
+        return;
+    }
+
+
+    try{
+
+        const q = query(
+            collection(db,"ranking"),
+            orderBy("correctCount","desc"),
+            limit(10)
+        );
+
+
+        const snapshot =
+            await getDocs(q);
+
+
+        if(snapshot.empty){
+
+            rankingList.innerHTML =
+                "ランキングデータがありません。";
+
+            return;
+
+        }
+
+
+        rankingList.innerHTML = "";
+
+
+        let rank = 1;
+
+
+        snapshot.forEach(doc=>{
+
+            const data = doc.data();
+
+
+            rankingList.innerHTML += `
+
+                <div class="ranking-item">
+
+                    <div class="ranking-rank">
+
+                        ${
+                            rank === 1 ? "🥇" :
+                            rank === 2 ? "🥈" :
+                            rank === 3 ? "🥉" :
+                            rank
+                        }
+
+                    </div>
+
+
+                    <div class="ranking-user">
+
+                        <div class="ranking-name">
+                            ${data.name || "匿名"}
+                        </div>
+
+
+                        <div class="ranking-score">
+
+                            ${data.correctCount || 0}問 正解
+
+                            ${
+                                data.accuracy
+                                ?
+                                `
+                                <span>
+                                    正答率 ${data.accuracy}%
+                                </span>
+                                `
+                                :
+                                ""
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+
+            rank++;
+
+        });
+
+
+        if(rankingDate){
+
+            const today =
+                new Date();
+
+
+            rankingDate.textContent =
+                `${today.getFullYear()}年`+
+                `${today.getMonth()+1}月`+
+                `${today.getDate()}日`;
+
+        }
+
+
+    }catch(e){
+
+        console.error(e);
+
+        rankingList.innerHTML =
+            "ランキング取得に失敗しました。";
+
+    }
+
+}
+
 function renderCurrentExamSchedule() {
 
     if (
@@ -1859,6 +2022,41 @@ if (lectureCalendarNextMonth) {
         }
 
         renderLectureCalendar();
+
+    };
+
+}
+
+function hideRankingPopup(){
+
+    if(!rankingPopupOverlay){
+        return;
+    }
+
+    rankingPopupOverlay.classList.remove("show");
+
+}
+
+
+if(closeRankingPopup){
+
+    closeRankingPopup.onclick = () => {
+
+        hideRankingPopup();
+
+    };
+
+}
+
+if(rankingPopupOverlay){
+
+    rankingPopupOverlay.onclick = (e)=>{
+
+        if(e.target === rankingPopupOverlay){
+
+            hideRankingPopup();
+
+        }
 
     };
 

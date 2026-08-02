@@ -123,28 +123,65 @@ document.addEventListener("click", async (e) => {
         const today =
             new Date().toISOString().slice(0,10);
 
-        await setDoc(
+        const studentNumber =
+            localStorage.getItem("studentNumber");
+
+        const questionId =
+            `${subjectId}_${unitId}_today`;
+
+
+        const solvedRef =
             doc(
                 db,
-                "dailyRanking",
-                today,
                 "users",
-                localStorage.getItem("studentNumber")
-            ),
-            {
-                lastAnsweredAt:
-                    serverTimestamp(),
+                studentNumber,
+                "solvedQuestions",
+                questionId
+            );
 
-                point:
-                    increment(1),
 
-                solved:
-                    increment(1)
-            },
-            {
-                merge:true
-            }
-        );
+        const solvedSnap =
+            await getDoc(
+                solvedRef
+            );
+
+
+        if (!solvedSnap.exists()) {
+
+
+            await setDoc(
+                solvedRef,
+                {
+                    firstCorrectAt:
+                        serverTimestamp()
+                }
+            );
+
+
+            await setDoc(
+                doc(
+                    db,
+                    "dailyRanking",
+                    today,
+                    "users",
+                    studentNumber
+                ),
+                {
+                    lastAnsweredAt:
+                        serverTimestamp(),
+
+                    point:
+                        increment(1),
+
+                    solved:
+                        increment(1)
+                },
+                {
+                    merge:true
+                }
+            );
+
+        }
 
     } else {
         result.textContent = "❌ 不正解";

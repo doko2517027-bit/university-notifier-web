@@ -5,32 +5,31 @@
 
     --bg:#F5F7FB;
     --card:#FFFFFF;
+
     --text:#0F172A;
     --subtext:#64748B;
+    --text-secondary:#666666;
+
     --border:#DDE5E8;
+
     --shadow:0 6px 18px rgba(15,23,42,.08);
 
     --success:#2E7D32;
     --danger:#EF4444;
     --info:#2196F3;
-
-    --border:#dddddd;
-    --text:#222222;
-    --text-secondary:#666666;
 }
 
 .dark{
     --bg:#181818;
-    --card:#262626;
-    --text:#F8FAFC;
-    --subtext:#CBD5E1;
-    --border:#3A3A3A;
-    --shadow:0 6px 18px rgba(0,0,0,.35);
-
     --card:#2b2b2b;
-    --border:#444444;
+
     --text:#ffffff;
+    --subtext:#CBD5E1;
     --text-secondary:#b5b5b5;
+
+    --border:#444444;
+
+    --shadow:0 6px 18px rgba(0,0,0,.35);
 }
 
 body{
@@ -77,10 +76,7 @@ a{
     margin-bottom:15px;
 }
 
-.top-right{
-    display:flex;
-    gap:10px;
-}
+
 
 #userName{
     font-size:18px;
@@ -351,12 +347,6 @@ select:focus{
     font-weight:bold;
 }
 
-.lesson-subject{
-    font-size:17px;
-    font-weight:bold;
-    color:var(--text);
-}
-
 .lesson-room,
 .lesson-teacher,
 .empty-text{
@@ -400,6 +390,9 @@ select:focus{
 }
 
 .lesson-subject{
+    font-size:17px;
+    font-weight:bold;
+    color:var(--text);
     text-decoration:underline;
 }
 
@@ -800,13 +793,9 @@ white-space:pre-wrap;
 }
 
 .top-right{
-
     display:flex;
-
     align-items:center;
-
     gap:12px;
-
 }
 
 .profile-button{
@@ -1665,11 +1654,6 @@ white-space:pre-wrap;
 
 }
 
-.exam-schedule-item{
-    padding:14px 0;
-    border-bottom:1px solid var(--border);
-}
-
 .exam-schedule-item:last-child{
     border-bottom:none;
 }
@@ -1701,15 +1685,7 @@ white-space:pre-wrap;
 /* ===== Schedule Switcher ===== */
 
 .schedule-switcher{
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    gap:14px;
-
     margin-bottom:18px;
-
 }
 
 .schedule-switch-button{

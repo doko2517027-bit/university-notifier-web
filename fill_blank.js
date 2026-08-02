@@ -91,6 +91,7 @@ async function loadQuestions() {
         questions.innerHTML += `
             <div
                 class="card setting-card fill-card"
+                data-question="${index}"
                 data-answer="${q.answer || answers.join("・")}"
                 data-answers='${JSON.stringify(answers)}'>
 
@@ -168,29 +169,66 @@ document.addEventListener("click", async (e) => {
         const today =
             new Date().toISOString().slice(0,10);
 
-        await setDoc(
+        const studentNumber =
+            localStorage.getItem("studentNumber");
+
+
+        const questionId =
+            `${subjectId}_${unitId}_fill_${card.dataset.question}`;
+
+
+        const solvedRef =
             doc(
                 db,
-                "dailyRanking",
-                today,
                 "users",
-                localStorage.getItem("studentNumber")
-            ),
-            {
-                lastAnsweredAt:
-                    serverTimestamp(),
+                studentNumber,
+                "solvedQuestions",
+                questionId
+            );
 
-                point:
-                    increment(1),
 
-                solved:
-                    increment(1)
-            },
-            {
-                merge:true
-            }
-            
-        );
+        const solvedSnap =
+            await getDoc(
+                solvedRef
+            );
+
+
+        if (!solvedSnap.exists()) {
+
+
+            await setDoc(
+                solvedRef,
+                {
+                    firstCorrectAt:
+                        serverTimestamp()
+                }
+            );
+
+
+            await setDoc(
+                doc(
+                    db,
+                    "dailyRanking",
+                    today,
+                    "users",
+                    studentNumber
+                ),
+                {
+                    lastAnsweredAt:
+                        serverTimestamp(),
+
+                    point:
+                        increment(1),
+
+                    solved:
+                        increment(1)
+                },
+                {
+                    merge:true
+                }
+            );
+
+        }
 
     } else {
 
