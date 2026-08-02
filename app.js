@@ -1468,9 +1468,6 @@ async function loadRanking(){
 
             const studentId = rankingDoc.id;
 
-
-            let name = studentId;
-
             rankingList.innerHTML += `
 
                 <div class="ranking-item">
@@ -1490,7 +1487,7 @@ async function loadRanking(){
                     <div class="ranking-user">
 
                         <div class="ranking-name">
-                            ${name}
+                            ${studentId}
                         </div>
 
 
