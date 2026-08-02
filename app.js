@@ -229,7 +229,9 @@ console.log("studentNumber =", studentNumber);
         return;
     }
 
-    await initializePage([
+    showPage();
+
+    Promise.all([
         loadUserName(userName),
         loadMyRanking(),
         loadProfileImage(topProfileImage),
