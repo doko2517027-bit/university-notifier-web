@@ -6,6 +6,7 @@ import {
     initializePage,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     setupAdminTab,
     setupOfflineAlert,
     updateAssignmentNavBadge,
@@ -76,6 +77,7 @@ await initializePage([
 
     setupAdminTab(),
     loadUserName(userName),
+    loadMyRanking(),
     loadProfileImage(topProfileImage),
     loadnotificationSettings(),
     updateAssignmentNavBadge(),
