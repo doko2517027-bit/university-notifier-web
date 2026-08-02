@@ -1455,19 +1455,22 @@ async function loadRanking(){
 
         const now = new Date();
 
-        const today =
-            `${now.getFullYear()}-` +
-            `${String(now.getMonth() + 1).padStart(2,"0")}-` +
-            `${String(now.getDate()).padStart(2,"0")}`;
-
-
-        const q = query(
-            collection(
-                db,
-                "dailyRanking",
-                today,
-                "users"
-            ),
+		// 昨日の日付を取得
+		now.setDate(now.getDate() - 1);
+		
+		const yesterday =
+		    `${now.getFullYear()}-` +
+		    `${String(now.getMonth() + 1).padStart(2,"0")}-` +
+		    `${String(now.getDate()).padStart(2,"0")}`;
+		
+		
+		const q = query(
+		    collection(
+		        db,
+		        "dailyRanking",
+		        yesterday,
+		        "users"
+		    ),
             orderBy("point","desc"),
             limit(3)
         );
@@ -1561,16 +1564,18 @@ async function loadRanking(){
 
         if(rankingDate){
 
-            const today =
-                new Date();
+    const displayDate = new Date();
 
+    displayDate.setDate(
+        displayDate.getDate() - 1
+    );
 
-            rankingDate.textContent =
-                `${today.getFullYear()}年`+
-                `${today.getMonth()+1}月`+
-                `${today.getDate()}日`;
+    rankingDate.textContent =
+        `${displayDate.getFullYear()}年`+
+        `${displayDate.getMonth()+1}月`+
+        `${displayDate.getDate()}日`;
 
-        }
+}
 
 
     }catch(e){
