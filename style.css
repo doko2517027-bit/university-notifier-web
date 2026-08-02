@@ -2337,3 +2337,27 @@ html.dark{
 .completed-subject-label {
     font-weight: 700;
 }
+
+.admin-user {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.admin-user:hover {
+    transform: translateY(-1px);
+}
+
+.admin-presence-status {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.admin-presence-page {
+    display: inline-block;
+    margin-top: 3px;
+    opacity: 0.75;
+}

@@ -5,6 +5,16 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
 
 import {
+    getDatabase,
+    ref,
+    set,
+    update,
+    onValue,
+    onDisconnect,
+    serverTimestamp as databaseServerTimestamp
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+import {
     getFirestore,
     doc,
     setDoc,
@@ -21,13 +31,15 @@ const firebaseConfig = {
     projectId: "universitynotifier-67517",
     storageBucket: "universitynotifier-67517.firebasestorage.app",
     messagingSenderId: "908622250178",
-    appId: "1:908622250178:web:3e355fce8698fcf179bb5b"
+    appId: "1:908622250178:web:3e355fce8698fcf179bb5b",
+    databaseURL: "https://universitynotifier-67517-default-rtdb.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const realtimeDb = getDatabase(app);
 
 export const studentNumber =
     localStorage.getItem("studentNumber");
@@ -993,5 +1005,201 @@ export async function updateNewsNavBadge() {
         badge.hidden = true;
 
     }
+
+}
+
+let presenceInitialized = false;
+
+const presencePageNames = {
+    "index.html": "ホーム画面",
+    "news.html": "お知らせ",
+    "share.html": "共有画面",
+    "post.html": "投稿作成",
+    "comments.html": "コメント画面",
+    "profile.html": "プロフィール",
+    "settings.html": "設定画面",
+    "assignment.html": "課題画面",
+    "exam.html": "テスト対策",
+    "quiz.html": "四択問題",
+    "fill_blank.html": "穴埋め問題",
+    "daily_question.html": "今日の1問",
+    "must_remember.html": "重要ポイント",
+    "weather-settings.html": "天気設定",
+    "admin.html": "管理画面",
+    "exam_admin.html": "テスト管理",
+    "exam_materials_admin.html": "資料管理",
+    "exam_questions_admin.html": "問題管理"
+};
+
+function getCurrentPageFileName() {
+
+    const pathname =
+        location.pathname || "";
+
+    const fileName =
+        pathname.split("/").pop();
+
+    return fileName || "index.html";
+
+}
+
+function getCurrentPageName() {
+
+    const fileName =
+        getCurrentPageFileName();
+
+    return (
+        presencePageNames[fileName] ||
+        document.title ||
+        fileName ||
+        "ページ不明"
+    );
+
+}
+
+export async function setupPresence() {
+
+    if (presenceInitialized) {
+        return;
+    }
+
+    if (!studentNumber) {
+        return;
+    }
+
+    if (
+        localStorage.getItem("loggedIn") !== "true"
+    ) {
+        return;
+    }
+
+    presenceInitialized = true;
+
+    const statusRef = ref(
+        realtimeDb,
+        `status/${studentNumber}`
+    );
+
+    const connectedRef = ref(
+        realtimeDb,
+        ".info/connected"
+    );
+
+    const page =
+        getCurrentPageFileName();
+
+    const pageName =
+        getCurrentPageName();
+
+    onValue(
+        connectedRef,
+        async snapshot => {
+
+            if (snapshot.val() !== true) {
+                return;
+            }
+
+            try {
+
+                await onDisconnect(
+                    statusRef
+                ).set({
+                    studentNumber,
+                    state: "offline",
+                    page,
+                    pageName,
+                    lastChanged:
+                        databaseServerTimestamp()
+                });
+
+                await set(
+                    statusRef,
+                    {
+                        studentNumber,
+                        state: "online",
+                        page,
+                        pageName,
+                        lastChanged:
+                            databaseServerTimestamp()
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "オンライン状態設定エラー:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "visibilitychange",
+        async () => {
+
+            try {
+
+                if (document.hidden) {
+
+                    await update(
+                        statusRef,
+                        {
+                            state: "away",
+                            page:
+                                getCurrentPageFileName(),
+                            pageName:
+                                getCurrentPageName(),
+                            lastChanged:
+                                databaseServerTimestamp()
+                        }
+                    );
+
+                } else {
+
+                    await update(
+                        statusRef,
+                        {
+                            state: "online",
+                            page:
+                                getCurrentPageFileName(),
+                            pageName:
+                                getCurrentPageName(),
+                            lastChanged:
+                                databaseServerTimestamp()
+                        }
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "画面状態更新エラー:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+}
+
+if (
+    studentNumber &&
+    localStorage.getItem("loggedIn") === "true"
+) {
+
+    setupPresence().catch(error => {
+
+        console.error(
+            "Presence開始エラー:",
+            error
+        );
+
+    });
 
 }
