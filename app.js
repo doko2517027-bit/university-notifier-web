@@ -1424,8 +1424,19 @@ async function loadRanking(){
 
     try{
 
+        const today =
+            new Date()
+            .toISOString()
+            .slice(0,10);
+
+
         const q = query(
-            collection(db,"ranking"),
+            collection(
+                db,
+                "dailyRanking",
+                today,
+                "users"
+            ),
             orderBy("correctCount","desc"),
             limit(10)
         );
