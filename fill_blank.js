@@ -228,6 +228,23 @@ document.addEventListener("click", async (e) => {
                 }
             );
 
+
+            // 累計ポイント追加
+            await setDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                ),
+                {
+                    totalPoint:
+                        increment(1)
+                },
+                {
+                    merge:true
+                }
+            );
+
         }
 
     } else {
