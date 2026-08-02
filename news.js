@@ -5,6 +5,7 @@ import {
     initializePage,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     setupAdminTab,
     updateAssignmentNavBadge,
     updateShareNavBadge,
@@ -316,6 +317,7 @@ await initializePage([
 
     setupAdminTab(),
     loadUserName(userName),
+    loadMyRanking(),
     loadProfileImage(topProfileImage),
     loadNews(),
     loadCourseNews(),
