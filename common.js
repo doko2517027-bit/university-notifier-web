@@ -159,11 +159,19 @@ export async function loadMyRanking(){
 
     try{
 
+        const today =
+            new Date()
+            .toISOString()
+            .slice(0,10);
+
+
         const rankingSnap =
             await getDocs(
                 collection(
                     db,
-                    "ranking"
+                    "dailyRanking",
+                    today,
+                    "users"
                 )
             );
 
@@ -176,13 +184,16 @@ export async function loadMyRanking(){
             ranking.push({
 
                 studentNumber: doc.id,
-                point: doc.data().point || 0
+
+                point:
+                    doc.data().point || 0
 
             });
 
         });
 
 
+        // ポイント順
         ranking.sort(
             (a,b)=>b.point-a.point
         );
