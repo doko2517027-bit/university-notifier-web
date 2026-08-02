@@ -226,8 +226,13 @@ console.log("studentNumber =", studentNumber);
         renderAuthSetupCards(user);
 
     } catch (e) {
+
         console.error(e);
+
+        showPage();
+
         return;
+
     }
 
     showPage();
