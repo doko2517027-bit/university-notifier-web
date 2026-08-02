@@ -306,6 +306,17 @@ generateAiQuestions.onclick = async () => {
             typeof data === "string"
                 ? JSON.parse(data)
                 : data;
+
+        const generated =
+            typeof data === "string"
+                ? JSON.parse(data)
+                : data;
+
+
+        generated.quiz = (generated.quiz || []).map((q, index) => ({
+            ...q,
+            id: q.id || crypto.randomUUID()
+        }));
                 
         const generatedData = {
             ...generated,

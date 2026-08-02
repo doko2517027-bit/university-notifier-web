@@ -80,7 +80,8 @@ async function loadQuiz() {
             <div
                 class="card setting-card quiz-card"
                 data-answer="${q.answer}"
-                data-question="${index}">
+                data-question="${q.id || index}">
+                
                 <h3>問題 ${index + 1}</h3>
                 <p>${q.question}</p>
 
@@ -149,28 +150,65 @@ document.addEventListener("click", async (e) => {
         const today =
             new Date().toISOString().slice(0,10);
 
-        await setDoc(
+        const studentNumber =
+            localStorage.getItem("studentNumber");
+
+        const questionId =
+            card.dataset.question;
+
+
+        const solvedRef =
             doc(
                 db,
-                "dailyRanking",
-                today,
                 "users",
-                localStorage.getItem("studentNumber")
-            ),
-            {
-                lastAnsweredAt:
-                    serverTimestamp(),
+                studentNumber,
+                "solvedQuestions",
+                questionId
+            );
 
-                point:
-                    increment(1),
 
-                solved:
-                    increment(1)
-            },
-            {
-                merge:true
-            }
-        );
+        const solvedSnap =
+            await getDoc(
+                solvedRef
+            );
+
+
+        if (!solvedSnap.exists()) {
+
+
+            await setDoc(
+                solvedRef,
+                {
+                    firstCorrectAt:
+                        serverTimestamp()
+                }
+            );
+
+
+            await setDoc(
+                doc(
+                    db,
+                    "dailyRanking",
+                    today,
+                    "users",
+                    studentNumber
+                ),
+                {
+                    lastAnsweredAt:
+                        serverTimestamp(),
+
+                    point:
+                        increment(1),
+
+                    solved:
+                        increment(1)
+                },
+                {
+                    merge:true
+                }
+            );
+
+        }
 
     } else {
 
