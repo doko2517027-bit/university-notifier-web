@@ -2133,7 +2133,6 @@ async function loadMyRankingCard(){
 
         <div class="my-ranking">
 
-            ${data.name || studentNumber}さん　
             ${medal}${rank}位　
             ${point}pt
 
