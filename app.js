@@ -1526,7 +1526,7 @@ async function loadRanking(){
                     <div class="ranking-user">
 
                         <div class="ranking-name">
-                            ${studentId}
+                            ${mark}${studentId}
                         </div>
 
 
