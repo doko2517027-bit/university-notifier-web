@@ -4,6 +4,7 @@ import {
     setupTheme,
     loadProfileImage,
     loadUserName,
+    loadMyRanking,
     initializePage,
     showAssignmentSkeleton,
     setupAdminTab,
