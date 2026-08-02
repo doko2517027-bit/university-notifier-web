@@ -1,5 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-
 import {
     getStorage
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
@@ -17,13 +15,18 @@ import {
 import {
     getFirestore,
     doc,
-    setDoc,
     getDoc,
     collection,
     query,
     where,
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import {
+    initializeApp,
+    getApps,
+    getApp
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
@@ -35,7 +38,13 @@ const firebaseConfig = {
     databaseURL: "https://universitynotifier-67517-default-rtdb.firebaseio.com"
 };
 
-const app = initializeApp(firebaseConfig);
+let app;
+
+if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+} else {
+    app = getApp();
+}
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
@@ -93,7 +102,8 @@ export async function loadProfileImage(img){
 
     if (!img) return;
 
-    const publicSnap = await getDoc(
+    const publicSnap = await cachedGetDoc(
+        `publicUsers/${studentNumber}`,
         doc(db, "publicUsers", studentNumber)
     );
 
@@ -105,7 +115,8 @@ export async function loadProfileImage(img){
         return;
     }
 
-    const userSnap = await getDoc(
+    const userSnap = await cachedGetDoc(
+        `users/${studentNumber}`,
         doc(db, "users", studentNumber)
     );
 
@@ -173,7 +184,8 @@ export async function loadUserName(element, user = null){
     }
 
 
-    const userSnap = await getDoc(
+    const userSnap = await cachedGetDoc(
+        `publicUsers/${studentNumber}`,
         doc(db,"publicUsers",studentNumber)
     );
 
@@ -194,7 +206,8 @@ export async function loadUserName(element, user = null){
 
 
     const userPointSnap =
-        await getDoc(
+            await cachedGetDoc(
+                `totalRanking/${studentNumber}`,
             doc(
                 db,
                 "totalRanking",
@@ -248,7 +261,6 @@ export async function loadMyRanking(){
                     "users"
                 )
             );
-
 
         let ranking = [];
 
@@ -343,7 +355,7 @@ export async function initializePage(tasks = []){
 
     showPage();
 
-    Promise.all(tasks)
+    await Promise.all(tasks)
         .catch(error => {
             console.error(
                 "初期読み込みエラー:",
@@ -521,13 +533,33 @@ export function formatDateTime(timestamp) {
 
 const profilePhotoCache = new Map();
 
+const firestoreCache = new Map();
+
+async function cachedGetDoc(path, ref) {
+
+    if (firestoreCache.has(path)) {
+        return firestoreCache.get(path);
+    }
+
+    const snap = await getDoc(ref);
+
+    firestoreCache.set(
+        path,
+        snap
+    );
+
+    return snap;
+
+}
+
 export async function getProfilePhoto(studentNumber) {
 
     if (profilePhotoCache.has(studentNumber)) {
         return profilePhotoCache.get(studentNumber);
     }
 
-    const publicSnap = await getDoc(
+    const publicSnap = await cachedGetDoc(
+        `publicUsers/${studentNumber}`,
         doc(db, "publicUsers", studentNumber)
     );
 
@@ -545,7 +577,8 @@ export async function getProfilePhoto(studentNumber) {
 
     }
 
-    const userSnap = await getDoc(
+    const userSnap = await cachedGetDoc(
+        `users/${studentNumber}`,
         doc(db, "users", studentNumber)
     );
 
@@ -578,7 +611,8 @@ export async function isAdmin() {
         return false;
     }
 
-    const snap = await getDoc(
+    const snap = await cachedGetDoc(
+        `admins/${studentNumber}`,
         doc(db, "admins", studentNumber)
     );
 
@@ -683,18 +717,6 @@ export async function decryptData(encryptedText) {
 
 }
 
-document.addEventListener("gesturestart", e => {
-    e.preventDefault();
-});
-
-document.addEventListener("gesturechange", e => {
-    e.preventDefault();
-});
-
-document.addEventListener("gestureend", e => {
-    e.preventDefault();
-});
-
 let lastTouchEnd = 0;
 
 document.addEventListener("touchend", e => {
@@ -728,7 +750,10 @@ export function renderPostCard({
 
         <div>
             <div class="student-number">
-                <img src="${photo}" class="top-profile-image">
+                <img 
+                src="${photo}" 
+                loading="lazy"
+                class="top-profile-image">
                 ${post.studentNumber}
             </div>
 
@@ -815,7 +840,8 @@ export async function updateAssignmentNavBadge() {
 
     try {
 
-        const snap = await getDoc(
+        const snap = await cachedGetDoc(
+            `assignments/${studentNumber}`,
             doc(
                 db,
                 "assignments",
@@ -882,7 +908,8 @@ export async function updateShareNavBadge() {
 
     try {
 
-        const userSnap = await getDoc(
+        const userSnap = await cachedGetDoc(
+            `users/${studentNumber}`,
             doc(
                 db,
                 "users",
@@ -955,53 +982,6 @@ export async function updateShareNavBadge() {
         badge.hidden = true;
 
     }
-
-}
-
-function parseNewsPostedDate(value) {
-
-    if (!value) {
-        return 0;
-    }
-
-    const match =
-        String(value).match(
-            /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/
-        );
-
-    if (!match) {
-        return 0;
-    }
-
-    return new Date(
-        Number(match[1]),
-        Number(match[2]) - 1,
-        Number(match[3]),
-        Number(match[4]),
-        Number(match[5])
-    ).getTime();
-
-}
-
-function getTimestampMilliseconds(timestamp) {
-
-    if (!timestamp) {
-        return 0;
-    }
-
-    if (
-        typeof timestamp.toMillis === "function"
-    ) {
-        return timestamp.toMillis();
-    }
-
-    if (
-        typeof timestamp.toDate === "function"
-    ) {
-        return timestamp.toDate().getTime();
-    }
-
-    return 0;
 
 }
 
