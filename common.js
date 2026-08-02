@@ -148,7 +148,11 @@ export async function loadUserName(element, user = null){
 
 export async function loadMyRanking(){
 
-    if(!studentNumber){
+    const element =
+        document.getElementById("myRanking");
+
+
+    if(!element || !studentNumber){
         return;
     }
 
@@ -192,7 +196,11 @@ export async function loadMyRanking(){
 
 
         if(myIndex === -1){
+
+            element.innerHTML = "";
+
             return;
+
         }
 
 
@@ -204,42 +212,28 @@ export async function loadMyRanking(){
             ranking[myIndex].point;
 
 
-        // 上の名前部分へ追加表示
-        const userNameElement =
-            document.getElementById("userName");
+        let medal = "";
 
 
-        if(userNameElement){
-
-            const currentName =
-                userNameElement.textContent;
-
-
-            userNameElement.textContent =
-                `${currentName} ${rank}位 ${point}pt`;
-
+        if(rank === 1){
+            medal = "🥇";
+        }
+        else if(rank === 2){
+            medal = "🥈";
+        }
+        else if(rank === 3){
+            medal = "🥉";
         }
 
 
-        // 元のランキング表示も残す
-        const element =
-            document.getElementById("myRanking");
+        element.innerHTML = `
 
+            <span class="my-ranking">
+                ${medal}
+                ${rank}位 ${point}pt
+            </span>
 
-        if(element){
-
-            element.innerHTML = `
-
-            <div class="my-ranking">
-
-                ${rank}位　
-                ${point}pt
-
-            </div>
-
-            `;
-
-        }
+        `;
 
 
     }catch(error){
