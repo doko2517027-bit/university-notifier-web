@@ -1462,28 +1462,9 @@ async function loadRanking(){
         let rank = 1;
 
 
-        for (const rankingDoc of snapshot.docs) {
+        snapshot.forEach(doc=>{
 
-            const data = rankingDoc.data();
-
-            const studentId = rankingDoc.id;
-
-
-            let name = studentId;
-
-
-            const userSnap = await getDoc(
-                doc(db,"users",studentId)
-            );
-
-
-            if(userSnap.exists()){
-
-                name =
-                    userSnap.data().name ||
-                    studentId;
-
-            }
+            const data = doc.data();
 
 
             rankingList.innerHTML += `
@@ -1505,7 +1486,7 @@ async function loadRanking(){
                     <div class="ranking-user">
 
                         <div class="ranking-name">
-                            ${name}
+                            ${data.name || "匿名"}
                         </div>
 
 
@@ -1527,7 +1508,8 @@ async function loadRanking(){
 
 
             rank++;
-        }
+
+        });
 
 
         if(rankingDate){
