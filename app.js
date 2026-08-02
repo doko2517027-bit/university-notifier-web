@@ -1498,10 +1498,6 @@ async function loadRanking(){
 
                             ${data.point || 0}pt
 
-                            <span>
-                                ${data.solved || 0}問回答
-                            </span>
-
                         </div>
 
                     </div>
