@@ -1438,7 +1438,7 @@ async function loadRanking(){
                 "users"
             ),
             orderBy("point","desc"),
-            limit(10)
+            limit(3)
         );
 
 
