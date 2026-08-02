@@ -121,7 +121,7 @@ export async function loadProfileImage(img){
 
 }
 
-function getRankMark(point){
+export function getRankMark(point){
 
     if(point >= 4000){
         return "👑";

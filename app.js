@@ -5,6 +5,7 @@ import {
     loadProfileImage,
     loadUserName,
     loadMyRanking,
+    getRankMark,
     initializePage,
     showNewsSkeleton,
     setupAdminTab,
@@ -1483,6 +1484,28 @@ async function loadRanking(){
             const data = rankingDoc.data();
 
             const studentId = rankingDoc.id;
+
+            //累計ポイント取得
+            let totalPoint = 0;
+
+            const totalSnap =
+                await getDoc(
+                    doc(
+                        db,
+                        "totalRanking",
+                        studentId
+                    )
+                );
+
+            if(totalSnap.exists()){
+
+                totalPoint =
+                    totalSnap.data().point || 0;
+
+            }
+
+            const mark =
+                getRankingMark(totalPoint);
 
             rankingList.innerHTML += `
 
