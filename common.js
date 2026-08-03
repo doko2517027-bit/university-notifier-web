@@ -16,6 +16,7 @@ import {
     getFirestore,
     doc,
     getDoc,
+    updateDoc,
     collection,
     query,
     where,
@@ -30,7 +31,8 @@ import {
 
 import {
     getMessaging,
-    getToken
+    getToken,
+    isSupported
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -54,7 +56,8 @@ if (!getApps().length) {
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
-export const messaging = getMessaging(app);
+
+export let messaging = null;
 
 export const studentNumber =
     localStorage.getItem("studentNumber");
@@ -1378,51 +1381,86 @@ if (
 
 export async function requestNotificationPermission(){
 
-    const permission =
-        await Notification.requestPermission();
+    try{
 
+        if(!studentNumber){
+            return;
+        }
 
-    if(permission !== "granted"){
-        console.log("通知拒否");
-        return;
-    }
+        const supported =
+            await isSupported();
 
+        if(!supported){
 
-    const token =
-        await getToken(
-            messaging,
+            console.log(
+                "この端末ではFirebase Messagingを利用できません"
+            );
+
+            return;
+
+        }
+
+        if(!messaging){
+
+            messaging =
+                getMessaging(app);
+
+        }
+
+        const permission =
+            await Notification.requestPermission();
+
+        if(permission !== "granted"){
+
+            console.log(
+                "通知許可なし"
+            );
+
+            return;
+
+        }
+
+        const token =
+            await getToken(
+                messaging,
+                {
+                    vapidKey:
+                        "BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE"
+                }
+            );
+
+        if(!token){
+
+            console.log(
+                "FCM Token取得失敗"
+            );
+
+            return;
+
+        }
+
+        await updateDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
             {
-                vapidKey:"BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE"
+                fcmToken:token
             }
         );
 
+        console.log(
+            "出席通知トークン保存完了"
+        );
 
-    if(!token){
-        console.log("FCM Token取得失敗");
-        return;
+    }catch(error){
+
+        console.error(
+            "出席通知設定エラー:",
+            error
+        );
+
     }
-
-
-    console.log(
-        "FCM Token:",
-        token
-    );
-
-
-    await update(
-        doc(
-            db,
-            "users",
-            studentNumber
-        ),
-        {
-            fcmToken: token
-        }
-    );
-
-
-    console.log(
-        "通知トークン保存完了"
-    );
 
 }
