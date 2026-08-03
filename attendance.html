@@ -13,6 +13,7 @@
 
 <link rel="stylesheet" href="style.css">
 
+
 <script>
 if(localStorage.getItem("theme")==="dark"){
     document.documentElement.classList.add("dark");
@@ -24,19 +25,23 @@ if(localStorage.getItem("theme")==="dark"){
 
 <body>
 
+
 <header class="header">
 
     <div class="logo">
         📅
     </div>
 
+
     <h1>
         出席管理
     </h1>
 
+
     <p>
         授業の出席状況を確認できます
     </p>
+
 
 </header>
 
@@ -44,9 +49,11 @@ if(localStorage.getItem("theme")==="dark"){
 <hr>
 
 
+
 <h2>
-📊 全体状況（テスト段階です。実装までもう少々お待ちください。）
+📊 全体状況
 </h2>
+
 
 
 <div class="card setting-card">
@@ -58,6 +65,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 
     <div
+        id="attendanceRate"
         style="
         font-size:36px;
         font-weight:bold;
@@ -65,25 +73,25 @@ if(localStorage.getItem("theme")==="dark"){
         "
     >
 
-        100%
+        読み込み中...
+
 
     </div>
 
 
-    <div>
 
-        出席 0回<br>
+    <div
+        id="attendanceSummary"
+    >
 
-        遅刻 0回<br>
+        読み込み中...
 
-        早退 0回<br>
-
-        欠席 0回
 
     </div>
 
 
 </div>
+
 
 
 
@@ -96,56 +104,14 @@ if(localStorage.getItem("theme")==="dark"){
 <div id="attendanceList">
 
 
-    <div class="card setting-card">
-
-
-        <h3>
-        成人看護学
-        </h3>
-
-
-        <p>
-        出席率：100%
-        </p>
-
-
-        <p>
-        出席 10回<br>
-        遅刻 0回<br>
-        早退 0回<br>
-        欠席 0回
-        </p>
-
-
-    </div>
-
-
-
-    <div class="card setting-card">
-
-
-        <h3>
-        基礎看護学
-        </h3>
-
-
-        <p>
-        出席率：100%
-        </p>
-
-
-        <p>
-        出席 8回<br>
-        遅刻 0回<br>
-        早退 0回<br>
-        欠席 0回
-        </p>
-
-
-    </div>
+    <p class="empty-text">
+        読み込み中...
+    </p>
 
 
 </div>
+
+
 
 
 
@@ -154,29 +120,42 @@ if(localStorage.getItem("theme")==="dark"){
 </h2>
 
 
+
 <div class="card setting-card">
 
 
     <h3>
-    定期試験受験資格
+        定期試験受験資格
     </h3>
 
 
-    <p>
-    現在：資格あり
+
+    <p
+        id="examQualification"
+    >
+
+        確認中...
+
+
     </p>
 
 
+
     <p>
-    出席率 2/3以上を維持してください
+        出席率2/3未満の場合、定期試験を受けられません
     </p>
 
 
 </div>
 
+
+
+
+
 <script type="module" src="attendance.js"></script>
 
 
 </body>
+
 
 </html>
