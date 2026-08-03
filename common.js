@@ -1384,55 +1384,41 @@ export async function requestNotificationPermission(){
 
     try{
 
-        if(!studentNumber){
-            return;
-        }
+        alert("①開始");
+
 
         const supported =
             await isSupported();
 
-        if(!supported){
 
-            console.log(
-                "この端末ではFirebase Messagingを利用できません"
-            );
+        alert(
+            "②isSupported=" + supported
+        );
 
-            return;
-
-        }
-
-        if(!messaging){
-
-            messaging =
-                getMessaging(app);
-
-        }
 
         const permission =
             await Notification.requestPermission();
 
-        if(permission !== "granted"){
 
-            console.log(
-                "通知許可なし"
-            );
+        alert(
+            "③permission=" + permission
+        );
 
-            return;
-
-        }
 
         const registration =
             await navigator.serviceWorker.register(
                 "/university-notifier-web/firebase-messaging-sw.js"
             );
 
-        alert("SW登録OK");
+
+        alert("④SW登録OK");
 
 
         const ready =
             await navigator.serviceWorker.ready;
 
-        alert("SW ready OK");
+
+        alert("⑤SW ready");
 
 
         const token =
@@ -1445,43 +1431,19 @@ export async function requestNotificationPermission(){
                 }
             );
 
-        alert("TOKEN取得OK");
 
-        if(!token){
-
-            console.log(
-                "FCM Token取得失敗"
-            );
-
-            return;
-
-        }
-
-        await updateDoc(
-            doc(
-                db,
-                "users",
-                studentNumber
-            ),
-            {
-                fcmToken:token
-            }
+        alert(
+            "⑥TOKEN=" + token
         );
 
-        console.log("FCM Token =", token);
-
-        alert("トークン保存完了");
-
-        console.log(
-            "出席通知トークン保存完了"
-        );
 
     }catch(error){
 
-        console.error(
-            "出席通知設定エラー:",
-            error
+        alert(
+            "エラー:" + error.message
         );
+
+        console.error(error);
 
     }
 
