@@ -1418,12 +1418,6 @@ export async function requestNotificationPermission(){
 
         console.log("⑥ token =", token);
 
-        alert(
-            "token取得成功\n" +
-            token
-        );
-
-
         if(!token){
 
             console.log("token取得失敗");
@@ -1449,16 +1443,7 @@ export async function requestNotificationPermission(){
 
         console.log("Firestore保存完了");
 
-        alert(
-            "Firestore保存完了\n" +
-            studentNumber
-        );
-
     }catch(error){
-
-        alert(
-            "エラー:" + error.message
-        );
 
         console.error(error);
 
