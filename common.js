@@ -1458,6 +1458,8 @@ export async function requestNotificationPermission(){
             }
         );
 
+        console.log("FCM Token =", token);
+
         console.log(
             "出席通知トークン保存完了"
         );
