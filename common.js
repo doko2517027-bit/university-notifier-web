@@ -1384,42 +1384,19 @@ export async function requestNotificationPermission(){
 
     try{
 
-        alert("①開始");
-
-
         const supported =
             await isSupported();
 
-
-        alert(
-            "②isSupported=" + supported
-        );
-
-
         const permission =
             await Notification.requestPermission();
-
-
-        alert(
-            "③permission=" + permission
-        );
-
 
         const registration =
             await navigator.serviceWorker.register(
                 "/university-notifier-web/firebase-messaging-sw.js"
             );
 
-
-        alert("④SW登録OK");
-
-
         const ready =
             await navigator.serviceWorker.ready;
-
-
-        alert("⑤SW ready");
-
 
         const token =
             await getToken(
@@ -1431,11 +1408,9 @@ export async function requestNotificationPermission(){
                 }
             );
 
-
         alert(
             "⑥TOKEN=" + token
         );
-
 
     }catch(error){
 
