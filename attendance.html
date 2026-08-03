@@ -23,28 +23,46 @@ if(localStorage.getItem("theme")==="dark"){
 </head>
 
 
-<body>
+<body class="page-loading">
 
 
-<header class="header">
+<div class="top-buttons">
 
-    <div class="logo">
-        📅
+    <button
+        id="backButton"
+        class="circle-button">
+        ←
+    </button>
+
+
+    <h2>
+        📅 出席管理
+    </h2>
+
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            class="circle-button">
+            🌙
+        </button>
+
+
+        <button
+            id="profileButton"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image">
+
+        </button>
+
     </div>
 
-
-    <h1>
-        出席管理
-    </h1>
-
-
-    <p>
-        授業の出席状況を確認できます
-    </p>
-
-
-</header>
-
+</div>
 
 <hr>
 
