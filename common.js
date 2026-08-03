@@ -1426,7 +1426,7 @@ export async function requestNotificationPermission(){
                 messaging,
                 {
                     vapidKey:
-                    "公開鍵",
+                    "BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE",
                     serviceWorkerRegistration: ready
                 }
             );
