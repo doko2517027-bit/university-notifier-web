@@ -1,47 +1,15 @@
 import {
+    db,
+    studentNumber,
     showPage,
     setupOfflineAlert,
     loadProfileImage
 } from "./common.js";
 
-
-// ======================
-// 仮データ
-// 後でFirebaseから取得する
-// ======================
-
-const attendanceData = [
-
-    {
-        subject: "成人看護学",
-        attendance: 10,
-        late: 1,
-        early: 0,
-        absent: 0
-    },
-
-
-    {
-        subject: "基礎看護学",
-        attendance: 8,
-        late: 0,
-        early: 1,
-        absent: 0
-    },
-
-
-    {
-        subject: "公衆衛生",
-        attendance: 7,
-        late: 0,
-        early: 0,
-        absent: 1
-    }
-
-];
-
-
-
+import {
+    collection,
+    getDocs
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 // ======================
 // 要素取得
@@ -77,7 +45,103 @@ const examQualification =
 // 初期表示
 // ======================
 
-function loadAttendance(){
+async function loadAttendance(){
+
+    const attendanceData = [];
+
+
+    // 科目取得
+    const subjectSnap =
+        await getDocs(
+            collection(
+                db,
+                "attendance",
+                studentNumber,
+                "subjects"
+            )
+        );
+
+
+
+    for(const subjectDoc of subjectSnap.docs){
+
+
+        const subject =
+            subjectDoc.id;
+
+
+
+        let attendance = 0;
+        let late = 0;
+        let early = 0;
+        let absent = 0;
+
+
+
+        const recordSnap =
+            await getDocs(
+                collection(
+                    db,
+                    "attendance",
+                    studentNumber,
+                    "subjects",
+                    subject,
+                    "records"
+                )
+            );
+
+
+
+        recordSnap.forEach(recordDoc => {
+
+
+            const data =
+                recordDoc.data();
+
+
+
+            if(data.status === "出席"){
+
+                attendance++;
+
+            }
+            else if(data.status === "遅刻"){
+
+                late++;
+
+            }
+            else if(data.status === "早退"){
+
+                early++;
+
+            }
+            else if(data.status === "欠席"){
+
+                absent++;
+
+            }
+
+
+        });
+
+
+
+        attendanceData.push({
+
+            subject,
+
+            attendance,
+
+            late,
+
+            early,
+
+            absent
+
+        });
+
+
+    }
 
 
     let totalAttendance = 0;
@@ -116,19 +180,19 @@ function loadAttendance(){
 
 
 
+        const total =
+            item.attendance +
+            item.late +
+            item.early +
+            item.absent;
+
+
         const rate =
-            Math.round(
-                (
-                    item.attendance /
-                    (
-                        item.attendance +
-                        item.late +
-                        item.early +
-                        item.absent
-                    )
+            total > 0
+                ? Math.round(
+                    (item.attendance / total) * 100
                 )
-                * 100
-            );
+                : 0;
 
 
 
@@ -174,13 +238,11 @@ function loadAttendance(){
 
 
     const overallRate =
-        Math.round(
-            (
-                totalAttendance /
-                totalClass
+        totalClass > 0
+            ? Math.round(
+                (totalAttendance / totalClass) * 100
             )
-            * 100
-        );
+            : 0;
 
 
 
@@ -234,7 +296,12 @@ function loadAttendance(){
 
 
 
-loadAttendance();
+loadAttendance()
+.catch(e=>{
+    console.error(e);
+    attendanceList.innerHTML =
+        "出席情報の取得に失敗しました";
+});
 
 const backButton =
     document.getElementById("backButton");
