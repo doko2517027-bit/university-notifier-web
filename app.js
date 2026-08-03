@@ -22,6 +22,7 @@ import {
     doc,
     getDoc,
     updateDoc,
+    setDoc,
     serverTimestamp,
     collection,
     query,
@@ -2290,7 +2291,7 @@ if(attendanceNo){
 
 if(attendanceYes){
 
-    attendanceYes.onclick = ()=>{
+    attendanceYes.onclick = async ()=>{
 
 
         const params =
@@ -2303,8 +2304,92 @@ if(attendanceYes){
             params.get("subject");
 
 
-        location.href =
-            `attendance.html?subject=${subject}`;
+
+        if(!subject){
+
+            alert(
+                "科目情報がありません"
+            );
+
+            return;
+
+        }
+
+
+
+        try{
+
+
+            const today =
+                new Date()
+                .toISOString()
+                .slice(0,10);
+
+
+
+            await setDoc(
+
+                doc(
+                    db,
+                    "attendance",
+                    studentNumber,
+                    "subjects",
+                    subject,
+                    "records",
+                    today
+                ),
+
+                {
+
+                    status:
+                        "出席",
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    source:
+                        "push"
+
+                }
+
+            );
+
+
+
+            alert(
+                `${subject}\n出席しました`
+            );
+
+
+
+            history.replaceState(
+                null,
+                "",
+                "index.html"
+            );
+
+
+
+            location.href =
+                `attendance.html?subject=${subject}`;
+
+
+
+        }catch(error){
+
+
+            console.error(
+                "出席保存エラー:",
+                error
+            );
+
+
+            alert(
+                "出席登録に失敗しました"
+            );
+
+
+        }
 
 
     };
