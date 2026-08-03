@@ -1,3 +1,7 @@
+import {
+    requestNotificationPermission
+} from "./common.js";
+
 const {
     onRequest
 } = require("firebase-functions/v2/https");
@@ -12,6 +16,7 @@ const {
 
 
 initializeApp();
+requestNotificationPermission();
 
 
 
