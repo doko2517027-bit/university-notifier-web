@@ -14,7 +14,8 @@ import {
     setupOfflineAlert,
     updateAssignmentNavBadge,
     updateShareNavBadge,
-    updateNewsNavBadge
+    updateNewsNavBadge,
+    setupAttendanceWebPush
 } from "./common.js";
 
 import {
@@ -359,10 +360,26 @@ if(weatherCard){
 
 if(attendanceCard){
 
-    attendanceCard.onclick = () => {
+    attendanceCard.onclick = async () => {
 
-        location.href =
-            "attendance.html";
+        try {
+
+            await setupAttendanceWebPush();
+
+            location.href =
+                "attendance.html";
+
+        } catch (error) {
+
+            console.error(
+                "出席通知登録エラー:",
+                error
+            );
+
+            location.href =
+                "attendance.html";
+
+        }
 
     };
 
