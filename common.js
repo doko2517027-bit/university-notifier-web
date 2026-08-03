@@ -1398,6 +1398,13 @@ export async function requestNotificationPermission(){
         const ready =
             await navigator.serviceWorker.ready;
 
+        if(!messaging){
+
+            messaging =
+                getMessaging(app);
+
+        }
+
         const token =
             await getToken(
                 messaging,
@@ -1408,9 +1415,34 @@ export async function requestNotificationPermission(){
                 }
             );
 
-        alert(
-            "⑥TOKEN=" + token
+
+        console.log("⑥ token =", token);
+
+
+        if(!token){
+
+            console.log("token取得失敗");
+            return;
+
+        }
+
+
+        console.log("Firestore保存開始");
+
+
+        await updateDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
+            {
+                fcmToken: token
+            }
         );
+
+
+        console.log("Firestore保存完了");
 
     }catch(error){
 
