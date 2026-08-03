@@ -1485,8 +1485,6 @@ if(
     localStorage.getItem("loggedIn") === "true"
 ){
 
-    alert("通知設定開始");
-
     requestNotificationPermission();
 
 }
