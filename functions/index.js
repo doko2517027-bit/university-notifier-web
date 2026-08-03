@@ -7,6 +7,10 @@ const {
 } = require("firebase-admin/app");
 
 const {
+    getMessaging
+} = require("firebase-admin/messaging");
+
+const {
     getFirestore
 } = require("firebase-admin/firestore");
 
