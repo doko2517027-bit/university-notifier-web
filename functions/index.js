@@ -90,40 +90,39 @@ async (request, response)=>{
         },
 
 
-        webpush:{
+        webpush: {
 
-            headers:{
-                Urgency:"high"
-            },
+        headers: {
+            Urgency: "high"
+        },
 
-            notification:{
+        fcmOptions: {
+            link: "https://doko2517027-bit.github.io/university-notifier-web/"
+        },
 
-                title:
-                "📅 出席打刻テスト",
+        notification: {
 
-                body:
-                "成人看護学 打刻可能時間です\n出席しますか？",
+            title: "📅 出席打刻テスト",
 
-                icon:
-                "/icon-192.png",
+            body: "成人看護学 打刻可能時間です\n出席しますか？",
 
-                actions:[
+            icon: "/icon-192.png",
 
-                    {
-                        action:"attendance",
-                        title:"出席"
-                    },
+            badge: "/icon-192.png",
 
-                    {
-                        action:"absent",
-                        title:"欠席"
-                    }
-
-                ]
-
-            }
-
+            actions: [
+                {
+                    action: "attendance",
+                    title: "出席"
+                },
+                {
+                    action: "absent",
+                    title: "欠席"
+                }
+            ]
         }
+
+    }
 
 
     };
