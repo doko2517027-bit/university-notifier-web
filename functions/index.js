@@ -117,7 +117,7 @@ onRequest(
                         "成人看護学 打刻可能時間です\n出席しますか？",
 
                     url:
-                        "https://doko2517027-bit.github.io/university-notifier-web/"
+    "https://doko2517027-bit.github.io/university-notifier-web/index.html?attendance=1&subject=成人看護学"
                 });
 
 

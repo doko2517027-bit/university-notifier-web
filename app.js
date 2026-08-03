@@ -63,6 +63,21 @@ const rankingPopupList =
 const closeRankingPopup =
     document.getElementById("closeRankingPopup");
 
+const attendancePopupOverlay =
+    document.getElementById("attendancePopupOverlay");
+
+const attendanceSubject =
+    document.getElementById("attendanceSubject");
+
+const closeAttendancePopup =
+    document.getElementById("closeAttendancePopup");
+
+const attendanceYes =
+    document.getElementById("attendanceYes");
+
+const attendanceNo =
+    document.getElementById("attendanceNo");
+
 // 追加 定数
 const rankingList =
     document.getElementById("rankingList");
@@ -263,6 +278,8 @@ console.log("studentNumber =", studentNumber);
     loadRankingPopup();
 
     loadRanking();
+
+    loadAttendancePopup();
 
     setupAdminTab();
 
@@ -2160,6 +2177,107 @@ if(rankingPopupOverlay){
             hideRankingPopup();
 
         }
+
+    };
+
+}
+
+function loadAttendancePopup(){
+
+    const params =
+        new URLSearchParams(
+            location.search
+        );
+
+
+    const attendance =
+        params.get("attendance");
+
+
+    const subject =
+        params.get("subject");
+
+
+    if(attendance !== "1"){
+        return;
+    }
+
+
+    if(!attendancePopupOverlay){
+        return;
+    }
+
+
+    if(attendanceSubject && subject){
+
+        attendanceSubject.textContent =
+            subject;
+
+    }
+
+
+    attendancePopupOverlay.classList.add("show");
+
+
+}
+
+
+
+function hideAttendancePopup(){
+
+    if(!attendancePopupOverlay){
+        return;
+    }
+
+
+    attendancePopupOverlay.classList.remove("show");
+
+}
+
+
+
+if(closeAttendancePopup){
+
+    closeAttendancePopup.onclick = ()=>{
+
+        hideAttendancePopup();
+
+    };
+
+}
+
+
+
+if(attendanceNo){
+
+    attendanceNo.onclick = ()=>{
+
+        hideAttendancePopup();
+
+    };
+
+}
+
+
+
+if(attendanceYes){
+
+    attendanceYes.onclick = ()=>{
+
+
+        const params =
+            new URLSearchParams(
+                location.search
+            );
+
+
+        const subject =
+            params.get("subject");
+
+
+        location.href =
+            `attendance.html?subject=${subject}`;
+
 
     };
 

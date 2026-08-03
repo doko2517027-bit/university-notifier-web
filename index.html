@@ -66,6 +66,69 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
+<div id="attendancePopupOverlay" class="exam-popup-overlay">
+
+    <div class="exam-popup-card">
+
+        <button
+            id="closeAttendancePopup"
+            class="exam-popup-close"
+            type="button">
+            ×
+        </button>
+
+
+        <div class="exam-popup-icon">
+            📝
+        </div>
+
+
+        <p class="exam-popup-label">
+            出席確認
+        </p>
+
+
+        <h2 id="attendanceSubject">
+            成人看護学
+        </h2>
+
+
+        <p>
+            打刻可能時間です
+        </p>
+
+
+        <div
+            style="
+                display:flex;
+                gap:10px;
+                margin-top:20px;
+            ">
+
+
+            <button
+                id="attendanceYes"
+                class="btn btn-primary"
+                style="flex:1;">
+                ✅ 出席
+            </button>
+
+
+            <button
+                id="attendanceNo"
+                class="btn"
+                style="flex:1;">
+                ❌ 欠席
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
 <div id="rankingPopupOverlay" class="exam-popup-overlay">
 
     <div class="exam-popup-card">
@@ -572,6 +635,27 @@ if(localStorage.getItem("theme")==="dark"){
     </a>
 
 </nav>
+
+<script>
+
+window.pendingPopups = [];
+
+window.showNextPopup = function(){
+
+    if(window.pendingPopups.length === 0){
+        return;
+    }
+
+
+    const next =
+        window.pendingPopups.shift();
+
+
+    next();
+
+};
+
+</script>
 
 <script type="module" src="app.js"></script>
 
