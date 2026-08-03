@@ -1427,6 +1427,9 @@ export async function requestNotificationPermission(){
             );
 
 
+        await navigator.serviceWorker.ready;
+
+
         const token =
             await getToken(
                 messaging,
