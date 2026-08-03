@@ -32,7 +32,8 @@ import {
 import {
     getMessaging,
     getToken,
-    isSupported
+    isSupported,
+    onMessage
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -1480,3 +1481,37 @@ if(
     requestNotificationPermission();
 
 }
+
+export function setupForegroundNotification(){
+
+    if(!messaging){
+        messaging = getMessaging(app);
+    }
+
+
+    onMessage(
+        messaging,
+        payload=>{
+
+            console.log(
+                "Foreground通知受信",
+                payload
+            );
+
+
+            new Notification(
+                payload.notification.title,
+                {
+                    body:
+                    payload.notification.body,
+                    icon:
+                    "/icon-192.png"
+                }
+            );
+
+        }
+    );
+
+}
+
+setupForegroundNotification();
