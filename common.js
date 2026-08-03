@@ -1507,7 +1507,7 @@ export function setupForegroundNotification(){
                     body:
                     payload.notification.body,
                     icon:
-                    "/icon-192.png"
+                    "/university-notifier-web/icon-192.png"
                 }
             );
 
