@@ -1479,9 +1479,24 @@ async function loadExamMode() {
 
 function loadRankingPopup(){
 
+
+    // 出席確認ポップアップ表示中なら出さない
+    const params =
+        new URLSearchParams(
+            location.search
+        );
+
+
+    if(params.get("attendance") === "1"){
+        return;
+    }
+
+
+
     if(!rankingPopupOverlay){
         return;
     }
+
 
 
     const today =
@@ -1490,22 +1505,27 @@ function loadRankingPopup(){
         .slice(0,10);
 
 
+
     const key =
         `rankingPopupShown_${today}`;
 
 
-    // 今日すでに表示済みなら出さない
+
+    // 今日表示済みなら終了
     if(localStorage.getItem(key)){
         return;
     }
 
 
-    // 初回だけ表示
+
     rankingPopupOverlay.classList.add("show");
 
 
-    // 今日表示したことを保存
-    localStorage.setItem(key, "true");
+
+    localStorage.setItem(
+        key,
+        "true"
+    );
 
 }
 
@@ -2234,25 +2254,33 @@ function hideAttendancePopup(){
 
 }
 
-
-
 if(closeAttendancePopup){
 
     closeAttendancePopup.onclick = ()=>{
 
         hideAttendancePopup();
 
+        history.replaceState(
+            null,
+            "",
+            "index.html"
+        );
+
     };
 
 }
-
-
 
 if(attendanceNo){
 
     attendanceNo.onclick = ()=>{
 
         hideAttendancePopup();
+
+        history.replaceState(
+            null,
+            "",
+            "index.html"
+        );
 
     };
 
