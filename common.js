@@ -29,13 +29,6 @@ import {
     getApp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
-import {
-    getMessaging,
-    getToken,
-    isSupported,
-    onMessage
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-messaging.js";
-
 const firebaseConfig = {
     apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
     authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -57,8 +50,6 @@ if (!getApps().length) {
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
-
-export let messaging = null;
 
 export const studentNumber =
     localStorage.getItem("studentNumber");
@@ -1380,54 +1371,109 @@ if (
 
 }
 
-export async function requestNotificationPermission(){
+// ======================
+// 出席通知・標準Web Push
+// ======================
 
-    try{
+const WEB_PUSH_PUBLIC_KEY =
+    "BBbm1jQ0ozG-bd5FsB4hJqZzXUGa2EelnbONT_Uf7zcAMjdOWXTtlRqtUUpyhtkwUttVmlb938JktwkmrYSTs6I";
 
-        const supported =
-            await isSupported();
+
+function urlBase64ToUint8Array(base64String) {
+
+    const padding =
+        "=".repeat(
+            (4 - base64String.length % 4) % 4
+        );
+
+    const base64 =
+        (
+            base64String + padding
+        )
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const rawData =
+        atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(
+            character =>
+                character.charCodeAt(0)
+        )
+    );
+
+}
+
+
+export async function setupAttendanceWebPush() {
+
+    try {
+
+        if (!studentNumber) {
+            return;
+        }
+
+        if (
+            localStorage.getItem("loggedIn") !== "true"
+        ) {
+            return;
+        }
+
+        if (
+            !("serviceWorker" in navigator) ||
+            !("PushManager" in window) ||
+            !("Notification" in window)
+        ) {
+
+            console.log(
+                "この端末はWeb Pushに対応していません"
+            );
+
+            return;
+
+        }
 
         const permission =
             await Notification.requestPermission();
+
+        if (permission !== "granted") {
+
+            console.log(
+                "通知が許可されていません"
+            );
+
+            return;
+
+        }
 
         const registration =
             await navigator.serviceWorker.register(
                 "/university-notifier-web/firebase-messaging-sw.js"
             );
 
-        const ready =
-            await navigator.serviceWorker.ready;
+        await navigator.serviceWorker.ready;
 
-        if(!messaging){
+        let subscription =
+            await registration.pushManager
+                .getSubscription();
 
-            messaging =
-                getMessaging(app);
+        if (!subscription) {
 
-        }
+            subscription =
+                await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
 
-        const token =
-            await getToken(
-                messaging,
-                {
-                    vapidKey:
-                    "BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE",
-                    serviceWorkerRegistration: ready
-                }
-            );
-
-
-        console.log("⑥ token =", token);
-
-        if(!token){
-
-            console.log("token取得失敗");
-            return;
+                    applicationServerKey:
+                        urlBase64ToUint8Array(
+                            WEB_PUSH_PUBLIC_KEY
+                        )
+                });
 
         }
 
-
-        console.log("Firestore保存開始");
-
+        const subscriptionData =
+            subscription.toJSON();
 
         await updateDoc(
             doc(
@@ -1436,60 +1482,48 @@ export async function requestNotificationPermission(){
                 studentNumber
             ),
             {
-                fcmToken: token
+                pushSubscription: {
+                    endpoint:
+                        subscriptionData.endpoint,
+
+                    expirationTime:
+                        subscriptionData.expirationTime ||
+                        null,
+
+                    keys: {
+                        p256dh:
+                            subscriptionData.keys?.p256dh ||
+                            "",
+
+                        auth:
+                            subscriptionData.keys?.auth ||
+                            ""
+                    }
+                }
             }
         );
 
+        console.log(
+            "出席Web Push購読情報保存完了"
+        );
 
-        console.log("Firestore保存完了");
+    } catch (error) {
 
-    }catch(error){
-
-        console.error(error);
+        console.error(
+            "出席Web Push設定エラー:",
+            error
+        );
 
     }
 
 }
 
-if(
+
+if (
     studentNumber &&
     localStorage.getItem("loggedIn") === "true"
-){
+) {
 
-    requestNotificationPermission();
-
-}
-
-export function setupForegroundNotification(){
-
-    if(!messaging){
-        messaging = getMessaging(app);
-    }
-
-
-    onMessage(
-        messaging,
-        payload=>{
-
-            console.log(
-                "Foreground通知受信",
-                payload
-            );
-
-
-            new Notification(
-                payload.notification.title,
-                {
-                    body:
-                    payload.notification.body,
-                    icon:
-                    "/university-notifier-web/icon-192.png"
-                }
-            );
-
-        }
-    );
+    setupAttendanceWebPush();
 
 }
-
-setupForegroundNotification();
