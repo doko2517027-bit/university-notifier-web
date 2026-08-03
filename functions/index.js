@@ -106,7 +106,7 @@ async (request, response)=>{
 
             body: "成人看護学 打刻可能時間です\n出席しますか？",
 
-            icon: "/icon-192.png",
+            icon: "/university-notifier-web/icon-192.png",
 
             badge: "/icon-192.png",
 
