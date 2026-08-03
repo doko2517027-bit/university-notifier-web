@@ -1,5 +1,5 @@
 import {
-    setupTheme,
+    showPage,
     setupOfflineAlert,
     loadProfileImage
 } from "./common.js";
@@ -249,3 +249,5 @@ if(backButton){
     };
 
 }
+
+showPage();
