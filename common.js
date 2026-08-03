@@ -1423,7 +1423,7 @@ export async function requestNotificationPermission(){
 
         const registration =
             await navigator.serviceWorker.register(
-                "/firebase-messaging-sw.js"
+                "/university-notifier-web/firebase-messaging-sw.js"
             );
 
 
