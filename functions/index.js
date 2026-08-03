@@ -73,57 +73,17 @@ async (request, response)=>{
 
     const message = {
 
-
-        token,
-
-
-        notification:{
-
-
-            title:
-            "📅 出席打刻テスト",
-
-
-            body:
-            "成人看護学 打刻可能時間です\n出席しますか？"
-
-        },
-
-
-        webpush: {
-
-        headers: {
-            Urgency: "high"
-        },
-
-        fcmOptions: {
-            link: "https://doko2517027-bit.github.io/university-notifier-web/"
-        },
+        token: token,
 
         notification: {
 
-            title: "📅 出席打刻テスト",
+            title:
+                "📅 出席打刻テスト",
 
-            body: "成人看護学 打刻可能時間です\n出席しますか？",
+            body:
+                "成人看護学 打刻可能時間です\n出席しますか？"
 
-            icon: "/university-notifier-web/icon-192.png",
-
-            badge: "/icon-192.png",
-
-            actions: [
-                {
-                    action: "attendance",
-                    title: "出席"
-                },
-                {
-                    action: "absent",
-                    title: "欠席"
-                }
-            ]
         }
-
-    }
-
 
     };
 
