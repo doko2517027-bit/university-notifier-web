@@ -1525,13 +1525,3 @@ export async function setupAttendanceWebPush() {
     }
 
 }
-
-
-if (
-    studentNumber &&
-    localStorage.getItem("loggedIn") === "true"
-) {
-
-    setupAttendanceWebPush();
-
-}
