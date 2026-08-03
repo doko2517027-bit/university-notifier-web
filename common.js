@@ -4148,7 +4148,7 @@ export async function requestNotificationPermission(){
         await getToken(
             messaging,
             {
-                vapidKey:"生成された公開鍵"
+                vapidKey:"BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE"
             }
         );
 
