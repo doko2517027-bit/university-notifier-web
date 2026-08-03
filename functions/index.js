@@ -3,119 +3,151 @@ const {
 } = require("firebase-functions/v2/https");
 
 const {
-    initializeApp
-} = require("firebase-admin/app");
+    defineSecret
+} = require("firebase-functions/params");
 
 const {
-    getMessaging
-} = require("firebase-admin/messaging");
+    initializeApp
+} = require("firebase-admin/app");
 
 const {
     getFirestore
 } = require("firebase-admin/firestore");
 
+const webpush =
+    require("web-push");
+
 
 initializeApp();
 
-const db = getFirestore();
+const db =
+    getFirestore();
+
+
+const WEB_PUSH_PUBLIC_KEY =
+    defineSecret(
+        "WEB_PUSH_PUBLIC_KEY"
+    );
+
+const WEB_PUSH_PRIVATE_KEY =
+    defineSecret(
+        "WEB_PUSH_PRIVATE_KEY"
+    );
 
 
 
 // ======================
-// 通知テスト
+// 出席通知テスト
+// 2510044だけに送信
 // ======================
 
 exports.sendAttendanceTest =
 onRequest(
-async (request, response)=>{
+    {
+        secrets: [
+            WEB_PUSH_PUBLIC_KEY,
+            WEB_PUSH_PRIVATE_KEY
+        ]
+    },
+
+    async (request, response) => {
+
+        try {
+
+            const studentNumber =
+                "2510044";
 
 
-    const studentNumber = "2510044";
+            const userSnap =
+                await db
+                    .collection("users")
+                    .doc(studentNumber)
+                    .get();
 
 
-    const userSnap =
-        await db
-            .collection("users")
-            .doc(studentNumber)
-            .get();
+            if (!userSnap.exists) {
+
+                response
+                    .status(404)
+                    .send(
+                        "ユーザーが見つかりません"
+                    );
+
+                return;
+
+            }
 
 
-    if(!userSnap.exists){
+            const subscription =
+                userSnap.data()
+                    .pushSubscription;
 
-        response
-            .status(404)
-            .send(
-                "user not found"
+
+            if (
+                !subscription ||
+                !subscription.endpoint ||
+                !subscription.keys?.p256dh ||
+                !subscription.keys?.auth
+            ) {
+
+                response
+                    .status(400)
+                    .send(
+                        "pushSubscriptionがありません"
+                    );
+
+                return;
+
+            }
+
+
+            webpush.setVapidDetails(
+                "mailto:kidokohei.shonaniryo2517027@gmail.com",
+                WEB_PUSH_PUBLIC_KEY.value(),
+                WEB_PUSH_PRIVATE_KEY.value()
             );
 
-        return;
 
-    }
+            const payload =
+                JSON.stringify({
+                    title:
+                        "📅 出席打刻テスト",
+
+                    body:
+                        "成人看護学 打刻可能時間です\n出席しますか？",
+
+                    url:
+                        "https://doko2517027-bit.github.io/university-notifier-web/"
+                });
 
 
-    const token =
-        userSnap.data().fcmToken;
-
-
-    if(!token){
-
-        response
-            .status(400)
-            .send(
-                "fcmToken missing"
+            await webpush.sendNotification(
+                subscription,
+                payload
             );
 
-        return;
 
-    }
+            response.send(
+                "標準Web Push送信成功"
+            );
 
 
+        } catch (error) {
 
-    const message = {
+            console.error(
+                "標準Web Push送信エラー:",
+                error
+            );
 
-        token: token,
 
-        notification: {
-
-            title:
-                "📅 出席打刻テスト",
-
-            body:
-                "成人看護学 打刻可能時間です\n出席しますか？"
+            response
+                .status(500)
+                .send(
+                    error.message ||
+                    "通知送信に失敗しました"
+                );
 
         }
 
-    };
-
-
-
-    try{
-
-
-        await getMessaging()
-            .send(message);
-
-
-
-        response.send(
-            "通知送信成功"
-        );
-
-
-    }catch(error){
-
-
-        console.error(error);
-
-
-        response
-        .status(500)
-        .send(
-            error.message
-        );
-
-
     }
-
-
-});
+);
