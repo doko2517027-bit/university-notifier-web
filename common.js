@@ -1376,7 +1376,7 @@ if (
 // ======================
 
 const WEB_PUSH_PUBLIC_KEY =
-    "BBbm1jQ0ozG-bd5FsB4hJqZzXUGa2EelnbONT_Uf7zcAMjdOWXTtlRqtUUpyhtkwUttVmlb938JktwkmrYSTs6I";
+    "UggO_zVEeUDyJ5re5zpH9qAWT2HdyvIG7kLytB8AlJA";
 
 
 function urlBase64ToUint8Array(base64String) {
