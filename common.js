@@ -1463,6 +1463,8 @@ export async function requestNotificationPermission(){
 
         console.log("FCM Token =", token);
 
+        alert("トークン保存完了");
+
         console.log(
             "出席通知トークン保存完了"
         );
@@ -1482,6 +1484,8 @@ if(
     studentNumber &&
     localStorage.getItem("loggedIn") === "true"
 ){
+
+    alert("通知設定開始");
 
     requestNotificationPermission();
 
