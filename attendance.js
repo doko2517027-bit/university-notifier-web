@@ -233,3 +233,17 @@ function loadAttendance(){
 
 
 loadAttendance();
+
+const backButton =
+    document.getElementById("backButton");
+
+
+if(backButton){
+
+    backButton.onclick = () => {
+
+        history.back();
+
+    };
+
+}
