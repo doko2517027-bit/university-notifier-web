@@ -92,9 +92,20 @@ async (request, response)=>{
 
         webpush:{
 
+            headers:{
+                Urgency:"high"
+            },
 
             notification:{
 
+                title:
+                "📅 出席打刻テスト",
+
+                body:
+                "成人看護学 打刻可能時間です\n出席しますか？",
+
+                icon:
+                "/icon-192.png",
 
                 actions:[
 

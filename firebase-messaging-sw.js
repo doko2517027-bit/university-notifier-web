@@ -25,23 +25,34 @@ messaging.onBackgroundMessage(
     payload => {
 
         console.log(
-            "バックグラウンド通知受信:",
+            "FCM受信:",
             payload
         );
 
 
+        const notificationTitle =
+            payload.notification?.title ||
+            "通知";
+
+
+        const notificationOptions = {
+
+            body:
+                payload.notification?.body ||
+                "",
+
+            icon:
+                "/icon-192.png",
+
+            badge:
+                "/icon-192.png"
+
+        };
+
+
         self.registration.showNotification(
-            payload.notification.title,
-            {
-                body:
-                    payload.notification.body,
-
-                icon:
-                    "/icon-192.png",
-
-                badge:
-                    "/icon-192.png"
-            }
+            notificationTitle,
+            notificationOptions
         );
 
     }
