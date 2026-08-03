@@ -1,7 +1,3 @@
-import {
-    requestNotificationPermission
-} from "./common.js";
-
 const {
     onRequest
 } = require("firebase-functions/v2/https");
@@ -11,12 +7,13 @@ const {
 } = require("firebase-admin/app");
 
 const {
-    getMessaging
-} = require("firebase-admin/messaging");
+    getFirestore
+} = require("firebase-admin/firestore");
 
 
 initializeApp();
-requestNotificationPermission();
+
+const db = getFirestore();
 
 
 
@@ -29,9 +26,31 @@ onRequest(
 async (request, response)=>{
 
 
-    const token =
-        request.query.token;
+    const studentNumber = "2510044";
 
+
+    const userSnap =
+        await db
+            .collection("users")
+            .doc(studentNumber)
+            .get();
+
+
+    if(!userSnap.exists){
+
+        response
+            .status(404)
+            .send(
+                "user not found"
+            );
+
+        return;
+
+    }
+
+
+    const token =
+        userSnap.data().fcmToken;
 
 
     if(!token){
@@ -39,7 +58,7 @@ async (request, response)=>{
         response
             .status(400)
             .send(
-                "token missing"
+                "fcmToken missing"
             );
 
         return;
