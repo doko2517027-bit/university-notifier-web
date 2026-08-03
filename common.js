@@ -1464,3 +1464,12 @@ export async function requestNotificationPermission(){
     }
 
 }
+
+if(
+    studentNumber &&
+    localStorage.getItem("loggedIn") === "true"
+){
+
+    requestNotificationPermission();
+
+}
