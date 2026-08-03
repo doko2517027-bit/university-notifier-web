@@ -1449,7 +1449,7 @@ export async function setupAttendanceWebPush() {
 
         const registration =
             await navigator.serviceWorker.register(
-                "/university-notifier-web/firebase-messaging-sw.js"
+                "/university-notifier-web/sw.js"
             );
 
         await navigator.serviceWorker.ready;
@@ -1458,19 +1458,27 @@ export async function setupAttendanceWebPush() {
             await registration.pushManager
                 .getSubscription();
 
-        if (!subscription) {
 
-            subscription =
-                await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
+        if (subscription) {
 
-                    applicationServerKey:
-                        urlBase64ToUint8Array(
-                            WEB_PUSH_PUBLIC_KEY
-                        )
-                });
+            await subscription.unsubscribe();
+
+            subscription = null;
 
         }
+
+
+        subscription =
+            await registration.pushManager.subscribe({
+
+                userVisibleOnly: true,
+
+                applicationServerKey:
+                    urlBase64ToUint8Array(
+                        WEB_PUSH_PUBLIC_KEY
+                    )
+
+            });
 
         const subscriptionData =
             subscription.toJSON();
