@@ -1426,8 +1426,13 @@ export async function requestNotificationPermission(){
                 "/university-notifier-web/firebase-messaging-sw.js"
             );
 
+        alert("SW登録OK");
 
-        await navigator.serviceWorker.ready;
+
+        const ready =
+            await navigator.serviceWorker.ready;
+
+        alert("SW ready OK");
 
 
         const token =
@@ -1435,10 +1440,12 @@ export async function requestNotificationPermission(){
                 messaging,
                 {
                     vapidKey:
-                    "BJ9iR9o1s2KuLVeLZF2UdDCtQD_lGEfnlS1Qt_XPH8CFCWwzlCoZzwc85V9O-ae6KGFPsxpdlJ6fokdn799e_UE",
-                    serviceWorkerRegistration: registration
+                    "公開鍵",
+                    serviceWorkerRegistration: ready
                 }
             );
+
+        alert("TOKEN取得OK");
 
         if(!token){
 
