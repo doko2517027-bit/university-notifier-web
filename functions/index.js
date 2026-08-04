@@ -166,6 +166,7 @@ exports.notifyQuestionAnswerReport =
 onDocumentCreated(
     {
         document: "reports/{reportId}",
+        region: "asia-northeast1",
         secrets: [
             WEB_PUSH_PUBLIC_KEY,
             WEB_PUSH_PRIVATE_KEY
