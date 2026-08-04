@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow create, read, delete: if true;
+      allow update: if true;
+      match /solvedQuestions/{id} { allow read, create, update: if true; allow delete: if false; }
+      match /pushSubscriptions/{id} { allow read, create, update, delete: if true; }
+      match /enrolledSubjects/{id} { allow read, create, update, delete: if true; }
+      match /enrollmentHistory/{id} { allow read, create: if true; allow update, delete: if false; }
+      match /examProgress/{id} { allow read, create, update: if true; allow delete: if false; }
+      match /subjectPoints/{id} { allow read, create, update: if true; allow delete: if false; }
+
+      // CareMateの個人用出席記録。大学の公式記録ではない。
+      match /attendanceRecords/{recordId} {
+        allow read, create, update: if true;
+        allow delete: if false;
+      }
+      // A/B等の通知対象クラスを科目名とは別に保存する。
+      match /attendancePreferences/{subjectId} {
+        allow read, create, update: if true;
+        allow delete: if false;
+      }
+      match /readNews/{readId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['type','newsId','readAt','studentNumber'])
+          && request.resource.data.studentNumber == userId
+          && request.resource.data.type in ['university','course','system']
+          && request.resource.data.newsId is string
+          && request.resource.data.readAt is timestamp;
+        allow update, delete: if false;
+      }
+    }
+
+    match /developers/{id} { allow read: if true; allow write: if false; }
+    match /publicUsers/{id} { allow read, create, delete: if true; allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photo']); }
+    match /today/{id} { allow read: if true; allow write: if false; }
+    match /assignments/{id} { allow read, delete: if true; allow write: if false; }
+    match /courseLinks/{id} { allow read: if true; allow write: if false; }
+    match /news/{id} { allow read: if true; allow write: if false; }
+    match /courseNews/{id} { allow read: if true; allow write: if false; }
+    match /courseNews/{studentNumber}/news/{id} { allow read: if true; allow write: if false; }
+    match /posts/{id} {
+      allow read, create, update, delete: if true;
+      match /likes/{studentNumber} { allow read, create, delete: if true; }
+      match /comments/{commentId} { allow read, create, update, delete: if true; }
+    }
+    match /schedule/{id} { allow read: if true; allow write: if false; }
+    match /scheduleOverrides/{id} { allow read, create, update, delete: if true; }
+    // 通知の重複防止台帳はCloud Functionsのみが操作する。
+    match /attendanceNotificationDispatches/{id} { allow read, write: if false; }
+    match /system/app { allow read, write: if true; }
+    match /system/exam { allow read, write: if true; }
+    match /system/courseRegistration { allow read, write: if true; }
+    match /system/courseRegistrationDraft { allow read, write: if true; }
+    match /system/{id} { allow read, write: if false; }
+    match /examSubjects/{subjectId} {
+      allow read, write: if true;
+      match /units/{unitId} {
+        allow read, write: if true;
+        match /materials/{id} { allow read, write: if true; }
+        match /ai/{id} { allow read, write: if true; }
+        match /publishedQuestions/{id} { allow read, write: if true; }
+        match /features/{id} { allow read, write: if true; }
+      }
+    }
+    match /admins/{id} { allow read: if true; allow write: if false; }
+    match /reports/{id} { allow read, create, update, delete: if true; }
+    match /dailyRanking/{date} {
+      allow read: if true;
+      match /users/{id} { allow read, create, update: if true; allow delete: if false; }
+    }
+    match /ranking/{id} { allow read, create, update: if true; allow delete: if false; }
+    match /totalRanking/{id} { allow read, create, update: if true; allow delete: if false; }
+    match /systemNews/{id} { allow read, create, delete: if true; allow update: if false; }
+    match /subjects/{id} { allow read, create, update, delete: if true; }
+    match /subjectPointHistory/{id} { allow read, create, update: if true; allow delete: if false; }
+    match /contacts/{id} { allow create, read, update: if true; allow delete: if false; }
+    match /attendance/{studentNumber}/subjects/{subject}/records/{recordId} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+  }
+}

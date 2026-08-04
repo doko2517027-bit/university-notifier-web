@@ -1011,7 +1011,10 @@ function renderSchedule(
             <div class="lesson-card" onclick="openCourse('${item.subject}')">
                 <div class="lesson-period">${item.period}</div>
                 <div>
-                    <div class="lesson-subject">${item.subject}</div>
+                    <div class="lesson-subject">
+                        ${item.subject}
+                        ${item.classGroup ? `<span class="lesson-class-group">${item.classGroup}</span>` : ""}
+                    </div>
                     <div class="lesson-room">
                         ${item.building} ${item.room}
                     </div>

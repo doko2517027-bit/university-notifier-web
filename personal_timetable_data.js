@@ -1,5 +1,6 @@
 import { db, studentNumber } from "./common.js";
 import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { PERIOD_TIMES } from "./attendance_policy.js";
 
 export function normalizeCourseName(value){
     return String(value||"").normalize("NFKC").toLowerCase()
@@ -57,10 +58,13 @@ export async function loadPersonalTimetableData(){
                 dayTitle:day.title||day.label||"講義日",
                 dayLabel:day.label||"",
                 period:Number.parseInt(item.period,10)||0,
+                startTime:item.startTime||PERIOD_TIMES[Number.parseInt(item.period,10)]?.startTime||"",
+                endTime:item.endTime||PERIOD_TIMES[Number.parseInt(item.period,10)]?.endTime||"",
                 subjectId:course.subjectId||course.id,
                 subjectKey:course.subjectKey||course.name||course.id,
                 subject:course.name||item.subject,
                 scheduleSubject:item.subject||"",
+                classGroup:item.classGroup||"",
                 teacher:item.teacher||"",
                 building:item.building||"",
                 room:item.room||"",

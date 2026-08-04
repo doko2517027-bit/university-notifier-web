@@ -6,6 +6,8 @@ const {
     onDocumentCreated
 } = require("firebase-functions/v2/firestore");
 
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+
 const {
     defineSecret
 } = require("firebase-functions/params");
@@ -21,23 +23,139 @@ const {
 const webpush =
     require("web-push");
 
+const {
+    PERIOD_TIMES,
+    normalizeCourseName,
+    slotId
+} = require("./attendance_policy");
+
 
 initializeApp();
 
 const db =
     getFirestore();
 
+const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
-const WEB_PUSH_PUBLIC_KEY =
-    defineSecret(
-        "WEB_PUSH_PUBLIC_KEY"
-    );
+const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
+const WEB_PUSH_PRIVATE_KEY = defineSecret("WEB_PUSH_PRIVATE_KEY");
 
-const WEB_PUSH_PRIVATE_KEY =
-    defineSecret(
-        "WEB_PUSH_PRIVATE_KEY"
-    );
+function scheduleDocumentId(user) {
+    if (String(user.department || "").trim() === "看護学科") return "ns_yamate";
+    if (String(user.major || "").includes("理学療法")) return "pt";
+    if (String(user.major || "").includes("作業療法")) return "ot";
+    return "";
+}
 
+async function sendToUserDevices(userId, payload) {
+    const devices = await db.collection("users").doc(userId)
+        .collection("pushSubscriptions").get();
+    const results = [];
+    for (const device of devices.docs) {
+        try {
+            await webpush.sendNotification(device.data(), JSON.stringify(payload));
+            results.push({ deviceId: device.id, result: "sent" });
+        } catch (error) {
+            if (error?.statusCode === 404 || error?.statusCode === 410) {
+                await device.ref.delete();
+            }
+            results.push({ deviceId: device.id, result: "failed", statusCode: error?.statusCode || null });
+        }
+    }
+    return results;
+}
+
+function tokyoParts(now = new Date()) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).formatToParts(now).filter(part => part.type !== "literal").map(part => [part.type, part.value]));
+    return { date: `${parts.year}-${parts.month}-${parts.day}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
+}
+
+function timeMinutes(value) {
+    const [hour, minute] = String(value || "").split(":").map(Number);
+    return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : -1;
+}
+
+// 個人時間割（公式PDF×履修科目）からだけ出席・退席通知を生成する。
+exports.sendAttendanceNotifications = onSchedule({
+    schedule: "* * * * *", timeZone: "Asia/Tokyo", region: "asia-northeast1",
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY]
+}, async () => {
+    webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",
+        WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value());
+    const clock = tokyoParts();
+    const scheduleCache = new Map();
+    const users = await db.collection("users").get();
+
+    for (const userDoc of users.docs) {
+        const user = userDoc.data() || {};
+        const scheduleId = scheduleDocumentId(user);
+        if (!scheduleId) continue;
+        if (!scheduleCache.has(scheduleId)) {
+            scheduleCache.set(scheduleId, (await db.collection("schedule").doc(scheduleId).get()).data() || {});
+        }
+        const day = (scheduleCache.get(scheduleId).allDays || [])
+            .find(item => item.date === clock.date);
+        if (!day) continue;
+
+        const enrolledSnap = await userDoc.ref.collection("enrolledSubjects").get();
+        const enrolled = new Set();
+        enrolledSnap.docs.forEach(doc => {
+            const item = doc.data();
+            if (item.status === "removed") return;
+            [doc.id, item.name, item.subjectKey, item.subjectId].forEach(value => {
+                const normalized = normalizeCourseName(value);
+                if (normalized) enrolled.add(normalized);
+            });
+        });
+        if (!enrolled.size) continue;
+
+        const grade = String(user.grade || "").replace("年", "").trim();
+        for (const item of day.schedules || []) {
+            if (!enrolled.has(normalizeCourseName(item.subject))) continue;
+            if (grade && String(item.grade || "").replace("年", "").trim() !== grade) continue;
+
+            const recordId = slotId(scheduleId, clock.date, item.period, item.subject);
+            const override = (await db.collection("scheduleOverrides").doc(recordId).get()).data() || {};
+            const defaults = PERIOD_TIMES[Number(item.period)] || {};
+            const startTime = override.startTime || item.startTime || defaults.startTime;
+            const endTime = override.endTime || item.endTime || defaults.endTime;
+            const preference = (await userDoc.ref.collection("attendancePreferences")
+                .doc(encodeURIComponent(item.subject)).get()).data() || {};
+            if (preference.classGroup && item.classGroup && preference.classGroup !== item.classGroup) continue;
+
+            const group = item.classGroup || "";
+            const notificationType = clock.minutes === timeMinutes(startTime) - 10 ? "arrival"
+                : clock.minutes === timeMinutes(endTime) - 5 ? "departure" : "";
+            if (!notificationType) continue;
+
+            const record = await userDoc.ref.collection("attendanceRecords").doc(recordId).get();
+            if (record.exists && (notificationType === "arrival" || record.data().checkOutAt)) continue;
+            const dispatchId = `${userDoc.id}_${recordId}_${notificationType}_${encodeURIComponent(group || "all")}`;
+            const dispatchRef = db.collection("attendanceNotificationDispatches").doc(dispatchId);
+            let claimed = false;
+            await db.runTransaction(async transaction => {
+                const existing = await transaction.get(dispatchRef);
+                if (existing.exists) return;
+                transaction.create(dispatchRef, { userId: userDoc.id, recordId, notificationType, group, createdAt: new Date() });
+                claimed = true;
+            });
+            if (!claimed) continue;
+
+            const query = new URLSearchParams({ action: notificationType, recordId, scheduleId,
+                date: clock.date, period: String(item.period), subject: item.subject,
+                classGroup: group, startTime, endTime }).toString();
+            const label = group ? `（${group}）` : "";
+            const payload = notificationType === "arrival"
+                ? { title: `📚 出席確認 ${label}`, body: `${item.subject}：出席または欠席を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `attendance-${recordId}-${encodeURIComponent(group || "all")}` }
+                : { title: `🚪 退席確認 ${label}`, body: `${item.subject}：退席または早退を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `departure-${recordId}` };
+            const results = await sendToUserDevices(userDoc.id, payload);
+            await dispatchRef.update({ results, sentAt: new Date() });
+        }
+    }
+});
 
 
 // ======================

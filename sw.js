@@ -10,7 +10,9 @@ self.addEventListener("push", event => {
                 body: data.body,
                 icon: "icon-192.png",
                 badge: "icon-192.png",
-                data: data.url
+                data: data.url,
+                tag: data.tag || undefined,
+                renotify: Boolean(data.tag)
             }
         )
 
