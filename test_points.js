@@ -20,12 +20,14 @@ export async function awardDailyQuestionPoints({ type, points, subjectId, subjec
     const dailyRef = doc(db,"dailyRanking",day,"users",studentNumber);
     const totalRef = doc(db,"totalRanking",studentNumber);
     const subjectRef = doc(db,"users",studentNumber,"subjectPoints",subjectPointId);
+    const subjectDayRef = doc(db,"users",studentNumber,"subjectPointHistory",`${day}_${subjectPointId}`);
     return runTransaction(db, async transaction => {
         if ((await transaction.get(awardRef)).exists()) return { awarded:false, points:0 };
         transaction.set(awardRef,{day,type,subjectId,unitId,questionId,points,correctAt:serverTimestamp()});
         transaction.set(dailyRef,{point:incrementValue(points),solved:incrementValue(1),lastAnsweredAt:serverTimestamp()},{merge:true});
         transaction.set(totalRef,{point:incrementValue(points),updatedAt:serverTimestamp()},{merge:true});
         transaction.set(subjectRef,{subjectId:subjectId || "",subjectName:subjectName || "名称未設定",point:incrementValue(points),updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(subjectDayRef,{day,subjectId:subjectId || "",subjectName:subjectName || "名称未設定",point:incrementValue(points),updatedAt:serverTimestamp()},{merge:true});
         return { awarded:true, points };
     });
 }
