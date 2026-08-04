@@ -862,6 +862,18 @@ async function loadTodaySchedule() {
 
     }
 
+    const scheduleParams = new URLSearchParams(location.search);
+    if (scheduleParams.get("clearAttendanceTestDate") === "1") {
+        localStorage.removeItem("careMateAttendanceTestDate");
+        localStorage.removeItem("careMateSelectedScheduleDate");
+        if (studentNumber) {
+            await updateDoc(doc(db, "users", studentNumber), {
+                "attendanceTestClock.enabled": false,
+                "attendanceTestClock.resetAt": new Date().toISOString()
+            });
+        }
+    }
+
     const userSnapshot = studentNumber
         ? await getDoc(doc(db, "users", studentNumber))
         : null;
@@ -881,11 +893,6 @@ async function loadTodaySchedule() {
 
     // 日付選択は端末内に保持する。attendanceTestDate は表示だけを変える
     // 明示的なテスト用指定で、実際の端末・サーバー時刻には触れない。
-    const scheduleParams = new URLSearchParams(location.search);
-    if (scheduleParams.get("clearAttendanceTestDate") === "1") {
-        localStorage.removeItem("careMateAttendanceTestDate");
-        localStorage.removeItem("careMateSelectedScheduleDate");
-    }
     const requestedTestDate = scheduleParams.get("attendanceTestDate");
     if (/^\d{4}-\d{2}-\d{2}$/.test(requestedTestDate || "")) {
         localStorage.setItem("careMateSelectedScheduleDate", requestedTestDate);
