@@ -1,5 +1,5 @@
 import {db,studentNumber,showPage} from "./common.js";
-import {classifyArrival,classifyDeparture,isDepartureWindow,PERIOD_TIMES,slotId} from "./attendance_policy.js";
+import {classifyArrival,classifyDeparture,isArrivalWindowOpened,isDepartureWindow,PERIOD_TIMES,slotId} from "./attendance_policy.js";
 import {doc,getDoc,runTransaction,serverTimestamp,Timestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const params=new URLSearchParams(location.search);
@@ -27,6 +27,9 @@ function recordRef(){return doc(db,"attendance",studentNumber,"subjects",encodeU
 async function saveChoice(choice){
     if(!studentNumber)throw new Error("ログイン情報がありません");
     const now=new Date();
+    const today=now.toLocaleDateString("sv-SE");
+    if(today!==date)throw new Error("通知からの打刻は授業当日のみです。後から出席管理画面で修正できます。");
+    if(action!=="departure"&&!isArrivalWindowOpened(now,startTime))throw new Error("出席操作は授業開始10分前からです。");
     const status=action==="departure"
         ? classifyDeparture(now,endTime)
         : (choice==="absence"?"欠席":classifyArrival(now,startTime));

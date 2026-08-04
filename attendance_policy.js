@@ -8,6 +8,7 @@ const minutes=value=>{const [h,m]=String(value||"").split(":").map(Number);retur
 const nowMinutes=date=>date.getHours()*60+date.getMinutes();
 export function classifyArrival(date,startTime){const delta=nowMinutes(date)-minutes(startTime);return delta<=0?"出席":delta<=30?"遅刻":"欠席"}
 export function classifyDeparture(date,endTime){const remaining=minutes(endTime)-nowMinutes(date);return remaining<=0?"退席":remaining<=30?"早退":"欠席"}
+export function isArrivalWindowOpened(date,startTime){return nowMinutes(date)>=minutes(startTime)-10}
 export function isDepartureWindow(date,endTime){const delta=nowMinutes(date)-minutes(endTime);return delta>=-5&&delta<=10}
 export function slotId(scheduleId,date,period,subject){return `${scheduleId}_${date}_P${period}_${encodeURIComponent(subject)}`}
 export function absenceUnits(record){return Math.min(1,(record.arrivalStatus==="欠席"?1:record.arrivalStatus==="遅刻"?1/3:0)+(record.departureStatus==="欠席"?1:record.departureStatus==="早退"?1/3:0))}
