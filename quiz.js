@@ -13,6 +13,8 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { reportWrongAnswer } from "./question_report.js";
+
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const quizArea = document.getElementById("quizArea");
@@ -20,6 +22,7 @@ const quizArea = document.getElementById("quizArea");
 const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
+let visibleQuiz = [];
 
 setupTheme(themeButton);
 
@@ -71,6 +74,7 @@ async function loadQuiz() {
         q.answer !== undefined &&
         q.answer !== null
     );
+    visibleQuiz = quiz;
 
     quizArea.innerHTML = "";
 
@@ -96,6 +100,13 @@ async function loadQuiz() {
 
                 <p class="quiz-result"></p>
                 <p><small>${q.explanation || ""}</small></p>
+
+                <button
+                    type="button"
+                    class="btn btn-danger report-wrong-answer"
+                    data-question-index="${index}">
+                    答えが違います
+                </button>
             </div>
         `;
 
@@ -109,6 +120,27 @@ async function loadQuiz() {
 }
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("report-wrong-answer")) {
+
+        const index = Number(e.target.dataset.questionIndex);
+        const q = visibleQuiz[index];
+
+        if (q) {
+            await reportWrongAnswer(e.target, {
+                questionType: "quiz",
+                subjectId,
+                unitId,
+                questionId: String(q.id ?? index),
+                question: q.question,
+                registeredAnswer: q.answer,
+                choices: q.choices
+            });
+        }
+
+        return;
+
+    }
 
     if (!e.target.classList.contains("quiz-answer")) return;
 

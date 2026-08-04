@@ -626,28 +626,56 @@ function loadReports() {
 
             const report = reportDoc.data();
 
+            const isQuestionAnswerReport =
+                report.type === "questionAnswer";
+
+            const typeLabel =
+                isQuestionAnswerReport
+                    ? "テスト問題の答え"
+                    : report.type === "post"
+                        ? "投稿"
+                        : "コメント";
+
+            const questionDetails =
+                isQuestionAnswerReport
+                    ? `
+                        <p><b>科目ID：</b>${escapeReportText(report.subjectId || "-")}</p>
+                        <p><b>単元ID：</b>${escapeReportText(report.unitId || "-")}</p>
+                        <p><b>問題形式：</b>${escapeReportText(report.questionType || "-")}</p>
+                        <p><b>問題ID：</b>${escapeReportText(report.questionId || "-")}</p>
+                        <p><b>問題文：</b><br>${escapeReportText(report.question || "-")}</p>
+                        <p><b>登録されている答え：</b><br>${escapeReportText(
+                            Array.isArray(report.registeredAnswer)
+                                ? report.registeredAnswer.join(" / ")
+                                : report.registeredAnswer ?? "-"
+                        )}</p>
+                    `
+                    : `
+                        <p>
+                            <b>対象者：</b>
+                            ${escapeReportText(report.targetStudentNumber || "-")}
+                        </p>
+                    `;
+
             reportList.innerHTML += `
 
             <div class="card setting-card">
 
                 <p>
                     <b>種類：</b>
-                    ${report.type === "post" ? "投稿" : "コメント"}
+                    ${typeLabel}
                 </p>
 
-                <p>
-                    <b>対象者：</b>
-                    ${report.targetStudentNumber || "-"}
-                </p>
+                ${questionDetails}
 
                 <p>
                     <b>通報者：</b>
-                    ${report.reporterStudentNumber || "-"}
+                    ${escapeReportText(report.reporterStudentNumber || "-")}
                 </p>
 
                 <p>
                     <b>理由：</b><br>
-                    ${(report.reason || "").replace(/\n/g, "<br>")}
+                    ${escapeReportText(report.reason || "-").replace(/\n/g, "<br>")}
                 </p>
 
                 <p>
@@ -655,16 +683,15 @@ function loadReports() {
                     ${report.status || "open"}
                 </p>
 
-                <button
-                    class="btn btn-danger delete-reported-post"
-                    data-report-id="${reportDoc.id}"
-                    data-post-id="${report.postId || ""}">
-
-                    投稿を削除
-
-                </button>
-
-                <br><br>
+                ${isQuestionAnswerReport ? "" : `
+                    <button
+                        class="btn btn-danger delete-reported-post"
+                        data-report-id="${reportDoc.id}"
+                        data-post-id="${report.postId || ""}">
+                        投稿を削除
+                    </button>
+                    <br><br>
+                `}
 
                 <button
                     class="btn btn-secondary close-report"
@@ -681,6 +708,17 @@ function loadReports() {
         });
 
     });
+
+}
+
+function escapeReportText(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
 }
 

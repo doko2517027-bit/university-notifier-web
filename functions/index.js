@@ -3,6 +3,10 @@ const {
 } = require("firebase-functions/v2/https");
 
 const {
+    onDocumentCreated
+} = require("firebase-functions/v2/firestore");
+
+const {
     defineSecret
 } = require("firebase-functions/params");
 
@@ -148,6 +152,97 @@ onRequest(
                 );
 
         }
+
+    }
+);
+
+
+// ======================
+// テスト問題の答え違い報告
+// 管理者全員へWeb Pushを送信
+// ======================
+
+exports.notifyQuestionAnswerReport =
+onDocumentCreated(
+    {
+        document: "reports/{reportId}",
+        secrets: [
+            WEB_PUSH_PUBLIC_KEY,
+            WEB_PUSH_PRIVATE_KEY
+        ]
+    },
+
+    async event => {
+
+        const snapshot = event.data;
+
+        if (!snapshot) {
+            return;
+        }
+
+        const report = snapshot.data();
+
+        if (report.type !== "questionAnswer") {
+            return;
+        }
+
+        webpush.setVapidDetails(
+            "mailto:kidokohei.shonaniryo2517027@gmail.com",
+            WEB_PUSH_PUBLIC_KEY.value(),
+            WEB_PUSH_PRIVATE_KEY.value()
+        );
+
+        const adminSnapshot =
+            await db.collection("admins").get();
+
+        const payload = JSON.stringify({
+            title: "⚠️ テスト問題の答え違い報告",
+            body:
+                `${report.questionType || "問題"}：` +
+                `${String(report.question || "").slice(0, 80)}`,
+            url:
+                "https://doko2517027-bit.github.io/university-notifier-web/admin.html"
+        });
+
+        const results = await Promise.allSettled(
+            adminSnapshot.docs.map(async adminDoc => {
+
+                const userSnapshot =
+                    await db.collection("users")
+                        .doc(adminDoc.id)
+                        .get();
+
+                const subscription =
+                    userSnapshot.data()?.pushSubscription;
+
+                if (
+                    !subscription?.endpoint ||
+                    !subscription?.keys?.p256dh ||
+                    !subscription?.keys?.auth
+                ) {
+                    return "subscription-missing";
+                }
+
+                await webpush.sendNotification(
+                    subscription,
+                    payload
+                );
+
+                return "sent";
+
+            })
+        );
+
+        await snapshot.ref.update({
+            notificationSentAt:
+                new Date(),
+            notificationResults:
+                results.map(result =>
+                    result.status === "fulfilled"
+                        ? result.value
+                        : "failed"
+                )
+        });
 
     }
 );

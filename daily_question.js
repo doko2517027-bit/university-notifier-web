@@ -13,12 +13,15 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { reportWrongAnswer } from "./question_report.js";
+
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const questionArea = document.getElementById("questionArea");
 const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
+let visibleDailyQuestion = null;
 
 setupTheme(themeButton);
 
@@ -72,6 +75,8 @@ async function loadDailyQuestion() {
         return;
     }
 
+    visibleDailyQuestion = q;
+
     questionArea.innerHTML = `
         <div class="card setting-card" data-answer="${q.answer}">
             <h3>${q.question}</h3>
@@ -86,6 +91,12 @@ async function loadDailyQuestion() {
             `).join("")}
 
             <p id="result"></p>
+
+            <button
+                type="button"
+                class="btn btn-danger report-wrong-answer">
+                答えが違います
+            </button>
         </div>
     `;
 
@@ -96,6 +107,24 @@ async function loadDailyQuestion() {
 }
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("report-wrong-answer")) {
+
+        if (visibleDailyQuestion) {
+            await reportWrongAnswer(e.target, {
+                questionType: "daily",
+                subjectId,
+                unitId,
+                questionId: `${subjectId}_${unitId}_today`,
+                question: visibleDailyQuestion.question,
+                registeredAnswer: visibleDailyQuestion.answer,
+                choices: visibleDailyQuestion.choices
+            });
+        }
+
+        return;
+
+    }
 
     if (!e.target.classList.contains("answer-button")) return;
 

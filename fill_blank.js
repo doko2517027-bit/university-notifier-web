@@ -13,6 +13,8 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { reportWrongAnswer } from "./question_report.js";
+
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const questions = document.getElementById("questions");
@@ -20,6 +22,7 @@ const questions = document.getElementById("questions");
 const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
+let visibleFillBlank = [];
 
 setupTheme(themeButton);
 
@@ -78,6 +81,7 @@ async function loadQuestions() {
             String(q.answer || "").trim() !== ""
         )
     );
+    visibleFillBlank = fillBlank;
 
     questions.innerHTML = "";
 
@@ -112,6 +116,13 @@ async function loadQuestions() {
                 </button>
 
                 <p class="fill-result"></p>
+
+                <button
+                    type="button"
+                    class="btn btn-danger report-wrong-answer"
+                    data-question-index="${index}">
+                    答えが違います
+                </button>
             </div>
         `;
 
@@ -125,6 +136,26 @@ async function loadQuestions() {
 }
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("report-wrong-answer")) {
+
+        const index = Number(e.target.dataset.questionIndex);
+        const q = visibleFillBlank[index];
+
+        if (q) {
+            await reportWrongAnswer(e.target, {
+                questionType: "fillBlank",
+                subjectId,
+                unitId,
+                questionId: String(q.id ?? index),
+                question: q.question,
+                registeredAnswer: q.answers || q.answer || ""
+            });
+        }
+
+        return;
+
+    }
 
     if (!e.target.classList.contains("check-fill")) return;
 
