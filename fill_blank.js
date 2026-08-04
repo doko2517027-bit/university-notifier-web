@@ -7,13 +7,12 @@ import {
 
 import {
     doc,
-    getDoc,
-    increment,
-    setDoc,
-    serverTimestamp
+    getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { reportWrongAnswer } from "./question_report.js";
+import { awardDailyQuestionPoints } from "./test_points.js";
+import { loadTestProgress, saveTestProgress, scrubberHtml, setupScrubber, finishTest } from "./test_session.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -25,6 +24,8 @@ const unitId = params.get("unitId");
 let visibleFillBlank = [];
 let currentFillIndex = 0;
 let fillCompleted = false;
+let subjectName = "科目";
+let sessionPoints = 0;
 
 setupTheme(themeButton);
 
@@ -59,6 +60,8 @@ async function loadQuestions() {
             "published"
         )
     );
+    const subjectSnap=await getDoc(doc(db,"examSubjects",subjectId));
+    subjectName=subjectSnap.data()?.name||subjectSnap.data()?.subjectName||subjectId;
 
     if (!snap.exists()) {
         questions.innerHTML = "AI問題がありません。";
@@ -90,6 +93,7 @@ async function loadQuestions() {
         return;
     }
 
+    currentFillIndex=await loadTestProgress("fillBlank",subjectId,unitId,visibleFillBlank.length);
     renderFillQuestion();
 
     sessionStorage.setItem(
@@ -139,8 +143,9 @@ function renderFillQuestion() {
                     data-question-index="${currentFillIndex}">
                     答えが違います
                 </button>
-            </div>
+            </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}
         `;
+    setupScrubber(questions,index=>{currentFillIndex=index;renderFillQuestion();saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length)});
 }
 
 document.addEventListener("click", async (e) => {
@@ -149,11 +154,13 @@ document.addEventListener("click", async (e) => {
         if (currentFillIndex + 1 < visibleFillBlank.length) {
             currentFillIndex++;
             renderFillQuestion();
+            await saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length);
             window.scrollTo({top:0, behavior:"smooth"});
         } else {
             fillCompleted = true;
             sessionStorage.removeItem("quizPlaying");
-            questions.innerHTML = `<div class="card setting-card test-complete"><div>🎉</div><h2>全問終了</h2><button class="btn btn-primary" onclick="history.back()">テスト画面へ戻る</button></div>`;
+            await saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length,true);
+            finishTest(sessionPoints,()=>{fillCompleted=false;currentFillIndex=0;sessionPoints=0;renderFillQuestion()},()=>location.href="exam.html");
         }
         return;
     }
@@ -210,93 +217,8 @@ document.addEventListener("click", async (e) => {
         panel.classList.add("correct");
         panel.querySelector(".test-mark").textContent = "○";
 
-        const now = new Date();
-
-        const today =
-            `${now.getFullYear()}-` +
-            `${String(now.getMonth() + 1).padStart(2,"0")}-` +
-            `${String(now.getDate()).padStart(2,"0")}`;
-
-        const studentNumber =
-            localStorage.getItem("studentNumber");
-
-
-        const questionId =
-            `${subjectId}_${unitId}_fill_${card.dataset.question}`;
-
-
-        const solvedRef =
-            doc(
-                db,
-                "users",
-                studentNumber,
-                "solvedQuestions",
-                questionId
-            );
-
-
-        const solvedSnap =
-            await getDoc(
-                solvedRef
-            );
-
-
-        if (!solvedSnap.exists()) {
-
-
-            await setDoc(
-                solvedRef,
-                {
-                    firstCorrectAt:
-                        serverTimestamp()
-                }
-            );
-
-
-            await setDoc(
-                doc(
-                    db,
-                    "dailyRanking",
-                    today,
-                    "users",
-                    studentNumber
-                ),
-                {
-                    lastAnsweredAt:
-                        serverTimestamp(),
-
-                    point:
-                        increment(1),
-
-                    solved:
-                        increment(1)
-                },
-                {
-                    merge:true
-                }
-            );
-
-
-            // 累計ポイント追加
-            await setDoc(
-                doc(
-                    db,
-                    "totalRanking",
-                    studentNumber
-                ),
-                {
-                    point:
-                        increment(1),
-
-                    updatedAt:
-                        serverTimestamp()
-                },
-                {
-                    merge:true
-                }
-            );
-
-        }
+        const awarded=await awardDailyQuestionPoints({type:"fillBlank",points:4,subjectId,subjectName,unitId,questionId:String(visibleFillBlank[currentFillIndex].id??currentFillIndex)});
+        if(awarded.awarded){sessionPoints+=4;panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋4pt</div>')}
 
     } else {
 
@@ -306,6 +228,8 @@ document.addEventListener("click", async (e) => {
         panel.querySelector(".test-mark").textContent = "×";
 
     }
+
+    await saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length);
 
 });
 

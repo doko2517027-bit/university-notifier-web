@@ -66,6 +66,9 @@ if(localStorage.getItem("theme")==="dark"){
 
 <div class="card setting-card">
 
+    <p><b>学籍番号</b></p><p id="studentNumberText"></p>
+    <p><b>氏名</b></p><p id="registeredNameText"></p>
+
     <p><b>学科</b></p>
     <p id="departmentText"></p>
 
@@ -74,7 +77,27 @@ if(localStorage.getItem("theme")==="dark"){
 
     <p><b>学年</b></p>
     <p id="gradeText"></p>
+    <p><b>卒業予定</b></p><p id="graduationText"></p>
 
+</div>
+
+<h2>パスワード変更</h2>
+<div class="card setting-card settings-form-stack">
+    <label>Manaba 新しいパスワード<input id="newManabaPassword" type="password" autocomplete="new-password"></label>
+    <button id="saveManabaPassword" class="btn btn-secondary">Manabaを変更</button>
+    <label>ActiveMail 新しいパスワード<input id="newActiveMailPassword" type="password" autocomplete="new-password"></label>
+    <button id="saveActiveMailPassword" class="btn btn-secondary">ActiveMailを変更</button>
+    <label>CareMate 新しいパスワード<input id="newCareMatePassword" type="password" autocomplete="new-password"></label>
+    <label>CareMate 確認入力<input id="confirmCareMatePassword" type="password" autocomplete="new-password"></label>
+    <button id="saveCareMatePassword" class="btn btn-primary">CareMateを変更</button>
+</div>
+
+<h2>お問い合わせ</h2>
+<div class="card setting-card settings-form-stack">
+    <label>種類<select id="contactCategory"><option>不具合</option><option>使い方</option><option>要望</option><option>その他</option></select></label>
+    <label>内容<textarea id="contactMessage" rows="5" maxlength="2000" placeholder="お問い合わせ内容を入力"></textarea></label>
+    <button id="sendContact" class="btn btn-primary">送信する</button>
+    <a id="contactInboxLink" href="contact_admin.html" hidden>📨 お問い合わせ管理</a>
 </div>
 
 <h2>アプリ情報</h2>
@@ -273,4 +296,3 @@ if(localStorage.getItem("theme")==="dark"){
 
 </body>
 </html>
-

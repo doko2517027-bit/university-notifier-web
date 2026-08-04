@@ -59,14 +59,25 @@ a{
 }
 
 .header{
-    text-align:center;
-    margin-bottom:35px;
+    display:grid;
+    grid-template-columns:auto 1fr;
+    grid-template-rows:auto auto;
+    align-items:center;
+    column-gap:10px;
+    padding:10px 12px;
+    margin:8px 0 16px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--card);
+    text-align:left;
 }
 
 .logo{
-    font-size:60px;
-    margin-bottom:10px;
+    grid-row:1 / 3;
+    font-size:28px;
+    margin:0;
 }
+.header h1{margin:0;font-size:18px;line-height:1.2}.header p{margin:1px 0 0;font-size:11px;line-height:1.25}
 
 .top-buttons{
     display:flex;
@@ -2579,6 +2590,8 @@ white-space:pre-wrap;
     gap:8px;
     font-weight:bold;
 }
+.top-user-info.is-clickable{cursor:pointer}.top-user-info.is-clickable:active{transform:scale(.98)}
+.point-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.point-summary-grid .card{display:flex;align-items:baseline;gap:4px;margin:0;padding:12px}.point-summary-grid b{font-size:25px}.point-summary-grid small{display:block;align-self:center;margin-right:auto}.point-chart-row{margin:14px 0}.point-chart-row>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.point-chart-row i{display:block;height:8px;margin-top:6px;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--primary-light));min-width:3px}.point-ranking-row{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:8px;padding:11px 8px;border-bottom:1px solid var(--border)}.point-ranking-row.is-me{border-radius:10px;background:var(--accent);color:#0f172a}
 
 /* ===== Dark mode text fix ===== */
 
@@ -2654,13 +2667,13 @@ white-space:pre-wrap;
 
 /* ===== ホーム・コンパクトダッシュボード ===== */
 .home-weather-compact{
-    width:100%;
-    display:grid;
-    grid-template-columns:minmax(90px,1fr) auto auto;
+    width:auto;
+    max-width:340px;
+    display:flex;
     align-items:center;
     gap:12px;
-    margin:0 0 14px;
-    padding:11px 14px;
+    margin:0 0 12px auto;
+    padding:7px 10px;
     border:1px solid var(--border);
     border-radius:14px;
     background:var(--card);
@@ -2670,9 +2683,9 @@ white-space:pre-wrap;
     cursor:pointer;
 }
 
-.home-weather-location{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:750}
-.home-weather-main{font-size:20px;font-weight:800;white-space:nowrap}
-.home-weather-detail{font-size:12px;color:var(--subtext);white-space:nowrap}
+.home-weather-location{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:750}
+.home-weather-main{font-size:16px;font-weight:800;white-space:nowrap}
+.home-weather-detail{font-size:10px;color:var(--subtext);white-space:nowrap}
 
 .home-schedule-grid{
     display:grid;
@@ -2706,10 +2719,10 @@ white-space:pre-wrap;
 
 @media(max-width:560px){
     .home-schedule-grid{grid-template-columns:1fr}
-    .home-weather-compact{grid-template-columns:1fr auto;gap:7px 10px}
-    .home-weather-detail{grid-column:2;font-size:11px}
-    .home-weather-main{grid-column:2;grid-row:1;font-size:18px}
+    .home-weather-compact{gap:7px;max-width:100%}
 }
+
+.course-progress-years{display:grid;gap:9px;margin-top:12px}.course-progress-year-summary{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 12px;border-radius:11px;background:var(--bg)}.course-progress-year-summary small{grid-column:1 / -1;color:var(--subtext)}.course-progress-year{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;padding:12px;border:1px solid var(--border);border-radius:12px}.course-progress-year legend{padding:0 6px;font-weight:800}.course-progress-year label{font-size:12px;color:var(--subtext)}.course-progress-year input{margin-top:5px;padding:9px}.course-progress-lock-note{font-size:12px}
 
 /* ===== テスト・1問集中表示 ===== */
 .test-progress{height:7px;margin:12px 0 18px;overflow:hidden;border-radius:999px;background:rgba(127,127,127,.18)}
@@ -2733,3 +2746,5 @@ white-space:pre-wrap;
 .test-report-link{margin-top:15px;border:0;background:none;color:#ef4444;font-size:12px;text-decoration:underline;cursor:pointer}
 .test-complete{text-align:center;padding:35px}.test-complete>div{font-size:55px}
 @keyframes handDrawMark{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:rotate(-12deg) scale(.8)}60%{opacity:1}100%{opacity:1;clip-path:inset(0 0 0 0);transform:rotate(-5deg) scale(1)}}
+.settings-form-stack{display:grid;gap:12px}.settings-form-stack label{display:grid;gap:5px;color:var(--subtext);font-size:13px}
+.test-scrubber{position:sticky;bottom:78px;z-index:30;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin:14px auto 0;padding:9px 12px;max-width:620px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb,var(--card) 92%,transparent);box-shadow:0 8px 25px rgba(15,23,42,.16);backdrop-filter:blur(14px)}.test-scrubber output{min-width:52px;font-size:12px;font-weight:800;color:var(--primary)}.test-scrubber input{padding:0;height:24px;border:0;box-shadow:none;accent-color:var(--primary)}.test-scrubber small{font-size:10px;color:var(--subtext);white-space:nowrap}.point-earned-effect{position:absolute;top:0;right:8px;padding:7px 10px;border-radius:99px;background:#f59e0b;color:#fff;font-size:20px;font-weight:900;animation:pointPop 1.2s ease forwards}@keyframes pointPop{0%{opacity:0;transform:translateY(12px) scale(.6)}35%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-24px) scale(1)}}

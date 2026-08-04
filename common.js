@@ -20,7 +20,8 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -251,21 +252,25 @@ export async function loadMyRanking(){
 
     try{
 
-        const today =
-            new Date()
-            .toISOString()
-            .slice(0,10);
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
 
 
-        const rankingSnap =
-            await getDocs(
-                collection(
+        const rankingRef = collection(
                     db,
                     "dailyRanking",
                     today,
                     "users"
-                )
-            );
+                );
+
+        onSnapshot(rankingRef, rankingSnap => {
+
+        const userInfo = element.closest(".top-user-info");
+        if (userInfo) {
+            userInfo.classList.add("is-clickable");
+            userInfo.title = "ポイントとランキングを見る";
+            userInfo.onclick = () => location.href = "points.html";
+        }
 
         let ranking = [];
 
@@ -299,7 +304,7 @@ export async function loadMyRanking(){
 
         if(myIndex === -1){
 
-            element.innerHTML = "";
+            element.innerHTML = `<span class="my-ranking">順位なし 0pt</span>`;
 
             return;
 
@@ -336,6 +341,8 @@ export async function loadMyRanking(){
             </span>
 
         `;
+
+        }, error => console.error("順位リアルタイム取得エラー", error));
 
 
     }catch(error){

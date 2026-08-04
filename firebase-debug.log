@@ -1,0 +1,128 @@
+[debug] [2026-08-04T17:31:42.902Z] ----------------------------------------------------------------------
+[debug] [2026-08-04T17:31:42.917Z] Command:       /usr/local/bin/firebase /Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase deploy --only functions:notifyContactMessage
+[debug] [2026-08-04T17:31:42.918Z] CLI Version:   14.1.0
+[debug] [2026-08-04T17:31:42.918Z] Platform:      darwin
+[debug] [2026-08-04T17:31:42.918Z] Node Version:  v20.18.2
+[debug] [2026-08-04T17:31:42.919Z] Time:          Wed Aug 05 2026 02:31:42 GMT+0900 (GMT+09:00)
+[debug] [2026-08-04T17:31:42.919Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-04T17:31:43.233Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-04T17:31:43.235Z] > authorizing via signed-in user (kidokohei.shonaniryo2517027@gmail.com)
+[debug] [2026-08-04T17:31:43.236Z] [iam] checking project universitynotifier-67517 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-08-04T17:31:43.240Z] Checked if tokens are valid: false, expires at: 1785858419945
+[debug] [2026-08-04T17:31:43.241Z] Checked if tokens are valid: false, expires at: 1785858419945
+[debug] [2026-08-04T17:31:43.242Z] > refreshing access token with scopes: []
+[debug] [2026-08-04T17:31:43.245Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-08-04T17:31:43.245Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-04T17:31:43.629Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-08-04T17:31:43.630Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-04T17:31:43.646Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517:testIamPermissions [none]
+[debug] [2026-08-04T17:31:43.647Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517:testIamPermissions x-goog-quota-user=projects/universitynotifier-67517
+[debug] [2026-08-04T17:31:43.648Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-08-04T17:31:44.317Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517:testIamPermissions 200
+[debug] [2026-08-04T17:31:44.317Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-08-04T17:31:44.319Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:44.319Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:44.319Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-08-04T17:31:44.319Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-08-04T17:31:45.321Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2026-08-04T17:31:45.322Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2026-08-04T17:31:45.323Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/universitynotifier-67517/serviceAccounts/universitynotifier-67517@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[info] 
+[info] === Deploying to 'universitynotifier-67517'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-08-04T17:31:45.329Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.329Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.329Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517 [none]
+[debug] [2026-08-04T17:31:45.510Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517 200
+[debug] [2026-08-04T17:31:45.511Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/universitynotifier-67517 {"projectNumber":"908622250178","projectId":"universitynotifier-67517","lifecycleState":"ACTIVE","name":"UniversityNotifier","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-06-26T10:17:00.329Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[debug] [2026-08-04T17:31:45.514Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.514Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.514Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.515Z] Checked if tokens are valid: true, expires at: 1785868302630
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2026-08-04T17:31:45.516Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.517Z] Checked if tokens are valid: true, expires at: 1785868302630
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-08-04T17:31:45.518Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.519Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:45.521Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-08-04T17:31:45.522Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/universitynotifier-67517
+[debug] [2026-08-04T17:31:45.527Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-08-04T17:31:45.527Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/runtimeconfig.googleapis.com x-goog-quota-user=projects/universitynotifier-67517
+[debug] [2026-08-04T17:31:45.529Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudbuild.googleapis.com [none]
+[debug] [2026-08-04T17:31:45.529Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudbuild.googleapis.com x-goog-quota-user=projects/universitynotifier-67517
+[debug] [2026-08-04T17:31:45.531Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/artifactregistry.googleapis.com [none]
+[debug] [2026-08-04T17:31:45.531Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/artifactregistry.googleapis.com x-goog-quota-user=projects/universitynotifier-67517
+[debug] [2026-08-04T17:31:46.560Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudbuild.googleapis.com 200
+[debug] [2026-08-04T17:31:46.561Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudbuild.googleapis.com [omitted]
+[info] ✔  functions: required API cloudbuild.googleapis.com is enabled 
+[debug] [2026-08-04T17:31:46.588Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudfunctions.googleapis.com 200
+[debug] [2026-08-04T17:31:46.589Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/cloudfunctions.googleapis.com [omitted]
+[info] ✔  functions: required API cloudfunctions.googleapis.com is enabled 
+[debug] [2026-08-04T17:31:46.600Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/runtimeconfig.googleapis.com 200
+[debug] [2026-08-04T17:31:46.600Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-08-04T17:31:46.622Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/artifactregistry.googleapis.com 200
+[debug] [2026-08-04T17:31:46.623Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/artifactregistry.googleapis.com [omitted]
+[info] ✔  artifactregistry: required API artifactregistry.googleapis.com is enabled 
+[debug] [2026-08-04T17:31:46.624Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:46.624Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:46.624Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/universitynotifier-67517/adminSdkConfig [none]
+[debug] [2026-08-04T17:31:47.074Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/universitynotifier-67517/adminSdkConfig 200
+[debug] [2026-08-04T17:31:47.074Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/universitynotifier-67517/adminSdkConfig {"projectId":"universitynotifier-67517","databaseURL":"https://universitynotifier-67517-default-rtdb.firebaseio.com","storageBucket":"universitynotifier-67517.firebasestorage.app"}
+[debug] [2026-08-04T17:31:47.075Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:47.075Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:47.076Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/universitynotifier-67517/configs [none]
+[debug] [2026-08-04T17:31:47.430Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/universitynotifier-67517/configs 200
+[debug] [2026-08-04T17:31:47.431Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/universitynotifier-67517/configs {}
+[debug] [2026-08-04T17:31:47.437Z] Validating nodejs source
+[debug] [2026-08-04T17:31:47.461Z] checkFunctionsSDKVersion was unable to fetch information from NPM Error: spawnSync npm Unknown system error -8
+    at Object.spawnSync (node:internal/child_process:1123:20)
+    at Object.spawnSync (node:child_process:877:24)
+    at Object.spawnSync (pkg/prelude/bootstrap.js:2092:31)
+    at Function.spawnSync [as sync] (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/cross-spawn/index.js:26:23)
+    at Object.getLatestSDKVersion (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/functions/runtimes/node/versioning.js:54:25)
+    at Object.checkFunctionsSDKVersion (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/functions/runtimes/node/versioning.js:74:32)
+    at Delegate.validate (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/functions/runtimes/node/index.js:86:20)
+    at loadCodebases (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/functions/prepare.js:318:31)
+    at async prepare (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/functions/prepare.js:59:24)
+    at async chain (/Users/kidokouhei/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/deploy/index.js:40:9)
+[debug] [2026-08-04T17:31:47.462Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.0.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2026-08-04T17:31:47.462Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-08-04T17:31:47.466Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-08-04T17:31:47.494Z] Found firebase-functions binary at '/Users/kidokouhei/Desktop/CareMateApp/university_notifier_web/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8534
+
+[debug] [2026-08-04T17:31:48.895Z] Got response from /__/functions.yaml {"endpoints":{"sendAttendanceTest":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"WEB_PUSH_PUBLIC_KEY"},{"key":"WEB_PUSH_PRIVATE_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"sendAttendanceTest"},"notifyQuestionAnswerReport":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["asia-northeast1"],"secretEnvironmentVariables":[{"key":"WEB_PUSH_PUBLIC_KEY"},{"key":"WEB_PUSH_PRIVATE_KEY"}],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"reports/{reportId}"},"retry":false},"entryPoint":"notifyQuestionAnswerReport"},"notifyContactMessage":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["asia-northeast1"],"secretEnvironmentVariables":[{"key":"WEB_PUSH_PUBLIC_KEY"},{"key":"WEB_PUSH_PRIVATE_KEY"}],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"contacts/{contactId}"},"retry":false},"entryPoint":"notifyContactMessage"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{},"params":[{"type":"secret","name":"WEB_PUSH_PUBLIC_KEY"},{"type":"secret","name":"WEB_PUSH_PRIVATE_KEY"}]}
+[info] i  extensions: ensuring required API firebaseextensions.googleapis.com is enabled... 
+[debug] [2026-08-04T17:31:52.999Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:53.000Z] Checked if tokens are valid: true, expires at: 1785868302630
+[debug] [2026-08-04T17:31:53.001Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/firebaseextensions.googleapis.com [none]
+[debug] [2026-08-04T17:31:53.002Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/universitynotifier-67517/services/firebaseextensions.googleapis.com x-goog-quota-user=projects/universitynotifier-67517

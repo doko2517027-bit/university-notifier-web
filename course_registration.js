@@ -35,9 +35,8 @@ const elements = {
     toggleProgress: document.getElementById("toggleProgressEditor"),
     progressEditor: document.getElementById("progressEditor"),
     saveProgress: document.getElementById("saveCourseProgress"),
-    earnedInput: document.getElementById("earnedCreditsInput"),
-    earnedRequiredInput: document.getElementById("earnedRequiredCreditsInput"),
-    earnedElectiveInput: document.getElementById("earnedElectiveCreditsInput"),
+    progressSummary: document.getElementById("courseProgressSummary"),
+    progressYearFields: document.getElementById("courseProgressYearFields"),
     currentCredits: document.getElementById("currentCredits"),
     semesterCredits: document.getElementById("semesterCredits"),
     annualCredits: document.getElementById("annualCredits"),
@@ -377,26 +376,64 @@ function updateCreditDisplay() {
 }
 
 function fillProgressEditor() {
-    elements.earnedInput.value = Number(progress.earnedCredits || 0);
-    elements.earnedRequiredInput.value = Number(progress.earnedRequiredCredits || 0);
-    elements.earnedElectiveInput.value = Number(progress.earnedElectiveCredits || 0);
+    const currentGrade = Math.max(1, Math.min(4, Number(grade) || 1));
+    const card = document.getElementById("courseProgressCard");
+    if (currentGrade === 1) {
+        card.hidden = true;
+        return;
+    }
+    const years = progress.years || {};
+    const yearRows = Array.from({ length: currentGrade - 1 }, (_, i) => i + 1);
+    elements.progressSummary.innerHTML = yearRows.map(year => {
+        const item = years[String(year)] || {};
+        return `<div class="course-progress-year-summary"><b>${year}年次</b><span>${Number(item.total || 0)}単位</span><small>必修 ${Number(item.required || 0)}・選択 ${Number(item.elective || 0)}</small></div>`;
+    }).join("");
+    if (progress.locked === true) {
+        elements.toggleProgress.hidden = true;
+        elements.progressEditor.hidden = true;
+        elements.progressSummary.hidden = false;
+        return;
+    }
+    elements.progressSummary.hidden = true;
+    elements.progressYearFields.innerHTML = yearRows.map(year => {
+        const item = years[String(year)] || {};
+        return `<fieldset class="course-progress-year" data-year="${year}"><legend>${year}年次の取得単位</legend><label>合計<input data-credit="total" type="number" min="0" step="1" value="${Number(item.total || 0)}"></label><label>必修<input data-credit="required" type="number" min="0" step="1" value="${Number(item.required || 0)}"></label><label>選択<input data-credit="elective" type="number" min="0" step="1" value="${Number(item.elective || 0)}"></label></fieldset>`;
+    }).join("");
 }
 
 async function saveProgress() {
-    const nextProgress = {
-        earnedCredits: Number(elements.earnedInput.value || 0),
-        earnedRequiredCredits: Number(elements.earnedRequiredInput.value || 0),
-        earnedElectiveCredits: Number(elements.earnedElectiveInput.value || 0),
-        updatedAt: new Date().toISOString()
-    };
-    if (nextProgress.earnedRequiredCredits + nextProgress.earnedElectiveCredits > nextProgress.earnedCredits) {
-        alert("必修と選択の取得単位合計が、取得済み総単位を超えています。");
+    if (progress.locked === true) return;
+    const latestUser = await getDoc(doc(db,"users",studentNumber));
+    if (latestUser.data()?.courseProgress?.locked === true) {
+        progress = latestUser.data().courseProgress;
+        fillProgressEditor();
+        alert("取得単位はすでに登録済みのため、再登録できません。");
         return;
     }
+    const years = {};
+    for (const row of elements.progressYearFields.querySelectorAll("[data-year]")) {
+        const year = row.dataset.year;
+        const read = key => Number(row.querySelector(`[data-credit="${key}"]`).value || 0);
+        years[year] = { total: read("total"), required: read("required"), elective: read("elective") };
+        if (years[year].required + years[year].elective > years[year].total) {
+            alert(`${year}年次の必修と選択の合計が、取得単位合計を超えています。`);
+            return;
+        }
+    }
+    if (!confirm("この取得単位は一度だけ登録できます。\n保存後は学生側から登録し直せません。内容に間違いはありませんか？")) return;
+    const nextProgress = {
+        years,
+        locked: true,
+        earnedCredits: Object.values(years).reduce((sum, item) => sum + item.total, 0),
+        earnedRequiredCredits: Object.values(years).reduce((sum, item) => sum + item.required, 0),
+        earnedElectiveCredits: Object.values(years).reduce((sum, item) => sum + item.elective, 0),
+        registeredAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
     try {
         await setDoc(doc(db, "users", studentNumber), { courseProgress: nextProgress }, { merge: true });
         progress = nextProgress;
-        elements.progressEditor.hidden = true;
+        fillProgressEditor();
         updateCreditDisplay();
         showToast("取得単位を保存しました");
     } catch (error) {

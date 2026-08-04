@@ -153,6 +153,15 @@ function formatCompletedExamDate(dateValue) {
 
 async function loadSubjectUnits() {
 
+    const currentStudent = localStorage.getItem("studentNumber");
+    const progressSnap = currentStudent
+        ? await getDocs(collection(db,"users",currentStudent,"examProgress"))
+        : { docs:[] };
+    const progressMap = new Map(progressSnap.docs.map(item => {
+        const value=item.data();
+        return [`${value.type}|${value.subjectId}|${value.unitId}`,value];
+    }));
+
     const subjectSnap = await getDocs(
         query(
             collection(db, "examSubjects"),
@@ -294,12 +303,12 @@ async function loadSubjectUnits() {
 
             for (const { unitDoc, unit, data } of published) {
 
-                const hasDailyQuestion =
+                const hasDailyQuestion = hasQuizPool(data) || (
                     data.today_question &&
                     typeof data.today_question.question === "string" &&
                     data.today_question.question.trim() !== "" &&
                     Array.isArray(data.today_question.choices) &&
-                    data.today_question.choices.length > 0;
+                    data.today_question.choices.length > 0);
 
                 const hasFillBlank =
                     Array.isArray(data.fill_blank) &&
@@ -354,23 +363,25 @@ async function loadSubjectUnits() {
                 }
 
                 if (hasFillBlank) {
+                    const previous=progressMap.get(`fillBlank|${subjectDoc.id}|${unitDoc.id}`);
                     menuHtml += `
                         <div
                             class="card setting-card"
                             onclick="location.href='fill_blank.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
                             <h3>📝 穴埋め問題</h3>
-                            <p>穴埋め問題に挑戦</p>
+                            <p>${previous&&!previous.completed?`前回：問題${Number(previous.currentIndex||0)+1} / ${previous.totalQuestions}`:"穴埋め問題に挑戦"}</p>
                         </div>
                     `;
                 }
 
                 if (hasQuiz) {
+                    const previous=progressMap.get(`quiz|${subjectDoc.id}|${unitDoc.id}`);
                     menuHtml += `
                         <div
                             class="card setting-card"
                             onclick="location.href='quiz.html?subjectId=${subjectDoc.id}&unitId=${unitDoc.id}'">
                             <h3>🧠 四択問題</h3>
-                            <p>四択問題に挑戦</p>
+                            <p>${previous&&!previous.completed?`前回：問題${Number(previous.currentIndex||0)+1} / ${previous.totalQuestions}`:"四択問題に挑戦"}</p>
                         </div>
                     `;
                 }
@@ -447,3 +458,5 @@ async function loadSubjectUnits() {
     }
 
 }
+
+function hasQuizPool(data){return Array.isArray(data.quiz)&&data.quiz.some(q=>q?.question&&Array.isArray(q.choices)&&q.choices.length>0)}

@@ -7,13 +7,11 @@ import {
 
 import {
     doc,
-    getDoc,
-    increment,
-    setDoc,
-    serverTimestamp
+    getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { reportWrongAnswer } from "./question_report.js";
+import { awardDailyQuestionPoints, localDateKey } from "./test_points.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -22,6 +20,7 @@ const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 let visibleDailyQuestion = null;
+let subjectName = "科目";
 
 setupTheme(themeButton);
 
@@ -56,6 +55,8 @@ async function loadDailyQuestion() {
             "published"
         )
     );
+    const subjectSnap=await getDoc(doc(db,"examSubjects",subjectId));
+    subjectName=subjectSnap.data()?.name||subjectSnap.data()?.subjectName||subjectId;
 
     if (!snap.exists()) {
         questionArea.innerHTML = "今日の1問はまだありません。";
@@ -63,7 +64,9 @@ async function loadDailyQuestion() {
     }
 
     const data = snap.data();
-    const q = data.today_question;
+    const pool=(data.quiz||[]).filter(q=>q?.question&&Array.isArray(q.choices)&&q.choices.length);
+    const seed=[...`${localDateKey()}|${subjectId}|${unitId}`].reduce((sum,char)=>((sum*31)+char.charCodeAt(0))>>>0,7);
+    const q = pool.length ? pool[seed % pool.length] : data.today_question;
 
     if (
         !q ||
@@ -162,101 +165,8 @@ document.addEventListener("click", async (e) => {
             "quizPlaying"
         );
 
-        const now = new Date();
-
-        const today =
-            `${now.getFullYear()}-` +
-            `${String(now.getMonth() + 1).padStart(2,"0")}-` +
-            `${String(now.getDate()).padStart(2,"0")}`;
-
-        const studentNumber =
-            localStorage.getItem("studentNumber");
-
-        console.log(
-            localStorage.getItem("studentNumber")
-        );
-
-        const questionId =
-            `${subjectId}_${unitId}_today`;
-
-
-        const solvedRef =
-            doc(
-                db,
-                "users",
-                studentNumber,
-                "solvedQuestions",
-                questionId
-            );
-
-
-        const solvedSnap =
-            await getDoc(
-                solvedRef
-            );
-
-
-        if (!solvedSnap.exists()) {
-
-
-            await setDoc(
-                solvedRef,
-                {
-                    firstCorrectAt:
-                        serverTimestamp()
-                }
-            );
-
-
-            await setDoc(
-                doc(
-                    db,
-                    "dailyRanking",
-                    today,
-                    "users",
-                    studentNumber
-                ),
-                {
-                    lastAnsweredAt:
-                        serverTimestamp(),
-
-                    point:
-                        increment(1),
-
-                    solved:
-                        increment(1)
-                },
-                {
-                    merge:true
-                }
-            );
-
-            console.log(
-                "ポイント追加:",
-                studentNumber
-            );
-
-
-            // 累計ポイント追加
-            await setDoc(
-                doc(
-                    db,
-                    "totalRanking",
-                    studentNumber
-                ),
-                {
-                    point:
-                        increment(1),
-
-                    updatedAt:
-                        serverTimestamp()
-                },
-                {
-                    merge:true
-                }
-            );
-
-        }
+        const awarded=await awardDailyQuestionPoints({type:"daily",points:3,subjectId,subjectName,unitId,questionId:String(visibleDailyQuestion.id??seed)});
+        if(awarded.awarded)panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋3pt</div>');
 
     } else {
         result.textContent = "不正解";

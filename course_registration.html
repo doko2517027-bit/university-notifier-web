@@ -48,13 +48,13 @@ if (localStorage.getItem("theme") === "dark") {
             <h3>過去の取得単位</h3>
             <small>落単した科目は含めず、取得済み単位だけ入力してください。</small>
         </div>
-        <button id="toggleProgressEditor" class="btn btn-secondary" type="button">編集</button>
+        <button id="toggleProgressEditor" class="btn btn-secondary" type="button">初回登録</button>
     </div>
+    <div id="courseProgressSummary" class="course-progress-years"></div>
     <div id="progressEditor" class="course-progress-editor" hidden>
-        <label>取得済み総単位<input id="earnedCreditsInput" type="number" min="0" step="1"></label>
-        <label>取得済み必修単位<input id="earnedRequiredCreditsInput" type="number" min="0" step="1"></label>
-        <label>取得済み選択単位<input id="earnedElectiveCreditsInput" type="number" min="0" step="1"></label>
-        <button id="saveCourseProgress" class="btn btn-primary" type="button">取得単位を保存</button>
+        <p class="course-progress-lock-note">現在の学年より前に取得した単位を学年別に入力します。保存後は学生側から変更できません。</p>
+        <div id="courseProgressYearFields" class="course-progress-years"></div>
+        <button id="saveCourseProgress" class="btn btn-primary" type="button">この内容で一度だけ登録</button>
     </div>
 </div>
 

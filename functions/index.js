@@ -305,3 +305,18 @@ onDocumentCreated(
 
     }
 );
+
+// お問い合わせは2510044の全登録端末にだけ通知する。
+exports.notifyContactMessage = onDocumentCreated(
+    { document:"contacts/{contactId}", region:"asia-northeast1", secrets:[WEB_PUSH_PUBLIC_KEY,WEB_PUSH_PRIVATE_KEY] },
+    async event => {
+        const snapshot=event.data;
+        if(!snapshot)return;
+        const contact=snapshot.data();
+        webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",WEB_PUSH_PUBLIC_KEY.value(),WEB_PUSH_PRIVATE_KEY.value());
+        const devices=await db.collection("users").doc("2510044").collection("pushSubscriptions").get();
+        const payload=JSON.stringify({title:"📨 CareMate お問い合わせ",body:`${contact.category||"お問い合わせ"}：${String(contact.message||"").slice(0,80)}`,url:"https://doko2517027-bit.github.io/university-notifier-web/contact_admin.html"});
+        const results=await Promise.all(devices.docs.map(async device=>{try{await webpush.sendNotification(device.data(),payload);return{deviceId:device.id,result:"sent"};}catch(error){if(error?.statusCode===404||error?.statusCode===410)await device.ref.delete();return{deviceId:device.id,result:"failed",statusCode:error?.statusCode||null};}}));
+        await snapshot.ref.update({notificationSentAt:new Date(),notificationResults:results});
+    }
+);
