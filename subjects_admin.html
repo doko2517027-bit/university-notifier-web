@@ -112,6 +112,60 @@ if(localStorage.getItem("theme") === "dark"){
 
 }
 
+.subject-incomplete-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.subject-incomplete-actions .btn {
+    min-width: auto;
+    padding: 8px 12px;
+}
+
+.subject-insert-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 18px;
+}
+
+.subject-insert-area::before,
+.subject-insert-area::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: rgba(127, 127, 127, 0.25);
+}
+
+.subject-insert-button {
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
+.subject-jump-highlight {
+    animation: subjectJumpHighlight 1.5s ease;
+}
+
+@keyframes subjectJumpHighlight {
+
+    0% {
+        transform: scale(1);
+    }
+
+    35% {
+        transform: scale(1.015);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+
+}
+
 </style>
 
 </head>
@@ -212,6 +266,29 @@ if(localStorage.getItem("theme") === "dark"){
 
             <div>
                 <b id="incompleteSubjectCount">0</b>科目
+            </div>
+
+            <div class="subject-incomplete-actions">
+
+                <button
+                    id="incompleteJumpButton"
+                    type="button"
+                    class="btn btn-secondary">
+
+                    未入力へ移動
+
+                </button>
+
+                <button
+                    id="incompleteNextButton"
+                    type="button"
+                    class="btn btn-secondary"
+                    aria-label="次の未入力科目へ移動">
+
+                    🔻
+
+                </button>
+
             </div>
 
         </div>

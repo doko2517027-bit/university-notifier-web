@@ -57,10 +57,18 @@ const subjectCount =
 const incompleteSubjectCount =
     document.getElementById("incompleteSubjectCount");
 
+const incompleteJumpButton =
+    document.getElementById("incompleteJumpButton");
+
+const incompleteNextButton =
+    document.getElementById("incompleteNextButton");
+
 
 let subjects = [];
 
 let deletedDocumentIds = new Set();
+
+let incompleteNavigationIndex = -1;
 
 
 setupTheme(themeButton);
@@ -109,6 +117,12 @@ addSubjectButton.onclick =
 
 saveSubjectsButton.onclick =
     saveSubjectsToFirestore;
+
+incompleteJumpButton.onclick =
+    jumpToFirstIncompleteSubject;
+
+incompleteNextButton.onclick =
+    jumpToNextIncompleteSubject;
 
 
 subjectEditorList.addEventListener(
@@ -336,10 +350,9 @@ function createLocalId(index = 0) {
 
 }
 
+function createEmptySubject() {
 
-function addEmptySubject() {
-
-    subjects.push({
+    return {
 
         localId:
             createLocalId(
@@ -364,25 +377,55 @@ function addEmptySubject() {
 
         lectureCount: 0
 
-    });
-
-    renderSubjects();
-
-    const cards =
-        subjectEditorList.querySelectorAll(
-            ".subject-editor-card"
-        );
-
-    const lastCard =
-        cards[cards.length - 1];
-
-    lastCard?.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
+    };
 
 }
 
+
+function addEmptySubject() {
+
+    const newSubject =
+        createEmptySubject();
+
+    subjects.push(
+        newSubject
+    );
+
+    renderSubjects();
+
+    scrollToSubject(
+        newSubject.localId
+    );
+
+}
+
+function insertEmptySubjectAt(index) {
+
+    const insertIndex =
+        Math.max(
+            0,
+            Math.min(
+                Number(index),
+                subjects.length
+            )
+        );
+
+    const newSubject =
+        createEmptySubject();
+
+    subjects.splice(
+        insertIndex,
+        0,
+        newSubject
+    );
+
+    renderSubjects();
+
+    scrollToSubject(
+        newSubject.localId
+    );
+
+}
 
 function renderSubjects() {
 
@@ -402,12 +445,49 @@ function renderSubjects() {
 
     subjectEditorList.innerHTML =
         subjects.map(
-            (subject, index) =>
-                createSubjectEditorHtml(
-                    subject,
-                    index
-                )
+            (subject, index) => {
+
+                const insertButtonHtml =
+                    index > 0
+                        ? createInsertSubjectButtonHtml(
+                            index
+                        )
+                        : "";
+
+                return (
+                    insertButtonHtml +
+                    createSubjectEditorHtml(
+                        subject,
+                        index
+                    )
+                );
+
+            }
         ).join("");
+
+    incompleteNavigationIndex = -1;
+
+}
+
+function createInsertSubjectButtonHtml(
+    insertIndex
+) {
+
+    return `
+        <div class="subject-insert-area">
+
+            <button
+                type="button"
+                class="btn btn-secondary subject-insert-button"
+                data-action="insert-subject"
+                data-insert-index="${insertIndex}">
+
+                ＋ ここに講義を追加
+
+            </button>
+
+        </div>
+    `;
 
 }
 
@@ -759,6 +839,21 @@ function handleEditorChange(event) {
 
 function handleEditorClick(event) {
 
+    const insertButton =
+        event.target.closest(
+            '[data-action="insert-subject"]'
+        );
+
+    if (insertButton) {
+
+        insertEmptySubjectAt(
+            insertButton.dataset.insertIndex
+        );
+
+        return;
+
+    }
+
     const deleteButton =
         event.target.closest(
             '[data-action="delete-subject"]'
@@ -816,6 +911,18 @@ function handleEditorClick(event) {
 
 }
 
+function isSubjectIncomplete(subject) {
+
+    return (
+        !subject.name ||
+        !subject.grade ||
+        !subject.semester ||
+        subject.credits <= 0 ||
+        subject.lectureCount <= 0
+    );
+
+}
+
 
 function updateSummary() {
 
@@ -824,16 +931,166 @@ function updateSummary() {
 
     const incompleteCount =
         subjects.filter(
-            subject =>
-                !subject.name ||
-                !subject.grade ||
-                !subject.semester ||
-                subject.credits <= 0 ||
-                subject.lectureCount <= 0
+            isSubjectIncomplete
         ).length;
 
     incompleteSubjectCount.textContent =
         incompleteCount;
+
+    incompleteJumpButton.disabled =
+        incompleteCount === 0;
+
+    incompleteNextButton.disabled =
+        incompleteCount === 0;
+
+    if (incompleteCount === 0) {
+
+        incompleteNavigationIndex = -1;
+
+    }
+
+}
+
+function getIncompleteSubjects() {
+
+    return subjects.filter(
+        isSubjectIncomplete
+    );
+
+}
+
+
+function jumpToFirstIncompleteSubject() {
+
+    syncAllEditors();
+
+    const incompleteSubjects =
+        getIncompleteSubjects();
+
+    if (incompleteSubjects.length === 0) {
+
+        showToast(
+            "未入力の科目はありません"
+        );
+
+        return;
+
+    }
+
+    incompleteNavigationIndex = 0;
+
+    jumpToIncompleteSubject(
+        incompleteSubjects
+    );
+
+}
+
+
+function jumpToNextIncompleteSubject() {
+
+    syncAllEditors();
+
+    const incompleteSubjects =
+        getIncompleteSubjects();
+
+    if (incompleteSubjects.length === 0) {
+
+        incompleteNavigationIndex = -1;
+
+        showToast(
+            "未入力の科目はありません"
+        );
+
+        return;
+
+    }
+
+    if (
+        incompleteNavigationIndex < 0 ||
+        incompleteNavigationIndex >=
+            incompleteSubjects.length - 1
+    ) {
+
+        incompleteNavigationIndex = 0;
+
+    } else {
+
+        incompleteNavigationIndex++;
+
+    }
+
+    jumpToIncompleteSubject(
+        incompleteSubjects
+    );
+
+}
+
+
+function jumpToIncompleteSubject(
+    incompleteSubjects
+) {
+
+    const target =
+        incompleteSubjects[
+            incompleteNavigationIndex
+        ];
+
+    if (!target) {
+        return;
+    }
+
+    scrollToSubject(
+        target.localId
+    );
+
+    showToast(
+        `未入力科目 ${
+            incompleteNavigationIndex + 1
+        } / ${incompleteSubjects.length}`
+    );
+
+}
+
+function scrollToSubject(localId) {
+
+    const cards =
+        subjectEditorList.querySelectorAll(
+            ".subject-editor-card"
+        );
+
+    const targetCard =
+        Array.from(cards).find(
+            card =>
+                card.dataset.localId ===
+                localId
+        );
+
+    if (!targetCard) {
+        return;
+    }
+
+    targetCard.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+
+    targetCard.classList.remove(
+        "subject-jump-highlight"
+    );
+
+    void targetCard.offsetWidth;
+
+    targetCard.classList.add(
+        "subject-jump-highlight"
+    );
+
+    setTimeout(() => {
+
+        targetCard.classList.remove(
+            "subject-jump-highlight"
+        );
+
+    }, 1600);
 
 }
 
