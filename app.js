@@ -6,6 +6,7 @@ import {
     loadUserName,
     loadMyRanking,
     getRankMark,
+    getAnonymousRankingName,
     initializePage,
     showPage,
     showNewsSkeleton,
@@ -1611,7 +1612,7 @@ async function loadRanking(){
                     <div class="ranking-user">
 
                         <div class="ranking-name">
-                            ${mark}${studentId}
+                            ${mark}${getAnonymousRankingName(studentId, studentId === studentNumber)}
                         </div>
 
 

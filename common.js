@@ -180,6 +180,11 @@ export function getRankMark(point){
 
 }
 
+// ランキングには実名を出さず、学籍番号だけを表示する。
+export function getAnonymousRankingName(userId){
+    return String(userId || "学籍番号不明");
+}
+
 export async function loadUserName(element, user = null){
 
     if(!studentNumber){
