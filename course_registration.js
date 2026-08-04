@@ -116,6 +116,13 @@ async function loadRegistrationData() {
         return;
     }
 
+    if (userSnap.data()?.manabaVerified !== true) {
+        renderUnavailable(
+            "履修登録はManabaログイン確認が完了している学生のみ利用できます。"
+        );
+        return;
+    }
+
     config = configSnap.data();
     progress = {
         ...progress,
@@ -205,6 +212,8 @@ function renderUnavailable(message) {
     elements.restore.disabled = true;
     elements.summary.textContent = message;
     document.getElementById("creditDashboard").style.display = "none";
+    document.getElementById("courseProgressCard").style.display = "none";
+    elements.warning.style.display = "none";
     document.querySelector(".course-registration-toolbar").style.display = "none";
     document.querySelector(".course-registration-save-bar").style.display = "none";
 }

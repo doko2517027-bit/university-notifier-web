@@ -277,7 +277,7 @@ console.log("studentNumber =", studentNumber);
         loadHomeSystemNews(),
         loadCourseLinks(),
         loadTodaySchedule(),
-        loadCourseRegistrationBanner(),
+        loadCourseRegistrationBanner(user),
     ]);
 
 
@@ -408,8 +408,10 @@ if(attendanceCard){
 
 }
 
-async function loadCourseRegistrationBanner(){
+async function loadCourseRegistrationBanner(user){
     if(!courseRegistrationBanner) return;
+
+    if(user?.manabaVerified !== true) return;
 
     try {
         const configSnap = await getDoc(doc(db, "system", "courseRegistration"));
