@@ -49,6 +49,31 @@ async function loadAttendance(){
 
     const attendanceData = [];
 
+    const registeredSubjectSnap =
+        await getDocs(collection(db, "subjects"));
+
+    const practicalBySubject = new Map();
+
+    registeredSubjectSnap.forEach(subjectDoc => {
+
+        const data = subjectDoc.data();
+        const isPractical =
+            typeof data.isPractical === "boolean"
+                ? data.isPractical
+                : String(data.classFormat || "").includes("実習");
+
+        if (data.name) {
+            practicalBySubject.set(data.name, isPractical);
+        }
+
+        if (data.subjectKey) {
+            practicalBySubject.set(data.subjectKey, isPractical);
+        }
+
+        practicalBySubject.set(subjectDoc.id, isPractical);
+
+    });
+
 
     // 科目取得
     const subjectSnap =
@@ -130,6 +155,9 @@ async function loadAttendance(){
 
             subject,
 
+            isPractical:
+                practicalBySubject.get(subject) === true,
+
             attendance,
 
             late,
@@ -194,6 +222,17 @@ async function loadAttendance(){
                 )
                 : 0;
 
+        const requiredNumerator =
+            item.isPractical ? 4 : 2;
+
+        const requiredDenominator =
+            item.isPractical ? 5 : 3;
+
+        const qualified =
+            total === 0 ||
+            item.attendance * requiredDenominator >=
+                total * requiredNumerator;
+
 
 
         attendanceList.innerHTML += `
@@ -209,6 +248,12 @@ async function loadAttendance(){
 
             <p>
                 出席率：${rate}%
+            </p>
+
+            <p>
+                判定区分：${item.isPractical ? "実習" : "実習以外"}<br>
+                必要出席率：${requiredNumerator}/${requiredDenominator}以上<br>
+                ${qualified ? "✅ 試験資格あり" : "❌ 試験資格なし"}
             </p>
 
 
@@ -273,22 +318,27 @@ async function loadAttendance(){
     // ======================
 
 
-    if(overallRate >= 67){
+    const disqualifiedCount =
+        attendanceData.filter(item => {
 
+            const total =
+                item.attendance + item.late +
+                item.early + item.absent;
 
-        examQualification.innerHTML =
-            "✅ 資格あり";
+            if (total === 0) {
+                return false;
+            }
 
+            return item.isPractical
+                ? item.attendance * 5 < total * 4
+                : item.attendance * 3 < total * 2;
 
-    }
-    else{
+        }).length;
 
-
-        examQualification.innerHTML =
-            "❌ 資格なし";
-
-
-    }
+    examQualification.innerHTML =
+        disqualifiedCount === 0
+            ? "✅ 全科目で資格あり"
+            : `❌ ${disqualifiedCount}科目で資格なし`;
 
 
 }

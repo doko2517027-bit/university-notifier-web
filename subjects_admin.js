@@ -320,6 +320,11 @@ function normalizeSubject(
         required:
             subject?.required === true,
 
+        isPractical:
+            typeof subject?.isPractical === "boolean"
+                ? subject.isPractical
+                : String(subject?.classFormat || "").includes("実習"),
+
         credits:
             toNonNegativeNumber(
                 subject?.credits
@@ -372,6 +377,8 @@ function createEmptySubject() {
         semester: "",
 
         required: false,
+
+        isPractical: false,
 
         credits: 0,
 
@@ -667,6 +674,27 @@ function createSubjectEditorHtml(
                 <label>
 
                     <span class="subject-editor-label">
+                        出席判定区分
+                    </span>
+
+                    <span class="subject-required-row">
+
+                        <input
+                            type="checkbox"
+                            data-field="isPractical"
+                            ${subject.isPractical ? "checked" : ""}>
+
+                        <span>
+                            実習科目（出席4/5以上が必要）
+                        </span>
+
+                    </span>
+
+                </label>
+
+                <label>
+
+                    <span class="subject-editor-label">
                         単位数
                     </span>
 
@@ -788,7 +816,7 @@ function handleEditorChange(event) {
         return;
     }
 
-    if (field === "required") {
+    if (field === "required" || field === "isPractical") {
 
         subject.required =
             event.target.checked;
@@ -1225,6 +1253,9 @@ async function saveSubjectsToFirestore() {
                     required:
                         subject.required,
 
+                    isPractical:
+                        subject.isPractical,
+
                     credits:
                         subject.credits,
 
@@ -1301,7 +1332,7 @@ function syncAllEditors() {
                 const field =
                     input.dataset.field;
 
-                if (field === "required") {
+                if (field === "required" || field === "isPractical") {
 
                     subject.required =
                         input.checked;
