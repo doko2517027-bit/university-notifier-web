@@ -59,6 +59,12 @@ const courseRegistrationBanner =
     document.getElementById("courseRegistrationBanner");
 const courseRegistrationBannerText =
     document.getElementById("courseRegistrationBannerText");
+const courseRegistrationSlide =
+    document.getElementById("courseRegistrationSlide");
+const courseRegistrationCard =
+    document.getElementById("courseRegistrationCard");
+const courseRegistrationCardText =
+    document.getElementById("courseRegistrationCardText");
 const rankingPopupDate =
     document.getElementById("rankingPopupDate");
 
@@ -425,19 +431,31 @@ async function loadCourseRegistrationBanner(user){
 
         if(
             config.published !== true ||
-            config.bannerEnabled !== true ||
             config.pageEnabled !== true ||
             config.phase === "hidden" ||
             !inPeriod
         ) return;
 
-        courseRegistrationBannerText.textContent =
-            config.bannerText || "履修登録期間中！！";
-        courseRegistrationBanner.dataset.speed = config.bannerSpeed || "normal";
-        courseRegistrationBanner.hidden = false;
-        courseRegistrationBanner.onclick = () => {
-            location.href = "course_registration.html";
-        };
+        if(config.bannerEnabled === true){
+            courseRegistrationBannerText.textContent =
+                config.bannerText || "履修登録期間中！！";
+            courseRegistrationBanner.dataset.speed = config.bannerSpeed || "normal";
+            courseRegistrationBanner.hidden = false;
+            courseRegistrationBanner.onclick = () => {
+                location.href = "course_registration.html";
+            };
+        }
+
+        if(config.convenienceCardEnabled === true && courseRegistrationSlide){
+            courseRegistrationSlide.hidden = false;
+            if(courseRegistrationCardText){
+                courseRegistrationCardText.textContent =
+                    `${config.academicYear}年度 ${config.semester}の履修科目を登録`;
+            }
+            courseRegistrationCard.onclick = () => {
+                location.href = "course_registration.html";
+            };
+        }
     } catch(error) {
         console.error("履修登録案内取得エラー:", error);
     }

@@ -77,6 +77,7 @@ const registrationFields = {
     bannerText: document.getElementById("registrationBannerText"),
     bannerSpeed: document.getElementById("registrationBannerSpeed"),
     pageEnabled: document.getElementById("registrationPageEnabled"),
+    convenienceCardEnabled: document.getElementById("registrationConvenienceCardEnabled"),
     semesterCreditLimit: document.getElementById("semesterCreditLimit"),
     annualCreditLimit: document.getElementById("annualCreditLimit"),
     graduationRequiredCredits: document.getElementById("graduationRequiredCredits"),
@@ -175,6 +176,7 @@ function defaultRegistrationSettings() {
         bannerText: "履修登録期間中！！",
         bannerSpeed: "normal",
         pageEnabled: false,
+        convenienceCardEnabled: false,
         semesterCreditLimit: 30,
         annualCreditLimit: 50,
         graduationRequiredCredits: 0,
@@ -194,6 +196,7 @@ function readRegistrationForm() {
         bannerText: registrationFields.bannerText.value.trim(),
         bannerSpeed: registrationFields.bannerSpeed.value,
         pageEnabled: registrationFields.pageEnabled.checked,
+        convenienceCardEnabled: registrationFields.convenienceCardEnabled.checked,
         semesterCreditLimit: Number(registrationFields.semesterCreditLimit.value || 0),
         annualCreditLimit: Number(registrationFields.annualCreditLimit.value || 0),
         graduationRequiredCredits: Number(registrationFields.graduationRequiredCredits.value || 0),
@@ -213,6 +216,7 @@ function fillRegistrationForm(settings) {
     registrationFields.bannerText.value = value.bannerText || "";
     registrationFields.bannerSpeed.value = value.bannerSpeed;
     registrationFields.pageEnabled.checked = value.pageEnabled === true;
+    registrationFields.convenienceCardEnabled.checked = value.convenienceCardEnabled === true;
     registrationFields.semesterCreditLimit.value = value.semesterCreditLimit;
     registrationFields.annualCreditLimit.value = value.annualCreditLimit;
     registrationFields.graduationRequiredCredits.value = value.graduationRequiredCredits;

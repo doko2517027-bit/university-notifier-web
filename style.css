@@ -1517,8 +1517,8 @@ white-space:pre-wrap;
 .course-registration-banner[data-speed="fast"] span{animation-duration:7s}
 
 @keyframes courseBannerMove{
-    from{transform:translateX(-110%)}
-    to{transform:translateX(110vw)}
+    from{transform:translateX(110vw)}
+    to{transform:translateX(-110%)}
 }
 
 .course-credit-dashboard{
@@ -2584,4 +2584,62 @@ white-space:pre-wrap;
 
 .dark .ranking-score{
     color:var(--subtext);
+}
+
+/* ===== 共通ヘッダーのユーザー情報 ===== */
+.top-buttons{
+    gap:12px;
+    padding:9px 4px;
+}
+
+.top-user-info{
+    min-width:0;
+    max-width:calc(100% - 132px);
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    gap:3px;
+    padding:8px 12px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--card);
+    box-shadow:0 3px 12px rgba(15,23,42,.06);
+    line-height:1.2;
+}
+
+.top-user-info #userName{
+    display:block;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:15px;
+    font-weight:750;
+}
+
+.top-user-info #myRanking{
+    display:block;
+    min-height:16px;
+}
+
+.top-user-info .my-ranking{
+    display:block;
+    margin:0;
+    color:var(--subtext);
+    font-size:13px;
+    font-weight:650;
+    line-height:1.2;
+    white-space:nowrap;
+}
+
+.top-right{
+    flex:0 0 auto;
+}
+
+@media(max-width:430px){
+    .top-buttons{gap:8px}
+    .top-user-info{max-width:calc(100% - 112px);padding:7px 10px}
+    .top-user-info #userName{font-size:14px}
+    .top-user-info .my-ranking{font-size:12px}
 }
