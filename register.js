@@ -14,14 +14,16 @@ import {
 
 import { VERSION } from "./version.js";
 
+import {
+    ensurePushSubscription,
+    savePushSubscription
+} from "./push_subscription.js";
+
 const version = document.getElementById("version");
 
 if (version) {
     version.textContent = `Version ${VERSION}`;
 }
-
-const PUBLIC_KEY =
-"BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 
 const department = document.getElementById("department");
 const major = document.getElementById("major");
@@ -285,28 +287,14 @@ button.addEventListener("click", async () => {
 
     }
 
-    const permission = await Notification.requestPermission();
+    let subscription;
 
-    if (permission !== "granted") {
-
-        alert(
-            "通知が拒否されています。\n\n設定 → 通知 → CareMateApp から通知を許可してください。"
-        );
-
+    try {
+        subscription = await ensurePushSubscription("sw.js");
+    } catch (error) {
+        alert(error.message);
         return;
     }
-
-    const registration = await navigator.serviceWorker.register("sw.js");
-
-    await navigator.serviceWorker.ready;
-
-   const subscription =
-
-        await registration.pushManager.getSubscription() ||
-        await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
-        });
 
     const code = studentNumber.value.substring(2, 4);
 
@@ -384,6 +372,13 @@ try {
                 }
             );
 
+            await savePushSubscription(
+                db,
+                studentNumber.value,
+                subscription,
+                "register"
+            );
+
             localStorage.setItem("registered", "true");
             localStorage.setItem("department", selectedDepartment);
             localStorage.setItem("major", selectedMajor);
@@ -445,6 +440,13 @@ try {
             
     );
 
+    await savePushSubscription(
+        db,
+        studentNumber.value,
+        subscription,
+        "register"
+    );
+
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
@@ -464,21 +466,6 @@ try {
 
     }
 });
-
-function urlBase64ToUint8Array(base64String) {
-
-    const padding = "=".repeat((4 - base64String.length % 4) % 4);
-
-    const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-
-    const rawData = atob(base64);
-
-    return Uint8Array.from(
-        [...rawData].map(c => c.charCodeAt(0))
-    );
-}
 
 const SECRET = "UniversityNotifier2026";
 

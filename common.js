@@ -29,6 +29,10 @@ import {
     getApp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
+import {
+    registerDevicePushSubscription
+} from "./push_subscription.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
     authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -1375,37 +1379,6 @@ if (
 // 出席通知・標準Web Push
 // ======================
 
-const WEB_PUSH_PUBLIC_KEY =
-    "BFizgQu6z6kzfBnbcwDm97lbzRfxdFzfDLHbdXSU9FxYPJ-YfRwia1k2TVFGG1I-oewcnDV33tazceCPJpdORlg";
-
-
-function urlBase64ToUint8Array(base64String) {
-
-    const padding =
-        "=".repeat(
-            (4 - base64String.length % 4) % 4
-        );
-
-    const base64 =
-        (
-            base64String + padding
-        )
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-
-    const rawData =
-        atob(base64);
-
-    return Uint8Array.from(
-        [...rawData].map(
-            character =>
-                character.charCodeAt(0)
-        )
-    );
-
-}
-
-
 export async function setupAttendanceWebPush() {
 
     try {
@@ -1420,95 +1393,10 @@ export async function setupAttendanceWebPush() {
             return;
         }
 
-        if (
-            !("serviceWorker" in navigator) ||
-            !("PushManager" in window) ||
-            !("Notification" in window)
-        ) {
-
-            console.log(
-                "この端末はWeb Pushに対応していません"
-            );
-
-            return;
-
-        }
-
-        const permission =
-            await Notification.requestPermission();
-
-        if (permission !== "granted") {
-
-            console.log(
-                "通知が許可されていません"
-            );
-
-            return;
-
-        }
-
-        const registration =
-            await navigator.serviceWorker.register(
-                "/university-notifier-web/sw.js"
-            );
-
-        await navigator.serviceWorker.ready;
-
-        let subscription =
-            await registration.pushManager
-                .getSubscription();
-
-
-        if (subscription) {
-
-            await subscription.unsubscribe();
-
-            subscription = null;
-
-        }
-
-
-        subscription =
-            await registration.pushManager.subscribe({
-
-                userVisibleOnly: true,
-
-                applicationServerKey:
-                    urlBase64ToUint8Array(
-                        WEB_PUSH_PUBLIC_KEY
-                    )
-
-            });
-
-        const subscriptionData =
-            subscription.toJSON();
-
-        await updateDoc(
-            doc(
-                db,
-                "users",
-                studentNumber
-            ),
-            {
-                pushSubscription: {
-                    endpoint:
-                        subscriptionData.endpoint,
-
-                    expirationTime:
-                        subscriptionData.expirationTime ||
-                        null,
-
-                    keys: {
-                        p256dh:
-                            subscriptionData.keys?.p256dh ||
-                            "",
-
-                        auth:
-                            subscriptionData.keys?.auth ||
-                            ""
-                    }
-                }
-            }
+        await registerDevicePushSubscription(
+            db,
+            studentNumber,
+            "attendance"
         );
 
         console.log(

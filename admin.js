@@ -36,6 +36,10 @@ import {
     onValue
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+import {
+    registerDevicePushSubscription
+} from "./push_subscription.js";
+
 const userName = document.getElementById("userName");
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -68,7 +72,6 @@ const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
 const reportList = document.getElementById("reportList");
-const PUBLIC_KEY = "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 const enablePushButton = document.getElementById("enablePushButton");
 
 let systemAppPromise = null;
@@ -1039,59 +1042,13 @@ ${user.lastLoginAt.toDate().toLocaleString()}
 }
 
 async function enablePushNotification() {
-
-    const permission = await Notification.requestPermission();
-
-    if (permission !== "granted") {
-        alert("通知が許可されませんでした。");
-        return;
-    }
-
-    const registration =
-        await navigator.serviceWorker.register("sw.js");
-
-    const oldSubscription =
-        await registration.pushManager.getSubscription();
-
-    if (oldSubscription) {
-        await oldSubscription.unsubscribe();
-    }
-
-    const subscription =
-        await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
-        });
-
-    const subscriptionData =
-        JSON.parse(JSON.stringify(subscription));
-
-    await updateDoc(
-        doc(db, "users", studentNumber),
-        {
-            subscription: subscriptionData,
-            pushSubscription: subscriptionData
-        }
+    await registerDevicePushSubscription(
+        db,
+        studentNumber,
+        "admin",
+        "sw.js"
     );
 
     showToast("通知を再登録しました");
-
-}
-
-function urlBase64ToUint8Array(base64String) {
-
-    const padding =
-        "=".repeat((4 - base64String.length % 4) % 4);
-
-    const base64 =
-        (base64String + padding)
-            .replace(/-/g, "+")
-            .replace(/_/g, "/");
-
-    const rawData = atob(base64);
-
-    return Uint8Array.from(
-        [...rawData].map(c => c.charCodeAt(0))
-    );
 
 }

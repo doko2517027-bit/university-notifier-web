@@ -205,45 +205,102 @@ onDocumentCreated(
                 "https://doko2517027-bit.github.io/university-notifier-web/admin.html"
         });
 
-        const results = await Promise.allSettled(
-            adminSnapshot.docs.map(async adminDoc => {
+        const notificationTargets = [];
 
-                const userSnapshot =
-                    await db.collection("users")
-                        .doc(adminDoc.id)
-                        .get();
+        for (const adminDoc of adminSnapshot.docs) {
+            const userRef = db.collection("users").doc(adminDoc.id);
+            const deviceSnapshot =
+                await userRef.collection("pushSubscriptions").get();
+            const seenEndpoints = new Set();
 
-                const subscription =
+            for (const deviceDoc of deviceSnapshot.docs) {
+                const subscription = deviceDoc.data();
+
+                if (
+                    subscription?.endpoint &&
+                    !seenEndpoints.has(subscription.endpoint)
+                ) {
+                    seenEndpoints.add(subscription.endpoint);
+                    notificationTargets.push({
+                        adminId: adminDoc.id,
+                        deviceId: deviceDoc.id,
+                        subscription,
+                        deviceRef: deviceDoc.ref
+                    });
+                }
+            }
+
+            // 端末別データがまだない利用者は旧形式を利用する。
+            if (notificationTargets.every(
+                target => target.adminId !== adminDoc.id
+            )) {
+                const userSnapshot = await userRef.get();
+                const legacySubscription =
                     userSnapshot.data()?.pushSubscription ||
                     userSnapshot.data()?.subscription;
+
+                if (legacySubscription?.endpoint) {
+                    notificationTargets.push({
+                        adminId: adminDoc.id,
+                        deviceId: "legacy",
+                        subscription: legacySubscription,
+                        deviceRef: null
+                    });
+                }
+            }
+        }
+
+        const results = await Promise.all(
+            notificationTargets.map(async target => {
+                const {
+                    adminId,
+                    deviceId,
+                    subscription,
+                    deviceRef
+                } = target;
 
                 if (
                     !subscription?.endpoint ||
                     !subscription?.keys?.p256dh ||
                     !subscription?.keys?.auth
                 ) {
-                    return "subscription-missing";
+                    return {
+                        adminId,
+                        deviceId,
+                        result: "invalid"
+                    };
                 }
 
-                await webpush.sendNotification(
-                    subscription,
-                    payload
-                );
+                try {
+                    await webpush.sendNotification(subscription, payload);
+                    return { adminId, deviceId, result: "sent" };
+                } catch (error) {
+                    const statusCode = error?.statusCode || null;
 
-                return "sent";
+                    if (
+                        deviceRef &&
+                        (statusCode === 404 || statusCode === 410)
+                    ) {
+                        await deviceRef.delete();
+                    }
 
+                    return {
+                        adminId,
+                        deviceId,
+                        result:
+                            statusCode === 404 || statusCode === 410
+                                ? "expired"
+                                : "failed",
+                        statusCode
+                    };
+                }
             })
         );
 
         await snapshot.ref.update({
             notificationSentAt:
                 new Date(),
-            notificationResults:
-                results.map(result =>
-                    result.status === "fulfilled"
-                        ? result.value
-                        : "failed"
-                )
+            notificationResults: results
         });
 
     }
