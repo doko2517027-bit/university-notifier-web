@@ -18,6 +18,7 @@ import {
     updateNewsNavBadge,
     setupAttendanceWebPush
 } from "./common.js";
+import { loadPersonalTimetableData, isEnrolledScheduleItem } from "./personal_timetable_data.js";
 
 import {
     doc,
@@ -415,6 +416,11 @@ if(attendanceCard){
 
 }
 
+const personalTimetableCard=document.getElementById("personalTimetableCard");
+if(personalTimetableCard){
+    personalTimetableCard.onclick=()=>{location.href="personal_timetable.html";};
+}
+
 async function loadCourseRegistrationBanner(user){
     if(!courseRegistrationBanner) return;
 
@@ -769,6 +775,9 @@ async function loadHomeSystemNews() {
 
 async function loadTodaySchedule() {
 
+    const personalTimetable = await loadPersonalTimetableData();
+    const enrolledAliases = personalTimetable.aliasToCourse || new Map();
+
     const department =
         localStorage.getItem("department");
 
@@ -823,7 +832,7 @@ async function loadTodaySchedule() {
                 title: day.title || "次回講義日",
                 label: day.label || "",
                 schedules: Array.isArray(day.schedules)
-                    ? day.schedules
+                    ? day.schedules.filter(item => isEnrolledScheduleItem(item,enrolledAliases))
                     : []
             }));
 
@@ -835,13 +844,13 @@ async function loadTodaySchedule() {
                 date: "",
                 title: data.todayTitle || "今日",
                 label: data.todayLabel || "",
-                schedules: data.today || []
+                schedules: (data.today || []).filter(item => isEnrolledScheduleItem(item,enrolledAliases))
             },
             {
                 date: "",
                 title: data.nextTitle || "次回",
                 label: data.nextLabel || "",
-                schedules: data.next || []
+                schedules: (data.next || []).filter(item => isEnrolledScheduleItem(item,enrolledAliases))
             }
         ];
 
