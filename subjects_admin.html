@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>履修科目管理 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if(localStorage.getItem("theme") === "dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+<style>
+
+.subject-admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.subject-admin-actions .btn {
+    flex: 1;
+    min-width: 140px;
+}
+
+.subject-admin-summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.subject-admin-summary-item {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(127, 127, 127, 0.08);
+    text-align: center;
+}
+
+.subject-editor-card {
+    margin-bottom: 14px;
+}
+
+.subject-editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.subject-editor-grid .full-width {
+    grid-column: 1 / -1;
+}
+
+.subject-editor-card input,
+.subject-editor-card select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.subject-editor-label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 5px;
+    opacity: 0.8;
+}
+
+.subject-required-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+}
+
+.subject-required-row input {
+    width: auto;
+}
+
+.subject-delete-button {
+    margin-top: 14px;
+}
+
+.subject-warning {
+    margin-top: 10px;
+    color: #d97706;
+    font-size: 13px;
+}
+
+.subject-empty {
+    padding: 30px 15px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+
+    .subject-editor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .subject-editor-grid .full-width {
+        grid-column: auto;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div class="top-user-info">
+
+        <span id="userName">
+            Unknownさん
+        </span>
+
+        <span id="myRanking"></span>
+
+    </div>
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            class="circle-button">
+            🌙
+        </button>
+
+        <button
+            id="profileButton"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image">
+
+        </button>
+
+    </div>
+
+</div>
+
+<header class="header">
+
+    <div class="logo">📝</div>
+
+    <h1>履修科目管理</h1>
+
+    <p>
+        シラバス科目の確認・編集・登録
+    </p>
+
+</header>
+
+<div class="card setting-card">
+
+    <h3>subjects.jsonを読み込む</h3>
+
+    <p>
+        ローカルで作成したsubjects.jsonを選択してください。
+    </p>
+
+    <input
+        id="subjectsJsonFile"
+        type="file"
+        accept=".json,application/json">
+
+    <br><br>
+
+    <button
+        id="loadJsonButton"
+        class="btn btn-primary">
+
+        JSONを読み込む
+
+    </button>
+
+</div>
+
+<div class="card setting-card">
+
+    <h3>登録状況</h3>
+
+    <div class="subject-admin-summary">
+
+        <div class="subject-admin-summary-item">
+
+            <small>表示科目</small>
+
+            <div>
+                <b id="subjectCount">0</b>科目
+            </div>
+
+        </div>
+
+        <div class="subject-admin-summary-item">
+
+            <small>未入力あり</small>
+
+            <div>
+                <b id="incompleteSubjectCount">0</b>科目
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="card setting-card">
+
+    <div class="subject-admin-actions">
+
+        <button
+            id="loadFirestoreSubjects"
+            class="btn btn-secondary">
+
+            Firestoreから読み込む
+
+        </button>
+
+        <button
+            id="addSubjectButton"
+            class="btn btn-secondary">
+
+            ＋ 講義を追加
+
+        </button>
+
+        <button
+            id="saveSubjectsButton"
+            class="btn btn-primary">
+
+            Firestoreへ保存
+
+        </button>
+
+    </div>
+
+</div>
+
+<h2>📚 科目一覧</h2>
+
+<div id="subjectEditorList">
+
+    <div class="subject-empty">
+        JSONまたはFirestoreから科目を読み込んでください。
+    </div>
+
+</div>
+
+<br>
+
+<button
+    class="btn btn-secondary"
+    onclick="location.href='admin.html'">
+
+    管理画面へ戻る
+
+</button>
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+        🏠<br>
+        <span>ホーム</span>
+    </a>
+
+    <a href="assignments.html">
+        📚<br>
+        <span>課題</span>
+    </a>
+
+    <a href="share.html">
+        🤝<br>
+        <span>共有</span>
+    </a>
+
+    <a href="news.html">
+        📢<br>
+        <span>お知らせ</span>
+    </a>
+
+    <a
+        href="admin.html"
+        class="active">
+
+        👑<br>
+        <span>管理</span>
+
+    </a>
+
+</nav>
+
+<script
+    type="module"
+    src="subjects_admin.js">
+</script>
+
+</body>
+</html>
