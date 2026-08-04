@@ -2170,12 +2170,28 @@ white-space:pre-wrap;
 
 .lecture-calendar-day{
     position:relative;
+    display:grid;
+    place-items:center;
+    min-width:0;
+    min-height:34px;
+    padding:0;
     border:none;
     border-radius:12px;
     background:transparent;
-    color:var(--subtext);
+    color:var(--text);
+    -webkit-text-fill-color:currentColor;
     font-size:14px;
+    font-weight:700;
+    line-height:1;
     cursor:default;
+}
+
+.lecture-calendar-day-number{
+    position:relative;
+    z-index:1;
+    display:block;
+    color:inherit;
+    -webkit-text-fill-color:currentColor;
 }
 
 .lecture-calendar-day.has-lecture{
@@ -2246,6 +2262,7 @@ white-space:pre-wrap;
 .lecture-calendar-day.is-selected{
     background:var(--primary);
     color:#fff;
+    -webkit-text-fill-color:#fff;
     font-weight:800;
 }
 

@@ -1824,8 +1824,15 @@ function renderLectureCalendar() {
         button.type = "button";
         button.className =
             "lecture-calendar-day";
+        button.setAttribute(
+            "aria-label",
+            `${yyyy}年${date.getMonth() + 1}月${day}日`
+        );
 
-        button.textContent = day;
+        const dayNumber = document.createElement("span");
+        dayNumber.className = "lecture-calendar-day-number";
+        dayNumber.textContent = day;
+        button.appendChild(dayNumber);
 
         const today = new Date();
 
