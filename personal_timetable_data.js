@@ -37,7 +37,9 @@ export async function loadPersonalTimetableData(){
     const scheduleSnap=await getDoc(doc(db,"schedule",scheduleId));
     if(!scheduleSnap.exists()) return {entries:[],enrolled,aliasToCourse,scheduleDocumentId:scheduleId,reason:"schedule_missing"};
     const data=scheduleSnap.data();
-    const days=Array.isArray(data.days)&&data.days.length?data.days:[
+    const days=Array.isArray(data.allDays)&&data.allDays.length
+        ? data.allDays
+        : Array.isArray(data.days)&&data.days.length?data.days:[
         {date:"",title:data.todayTitle||"今日",label:data.todayLabel||"",schedules:data.today||[]},
         {date:"",title:data.nextTitle||"次回",label:data.nextLabel||"",schedules:data.next||[]}
     ];

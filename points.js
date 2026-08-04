@@ -21,9 +21,9 @@ await initializePage([loadTotal(),listenSubjects(),listenSubjectHistory(),listen
 
 async function loadTotal(){const snap=await getDoc(doc(db,"totalRanking",studentNumber));totalPoint.textContent=Number(snap.data()?.point||0)}
 
-function listenSubjects(){return new Promise(resolve=>{onSnapshot(collection(db,"users",studentNumber,"subjectPoints"),snap=>{const rows=snap.docs.map(d=>d.data()).sort((a,b)=>Number(b.point||0)-Number(a.point||0));chart.innerHTML=renderSubjectBars(rows,"正解すると科目別ポイントが表示されます。");resolve()},()=>resolve())})}
+function listenSubjects(){return new Promise(resolve=>{onSnapshot(collection(db,"users",studentNumber,"subjectPoints"),snap=>{const rows=snap.docs.map(d=>d.data()).sort((a,b)=>Number(b.point||0)-Number(a.point||0));chart.innerHTML=renderSubjectBars(rows,"正解すると科目別ポイントが表示されます。");resolve()},error=>{console.error("科目別ポイント取得エラー",error);chart.innerHTML='<div class="point-load-error">⚠️ 科目別ポイントを取得できません。Firestoreルールの subjectPoints を確認してください。</div>';resolve()})})}
 
-function listenSubjectHistory(){return new Promise(resolve=>{onSnapshot(collection(db,"users",studentNumber,"subjectPointHistory"),snap=>{pointHistory=snap.docs.map(d=>d.data()).filter(item=>item.day).sort((a,b)=>a.day.localeCompare(b.day));renderHistory();resolve()},()=>resolve())})}
+function listenSubjectHistory(){return new Promise(resolve=>{onSnapshot(collection(db,"users",studentNumber,"subjectPointHistory"),snap=>{pointHistory=snap.docs.map(d=>d.data()).filter(item=>item.day).sort((a,b)=>a.day.localeCompare(b.day));renderHistory();resolve()},error=>{console.error("日別科目ポイント取得エラー",error);dailySubjects.innerHTML='<div class="point-load-error">⚠️ 日別ポイントを取得できません。Firestoreルールの subjectPointHistory を確認してください。</div>';historyGraph.innerHTML="";resolve()})})}
 
 function renderHistory(){
  const selected=historyDate.value||localDateKey();

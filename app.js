@@ -821,13 +821,18 @@ async function loadTodaySchedule() {
 
     const data = snap.data();
 
+    const scheduleDays =
+        Array.isArray(data.allDays) && data.allDays.length > 0
+            ? data.allDays
+            : data.days;
+
     if (
-        Array.isArray(data.days) &&
-        data.days.length > 0
+        Array.isArray(scheduleDays) &&
+        scheduleDays.length > 0
     ) {
 
         lectureSchedules =
-            data.days.map(day => ({
+            scheduleDays.map(day => ({
                 date: day.date || "",
                 title: day.title || "次回講義日",
                 label: day.label || "",
