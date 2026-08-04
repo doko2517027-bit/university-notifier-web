@@ -223,6 +223,14 @@ if(localStorage.getItem("theme")==="dark"){
     </span>
 </button>
 
+<button id="weatherCard" class="home-weather-compact" type="button">
+    <span id="weatherLocation" class="home-weather-location">地域</span>
+    <span id="weatherMain" class="home-weather-main">読み込み中...</span>
+    <span id="weatherDetail" class="home-weather-detail"></span>
+    <span id="weatherDate" hidden></span>
+    <span id="weatherUpdated" hidden></span>
+</button>
+
 <div
     id="examStatusCard"
     class="card setting-card"
@@ -266,7 +274,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>📅 講義・試験予定</h2>
 
-<div class="schedule-scroll">
+<div class="schedule-scroll home-schedule-grid">
 
     <!-- 講義予定 -->
     <div
@@ -428,7 +436,7 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>📝 便利タブ ☀️</h2>
 
-<div class="home-slider">
+<div class="home-slider home-feature-grid">
 
     <div class="home-slide">
         <div
@@ -463,83 +471,6 @@ if(localStorage.getItem("theme")==="dark"){
             <h2>📘 履修登録</h2>
             <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
         </div>
-    </div>
-
-    <div class="home-slide">
-
-        <div
-            id="weatherCard"
-            class="card setting-card home-card">
-
-            <div
-                style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    margin-bottom:12px;
-                ">
-
-                <h3 style="
-                        margin:0;
-                        color:#0f172a;
-                    ">
-
-                    🌤 天気
-                    
-                </h3>
-
-                <span
-                    id="weatherDate"
-                    style="
-                        font-size:13px;
-                        color:gray;
-                    ">
-                </span>
-
-            </div>
-
-            <div
-                id="weatherLocation"
-                style="
-                    font-size:18px;
-                    font-weight:bold;
-                    margin-bottom:10px;
-                ">
-
-                地域
-
-            </div>
-
-            <div
-                id="weatherMain"
-                style="
-                    font-size:30px;
-                    font-weight:bold;
-                ">
-
-                読み込み中...
-
-            </div>
-
-            <div
-                id="weatherDetail"
-                style="
-                    margin-top:12px;
-                ">
-
-            </div>
-
-            <div
-                id="weatherUpdated"
-                style="
-                    margin-top:10px;
-                    font-size:12px;
-                    color:gray;
-                ">
-            </div>
-
-        </div>
-
     </div>
 
 </div>

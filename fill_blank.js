@@ -23,6 +23,8 @@ const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 let visibleFillBlank = [];
+let currentFillIndex = 0;
+let fillCompleted = false;
 
 setupTheme(themeButton);
 
@@ -83,25 +85,34 @@ async function loadQuestions() {
     );
     visibleFillBlank = fillBlank;
 
-    questions.innerHTML = "";
+    if (!fillBlank.length) {
+        questions.textContent = "AI問題がありません。";
+        return;
+    }
 
-    fillBlank.forEach((q, index) => {
+    renderFillQuestion();
 
-        const answers =
-            q.answers && q.answers.length > 0
-                ? q.answers
-                : [q.answer || ""];
+    sessionStorage.setItem(
+        "quizPlaying",
+        "true"
+    );
 
-        questions.innerHTML += `
+}
+
+function renderFillQuestion() {
+    const q = visibleFillBlank[currentFillIndex];
+    const answers = q.answers && q.answers.length > 0 ? q.answers : [q.answer || ""];
+    questions.innerHTML = `
+            <div class="test-progress"><span style="width:${((currentFillIndex + 1) / visibleFillBlank.length) * 100}%"></span></div>
             <div
-                class="card setting-card fill-card"
-                data-question="${index}"
+                class="card setting-card fill-card test-focus-card"
+                data-question="${currentFillIndex}"
                 data-answer="${q.answer || answers.join("・")}"
                 data-answers='${JSON.stringify(answers)}'>
 
-                <h3>問題 ${index + 1}</h3>
+                <div class="test-question-number">問題 ${currentFillIndex + 1} / ${visibleFillBlank.length}</div>
 
-                <p>${q.question}</p>
+                <h2 class="test-question-text">${q.question}</h2>
 
                 ${answers.map((answer, answerIndex) => `
                     <input
@@ -115,27 +126,37 @@ async function loadQuestions() {
                     判定
                 </button>
 
-                <p class="fill-result"></p>
+                <div class="test-result-panel" hidden>
+                    <div class="test-mark"></div>
+                    <div class="fill-result test-result-label"></div>
+                    ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${q.explanation}</p></div>` : ""}
+                    <button class="btn btn-primary next-fill-question">${currentFillIndex + 1 < visibleFillBlank.length ? "次の問題" : "結果を終了"}</button>
+                </div>
 
                 <button
                     type="button"
-                    class="btn btn-danger report-wrong-answer"
-                    data-question-index="${index}">
+                    class="test-report-link report-wrong-answer"
+                    data-question-index="${currentFillIndex}">
                     答えが違います
                 </button>
             </div>
         `;
-
-    });
-
-    sessionStorage.setItem(
-        "quizPlaying",
-        "true"
-    );
-
 }
 
 document.addEventListener("click", async (e) => {
+
+    if (e.target.classList.contains("next-fill-question")) {
+        if (currentFillIndex + 1 < visibleFillBlank.length) {
+            currentFillIndex++;
+            renderFillQuestion();
+            window.scrollTo({top:0, behavior:"smooth"});
+        } else {
+            fillCompleted = true;
+            sessionStorage.removeItem("quizPlaying");
+            questions.innerHTML = `<div class="card setting-card test-complete"><div>🎉</div><h2>全問終了</h2><button class="btn btn-primary" onclick="history.back()">テスト画面へ戻る</button></div>`;
+        }
+        return;
+    }
 
     if (e.target.classList.contains("report-wrong-answer")) {
 
@@ -165,6 +186,7 @@ document.addEventListener("click", async (e) => {
         return;
     }
     const result = card.querySelector(".fill-result");
+    const panel = card.querySelector(".test-result-panel");
 
     const correctAnswers =
         JSON.parse(card.dataset.answers || "[]")
@@ -179,23 +201,14 @@ document.addEventListener("click", async (e) => {
         correctAnswers.length === userAnswers.length &&
         correctAnswers.every(answer => userAnswers.includes(answer));
 
+    card.dataset.finished = "true";
+    card.querySelectorAll("input, .check-fill").forEach(element => element.disabled = true);
+    panel.hidden = false;
+
     if (allCorrect) {
-        result.textContent = "⭕ 正解！";
-        result.style.color = "green";
-
-        card.dataset.finished = "true";
-
-        const unfinished =
-            [...document.querySelectorAll(".fill-card")]
-            .some(card => card.dataset.finished !== "true");
-
-        if (!unfinished) {
-
-            sessionStorage.removeItem(
-                "quizPlaying"
-            );
-
-        }
+        result.textContent = "正解！";
+        panel.classList.add("correct");
+        panel.querySelector(".test-mark").textContent = "○";
 
         const now = new Date();
 
@@ -288,9 +301,9 @@ document.addEventListener("click", async (e) => {
     } else {
 
         result.textContent =
-            `❌ 不正解。正解：${card.dataset.answer}`;
-
-        result.style.color = "red";
+            `不正解　正解：${card.dataset.answer}`;
+        panel.classList.add("wrong");
+        panel.querySelector(".test-mark").textContent = "×";
 
     }
 
@@ -308,11 +321,7 @@ function normalizeAnswer(text) {
 
 window.addEventListener("beforeunload",(e)=>{
 
-    const unfinished =
-        [...document.querySelectorAll(".fill-card")]
-        .some(card=>card.dataset.finished!=="true");
-
-    if(!unfinished) return;
+    if(fillCompleted || !visibleFillBlank.length) return;
 
     e.preventDefault();
 

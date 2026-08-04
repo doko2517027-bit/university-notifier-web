@@ -50,9 +50,9 @@ const elements = {
     annualLimitText: document.getElementById("annualLimitText")
 };
 
-const department = localStorage.getItem("department") || "";
-const major = localStorage.getItem("major") || "";
-const grade = localStorage.getItem("grade") || "";
+let department = localStorage.getItem("department") || "";
+let major = localStorage.getItem("major") || "";
+let grade = localStorage.getItem("grade") || "";
 const previewMode = new URLSearchParams(location.search).get("preview") === "1";
 
 let config = null;
@@ -124,6 +124,10 @@ async function loadRegistrationData() {
     }
 
     config = configSnap.data();
+    const userData = userSnap.data() || {};
+    department = String(userData.department || department).trim();
+    major = String(userData.major || major).trim();
+    grade = String(userData.grade || grade).replace("年", "").trim();
     progress = {
         ...progress,
         ...(userSnap.data()?.courseProgress || {})
@@ -222,14 +226,14 @@ function matchesStudent(subject) {
     const subjectDepartment = String(subject.department || "").trim();
     const subjectGrade = String(subject.grade || "").replace("年", "").trim();
     const departmentMatches =
-        !subjectDepartment || subjectDepartment === department ||
-        (major && subjectDepartment === major);
-    return departmentMatches && (!subjectGrade || subjectGrade === grade);
+        subjectDepartment === department ||
+        (major !== "" && subjectDepartment === major);
+    return departmentMatches && subjectGrade === grade;
 }
 
 function matchesSemester(subject, semester) {
     const value = String(subject.semester || "").trim();
-    return !value || value === semester || value.includes("通年") || value.includes("通期");
+    return value === semester;
 }
 
 function compareSubjects(a, b) {
@@ -262,7 +266,7 @@ function subjectCard(subject) {
     const selectable = canSelectSubject(subject, checked);
     const credits = Number(subject.credits || 0);
     return `
-        <label class="card setting-card course-registration-item ${checked ? "is-selected" : ""}">
+        <label class="course-registration-item ${checked ? "is-selected" : ""}">
             <input type="checkbox" class="course-checkbox" data-subject-id="${escapeHtml(subject.id)}"
                 ${checked ? "checked" : ""} ${selectable ? "" : "disabled"}>
             <span class="course-registration-content">
@@ -279,6 +283,19 @@ function subjectCard(subject) {
 
 function renderSubjects() {
     if (!config || getEffectivePhase() === "hidden" && !previewMode) return;
+
+    if (visibleSubjects.length === 0) {
+        elements.list.innerHTML = `
+            <div class="course-registration-empty">
+                <div>📚</div>
+                <h3>対象科目がありません</h3>
+                <p>${escapeHtml(department)} ${escapeHtml(grade)}年・${escapeHtml(config.semester)}に一致する科目が登録されていません。</p>
+            </div>`;
+        elements.save.disabled = true;
+        updateCreditDisplay();
+        return;
+    }
+
     const required = visibleSubjects.filter(item => item.required === true);
     const optional = visibleSubjects.filter(item => item.required !== true);
 

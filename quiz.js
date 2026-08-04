@@ -1,292 +1,131 @@
-import {
-    db,
-    setupTheme,
-    initializePage,
-    loadProfileImage
-} from "./common.js";
-
-import {
-    doc,
-    getDoc,
-    increment,
-    setDoc,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
+import { db, setupTheme, initializePage, loadProfileImage } from "./common.js";
+import { doc, getDoc, increment, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { reportWrongAnswer } from "./question_report.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const quizArea = document.getElementById("quizArea");
-
 const params = new URLSearchParams(location.search);
 const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 let visibleQuiz = [];
+let currentIndex = 0;
+let completed = false;
 
 setupTheme(themeButton);
-
-await initializePage([
-    loadProfileImage(topProfileImage),
-    loadQuiz()
-]);
-
-document.getElementById("backButton").onclick = () => {
-    history.back();
-};
-
-document.getElementById("profileButton").onclick = () => {
-    location.href = "profile.html";
-};
+document.getElementById("backButton").onclick = () => history.back();
+document.getElementById("profileButton").onclick = () => location.href = "profile.html";
+await initializePage([loadProfileImage(topProfileImage), loadQuiz()]);
 
 async function loadQuiz() {
-
     if (!subjectId || !unitId) {
-        quizArea.innerHTML = "科目または単元が指定されていません。";
+        quizArea.textContent = "科目または単元が指定されていません。";
         return;
     }
-
-    const snap = await getDoc(
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "publishedQuestions",
-            "published"
-        )
-    );
-
+    const snap = await getDoc(doc(db, "examSubjects", subjectId, "units", unitId, "publishedQuestions", "published"));
     if (!snap.exists()) {
-        quizArea.innerHTML = "四択問題はまだありません。";
+        quizArea.textContent = "四択問題はまだありません。";
         return;
     }
-
-    const data = snap.data();
-    const quiz = (data.quiz || []).filter(q =>
-        q &&
-        typeof q.question === "string" &&
-        q.question.trim() !== "" &&
-        Array.isArray(q.choices) &&
-        q.choices.length > 0 &&
-        q.choices.every(choice => String(choice).trim() !== "") &&
-        q.answer !== undefined &&
-        q.answer !== null
+    visibleQuiz = (snap.data().quiz || []).filter(q =>
+        q && String(q.question || "").trim() && Array.isArray(q.choices) &&
+        q.choices.length && q.answer !== undefined && q.answer !== null
     );
-    visibleQuiz = quiz;
-
-    quizArea.innerHTML = "";
-
-    quiz.forEach((q, index) => {
-
-        quizArea.innerHTML += `
-            <div
-                class="card setting-card quiz-card"
-                data-answer="${q.answer}"
-                data-question="${q.id || index}">
-                
-                <h3>問題 ${index + 1}</h3>
-                <p>${q.question}</p>
-
-                ${q.choices.map((choice, choiceIndex) => `
-                    <button
-                        class="btn btn-secondary quiz-answer"
-                        data-index="${choiceIndex}">
-                        ${choiceIndex + 1}. ${choice}
-                    </button>
-                    <br><br>
-                `).join("")}
-
-                <p class="quiz-result"></p>
-                <p><small>${q.explanation || ""}</small></p>
-
-                <button
-                    type="button"
-                    class="btn btn-danger report-wrong-answer"
-                    data-question-index="${index}">
-                    答えが違います
-                </button>
-            </div>
-        `;
-
-    });
-
-    sessionStorage.setItem(
-        "quizPlaying",
-        "true"
-    );
-
+    if (!visibleQuiz.length) {
+        quizArea.textContent = "四択問題はまだありません。";
+        return;
+    }
+    sessionStorage.setItem("quizPlaying", "true");
+    renderQuestion();
 }
 
-document.addEventListener("click", async (e) => {
+function escapeHtml(value) {
+    return String(value ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
 
-    if (e.target.classList.contains("report-wrong-answer")) {
+function renderQuestion() {
+    const q = visibleQuiz[currentIndex];
+    quizArea.innerHTML = `
+        <div class="test-progress"><span style="width:${((currentIndex + 1) / visibleQuiz.length) * 100}%"></span></div>
+        <div class="card setting-card test-focus-card quiz-card" data-answer="${Number(q.answer)}">
+            <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
+            <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
+            <div class="test-choice-list">
+                ${q.choices.map((choice, index) => `<button class="test-choice quiz-answer" data-index="${index}"><b>${index + 1}</b><span>${escapeHtml(choice)}</span></button>`).join("")}
+            </div>
+            <div class="test-result-panel" hidden>
+                <div class="test-mark" aria-hidden="true"></div>
+                <div class="test-result-label"></div>
+                ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${escapeHtml(q.explanation)}</p></div>` : ""}
+                <button class="btn btn-primary next-question">${currentIndex + 1 < visibleQuiz.length ? "次の問題" : "結果を終了"}</button>
+            </div>
+            <button type="button" class="test-report-link report-wrong-answer">答えが違います</button>
+        </div>`;
+}
 
-        const index = Number(e.target.dataset.questionIndex);
-        const q = visibleQuiz[index];
-
-        if (q) {
-            await reportWrongAnswer(e.target, {
-                questionType: "quiz",
-                subjectId,
-                unitId,
-                questionId: String(q.id ?? index),
-                question: q.question,
-                registeredAnswer: q.answer,
-                choices: q.choices
-            });
-        }
-
+document.addEventListener("click", async event => {
+    if (event.target.closest(".report-wrong-answer")) {
+        const q = visibleQuiz[currentIndex];
+        await reportWrongAnswer(event.target.closest(".report-wrong-answer"), {
+            questionType:"quiz", subjectId, unitId,
+            questionId:String(q.id ?? currentIndex), question:q.question,
+            registeredAnswer:q.answer, choices:q.choices
+        });
         return;
-
     }
 
-    if (!e.target.classList.contains("quiz-answer")) return;
-
-    const card =
-        e.target.closest(".quiz-card");
-
-    if (card.dataset.finished === "true") {
+    const next = event.target.closest(".next-question");
+    if (next) {
+        if (currentIndex + 1 < visibleQuiz.length) {
+            currentIndex++;
+            renderQuestion();
+            window.scrollTo({ top:0, behavior:"smooth" });
+        } else {
+            completed = true;
+            sessionStorage.removeItem("quizPlaying");
+            quizArea.innerHTML = `<div class="card setting-card test-complete"><div>🎉</div><h2>全問終了</h2><button class="btn btn-primary" onclick="history.back()">テスト画面へ戻る</button></div>`;
+        }
         return;
     }
 
-    const selected =
-        Number(e.target.dataset.index);
-
-    const correct =
-        Number(card.dataset.answer);
-
-    const result =
-        card.querySelector(".quiz-result");
-
-    if (selected === correct) {
-
-        result.textContent = "⭕ 正解！";
-        result.style.color = "green";
-
-        card.dataset.finished = "true";
-
-        const unfinished =
-            [...document.querySelectorAll(".quiz-card")]
-            .some(card => card.dataset.finished !== "true");
-
-        if (!unfinished) {
-
-            sessionStorage.removeItem(
-                "quizPlaying"
-            );
-
-        }
-
-        const now = new Date();
-
-        const today =
-            `${now.getFullYear()}-` +
-            `${String(now.getMonth() + 1).padStart(2,"0")}-` +
-            `${String(now.getDate()).padStart(2,"0")}`;
-
-        const studentNumber =
-            localStorage.getItem("studentNumber");
-
-        const questionId =
-            card.dataset.question;
-
-
-        const solvedRef =
-            doc(
-                db,
-                "users",
-                studentNumber,
-                "solvedQuestions",
-                questionId
-            );
-
-
-        const solvedSnap =
-            await getDoc(
-                solvedRef
-            );
-
-
-        if (!solvedSnap.exists()) {
-
-
-            await setDoc(
-                solvedRef,
-                {
-                    firstCorrectAt:
-                        serverTimestamp()
-                }
-            );
-
-
-            await setDoc(
-                doc(
-                    db,
-                    "dailyRanking",
-                    today,
-                    "users",
-                    studentNumber
-                ),
-                {
-                    lastAnsweredAt:
-                        serverTimestamp(),
-
-                    point:
-                        increment(1),
-
-                    solved:
-                        increment(1)
-                },
-                {
-                    merge:true
-                }
-            );
-
-
-            // 累計ポイント追加
-            await setDoc(
-                doc(
-                    db,
-                    "totalRanking",
-                    studentNumber
-                ),
-                {
-                    point:
-                        increment(1),
-
-                    updatedAt:
-                        serverTimestamp()
-                },
-                {
-                    merge:true
-                }
-            );
-
-        }
-
-    } else {
-
-        result.textContent = "❌ 不正解";
-        result.style.color = "red";
-
-    }
-
+    const answerButton = event.target.closest(".quiz-answer");
+    if (!answerButton) return;
+    const card = answerButton.closest(".quiz-card");
+    if (card.dataset.finished === "true") return;
+    card.dataset.finished = "true";
+    const selected = Number(answerButton.dataset.index);
+    const correct = Number(card.dataset.answer);
+    const isCorrect = selected === correct;
+    card.querySelectorAll(".test-choice").forEach((button, index) => {
+        button.disabled = true;
+        if (index === correct) button.classList.add("is-correct");
+        if (index === selected && !isCorrect) button.classList.add("is-wrong");
+    });
+    const panel = card.querySelector(".test-result-panel");
+    panel.hidden = false;
+    panel.classList.add(isCorrect ? "correct" : "wrong");
+    panel.querySelector(".test-mark").textContent = isCorrect ? "○" : "×";
+    panel.querySelector(".test-result-label").textContent = isCorrect ? "正解！" : "不正解";
+    if (isCorrect) await awardPoint(String(visibleQuiz[currentIndex].id ?? currentIndex));
 });
 
-let quizLost = false;
+async function awardPoint(questionId) {
+    const studentNumber = localStorage.getItem("studentNumber");
+    if (!studentNumber) return;
+    const solvedRef = doc(db,"users",studentNumber,"solvedQuestions",questionId);
+    if ((await getDoc(solvedRef)).exists()) return;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    await setDoc(solvedRef,{firstCorrectAt:serverTimestamp()});
+    await Promise.all([
+        setDoc(doc(db,"dailyRanking",today,"users",studentNumber),{lastAnsweredAt:serverTimestamp(),point:increment(1),solved:increment(1)},{merge:true}),
+        setDoc(doc(db,"totalRanking",studentNumber),{point:increment(1),updatedAt:serverTimestamp()},{merge:true})
+    ]);
+}
 
-window.addEventListener("beforeunload",(e)=>{
-
-    const unfinished =
-        [...document.querySelectorAll(".quiz-card")]
-        .some(card=>card.dataset.finished!=="true");
-
-    if(!unfinished) return;
-
-    e.preventDefault();
-
-    e.returnValue="";
-
+window.addEventListener("beforeunload", event => {
+    if (completed || !visibleQuiz.length) return;
+    event.preventDefault();
+    event.returnValue = "";
 });

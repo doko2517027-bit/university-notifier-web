@@ -78,23 +78,27 @@ async function loadDailyQuestion() {
     visibleDailyQuestion = q;
 
     questionArea.innerHTML = `
-        <div class="card setting-card" data-answer="${q.answer}">
-            <h3>${q.question}</h3>
+        <div class="card setting-card test-focus-card" data-answer="${q.answer}">
+            <div class="test-question-number">今日の1問</div>
+            <h2 class="test-question-text">${q.question}</h2>
 
-            ${q.choices.map((choice, index) => `
+            <div class="test-choice-list">${q.choices.map((choice, index) => `
                 <button
-                    class="btn btn-secondary answer-button"
+                    class="test-choice answer-button"
                     data-index="${index}">
-                    ${index + 1}. ${choice}
+                    <b>${index + 1}</b><span>${choice}</span>
                 </button>
-                <br><br>
-            `).join("")}
+            `).join("")}</div>
 
-            <p id="result"></p>
+            <div class="test-result-panel" hidden>
+                <div class="test-mark"></div>
+                <div id="result" class="test-result-label"></div>
+                ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${q.explanation}</p></div>` : ""}
+            </div>
 
             <button
                 type="button"
-                class="btn btn-danger report-wrong-answer">
+                class="test-report-link report-wrong-answer">
                 答えが違います
             </button>
         </div>
@@ -138,12 +142,21 @@ document.addEventListener("click", async (e) => {
     const correct = Number(card.dataset.answer);
 
     const result = document.getElementById("result");
+    const panel = card.querySelector(".test-result-panel");
+    const isCorrect = selected === correct;
 
-    if (selected === correct) {
-        result.textContent = "⭕ 正解！";
-        result.style.color = "green";
+    card.dataset.finished = "true";
+    card.querySelectorAll(".test-choice").forEach((button, index) => {
+        button.disabled = true;
+        if (index === correct) button.classList.add("is-correct");
+        if (index === selected && !isCorrect) button.classList.add("is-wrong");
+    });
+    panel.hidden = false;
+    panel.classList.add(isCorrect ? "correct" : "wrong");
+    panel.querySelector(".test-mark").textContent = isCorrect ? "○" : "×";
 
-        card.dataset.finished = "true";
+    if (isCorrect) {
+        result.textContent = "正解！";
 
         sessionStorage.removeItem(
             "quizPlaying"
@@ -246,8 +259,8 @@ document.addEventListener("click", async (e) => {
         }
 
     } else {
-        result.textContent = "❌ 不正解";
-        result.style.color = "red";
+        result.textContent = "不正解";
+        sessionStorage.removeItem("quizPlaying");
     }
 
 });

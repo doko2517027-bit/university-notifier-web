@@ -1135,85 +1135,9 @@ async function loadWeather(user) {
         const rain =
             data.hourly.precipitation_probability[nowHour] ?? 0;
 
-        weatherLocation.innerHTML =
-            `<b>${locationName}</b>`;
-
-        weatherMain.innerHTML = `
-
-        <div style="
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-        ">
-
-            <div style="
-                font-size:58px;
-                line-height:1;
-            ">
-                ${weather.icon}
-            </div>
-
-            <div style="
-                font-size:18px;
-                margin-top:8px;
-            ">
-                ${weather.text}
-            </div>
-
-            <div style="
-                font-size:42px;
-                font-weight:bold;
-                margin-top:6px;
-            ">
-                ${temp}℃
-            </div>
-
-        </div>
-
-        `;
-
-        weatherDetail.innerHTML = `
-
-        <div style="
-            display:flex;
-            justify-content:space-around;
-            text-align:center;
-            margin-top:12px;
-        ">
-
-            <div>
-
-                <div style="font-size:12px;color:gray;">
-                    最高
-                </div>
-
-                <b>${max}℃</b>
-
-            </div>
-
-            <div>
-
-                <div style="font-size:12px;color:gray;">
-                    最低
-                </div>
-
-                <b>${min}℃</b>
-
-            </div>
-
-            <div>
-
-                <div style="font-size:12px;color:gray;">
-                    降水
-                </div>
-
-                <b>${rain}%</b>
-
-            </div>
-
-        </div>
-
-        `;
+        weatherLocation.textContent = locationName;
+        weatherMain.textContent = `${weather.icon} ${temp}℃`;
+        weatherDetail.textContent = `${max}/${min}℃　💧${rain}%`;
 
         setWeatherCardStyle(weather.text);
 

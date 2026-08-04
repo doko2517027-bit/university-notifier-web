@@ -1524,8 +1524,8 @@ white-space:pre-wrap;
 .course-credit-dashboard{
     display:grid;
     grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:10px;
-    margin:14px 0;
+    gap:7px;
+    margin:10px 0;
 }
 
 .course-credit-stat{
@@ -1533,17 +1533,17 @@ white-space:pre-wrap;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    min-height:88px;
-    padding:10px;
-    border-radius:15px;
+    min-height:62px;
+    padding:7px;
+    border-radius:11px;
     background:var(--card-bg,#fff);
     box-shadow:0 4px 16px rgba(15,23,42,.08);
     text-align:center;
 }
 
-.course-credit-stat small{color:var(--subtext,#64748b)}
-.course-credit-stat b{font-size:27px;line-height:1.2;color:var(--text,#0f172a)}
-.course-credit-stat span{font-size:12px;color:var(--subtext,#64748b)}
+.course-credit-stat small{color:var(--subtext,#64748b);font-size:10px}
+.course-credit-stat b{font-size:21px;line-height:1.15;color:var(--text,#0f172a)}
+.course-credit-stat span{font-size:10px;color:var(--subtext,#64748b)}
 
 .course-progress-heading{
     display:flex;
@@ -1586,8 +1586,16 @@ white-space:pre-wrap;
 .course-registration-toolbar .btn{white-space:nowrap}
 .course-registration-section>h2{display:flex;align-items:baseline;gap:8px}
 .course-registration-section>h2 small{font-size:13px;color:var(--subtext,#64748b)}
-.course-registration-item:has(.course-checkbox:checked){border:2px solid #3b82f6;background:rgba(59,130,246,.07)}
+.course-registration-item{display:flex;align-items:center;gap:10px;margin-bottom:7px;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:var(--card);cursor:pointer}
+.course-registration-item:has(.course-checkbox:checked){border-color:#3b82f6;background:rgba(59,130,246,.07)}
 .course-registration-item:has(.course-checkbox:disabled){cursor:default}
+.course-registration-item .course-registration-title{font-size:14px}
+.course-registration-item .course-registration-meta{gap:5px;font-size:11px}
+.course-registration-item .course-checkbox{width:20px;height:20px}
+.course-registration-item .course-tag{padding:2px 6px}
+.course-registration-empty{padding:28px 15px;text-align:center;color:var(--subtext)}
+.course-registration-empty>div{font-size:38px}
+.course-registration-empty h3{margin:8px 0}
 
 @media (max-width:480px){
     .course-registration-save-bar{
@@ -2643,3 +2651,85 @@ white-space:pre-wrap;
     .top-user-info #userName{font-size:14px}
     .top-user-info .my-ranking{font-size:12px}
 }
+
+/* ===== ホーム・コンパクトダッシュボード ===== */
+.home-weather-compact{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(90px,1fr) auto auto;
+    align-items:center;
+    gap:12px;
+    margin:0 0 14px;
+    padding:11px 14px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--card);
+    color:var(--text);
+    box-shadow:var(--shadow);
+    text-align:left;
+    cursor:pointer;
+}
+
+.home-weather-location{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:750}
+.home-weather-main{font-size:20px;font-weight:800;white-space:nowrap}
+.home-weather-detail{font-size:12px;color:var(--subtext);white-space:nowrap}
+
+.home-schedule-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    overflow:visible;
+}
+
+.home-schedule-grid .day-card{
+    min-width:0;
+    padding:14px;
+}
+
+.home-schedule-grid .schedule-card-title{font-size:17px;margin-bottom:10px}
+.home-schedule-grid .schedule-content{min-height:90px}
+.home-schedule-grid .lesson-card{padding:9px 0;gap:9px}
+.home-schedule-grid .lesson-period{min-width:38px;height:38px;border-radius:10px}
+
+.home-feature-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    overflow:visible;
+}
+
+.home-feature-grid .home-slide{min-width:0;display:block}
+.home-feature-grid .home-slide[hidden]{display:none}
+.home-feature-grid .home-card{min-height:96px;padding:14px;margin:0}
+.home-feature-grid .home-card h2{margin:0 0 6px;font-size:17px}
+.home-feature-grid .home-card p{margin:0;font-size:12px;line-height:1.45}
+
+@media(max-width:560px){
+    .home-schedule-grid{grid-template-columns:1fr}
+    .home-weather-compact{grid-template-columns:1fr auto;gap:7px 10px}
+    .home-weather-detail{grid-column:2;font-size:11px}
+    .home-weather-main{grid-column:2;grid-row:1;font-size:18px}
+}
+
+/* ===== テスト・1問集中表示 ===== */
+.test-progress{height:7px;margin:12px 0 18px;overflow:hidden;border-radius:999px;background:rgba(127,127,127,.18)}
+.test-progress span{display:block;height:100%;border-radius:inherit;background:var(--primary);transition:width .3s ease}
+.test-focus-card{max-width:620px;margin:0 auto;padding:20px}
+.test-question-number{margin-bottom:10px;color:var(--primary);font-size:13px;font-weight:800}
+.test-question-text{margin:0 0 20px;font-size:20px;line-height:1.55}
+.test-choice-list{display:grid;gap:9px}
+.test-choice{width:100%;display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:15px;text-align:left;cursor:pointer}
+.test-choice b{width:29px;height:29px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:var(--bg);color:var(--primary)}
+.test-choice.is-correct{border-color:#16a34a;background:rgba(34,197,94,.1)}
+.test-choice.is-wrong{border-color:#ef4444;background:rgba(239,68,68,.1)}
+.test-result-panel{position:relative;margin-top:18px;padding-top:8px;text-align:center}
+.test-result-panel[hidden]{display:none}
+.test-mark{height:110px;font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;font-size:108px;font-weight:300;line-height:1;transform:rotate(-8deg);opacity:0;animation:handDrawMark .65s ease forwards}
+.test-result-panel.correct .test-mark,.test-result-panel.correct .test-result-label{color:#16a34a}
+.test-result-panel.wrong .test-mark,.test-result-panel.wrong .test-result-label{color:#ef4444}
+.test-result-label{margin:4px 0 16px;font-size:23px;font-weight:850}
+.test-explanation{margin:12px 0 16px;padding:13px;border-radius:12px;background:var(--bg);text-align:left}
+.test-explanation p{margin:6px 0 0}
+.test-report-link{margin-top:15px;border:0;background:none;color:#ef4444;font-size:12px;text-decoration:underline;cursor:pointer}
+.test-complete{text-align:center;padding:35px}.test-complete>div{font-size:55px}
+@keyframes handDrawMark{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:rotate(-12deg) scale(.8)}60%{opacity:1}100%{opacity:1;clip-path:inset(0 0 0 0);transform:rotate(-5deg) scale(1)}}
