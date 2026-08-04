@@ -214,7 +214,8 @@ onDocumentCreated(
                         .get();
 
                 const subscription =
-                    userSnapshot.data()?.pushSubscription;
+                    userSnapshot.data()?.pushSubscription ||
+                    userSnapshot.data()?.subscription;
 
                 if (
                     !subscription?.endpoint ||

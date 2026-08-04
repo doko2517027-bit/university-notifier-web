@@ -1063,10 +1063,14 @@ async function enablePushNotification() {
             applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
         });
 
+    const subscriptionData =
+        JSON.parse(JSON.stringify(subscription));
+
     await updateDoc(
         doc(db, "users", studentNumber),
         {
-            subscription: JSON.parse(JSON.stringify(subscription))
+            subscription: subscriptionData,
+            pushSubscription: subscriptionData
         }
     );
 
