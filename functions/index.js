@@ -119,9 +119,10 @@ exports.sendAttendanceNotifications = onSchedule({
             if (!enrolled.has(normalizeCourseName(item.subject))) continue;
             if (grade && String(item.grade || "").replace("年", "").trim() !== grade) continue;
 
-            const recordId = slotId(scheduleId, clock.date, item.period, item.subject);
+            const periodNumber = Number.parseInt(item.period, 10);
+            const recordId = slotId(scheduleId, clock.date, periodNumber, item.subject);
             const override = attendanceOverrides[recordId] || {};
-            const defaults = PERIOD_TIMES[Number(item.period)] || {};
+            const defaults = PERIOD_TIMES[periodNumber] || {};
             const startTime = override.startTime || item.startTime || defaults.startTime;
             const endTime = override.endTime || item.endTime || defaults.endTime;
             const preference = user.attendancePreferences?.[encodeURIComponent(item.subject)] || {};
@@ -148,7 +149,7 @@ exports.sendAttendanceNotifications = onSchedule({
             if (!claimed) continue;
 
             const query = new URLSearchParams({ action: notificationType, recordId, scheduleId,
-                date: clock.date, period: String(item.period), subject: item.subject,
+                date: clock.date, period: String(periodNumber), subject: item.subject,
                 classGroup: group, startTime, endTime }).toString();
             const label = group ? `（${group}）` : "";
             const payload = notificationType === "arrival"
