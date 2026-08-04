@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ポイント | CareMateApp</title><link rel="stylesheet" href="style.css"><script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script></head>
 <body class="page-loading"><div class="top-buttons"><button id="backButton" class="circle-button">←</button><h2>ポイント・ランキング</h2><button id="themeButton" class="circle-button">🌙</button></div>
-<div class="point-summary-grid"><div class="card"><small>今日</small><b id="dailyPoint">0</b><span>pt</span></div><div class="card"><small>今日の順位</small><b id="dailyRank">-</b><span>位</span></div><div class="card"><small>累積</small><b id="totalPoint">0</b><span>pt</span></div></div>
+<div class="point-summary-grid"><div class="card"><small>今日</small><b id="dailyPoint">0</b><span>pt</span></div><div class="card"><small>昨日の順位</small><b id="dailyRank">-</b><span>位</span></div><div class="card"><small>累積</small><b id="totalPoint">0</b><span>pt</span></div></div>
 <section class="card setting-card"><h2>科目ごとのポイント</h2><div id="subjectPointChart"><p>読み込み中...</p></div></section>
-<section class="card setting-card"><h2>今日のランキング</h2><div id="rankingList"><p>読み込み中...</p></div></section>
+<section class="card setting-card"><h2>昨日のランキング</h2><p id="rankingTargetDate" class="ranking-target-date"></p><div id="rankingList"><p>読み込み中...</p></div></section>
 <script type="module" src="points.js"></script></body></html>
