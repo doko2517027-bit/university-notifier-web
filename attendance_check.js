@@ -17,6 +17,7 @@ const subjectName=document.getElementById("subjectName");
 const attendanceStatus=document.getElementById("attendanceStatus");
 const primaryButton=document.getElementById("attendanceButton");
 const secondaryButton=document.getElementById("leaveButton");
+let effectiveClock=null;
 
 subjectName.textContent=`${subject}${classGroup?`（${classGroup}）`:""}`;
 document.getElementById("attendanceMeta").textContent=`${date}・${period}限 ${startTime}〜${endTime}`;
@@ -26,7 +27,7 @@ function recordRef(){return doc(db,"attendance",studentNumber,"subjects",encodeU
 
 async function saveChoice(choice){
     if(!studentNumber)throw new Error("ログイン情報がありません");
-    const now=new Date();
+    const now=effectiveClock||new Date();
     const today=now.toLocaleDateString("sv-SE");
     if(today!==date)throw new Error("通知からの打刻は授業当日のみです。後から出席管理画面で修正できます。");
     if(action!=="departure"&&!isArrivalWindowOpened(now,startTime))throw new Error("出席操作は授業開始10分前からです。");
@@ -44,6 +45,7 @@ async function saveChoice(choice){
         if(action==="departure"&&existing.departureStatus)throw new Error("退席は既に記録済みです。");
         const base={recordId,scheduleId,date,period,subject,subjectKey:subject,classGroup,
             startTime,endTime,source:"notification",updatedAt:serverTimestamp()};
+        if(effectiveClock)base.testClock=true;
         if(action==="arrival")Object.assign(base,{arrivalStatus:status,checkInAt:Timestamp.fromDate(now),createdAt:serverTimestamp()});
         else Object.assign(base,{departureStatus:status,checkOutAt:Timestamp.fromDate(now)});
         transaction.set(ref,base,{merge:true});
@@ -51,10 +53,18 @@ async function saveChoice(choice){
     if(classGroup)await updateDoc(doc(db,"users",studentNumber),{[`attendancePreferences.${encodeURIComponent(subject)}`]:{subject,classGroup,selectedAt:new Date().toISOString(),source:"attendance"}});
     attendanceStatus.textContent=`✅ ${status}として保存しました`;
     primaryButton.disabled=true;secondaryButton.disabled=true;
+    primaryButton.hidden=true;secondaryButton.hidden=true;
+    document.getElementById("attendanceDoneLink").hidden=false;
     if(navigator.serviceWorker?.ready){const registration=await navigator.serviceWorker.ready;const notices=await registration.getNotifications();notices.filter(item=>String(item.tag||"").includes(recordId)).forEach(item=>item.close())}
 }
 
 async function init(){
+    const userSnap=await getDoc(doc(db,"users",studentNumber));
+    const testClock=userSnap.data()?.attendanceTestClock||{};
+    if(testClock.enabled===true&&testClock.date===date&&/^\d{2}:\d{2}$/.test(testClock.time||"")&&Date.parse(testClock.expiresAt||"")>Date.now()){
+        effectiveClock=new Date(`${testClock.date}T${testClock.time}:00`);
+        document.getElementById("attendanceMeta").textContent+=`（テスト時刻 ${testClock.time}）`;
+    }
     const snap=await getDoc(recordRef());
     if(snap.exists()){
         const data=snap.data();
@@ -68,6 +78,11 @@ async function init(){
         primaryButton.onclick=()=>saveChoice("arrival").catch(showError);secondaryButton.onclick=()=>saveChoice("absence").catch(showError);
     }
 }
-function showError(error){console.error(error);alert(error.message||"保存に失敗しました")}
-document.getElementById("backButton")?.addEventListener("click",()=>history.back());
+function showError(error){console.error(error);attendanceStatus.textContent=`⚠️ ${error.message||"保存に失敗しました"}`;alert(error.message||"保存に失敗しました")}
+document.getElementById("backButton")?.addEventListener("click",()=>{
+    const current=location.href;
+    if(history.length<=1){location.replace("index.html");return}
+    history.back();
+    setTimeout(()=>{if(location.href===current)location.replace("index.html")},500);
+});
 init().catch(showError);showPage();

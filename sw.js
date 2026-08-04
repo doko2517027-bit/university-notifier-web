@@ -10,7 +10,7 @@ self.addEventListener("push", event => {
                 body: data.body,
                 icon: "icon-192.png",
                 badge: "icon-192.png",
-                data: data.url,
+                data: { url: data.url || "./index.html" },
                 tag: data.tag || undefined,
                 renotify: Boolean(data.tag)
             }
@@ -24,20 +24,29 @@ self.addEventListener("notificationclick", event => {
 
     event.notification.close();
 
-    const targetUrl =
-        event.notification.data || "./index.html";
+    const notificationData=event.notification.data;
+    const targetUrl=new URL(
+        typeof notificationData==="string"
+            ? notificationData
+            : notificationData?.url||"./index.html",
+        self.location.origin
+    ).href;
 
     event.waitUntil(
         clients.matchAll({
             type: "window",
             includeUncontrolled: true
-        }).then(clientList => {
+        }).then(async clientList => {
 
             for (const client of clientList) {
 
-                if ("focus" in client) {
-                    client.navigate(targetUrl);
-                    return client.focus();
+                if ("focus" in client && "navigate" in client) {
+                    try {
+                        await client.navigate(targetUrl);
+                        return await client.focus();
+                    } catch (error) {
+                        // 別オリジン等で再利用できない場合は新しい画面を開く。
+                    }
                 }
 
             }
