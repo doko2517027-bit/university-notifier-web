@@ -57,11 +57,11 @@ const subjectCount =
 const incompleteSubjectCount =
     document.getElementById("incompleteSubjectCount");
 
-const incompleteJumpButton =
-    document.getElementById("incompleteJumpButton");
-
 const incompleteNextButton =
     document.getElementById("incompleteNextButton");
+
+const scrollTopButton =
+    document.getElementById("scrollTopButton");
 
 
 let subjects = [];
@@ -118,11 +118,17 @@ addSubjectButton.onclick =
 saveSubjectsButton.onclick =
     saveSubjectsToFirestore;
 
-incompleteJumpButton.onclick =
-    jumpToFirstIncompleteSubject;
-
 incompleteNextButton.onclick =
     jumpToNextIncompleteSubject;
+
+scrollTopButton.onclick = () => {
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+};
 
 
 subjectEditorList.addEventListener(
@@ -964,9 +970,6 @@ function updateSummary() {
 
     incompleteSubjectCount.textContent =
         incompleteCount;
-
-    incompleteJumpButton.disabled =
-        incompleteCount === 0;
 
     incompleteNextButton.disabled =
         incompleteCount === 0;

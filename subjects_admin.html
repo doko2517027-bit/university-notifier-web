@@ -124,6 +124,30 @@ if(localStorage.getItem("theme") === "dark"){
     padding: 8px 12px;
 }
 
+.subject-floating-actions {
+    position: fixed;
+    right: 14px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+}
+
+.subject-floating-actions .btn {
+    min-width: 112px;
+    padding: 11px 14px;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.subject-floating-actions .btn:disabled {
+    opacity: 0.55;
+}
+
 .subject-insert-area {
     display: flex;
     align-items: center;
@@ -268,29 +292,6 @@ if(localStorage.getItem("theme") === "dark"){
                 <b id="incompleteSubjectCount">0</b>科目
             </div>
 
-            <div class="subject-incomplete-actions">
-
-                <button
-                    id="incompleteJumpButton"
-                    type="button"
-                    class="btn btn-secondary">
-
-                    未入力へ移動
-
-                </button>
-
-                <button
-                    id="incompleteNextButton"
-                    type="button"
-                    class="btn btn-secondary"
-                    aria-label="次の未入力科目へ移動">
-
-                    🔻
-
-                </button>
-
-            </div>
-
         </div>
 
     </div>
@@ -348,6 +349,32 @@ if(localStorage.getItem("theme") === "dark"){
     管理画面へ戻る
 
 </button>
+
+<div
+    class="subject-floating-actions"
+    aria-label="科目一覧の移動操作">
+
+    <button
+        id="incompleteNextButton"
+        type="button"
+        class="btn btn-primary"
+        aria-label="次の未入力科目へ移動">
+
+        未入力 🔻
+
+    </button>
+
+    <button
+        id="scrollTopButton"
+        type="button"
+        class="btn btn-secondary"
+        aria-label="ページの一番上へ移動">
+
+        ⬆ 一番上へ
+
+    </button>
+
+</div>
 
 <nav class="bottom-nav">
 

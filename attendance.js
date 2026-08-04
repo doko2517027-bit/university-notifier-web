@@ -253,7 +253,7 @@ async function loadAttendance(){
             <p>
                 判定区分：${item.isPractical ? "実習" : "実習以外"}<br>
                 必要出席率：${requiredNumerator}/${requiredDenominator}以上<br>
-                ${qualified ? "✅ 試験資格あり" : "❌ 試験資格なし"}
+                ${qualified ? "✅ 評価あり" : "❌ 評価なし"}
             </p>
 
 
