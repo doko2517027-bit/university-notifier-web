@@ -14,7 +14,10 @@ import {
     collection,
     getDocs,
     doc,
-    writeBatch
+    getDoc,
+    setDoc,
+    writeBatch,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
@@ -63,6 +66,28 @@ const incompleteNextButton =
 const scrollTopButton =
     document.getElementById("scrollTopButton");
 
+const registrationFields = {
+    academicYear: document.getElementById("registrationAcademicYear"),
+    semester: document.getElementById("registrationSemester"),
+    phase: document.getElementById("registrationPhase"),
+    correctionMode: document.getElementById("registrationCorrectionMode"),
+    startAt: document.getElementById("registrationStartAt"),
+    endAt: document.getElementById("registrationEndAt"),
+    bannerEnabled: document.getElementById("registrationBannerEnabled"),
+    bannerText: document.getElementById("registrationBannerText"),
+    bannerSpeed: document.getElementById("registrationBannerSpeed"),
+    pageEnabled: document.getElementById("registrationPageEnabled"),
+    semesterCreditLimit: document.getElementById("semesterCreditLimit"),
+    annualCreditLimit: document.getElementById("annualCreditLimit"),
+    graduationRequiredCredits: document.getElementById("graduationRequiredCredits"),
+    electiveRequiredCredits: document.getElementById("electiveRequiredCredits")
+};
+
+const saveRegistrationDraft = document.getElementById("saveRegistrationDraft");
+const publishRegistrationSettings = document.getElementById("publishRegistrationSettings");
+const previewRegistrationPage = document.getElementById("previewRegistrationPage");
+const registrationPublishStatus = document.getElementById("registrationPublishStatus");
+
 
 let subjects = [];
 
@@ -93,6 +118,8 @@ await initializePage([
     loadMyRanking(myRanking),
     loadProfileImage(topProfileImage)
 ]);
+
+await loadRegistrationSettings();
 
 
 if (profileButton) {
@@ -129,6 +156,134 @@ scrollTopButton.onclick = () => {
     });
 
 };
+
+saveRegistrationDraft.onclick = () => saveRegistrationSettings(false);
+publishRegistrationSettings.onclick = () => saveRegistrationSettings(true);
+previewRegistrationPage.onclick = () => {
+    window.open("course_registration.html?preview=1", "_blank");
+};
+
+function defaultRegistrationSettings() {
+    return {
+        academicYear: new Date().getFullYear(),
+        semester: "前期",
+        phase: "hidden",
+        correctionMode: "delete_only",
+        startAt: "",
+        endAt: "",
+        bannerEnabled: false,
+        bannerText: "履修登録期間中！！",
+        bannerSpeed: "normal",
+        pageEnabled: false,
+        semesterCreditLimit: 30,
+        annualCreditLimit: 50,
+        graduationRequiredCredits: 0,
+        electiveRequiredCredits: 0
+    };
+}
+
+function readRegistrationForm() {
+    return {
+        academicYear: Number(registrationFields.academicYear.value),
+        semester: registrationFields.semester.value,
+        phase: registrationFields.phase.value,
+        correctionMode: registrationFields.correctionMode.value,
+        startAt: registrationFields.startAt.value,
+        endAt: registrationFields.endAt.value,
+        bannerEnabled: registrationFields.bannerEnabled.checked,
+        bannerText: registrationFields.bannerText.value.trim(),
+        bannerSpeed: registrationFields.bannerSpeed.value,
+        pageEnabled: registrationFields.pageEnabled.checked,
+        semesterCreditLimit: Number(registrationFields.semesterCreditLimit.value || 0),
+        annualCreditLimit: Number(registrationFields.annualCreditLimit.value || 0),
+        graduationRequiredCredits: Number(registrationFields.graduationRequiredCredits.value || 0),
+        electiveRequiredCredits: Number(registrationFields.electiveRequiredCredits.value || 0)
+    };
+}
+
+function fillRegistrationForm(settings) {
+    const value = { ...defaultRegistrationSettings(), ...settings };
+    registrationFields.academicYear.value = value.academicYear;
+    registrationFields.semester.value = value.semester;
+    registrationFields.phase.value = value.phase;
+    registrationFields.correctionMode.value = value.correctionMode;
+    registrationFields.startAt.value = value.startAt || "";
+    registrationFields.endAt.value = value.endAt || "";
+    registrationFields.bannerEnabled.checked = value.bannerEnabled === true;
+    registrationFields.bannerText.value = value.bannerText || "";
+    registrationFields.bannerSpeed.value = value.bannerSpeed;
+    registrationFields.pageEnabled.checked = value.pageEnabled === true;
+    registrationFields.semesterCreditLimit.value = value.semesterCreditLimit;
+    registrationFields.annualCreditLimit.value = value.annualCreditLimit;
+    registrationFields.graduationRequiredCredits.value = value.graduationRequiredCredits;
+    registrationFields.electiveRequiredCredits.value = value.electiveRequiredCredits;
+}
+
+async function loadRegistrationSettings() {
+    try {
+        const [draftSnap, publishedSnap] = await Promise.all([
+            getDoc(doc(db, "system", "courseRegistrationDraft")),
+            getDoc(doc(db, "system", "courseRegistration"))
+        ]);
+        fillRegistrationForm(
+            draftSnap.exists()
+                ? draftSnap.data()
+                : publishedSnap.exists()
+                    ? publishedSnap.data()
+                    : defaultRegistrationSettings()
+        );
+        registrationPublishStatus.textContent = publishedSnap.exists()
+            ? `公開済み：${publishedSnap.data().academicYear}年度 ${publishedSnap.data().semester}`
+            : "学生側にはまだ公開されていません。";
+    } catch (error) {
+        console.error("履修公開設定取得エラー:", error);
+        fillRegistrationForm(defaultRegistrationSettings());
+        registrationPublishStatus.textContent = "公開設定を取得できませんでした。";
+    }
+}
+
+async function saveRegistrationSettings(publish) {
+    const settings = readRegistrationForm();
+
+    if (!settings.academicYear || settings.academicYear < 2020) {
+        alert("対象年度を入力してください。");
+        return;
+    }
+
+    if (settings.startAt && settings.endAt && settings.startAt >= settings.endAt) {
+        alert("終了日時は開始日時より後にしてください。");
+        return;
+    }
+
+    if (publish && !confirm("この設定を学生側へ公開しますか？")) return;
+
+    const button = publish ? publishRegistrationSettings : saveRegistrationDraft;
+    const originalText = button.textContent;
+
+    try {
+        button.disabled = true;
+        button.textContent = "保存中...";
+        await setDoc(
+            doc(db, "system", publish ? "courseRegistration" : "courseRegistrationDraft"),
+            {
+                ...settings,
+                published: publish,
+                updatedAt: serverTimestamp()
+            },
+            { merge: true }
+        );
+        registrationPublishStatus.textContent = publish
+            ? `${settings.academicYear}年度 ${settings.semester}を学生側へ公開しました。`
+            : "下書きを保存しました。学生側にはまだ反映されません。";
+        showToast(publish ? "学生側へ公開しました" : "下書きを保存しました");
+    } catch (error) {
+        console.error("履修公開設定保存エラー:", error);
+        alert("公開設定を保存できませんでした。");
+    } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
+}
 
 
 subjectEditorList.addEventListener(

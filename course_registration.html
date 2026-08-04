@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>履修登録 | CareMateApp</title>
+<link rel="stylesheet" href="style.css">
+<script>
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}
+</script>
+</head>
+<body class="page-loading">
+
+<div class="top-buttons">
+    <button id="backButton" class="circle-button">←</button>
+    <h2>📘 履修登録</h2>
+    <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
+        <button id="profileButton" class="circle-button">
+            <img id="topProfileImage" src="images/default.png" class="header-profile-image">
+        </button>
+    </div>
+</div>
+
+<hr>
+
+<div id="registrationPhaseCard" class="card setting-card course-registration-summary">
+    <h3 id="studentCourseInfo">登録情報を確認中...</h3>
+    <p id="registrationSummary">公開設定を読み込んでいます。</p>
+</div>
+
+<div id="creditDashboard" class="course-credit-dashboard">
+    <div class="course-credit-stat"><small>今回選択</small><b id="currentCredits">0</b><span>単位</span></div>
+    <div class="course-credit-stat"><small>半期合計</small><b id="semesterCredits">0</b><span id="semesterLimitText">単位</span></div>
+    <div class="course-credit-stat"><small>年間合計</small><b id="annualCredits">0</b><span id="annualLimitText">単位</span></div>
+    <div class="course-credit-stat"><small>取得済み</small><b id="earnedCredits">0</b><span>単位</span></div>
+    <div class="course-credit-stat"><small>卒業必要</small><b id="requiredGraduationCredits">0</b><span>単位</span></div>
+    <div class="course-credit-stat"><small>卒業まで残り</small><b id="remainingCredits">0</b><span>単位</span></div>
+    <div class="course-credit-stat"><small>必修取得済み</small><b id="earnedRequiredCredits">0</b><span>単位</span></div>
+    <div class="course-credit-stat"><small>選択取得済み</small><b id="earnedElectiveCredits">0</b><span>単位</span></div>
+</div>
+
+<div class="card setting-card">
+    <div class="course-progress-heading">
+        <div>
+            <h3>過去の取得単位</h3>
+            <small>落単した科目は含めず、取得済み単位だけ入力してください。</small>
+        </div>
+        <button id="toggleProgressEditor" class="btn btn-secondary" type="button">編集</button>
+    </div>
+    <div id="progressEditor" class="course-progress-editor" hidden>
+        <label>取得済み総単位<input id="earnedCreditsInput" type="number" min="0" step="1"></label>
+        <label>取得済み必修単位<input id="earnedRequiredCreditsInput" type="number" min="0" step="1"></label>
+        <label>取得済み選択単位<input id="earnedElectiveCreditsInput" type="number" min="0" step="1"></label>
+        <button id="saveCourseProgress" class="btn btn-primary" type="button">取得単位を保存</button>
+    </div>
+</div>
+
+<div id="creditWarning" class="course-credit-warning" hidden></div>
+
+<div class="course-registration-toolbar">
+    <p class="course-registration-note">必修は登録済みで変更できません。選択科目はカード全体を押して選べます。</p>
+    <button id="restorePreviousEnrollment" class="btn btn-secondary" type="button">前回の登録内容に戻す</button>
+</div>
+
+<div id="courseList" class="course-registration-list">
+    <div class="card setting-card">読み込み中...</div>
+</div>
+
+<div class="course-registration-save-bar">
+    <span id="selectedCourseCount">0科目・0単位</span>
+    <button id="saveCoursesButton" class="btn btn-primary" disabled>
+        履修登録を保存
+    </button>
+</div>
+
+<nav class="bottom-nav">
+    <a href="index.html">🏠<br><span>ホーム</span></a>
+    <a href="assignments.html">📚<br><span>課題</span></a>
+    <a href="share.html">🤝<br><span>共有</span></a>
+    <a href="news.html">📢<br><span>お知らせ</span></a>
+    <a href="settings.html">⚙️<br><span>設定</span></a>
+</nav>
+
+<script type="module" src="course_registration.js"></script>
+</body>
+</html>

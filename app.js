@@ -55,6 +55,10 @@ const rankingPopupOverlay =
     document.getElementById("rankingPopupOverlay");
 const attendanceCard =
     document.getElementById("attendanceCard");
+const courseRegistrationBanner =
+    document.getElementById("courseRegistrationBanner");
+const courseRegistrationBannerText =
+    document.getElementById("courseRegistrationBannerText");
 const rankingPopupDate =
     document.getElementById("rankingPopupDate");
 
@@ -273,6 +277,7 @@ console.log("studentNumber =", studentNumber);
         loadHomeSystemNews(),
         loadCourseLinks(),
         loadTodaySchedule(),
+        loadCourseRegistrationBanner(),
     ]);
 
 
@@ -401,6 +406,39 @@ if(attendanceCard){
 
     };
 
+}
+
+async function loadCourseRegistrationBanner(){
+    if(!courseRegistrationBanner) return;
+
+    try {
+        const configSnap = await getDoc(doc(db, "system", "courseRegistration"));
+        if(!configSnap.exists()) return;
+
+        const config = configSnap.data();
+        const now = Date.now();
+        const starts = config.startAt ? new Date(config.startAt).getTime() : 0;
+        const ends = config.endAt ? new Date(config.endAt).getTime() : Infinity;
+        const inPeriod = now >= starts && now <= ends;
+
+        if(
+            config.published !== true ||
+            config.bannerEnabled !== true ||
+            config.pageEnabled !== true ||
+            config.phase === "hidden" ||
+            !inPeriod
+        ) return;
+
+        courseRegistrationBannerText.textContent =
+            config.bannerText || "履修登録期間中！！";
+        courseRegistrationBanner.dataset.speed = config.bannerSpeed || "normal";
+        courseRegistrationBanner.hidden = false;
+        courseRegistrationBanner.onclick = () => {
+            location.href = "course_registration.html";
+        };
+    } catch(error) {
+        console.error("履修登録案内取得エラー:", error);
+    }
 }
 
 if(activeMailButton){
