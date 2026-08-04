@@ -79,13 +79,10 @@ function timeMinutes(value) {
 }
 
 // 個人時間割（公式PDF×履修科目）からだけ出席・退席通知を生成する。
-exports.sendAttendanceNotifications = onSchedule({
-    schedule: "* * * * *", timeZone: "Asia/Tokyo", region: "asia-northeast1",
-    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY]
-}, async () => {
+async function processAttendanceNotifications() {
     webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",
         WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value());
-    const clock = tokyoParts();
+    const realClock = tokyoParts();
     const scheduleCache = new Map();
     const appSettings = (await db.collection("system").doc("app").get()).data() || {};
     const attendanceOverrides = appSettings.attendanceOverrides || {};
@@ -93,6 +90,14 @@ exports.sendAttendanceNotifications = onSchedule({
 
     for (const userDoc of users.docs) {
         const user = userDoc.data() || {};
+        const testClock = user.attendanceTestClock || {};
+        const testClockActive = userDoc.id === "2510044" && testClock.enabled === true &&
+            /^\d{4}-\d{2}-\d{2}$/.test(testClock.date || "") &&
+            /^\d{2}:\d{2}$/.test(testClock.time || "") &&
+            Date.parse(testClock.expiresAt || "") > Date.now();
+        const clock = testClockActive
+            ? { date: testClock.date, minutes: timeMinutes(testClock.time), test: true }
+            : realClock;
         const scheduleId = scheduleDocumentId(user);
         if (!scheduleId) continue;
         if (!scheduleCache.has(scheduleId)) {
@@ -143,7 +148,9 @@ exports.sendAttendanceNotifications = onSchedule({
             await db.runTransaction(async transaction => {
                 const existing = await transaction.get(dispatchRef);
                 if (existing.exists) return;
-                transaction.create(dispatchRef, { userId: userDoc.id, recordId, notificationType, group, createdAt: new Date() });
+                transaction.create(dispatchRef, { userId: userDoc.id, recordId, notificationType, group,
+                    testClock: clock.test === true, evaluatedDate: clock.date,
+                    evaluatedMinutes: clock.minutes, createdAt: new Date() });
                 claimed = true;
             });
             if (!claimed) continue;
@@ -159,7 +166,12 @@ exports.sendAttendanceNotifications = onSchedule({
             await dispatchRef.update({ results, sentAt: new Date() });
         }
     }
-});
+}
+
+exports.sendAttendanceNotifications = onSchedule({
+    schedule: "* * * * *", timeZone: "Asia/Tokyo", region: "asia-northeast1",
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY]
+}, processAttendanceNotifications);
 
 // ======================
 // 出席通知テスト

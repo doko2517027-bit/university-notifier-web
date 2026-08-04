@@ -862,7 +862,22 @@ async function loadTodaySchedule() {
 
     }
 
-    lectureScheduleIndex = 0;
+    const userSnapshot = studentNumber
+        ? await getDoc(doc(db, "users", studentNumber))
+        : null;
+    const userTestClock = userSnapshot?.data()?.attendanceTestClock || {};
+    const userTestDateActive = userTestClock.enabled === true &&
+        /^\d{4}-\d{2}-\d{2}$/.test(userTestClock.date || "") &&
+        Date.parse(userTestClock.expiresAt || "") > Date.now();
+
+    const actualToday = new Date().toLocaleDateString("sv-SE");
+    let initialDate = userTestDateActive ? userTestClock.date : "";
+    if (!initialDate) {
+        const exactToday = lectureSchedules.find(item => item.date === actualToday);
+        const nextDay = lectureSchedules.find(item => item.date >= actualToday);
+        initialDate = exactToday?.date || nextDay?.date || lectureSchedules.at(-1)?.date || "";
+    }
+    lectureScheduleIndex = Math.max(0, lectureSchedules.findIndex(item => item.date === initialDate));
 
     // 日付選択は端末内に保持する。attendanceTestDate は表示だけを変える
     // 明示的なテスト用指定で、実際の端末・サーバー時刻には触れない。
@@ -876,8 +891,13 @@ async function loadTodaySchedule() {
         localStorage.setItem("careMateSelectedScheduleDate", requestedTestDate);
         localStorage.setItem("careMateAttendanceTestDate", requestedTestDate);
     }
-    const savedScheduleDate =
-        localStorage.getItem("careMateSelectedScheduleDate") || "";
+    if (userTestDateActive) {
+        localStorage.setItem("careMateSelectedScheduleDate", userTestClock.date);
+        localStorage.setItem("careMateAttendanceTestDate", userTestClock.date);
+    }
+    const savedScheduleDate = userTestDateActive
+        ? userTestClock.date
+        : localStorage.getItem("careMateSelectedScheduleDate") || "";
     const savedScheduleIndex = lectureSchedules.findIndex(
         item => item.date === savedScheduleDate
     );
@@ -886,8 +906,8 @@ async function loadTodaySchedule() {
     }
 
     const firstLectureDate =
-        lectureSchedules[0]?.date
-            ? new Date(`${lectureSchedules[0].date}T00:00:00`)
+        lectureSchedules[lectureScheduleIndex]?.date
+            ? new Date(`${lectureSchedules[lectureScheduleIndex].date}T00:00:00`)
             : new Date();
 
     lectureCalendarYear =
