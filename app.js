@@ -864,6 +864,27 @@ async function loadTodaySchedule() {
 
     lectureScheduleIndex = 0;
 
+    // 日付選択は端末内に保持する。attendanceTestDate は表示だけを変える
+    // 明示的なテスト用指定で、実際の端末・サーバー時刻には触れない。
+    const scheduleParams = new URLSearchParams(location.search);
+    if (scheduleParams.get("clearAttendanceTestDate") === "1") {
+        localStorage.removeItem("careMateAttendanceTestDate");
+        localStorage.removeItem("careMateSelectedScheduleDate");
+    }
+    const requestedTestDate = scheduleParams.get("attendanceTestDate");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(requestedTestDate || "")) {
+        localStorage.setItem("careMateSelectedScheduleDate", requestedTestDate);
+        localStorage.setItem("careMateAttendanceTestDate", requestedTestDate);
+    }
+    const savedScheduleDate =
+        localStorage.getItem("careMateSelectedScheduleDate") || "";
+    const savedScheduleIndex = lectureSchedules.findIndex(
+        item => item.date === savedScheduleDate
+    );
+    if (savedScheduleIndex >= 0) {
+        lectureScheduleIndex = savedScheduleIndex;
+    }
+
     const firstLectureDate =
         lectureSchedules[0]?.date
             ? new Date(`${lectureSchedules[0].date}T00:00:00`)
@@ -911,9 +932,11 @@ function renderCurrentLectureSchedule(grade) {
         );
     }
 
+    const attendanceTestDate =
+        localStorage.getItem("careMateAttendanceTestDate") || "";
     lectureScheduleList.innerHTML = `
         <div class="schedule-day-badge">
-            ${current.title}
+            ${current.date === attendanceTestDate ? "今日（表示テスト）" : current.title}
         </div>
     `;
 
@@ -1919,6 +1942,10 @@ function renderLectureCalendar() {
                     lectureSchedules.findIndex(
                         item => item.date === dateString
                     );
+                localStorage.setItem(
+                    "careMateSelectedScheduleDate",
+                    dateString
+                );
                 
                 lectureCalendarYear = yyyy;
                 lectureCalendarMonthIndex = date.getMonth();
