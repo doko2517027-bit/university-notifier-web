@@ -1,7 +1,7 @@
 import {db,studentNumber,showPage} from "./common.js";
 import {arrayUnion,doc,getDoc,serverTimestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const recordId=new URLSearchParams(location.search).get("recordId");
-const ref=doc(db,"users",studentNumber,"attendanceRecords",recordId||"missing");
+const subject=new URLSearchParams(location.search).get("subject")||"missing";const ref=doc(db,"attendance",studentNumber,"subjects",encodeURIComponent(subject),"records",recordId||"missing");
 const arrival=document.getElementById("arrivalStatus"),departure=document.getElementById("departureStatus"),reason=document.getElementById("correctionReason");
 let original={};
 async function load(){const snap=await getDoc(ref);if(!snap.exists())throw new Error("記録が見つかりません");original=snap.data();document.getElementById("editSubject").textContent=`${original.subject}${original.classGroup?`（${original.classGroup}）`:""}`;document.getElementById("editMeta").textContent=`${original.date}・${original.period}限 ${original.startTime}〜${original.endTime}`;arrival.value=original.arrivalStatus||"出席";departure.value=original.departureStatus||""}

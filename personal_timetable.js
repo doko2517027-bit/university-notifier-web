@@ -1,13 +1,13 @@
 import {setupTheme,initializePage,loadProfileImage,db,studentNumber} from "./common.js";
 import {loadPersonalTimetableData} from "./personal_timetable_data.js";
-import {doc,getDoc,serverTimestamp,setDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import {doc,getDoc,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const list=document.getElementById("personalTimetableList"),count=document.getElementById("timetableCourseCount");
 const escapeHtml=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const formatDate=(value,fallback)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return fallback||value;const d=new Date(`${value}T00:00:00`);return `${d.getMonth()+1}月${d.getDate()}日（${"日月火水木金土"[d.getDay()]}）`};
 setupTheme(document.getElementById("themeButton"));document.getElementById("backButton").onclick=()=>history.back();document.getElementById("profileButton").onclick=()=>location.href="profile.html";
 
-async function preference(subject){return (await getDoc(doc(db,"users",studentNumber,"attendancePreferences",encodeURIComponent(subject)))).data()?.classGroup||""}
-async function chooseGroup(subject,group){if(!confirm(`${subject}の通知を「${group}」に設定しますか？`))return;await setDoc(doc(db,"users",studentNumber,"attendancePreferences",encodeURIComponent(subject)),{subject,classGroup:group,selectedAt:serverTimestamp(),source:"personalTimetable"},{merge:true});await load()}
+let userPreferences={};async function preference(subject){if(!Object.keys(userPreferences).length)userPreferences=(await getDoc(doc(db,"users",studentNumber))).data()?.attendancePreferences||{};return userPreferences[encodeURIComponent(subject)]?.classGroup||""}
+async function chooseGroup(subject,group){if(!confirm(`${subject}の通知を「${group}」に設定しますか？`))return;await updateDoc(doc(db,"users",studentNumber),{[`attendancePreferences.${encodeURIComponent(subject)}`]:{subject,classGroup:group,selectedAt:new Date().toISOString(),source:"personalTimetable"}});userPreferences={};await load()}
 
 async function load(){
     try{

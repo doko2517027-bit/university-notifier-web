@@ -1,6 +1,6 @@
 import {db,studentNumber,showPage} from "./common.js";
 import {classifyArrival,classifyDeparture,isDepartureWindow,PERIOD_TIMES,slotId} from "./attendance_policy.js";
-import {doc,getDoc,runTransaction,serverTimestamp,Timestamp} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import {doc,getDoc,runTransaction,serverTimestamp,Timestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const params=new URLSearchParams(location.search);
 const action=params.get("action")||"arrival";
@@ -22,8 +22,7 @@ subjectName.textContent=`${subject}${classGroup?`（${classGroup}）`:""}`;
 document.getElementById("attendanceMeta").textContent=`${date}・${period}限 ${startTime}〜${endTime}`;
 document.getElementById("personalRecordNotice").textContent="CareMate上の個人用記録です。大学の公式出席記録ではありません。";
 
-function recordRef(){return doc(db,"users",studentNumber,"attendanceRecords",recordId)}
-function preferenceRef(){return doc(db,"users",studentNumber,"attendancePreferences",encodeURIComponent(subject))}
+function recordRef(){return doc(db,"attendance",studentNumber,"subjects",encodeURIComponent(subject),"records",recordId)}
 
 async function saveChoice(choice){
     if(!studentNumber)throw new Error("ログイン情報がありません");
@@ -45,8 +44,8 @@ async function saveChoice(choice){
         if(action==="arrival")Object.assign(base,{arrivalStatus:status,checkInAt:Timestamp.fromDate(now),createdAt:serverTimestamp()});
         else Object.assign(base,{departureStatus:status,checkOutAt:Timestamp.fromDate(now)});
         transaction.set(ref,base,{merge:true});
-        if(classGroup)transaction.set(preferenceRef(),{subject,classGroup,selectedAt:serverTimestamp(),source:"attendance"},{merge:true});
     });
+    if(classGroup)await updateDoc(doc(db,"users",studentNumber),{[`attendancePreferences.${encodeURIComponent(subject)}`]:{subject,classGroup,selectedAt:new Date().toISOString(),source:"attendance"}});
     attendanceStatus.textContent=`✅ ${status}として保存しました`;
     primaryButton.disabled=true;secondaryButton.disabled=true;
     if(navigator.serviceWorker?.ready){const registration=await navigator.serviceWorker.ready;const notices=await registration.getNotifications();notices.filter(item=>String(item.tag||"").includes(recordId)).forEach(item=>item.close())}

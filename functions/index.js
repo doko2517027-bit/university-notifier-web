@@ -87,6 +87,8 @@ exports.sendAttendanceNotifications = onSchedule({
         WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value());
     const clock = tokyoParts();
     const scheduleCache = new Map();
+    const appSettings = (await db.collection("system").doc("app").get()).data() || {};
+    const attendanceOverrides = appSettings.attendanceOverrides || {};
     const users = await db.collection("users").get();
 
     for (const userDoc of users.docs) {
@@ -118,12 +120,11 @@ exports.sendAttendanceNotifications = onSchedule({
             if (grade && String(item.grade || "").replace("年", "").trim() !== grade) continue;
 
             const recordId = slotId(scheduleId, clock.date, item.period, item.subject);
-            const override = (await db.collection("scheduleOverrides").doc(recordId).get()).data() || {};
+            const override = attendanceOverrides[recordId] || {};
             const defaults = PERIOD_TIMES[Number(item.period)] || {};
             const startTime = override.startTime || item.startTime || defaults.startTime;
             const endTime = override.endTime || item.endTime || defaults.endTime;
-            const preference = (await userDoc.ref.collection("attendancePreferences")
-                .doc(encodeURIComponent(item.subject)).get()).data() || {};
+            const preference = user.attendancePreferences?.[encodeURIComponent(item.subject)] || {};
             if (preference.classGroup && item.classGroup && preference.classGroup !== item.classGroup) continue;
 
             const group = item.classGroup || "";
@@ -131,7 +132,9 @@ exports.sendAttendanceNotifications = onSchedule({
                 : clock.minutes === timeMinutes(endTime) - 5 ? "departure" : "";
             if (!notificationType) continue;
 
-            const record = await userDoc.ref.collection("attendanceRecords").doc(recordId).get();
+            const record = await db.collection("attendance").doc(userDoc.id)
+                .collection("subjects").doc(encodeURIComponent(item.subject))
+                .collection("records").doc(recordId).get();
             if (record.exists && (notificationType === "arrival" || record.data().checkOutAt)) continue;
             const dispatchId = `${userDoc.id}_${recordId}_${notificationType}_${encodeURIComponent(group || "all")}`;
             const dispatchRef = db.collection("attendanceNotificationDispatches").doc(dispatchId);
