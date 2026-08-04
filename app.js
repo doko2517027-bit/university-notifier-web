@@ -111,6 +111,7 @@ if(newsList){
     showNewsSkeleton(newsList);
 }
 const lectureScheduleLabel = document.getElementById("lectureScheduleLabel");
+const lectureScheduleDetail = document.getElementById("lectureScheduleDetail");
 const lectureScheduleList = document.getElementById("lectureScheduleList");
 const lecturePrev = document.getElementById("lecturePrev");
 const lectureNext = document.getElementById("lectureNext");
@@ -892,7 +893,23 @@ function renderCurrentLectureSchedule(grade) {
         lectureSchedules[lectureScheduleIndex];
 
     lectureScheduleLabel.textContent =
-        current.label || current.title;
+        splitLectureScheduleLabel(current).dateText;
+
+    const labelParts = splitLectureScheduleLabel(current);
+
+    if (lectureScheduleDetail) {
+        lectureScheduleDetail.textContent = labelParts.detailText;
+        lectureScheduleDetail.hidden = !labelParts.detailText;
+    }
+
+    if (lectureDatePickerButton) {
+        lectureDatePickerButton.setAttribute(
+            "aria-label",
+            labelParts.detailText
+                ? `${labelParts.dateText} ${labelParts.detailText}の時間割を選択`
+                : `${labelParts.dateText}の時間割を選択`
+        );
+    }
 
     lectureScheduleList.innerHTML = `
         <div class="schedule-day-badge">
@@ -922,6 +939,35 @@ function renderCurrentLectureSchedule(grade) {
 
     }
 
+}
+
+function splitLectureScheduleLabel(schedule) {
+    const rawLabel = String(schedule?.label || "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const labelMatch = rawLabel.match(
+        /^(\d{1,2}月\d{1,2}日\s*[（(][日月火水木金土][)）])\s*(.*)$/
+    );
+
+    if (labelMatch) {
+        return {
+            dateText: labelMatch[1].replace("(", "（").replace(")", "）"),
+            detailText: labelMatch[2].trim()
+        };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(schedule?.date || "")) {
+        const date = new Date(`${schedule.date}T00:00:00`);
+        return {
+            dateText: `${date.getMonth() + 1}月${date.getDate()}日（${"日月火水木金土"[date.getDay()]}）`,
+            detailText: rawLabel
+        };
+    }
+
+    return {
+        dateText: rawLabel || schedule?.title || "講義予定",
+        detailText: ""
+    };
 }
 
 function renderSchedule(
