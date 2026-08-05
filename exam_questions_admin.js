@@ -785,6 +785,22 @@ function renderFillBlankItem(
     `;
 }
 
+function escapeAdminHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeAdminAttribute(value) {
+
+    return escapeAdminHtml(value);
+
+}
+
 function renderQuestionImageEditor(item = {}) {
 
     const imageUrl =
