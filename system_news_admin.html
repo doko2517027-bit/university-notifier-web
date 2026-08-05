@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>CareMateお知らせ管理 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+
+if (
+    localStorage.getItem("theme") === "dark"
+) {
+
+    document.documentElement.classList.add(
+        "dark"
+    );
+
+}
+
+</script>
+
+</head>
+
+
+<body class="page-loading">
+
+
+<!-- ========================================
+     上部ユーザー情報
+======================================== -->
+
+<div class="top-buttons">
+
+    <div class="top-user-info">
+
+        <span id="userName">
+            Unknownさん
+        </span>
+
+        <span id="myRanking"></span>
+
+    </div>
+
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            type="button"
+            class="circle-button">
+
+            🌙
+
+        </button>
+
+
+        <button
+            id="profileButton"
+            type="button"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image"
+                alt="プロフィール">
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     ヘッダー
+======================================== -->
+
+<header class="header">
+
+    <div class="logo">
+        💙
+    </div>
+
+    <h1>
+        CareMateお知らせ管理
+    </h1>
+
+    <p>
+        運営からのお知らせを投稿・編集・削除
+    </p>
+
+</header>
+
+
+<main class="system-news-admin-page">
+
+
+    <!-- ========================================
+         戻る
+    ======================================== -->
+
+    <div class="card setting-card">
+
+        <button
+            id="backButton"
+            type="button"
+            class="btn">
+
+            ← 管理画面へ戻る
+
+        </button>
+
+    </div>
+
+
+    <!-- ========================================
+         お知らせ件数
+    ======================================== -->
+
+    <h2>
+        📊 お知らせ状況
+    </h2>
+
+    <div class="system-news-summary-grid">
+
+        <div class="card setting-card system-news-summary-card">
+
+            <small>
+                全お知らせ
+            </small>
+
+            <strong id="systemNewsTotalCount">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="card setting-card system-news-summary-card">
+
+            <small>
+                本日の投稿
+            </small>
+
+            <strong id="systemNewsTodayCount">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="card setting-card system-news-summary-card">
+
+            <small>
+                通知待ち
+            </small>
+
+            <strong id="systemNewsPendingCount">
+                --
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         新規投稿
+    ======================================== -->
+
+    <h2>
+        ✏️ 新規投稿
+    </h2>
+
+    <div class="card setting-card system-news-editor-card">
+
+
+        <label for="systemNewsTitle">
+
+            <b>
+                タイトル
+            </b>
+
+        </label>
+
+
+        <input
+            id="systemNewsTitle"
+            type="text"
+            maxlength="100"
+            autocomplete="off"
+            placeholder="お知らせのタイトル">
+
+
+        <div class="system-news-character-count">
+
+            <span id="systemNewsTitleCount">
+                0
+            </span>
+
+            / 100文字
+
+        </div>
+
+
+        <br>
+
+
+        <label for="systemNewsBody">
+
+            <b>
+                本文
+            </b>
+
+        </label>
+
+
+        <textarea
+            id="systemNewsBody"
+            rows="9"
+            maxlength="5000"
+            placeholder="お知らせ本文を入力してください"></textarea>
+
+
+        <div class="system-news-character-count">
+
+            <span id="systemNewsBodyCount">
+                0
+            </span>
+
+            / 5000文字
+
+        </div>
+
+
+        <br>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>
+                    🔔 ユーザーへ通知
+                </b>
+
+                <br>
+
+                <small>
+                    投稿後、通知設定を有効にしている学生へ通知します
+                </small>
+
+            </span>
+
+
+            <input
+                id="sendSystemNewsNotification"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>
+                    📌 重要なお知らせ
+                </b>
+
+                <br>
+
+                <small>
+                    お知らせ一覧で目立つように表示します
+                </small>
+
+            </span>
+
+
+            <input
+                id="systemNewsImportant"
+                type="checkbox">
+
+        </label>
+
+
+        <br>
+
+
+        <button
+            id="postSystemNews"
+            type="button"
+            class="btn btn-primary"
+            disabled>
+
+            お知らせを投稿する
+
+        </button>
+
+    </div>
+
+
+    <!-- ========================================
+         検索
+    ======================================== -->
+
+    <h2>
+        🔍 投稿検索
+    </h2>
+
+    <div class="card setting-card">
+
+        <div class="system-news-toolbar">
+
+
+            <div class="system-news-search-area">
+
+                <label for="systemNewsSearch">
+
+                    <b>
+                        タイトル・本文で検索
+                    </b>
+
+                </label>
+
+
+                <input
+                    id="systemNewsSearch"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="検索キーワード">
+
+            </div>
+
+
+            <div class="system-news-sort-area">
+
+                <label for="systemNewsSort">
+
+                    <b>
+                        並び順
+                    </b>
+
+                </label>
+
+
+                <select id="systemNewsSort">
+
+                    <option value="newest">
+                        新しい順
+                    </option>
+
+                    <option value="oldest">
+                        古い順
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         投稿一覧
+    ======================================== -->
+
+    <h2>
+        📢 投稿一覧
+    </h2>
+
+    <div class="card setting-card">
+
+        <div class="system-news-list-header">
+
+            <span id="systemNewsFilteredCount">
+                読み込み中...
+            </span>
+
+
+            <button
+                id="refreshSystemNews"
+                type="button"
+                class="btn">
+
+                ↻ 更新
+
+            </button>
+
+        </div>
+
+
+        <div id="systemNewsList">
+
+            <div class="system-news-loading">
+
+                お知らせを読み込んでいます...
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<!-- ========================================
+     編集モーダル
+======================================== -->
+
+<div
+    id="editSystemNewsModal"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal system-news-edit-modal">
+
+
+        <h2>
+            お知らせを編集
+        </h2>
+
+
+        <input
+            id="editSystemNewsId"
+            type="hidden">
+
+
+        <label for="editSystemNewsTitle">
+
+            <b>
+                タイトル
+            </b>
+
+        </label>
+
+
+        <input
+            id="editSystemNewsTitle"
+            type="text"
+            maxlength="100"
+            autocomplete="off"
+            placeholder="タイトル">
+
+
+        <br><br>
+
+
+        <label for="editSystemNewsBody">
+
+            <b>
+                本文
+            </b>
+
+        </label>
+
+
+        <textarea
+            id="editSystemNewsBody"
+            rows="9"
+            maxlength="5000"
+            placeholder="本文"></textarea>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>
+                    📌 重要なお知らせ
+                </b>
+
+            </span>
+
+
+            <input
+                id="editSystemNewsImportant"
+                type="checkbox">
+
+        </label>
+
+
+        <div class="admin-modal-actions">
+
+            <button
+                id="cancelSystemNewsEdit"
+                type="button"
+                class="btn">
+
+                キャンセル
+
+            </button>
+
+
+            <button
+                id="saveSystemNewsEdit"
+                type="button"
+                class="btn btn-primary">
+
+                変更を保存
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     削除確認モーダル
+======================================== -->
+
+<div
+    id="deleteSystemNewsModal"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal">
+
+
+        <h2>
+            このお知らせを削除しますか？
+        </h2>
+
+
+        <p id="deleteSystemNewsTitle">
+
+            ----
+
+        </p>
+
+
+        <p>
+
+            削除したお知らせは元に戻せません。
+
+        </p>
+
+
+        <div class="admin-modal-actions">
+
+            <button
+                id="cancelSystemNewsDelete"
+                type="button"
+                class="btn">
+
+                キャンセル
+
+            </button>
+
+
+            <button
+                id="confirmSystemNewsDelete"
+                type="button"
+                class="btn btn-danger">
+
+                削除する
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     下部ナビゲーション
+======================================== -->
+
+<nav class="bottom-nav">
+
+
+    <a href="index.html">
+
+        🏠
+        <br>
+
+        <span>
+            ホーム
+        </span>
+
+    </a>
+
+
+    <a href="assignments.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📚
+            </span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            課題
+        </span>
+
+    </a>
+
+
+    <a href="share.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                🤝
+            </span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            共有
+        </span>
+
+    </a>
+
+
+    <a href="news.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📢
+            </span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            お知らせ
+        </span>
+
+    </a>
+
+
+    <a
+        id="settingsTab"
+        href="admin.html"
+        class="active">
+
+        👑
+        <br>
+
+        <span>
+            管理
+        </span>
+
+    </a>
+
+</nav>
+
+
+<script
+    type="module"
+    src="system_news_admin.js">
+</script>
+
+
+</body>
+
+</html>
