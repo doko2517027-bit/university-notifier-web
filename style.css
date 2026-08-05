@@ -2793,3 +2793,4 @@ white-space:pre-wrap;
 .attendance-done-link{display:block;margin-top:15px;text-align:center;text-decoration:none}.attendance-done-link[hidden]{display:none}.attendance-edit-card button,.setting-card button{touch-action:manipulation}
 .attendance-choice-title{margin:0 0 6px;text-align:center}.attendance-choice-help{text-align:center;color:var(--subtext);font-size:14px}.attendance-choice-card .main-button{min-height:58px;font-size:18px;font-weight:800;border-radius:14px}
 .attendance-class-selector{z-index:10000}.attendance-class-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}.attendance-class-options .main-button{min-height:54px;font-size:17px}.attendance-class-later{width:100%;margin-top:4px}
+.question-report-editor label{display:grid;gap:7px;margin:16px 0;font-weight:700}.question-report-editor textarea,.question-report-editor input{width:100%;box-sizing:border-box}.question-report-editor [hidden]{display:none}

@@ -918,6 +918,16 @@ async function loadTodaySchedule() {
         }
     }
 
+    const selectedAttendanceClass = userSnapshot?.data()?.attendanceClassGroup || "";
+    if (selectedAttendanceClass) {
+        lectureSchedules = lectureSchedules.map(day => ({
+            ...day,
+            schedules: (day.schedules || []).filter(item =>
+                !item.classGroup || item.classGroup === selectedAttendanceClass
+            )
+        }));
+    }
+
     let availableClassGroups = [...new Set(
         lectureSchedules.flatMap(day => day.schedules || [])
             .filter(item => !grade || String(item.grade || "") === String(grade))
