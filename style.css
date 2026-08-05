@@ -5570,3 +5570,1165 @@ input[type="checkbox"] {
     }
 
 }
+
+/* ========================================
+   カリキュラム管理画面
+======================================== */
+
+.curriculum-admin-page {
+    padding-bottom:
+        calc(
+            130px +
+            env(safe-area-inset-bottom)
+        );
+}
+
+
+/* ========================================
+   上部操作
+======================================== */
+
+.curriculum-top-actions {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.curriculum-top-actions .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+
+/* ========================================
+   カリキュラム選択
+======================================== */
+
+#curriculumSelect {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+}
+
+.curriculum-action-grid {
+    display: grid;
+    grid-template-columns:
+        1.4fr 1fr 1fr;
+    gap: 11px;
+    margin-top: 16px;
+}
+
+.curriculum-action-grid .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.curriculum-publish-state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background:
+        rgba(127, 127, 127, 0.055);
+    color: var(--subtext);
+    font-size: 12px;
+}
+
+.curriculum-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background:
+        rgba(100, 116, 139, 0.13);
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.curriculum-status-badge.is-published {
+    background:
+        rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.curriculum-status-badge.is-draft {
+    background:
+        rgba(245, 158, 11, 0.14);
+    color: #b86200;
+}
+
+
+/* ========================================
+   基本情報
+======================================== */
+
+.curriculum-form-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.curriculum-form-grid label {
+    display: block;
+    min-width: 0;
+}
+
+.curriculum-form-grid label.full-width {
+    grid-column: 1 / -1;
+}
+
+.curriculum-form-grid label > span {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.curriculum-form-grid input,
+.curriculum-form-grid select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.curriculum-admin-body .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    box-sizing: border-box;
+    margin-top: 17px;
+    padding: 14px 15px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+        rgba(127, 127, 127, 0.045);
+}
+
+.curriculum-admin-body .setting-row > span {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.curriculum-admin-body .setting-row b {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.curriculum-admin-body .setting-row small {
+    display: inline-block;
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.curriculum-admin-body
+.setting-row input[type="checkbox"] {
+    width: 23px;
+    height: 23px;
+    flex: 0 0 auto;
+    padding: 0;
+    accent-color: var(--primary);
+}
+
+
+/* ========================================
+   卒業要件
+======================================== */
+
+.curriculum-credit-main-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.curriculum-credit-main-grid label {
+    display: block;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+        rgba(127, 127, 127, 0.04);
+}
+
+.curriculum-credit-main-grid label > span {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.curriculum-credit-main-grid input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.curriculum-admin-body
+.admin-input-help {
+    margin: 13px 0 0;
+    color: var(--subtext);
+    font-size: 11px;
+    line-height: 1.65;
+}
+
+
+/* ========================================
+   セクション見出し
+======================================== */
+
+.curriculum-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 15px;
+}
+
+.curriculum-section-heading > div {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.curriculum-section-heading h3 {
+    margin: 0;
+    color: var(--text);
+}
+
+.curriculum-section-heading p {
+    margin: 5px 0 0;
+    color: var(--subtext);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.curriculum-section-heading .btn {
+    width: auto;
+    min-width: 135px;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+
+/* ========================================
+   区分別要件
+======================================== */
+
+#categoryRequirementList {
+    display: grid;
+    gap: 11px;
+}
+
+.curriculum-requirement-row {
+    display: grid;
+    grid-template-columns:
+        minmax(190px, 1.7fr)
+        repeat(3, minmax(100px, 0.8fr))
+        auto;
+    align-items: end;
+    gap: 11px;
+    box-sizing: border-box;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+        rgba(127, 127, 127, 0.04);
+}
+
+.curriculum-requirement-row label {
+    display: block;
+    min-width: 0;
+}
+
+.curriculum-requirement-row label > span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.curriculum-requirement-row input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.curriculum-requirement-row .btn {
+    width: auto;
+    min-width: 72px;
+    height: 43px;
+    margin: 0;
+    padding: 8px 12px;
+}
+
+
+/* ========================================
+   特別要件
+======================================== */
+
+#specialRequirementList {
+    display: grid;
+    gap: 11px;
+}
+
+.curriculum-special-row {
+    display: grid;
+    grid-template-columns:
+        minmax(180px, 1.5fr)
+        minmax(130px, 0.7fr)
+        auto;
+    align-items: end;
+    gap: 11px;
+    box-sizing: border-box;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+        rgba(127, 127, 127, 0.04);
+}
+
+.curriculum-special-row label {
+    display: block;
+    min-width: 0;
+}
+
+.curriculum-special-row label > span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.curriculum-special-row input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.curriculum-special-row .btn {
+    width: auto;
+    min-width: 72px;
+    height: 43px;
+    margin: 0;
+    padding: 8px 12px;
+}
+
+
+/* ========================================
+   読み込み・空表示
+======================================== */
+
+.curriculum-loading,
+.curriculum-empty {
+    box-sizing: border-box;
+    padding: 30px 16px;
+    border-radius: 14px;
+    background:
+        rgba(127, 127, 127, 0.055);
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+
+/* ========================================
+   科目統合結果
+======================================== */
+
+.curriculum-analysis-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(0, 1fr));
+    gap: 11px;
+    margin-bottom: 24px;
+}
+
+.curriculum-analysis-card {
+    min-width: 0;
+    margin: 0;
+    padding: 17px 9px;
+    text-align: center;
+}
+
+.curriculum-analysis-card small {
+    display: block;
+    min-height: 31px;
+    margin-bottom: 5px;
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.curriculum-analysis-card strong {
+    display: inline-block;
+    color: var(--text);
+    font-size: 27px;
+    line-height: 1.1;
+}
+
+.curriculum-analysis-card > span {
+    margin-left: 2px;
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.curriculum-analysis-card.warning {
+    border-color:
+        rgba(245, 158, 11, 0.4);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(245, 158, 11, 0.075),
+            var(--card) 60%
+        );
+}
+
+.curriculum-analysis-card.warning strong {
+    color: #b86200;
+}
+
+
+/* ========================================
+   警告一覧
+======================================== */
+
+#curriculumWarningList {
+    display: grid;
+    gap: 9px;
+}
+
+.curriculum-warning-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background:
+        rgba(127, 127, 127, 0.04);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.curriculum-warning-icon {
+    flex: 0 0 auto;
+    font-size: 17px;
+    line-height: 1.3;
+}
+
+.curriculum-warning-item.is-success {
+    border-color:
+        rgba(16, 185, 129, 0.28);
+    background:
+        rgba(16, 185, 129, 0.07);
+    color: #047857;
+}
+
+.curriculum-warning-item.is-info {
+    border-color:
+        rgba(59, 130, 246, 0.25);
+    background:
+        rgba(59, 130, 246, 0.07);
+}
+
+.curriculum-warning-item.is-warning {
+    border-color:
+        rgba(245, 158, 11, 0.3);
+    background:
+        rgba(245, 158, 11, 0.08);
+    color: #a95700;
+}
+
+.curriculum-warning-item.is-error {
+    border-color:
+        rgba(239, 68, 68, 0.3);
+    background:
+        rgba(239, 68, 68, 0.07);
+    color: #b42318;
+}
+
+
+/* ========================================
+   対象科目ツールバー
+======================================== */
+
+.curriculum-subject-toolbar {
+    display: grid;
+    grid-template-columns:
+        minmax(220px, 1.6fr)
+        minmax(150px, 0.8fr)
+        minmax(150px, 0.8fr);
+    gap: 11px;
+}
+
+.curriculum-subject-toolbar input,
+.curriculum-subject-toolbar select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.curriculum-subject-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 15px 0 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background:
+        rgba(127, 127, 127, 0.055);
+    color: var(--subtext);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.curriculum-subject-list-header .btn {
+    width: auto;
+    min-width: 120px;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 11px;
+}
+
+
+/* ========================================
+   対象科目一覧
+======================================== */
+
+#curriculumSubjectList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.curriculum-subject-item {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background:
+        rgba(127, 127, 127, 0.035);
+}
+
+.curriculum-subject-item.has-warning {
+    border-color:
+        rgba(245, 158, 11, 0.45);
+}
+
+.curriculum-subject-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.curriculum-subject-heading > div {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.curriculum-subject-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.curriculum-subject-heading small {
+    display: block;
+    margin-top: 3px;
+    color: var(--subtext);
+    font-size: 10px;
+    overflow-wrap: anywhere;
+}
+
+.curriculum-subject-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    min-height: 25px;
+    box-sizing: border-box;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.curriculum-subject-type.is-required {
+    background:
+        rgba(239, 68, 68, 0.12);
+    color: #c62828;
+}
+
+.curriculum-subject-type.is-elective {
+    background:
+        rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+}
+
+.curriculum-subject-type.is-free {
+    background:
+        rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.curriculum-subject-type.is-unset {
+    background:
+        rgba(245, 158, 11, 0.14);
+    color: #b86200;
+}
+
+.curriculum-subject-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 11px;
+}
+
+.curriculum-subject-meta > span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background:
+        rgba(127, 127, 127, 0.08);
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.curriculum-subject-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.curriculum-subject-tags span {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background:
+        rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.curriculum-subject-notice,
+.curriculum-subject-connected {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.curriculum-subject-notice {
+    background:
+        rgba(245, 158, 11, 0.1);
+    color: #a95700;
+}
+
+.curriculum-subject-connected {
+    background:
+        rgba(16, 185, 129, 0.08);
+    color: #047857;
+}
+
+.curriculum-edit-subject-button {
+    width: 100%;
+    margin: 12px 0 0;
+}
+
+
+/* ========================================
+   学生側プレビュー
+======================================== */
+
+.curriculum-preview-actions {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 11px;
+    margin-top: 15px;
+}
+
+.curriculum-preview-actions .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+
+/* ========================================
+   保存バー
+======================================== */
+
+.curriculum-save-bar {
+    position: sticky;
+    bottom:
+        calc(
+            76px +
+            env(safe-area-inset-bottom)
+        );
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 26px;
+    border-color:
+        rgba(20, 184, 166, 0.32);
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 92%,
+            transparent
+        );
+    box-shadow:
+        0 10px 30px
+        rgba(15, 23, 42, 0.13);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.curriculum-save-status {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.curriculum-save-status strong {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.curriculum-save-status strong.has-unsaved {
+    color: #b86200;
+}
+
+.curriculum-save-status small {
+    display: block;
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.curriculum-save-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 9px;
+}
+
+.curriculum-save-actions .btn {
+    width: auto;
+    min-width: 130px;
+    margin: 0;
+}
+
+
+/* ========================================
+   危険操作
+======================================== */
+
+.curriculum-admin-body
+.admin-danger-zone {
+    border-color:
+        rgba(239, 68, 68, 0.36);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(239, 68, 68, 0.055),
+            var(--card) 60%
+        );
+}
+
+.curriculum-admin-body
+.admin-danger-zone h3 {
+    color: #b42318;
+}
+
+.curriculum-admin-body
+.admin-danger-zone p {
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.curriculum-admin-body
+.admin-danger-zone .btn {
+    width: auto;
+    min-width: 220px;
+    margin-top: 8px;
+}
+
+
+/* ========================================
+   新規作成モーダル
+======================================== */
+
+.curriculum-create-modal input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.curriculum-admin-body
+.admin-modal-actions {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.curriculum-admin-body
+.admin-modal-actions .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+
+/* ========================================
+   ダークモード
+======================================== */
+
+.dark .curriculum-status-badge.is-published,
+.dark .curriculum-warning-item.is-success,
+.dark .curriculum-subject-connected {
+    color: #6ee7b7;
+}
+
+.dark .curriculum-status-badge.is-draft,
+.dark .curriculum-analysis-card.warning strong,
+.dark .curriculum-warning-item.is-warning,
+.dark .curriculum-subject-notice,
+.dark .curriculum-save-status strong.has-unsaved {
+    color: #fbbf24;
+}
+
+.dark .curriculum-warning-item.is-error,
+.dark .curriculum-admin-body
+.admin-danger-zone h3 {
+    color: #fca5a5;
+}
+
+.dark .curriculum-subject-type.is-required {
+    color: #fca5a5;
+}
+
+.dark .curriculum-subject-type.is-elective {
+    color: #93c5fd;
+}
+
+.dark .curriculum-subject-type.is-free {
+    color: #6ee7b7;
+}
+
+.dark .curriculum-subject-type.is-unset {
+    color: #fbbf24;
+}
+
+.dark .curriculum-subject-tags span {
+    color: #c4b5fd;
+}
+
+.dark .curriculum-save-bar {
+    box-shadow:
+        0 10px 32px
+        rgba(0, 0, 0, 0.38);
+}
+
+
+/* ========================================
+   PC表示
+======================================== */
+
+@media (min-width: 901px) {
+
+    body.curriculum-admin-body {
+        width: auto;
+        max-width: 1180px;
+        margin-right: auto;
+        margin-left: auto;
+        padding:
+            24px
+            30px
+            110px;
+    }
+
+    .curriculum-admin-body
+    .curriculum-admin-page {
+        width: 100%;
+        max-width: none;
+        margin: 0 auto;
+    }
+
+    .curriculum-admin-body h2 {
+        margin:
+            28px
+            0
+            11px;
+        font-size: 19px;
+    }
+
+    .curriculum-admin-body input,
+    .curriculum-admin-body select,
+    .curriculum-admin-body textarea {
+        padding:
+            11px
+            12px;
+        border-radius: 11px;
+        font-size: 14px;
+    }
+
+    .curriculum-admin-body
+    .bottom-nav {
+        max-width: 900px;
+        border-right:
+            1px solid var(--border);
+        border-left:
+            1px solid var(--border);
+        border-radius:
+            18px
+            18px
+            0
+            0;
+    }
+
+}
+
+
+/* ========================================
+   大型PC
+======================================== */
+
+@media (min-width: 1380px) {
+
+    body.curriculum-admin-body {
+        max-width: 1540px;
+        padding-right: 34px;
+        padding-left: 34px;
+    }
+
+    .curriculum-admin-body
+    #curriculumSubjectList {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 14px;
+    }
+
+}
+
+
+/* ========================================
+   タブレット
+======================================== */
+
+@media (max-width: 900px) {
+
+    .curriculum-form-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .curriculum-analysis-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .curriculum-requirement-row {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .curriculum-requirement-row
+    .curriculum-requirement-name {
+        grid-column: 1 / -1;
+    }
+
+    .curriculum-requirement-row
+    .curriculum-requirement-delete {
+        width: 100%;
+        grid-column: 1 / -1;
+    }
+
+}
+
+
+/* ========================================
+   スマートフォン
+======================================== */
+
+@media (max-width: 650px) {
+
+    .curriculum-admin-page {
+        padding-bottom:
+            calc(
+                145px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+    .curriculum-top-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-form-grid
+    label.full-width {
+        grid-column: auto;
+    }
+
+    .curriculum-credit-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-section-heading {
+        display: block;
+    }
+
+    .curriculum-section-heading .btn {
+        width: 100%;
+        min-width: 0;
+        margin-top: 13px;
+    }
+
+    .curriculum-analysis-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .curriculum-analysis-card small {
+        min-height: 29px;
+    }
+
+    .curriculum-requirement-row {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-requirement-row
+    .curriculum-requirement-name,
+    .curriculum-requirement-row
+    .curriculum-requirement-delete {
+        grid-column: auto;
+    }
+
+    .curriculum-requirement-row .btn {
+        width: 100%;
+    }
+
+    .curriculum-special-row {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-special-row .btn {
+        width: 100%;
+    }
+
+    .curriculum-subject-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-subject-list-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .curriculum-subject-list-header .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .curriculum-preview-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-save-bar {
+        bottom:
+            calc(
+                71px +
+                env(safe-area-inset-bottom)
+            );
+        display: block;
+    }
+
+    .curriculum-save-actions {
+        display: grid;
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        margin-top: 13px;
+    }
+
+    .curriculum-save-actions .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .curriculum-admin-body
+    .admin-danger-zone .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+}
+
+
+/* ========================================
+   小さいスマートフォン
+======================================== */
+
+@media (max-width: 390px) {
+
+    .curriculum-analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-analysis-card small {
+        min-height: 0;
+    }
+
+    .curriculum-save-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .curriculum-admin-body
+    .admin-modal-actions {
+        grid-template-columns: 1fr;
+    }
+
+}
