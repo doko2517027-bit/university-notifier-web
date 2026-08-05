@@ -21,6 +21,8 @@ const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 let visibleDailyQuestion = null;
 let subjectName = "科目";
+let dailyQuestionSeed = 0;
+let forceLeavePage = false;
 
 setupTheme(themeButton);
 
@@ -30,7 +32,15 @@ await initializePage([
 ]);
 
 document.getElementById("backButton").onclick = () => {
-    history.back();
+
+    forceLeavePage = true;
+
+    sessionStorage.removeItem(
+        "quizPlaying"
+    );
+
+    location.href = "exam.html";
+
 };
 
 document.getElementById("profileButton").onclick = () => {
@@ -117,8 +127,23 @@ async function loadDailyQuestion() {
 
     const data = snap.data();
     const pool=(data.quiz||[]).filter(q=>q?.question&&Array.isArray(q.choices)&&q.choices.length);
-    const seed=[...`${localDateKey()}|${subjectId}|${unitId}`].reduce((sum,char)=>((sum*31)+char.charCodeAt(0))>>>0,7);
-    const q = pool.length ? pool[seed % pool.length] : data.today_question;
+    dailyQuestionSeed = [
+        ...`${localDateKey()}|${subjectId}|${unitId}`
+    ].reduce(
+        (sum, char) =>
+            (
+                (sum * 31) +
+                char.charCodeAt(0)
+            ) >>> 0,
+        7
+    );
+
+    const q = pool.length
+        ? pool[
+            dailyQuestionSeed %
+            pool.length
+        ]
+        : data.today_question;
 
     if (
         !q ||
@@ -187,11 +212,24 @@ document.addEventListener("click", async (e) => {
 
     }
 
-    if (!e.target.classList.contains("answer-button")) return;
+    const answerButton =
+        e.target.closest(
+            ".answer-button"
+        );
 
-    const selected = Number(e.target.dataset.index);
+    if (!answerButton) {
+        return;
+    }
 
-    const card = e.target.closest(".card");
+    const selected =
+        Number(
+            answerButton.dataset.index
+        );
+
+    const card =
+        answerButton.closest(
+            ".card"
+        );
 
     if (card.dataset.finished === "true") {
         return;
@@ -219,7 +257,28 @@ document.addEventListener("click", async (e) => {
             "quizPlaying"
         );
 
-        const awarded=await awardDailyQuestionPoints({type:"daily",points:3,subjectId,subjectName,unitId,questionId:String(visibleDailyQuestion.id??seed)});
+        const awarded =
+            await awardDailyQuestionPoints({
+
+                type:
+                    "daily",
+
+                points:
+                    3,
+
+                subjectId,
+
+                subjectName,
+
+                unitId,
+
+                questionId:
+                    String(
+                        visibleDailyQuestion.id ??
+                        dailyQuestionSeed
+                    )
+
+            });
         if(awarded.awarded)panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋3pt</div>');
 
     } else {
@@ -229,15 +288,34 @@ document.addEventListener("click", async (e) => {
 
 });
 
-window.addEventListener("beforeunload",(e)=>{
+window.addEventListener(
+    "beforeunload",
+    event => {
 
-    const unfinished =
-        document.querySelector(".card")?.dataset.finished !== "true";
+        if (forceLeavePage) {
+            return;
+        }
 
-    if(!unfinished) return;
+        const questionCard =
+            document.querySelector(
+                ".test-focus-card"
+            );
 
-    e.preventDefault();
+        if (!questionCard) {
+            return;
+        }
 
-    e.returnValue="";
+        const unfinished =
+            questionCard.dataset.finished !==
+            "true";
 
-});
+        if (!unfinished) {
+            return;
+        }
+
+        event.preventDefault();
+
+        event.returnValue = "";
+
+    }
+);
