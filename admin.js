@@ -513,7 +513,12 @@ async function loadSystemStatus() {
             await getSystemAppSnapshot();
 
         if (!snap.exists()) {
-            renderStatus.textContent = "⚫ 未確認";
+
+            if (renderStatus) {
+                renderStatus.textContent =
+                    "⚫ 未確認";
+            }
+
             return;
         }
 
@@ -573,7 +578,12 @@ async function loadSystemStatus() {
 
         console.error(e);
 
-        renderStatus.textContent = "🔴 取得失敗";
+        if(renderStatus){
+
+            renderStatus.textContent =
+                "🔴 取得失敗";
+
+        }
 
     }
 
@@ -820,7 +830,9 @@ function setupEvents() {
         notifySharePost,
         notifyLike,
         notifyComment
-    ].forEach(input => {
+    ]
+    .filter(Boolean)
+    .forEach(input => {
 
         input.addEventListener(
             "change",
@@ -888,6 +900,10 @@ async function postNews() {
 }
 
 async function saveMaintenanceSettings() {
+
+    if(!maintenanceToggle || !maintenanceMessage){
+        return;
+    }
 
     await updateDoc(
         doc(db, "system", "app"),
