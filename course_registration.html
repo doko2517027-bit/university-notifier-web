@@ -1,89 +1,1742 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
 <title>履修登録 | CareMateApp</title>
+
 <link rel="stylesheet" href="style.css">
+
 <script>
-if (localStorage.getItem("theme") === "dark") {
-    document.documentElement.classList.add("dark");
+
+if (
+    localStorage.getItem("theme") === "dark"
+) {
+
+    document.documentElement.classList.add(
+        "dark"
+    );
+
 }
+
 </script>
+
 </head>
-<body class="page-loading">
+
+
+<body class="page-loading course-registration-body">
+
+
+<!-- ========================================
+     上部操作
+======================================== -->
 
 <div class="top-buttons">
-    <button id="backButton" class="circle-button">←</button>
-    <h2>📘 履修登録</h2>
-    <div class="top-right">
-        <button id="themeButton" class="circle-button">🌙</button>
-        <button id="profileButton" class="circle-button">
-            <img id="topProfileImage" src="images/default.png" class="header-profile-image">
-        </button>
-    </div>
-</div>
 
-<hr>
+    <button
+        id="backButton"
+        type="button"
+        class="circle-button"
+        aria-label="前の画面へ戻る">
 
-<div id="registrationPhaseCard" class="card setting-card course-registration-summary">
-    <h3 id="studentCourseInfo">登録情報を確認中...</h3>
-    <p id="registrationSummary">公開設定を読み込んでいます。</p>
-</div>
+        ←
 
-<div id="creditDashboard" class="course-credit-dashboard">
-    <div class="course-credit-stat"><small>今回選択</small><b id="currentCredits">0</b><span>単位</span></div>
-    <div class="course-credit-stat"><small>半期合計</small><b id="semesterCredits">0</b><span id="semesterLimitText">単位</span></div>
-    <div class="course-credit-stat"><small>年間合計</small><b id="annualCredits">0</b><span id="annualLimitText">単位</span></div>
-    <div class="course-credit-stat"><small>取得済み</small><b id="earnedCredits">0</b><span>単位</span></div>
-    <div class="course-credit-stat"><small>卒業必要</small><b id="requiredGraduationCredits">0</b><span>単位</span></div>
-    <div class="course-credit-stat"><small>卒業まで残り</small><b id="remainingCredits">0</b><span>単位</span></div>
-    <div class="course-credit-stat"><small>必修取得済み</small><b id="earnedRequiredCredits">0</b><span>単位</span></div>
-    <div class="course-credit-stat"><small>選択取得済み</small><b id="earnedElectiveCredits">0</b><span>単位</span></div>
-</div>
-
-<div id="courseProgressCard" class="card setting-card">
-    <div class="course-progress-heading">
-        <div>
-            <h3>過去の取得単位</h3>
-            <small>落単した科目は含めず、取得済み単位だけ入力してください。</small>
-        </div>
-        <button id="toggleProgressEditor" class="btn btn-secondary" type="button">初回登録</button>
-    </div>
-    <div id="courseProgressSummary" class="course-progress-years"></div>
-    <div id="progressEditor" class="course-progress-editor" hidden>
-        <p class="course-progress-lock-note">現在の学年より前に取得した単位を学年別に入力します。保存後は学生側から変更できません。</p>
-        <div id="courseProgressYearFields" class="course-progress-years"></div>
-        <button id="saveCourseProgress" class="btn btn-primary" type="button">この内容で一度だけ登録</button>
-    </div>
-</div>
-
-<div id="creditWarning" class="course-credit-warning" hidden></div>
-
-<div class="course-registration-toolbar">
-    <p class="course-registration-note">必修は登録済みで変更できません。選択科目はカード全体を押して選べます。</p>
-    <button id="restorePreviousEnrollment" class="btn btn-secondary" type="button">前回の登録内容に戻す</button>
-</div>
-
-<div id="courseList" class="course-registration-list">
-    <div class="card setting-card">読み込み中...</div>
-</div>
-
-<div class="course-registration-save-bar">
-    <span id="selectedCourseCount">0科目・0単位</span>
-    <button id="saveCoursesButton" class="btn btn-primary" disabled>
-        履修登録を保存
     </button>
+
+
+    <div class="top-page-title">
+
+        <span>
+            📘
+        </span>
+
+        <b>
+            履修登録
+        </b>
+
+    </div>
+
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            type="button"
+            class="circle-button"
+            aria-label="テーマを切り替える">
+
+            🌙
+
+        </button>
+
+
+        <button
+            id="profileButton"
+            type="button"
+            class="circle-button"
+            aria-label="プロフィールを開く">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image"
+                alt="プロフィール">
+
+        </button>
+
+    </div>
+
 </div>
+
+
+<!-- ========================================
+     管理者プレビュー表示
+======================================== -->
+
+<div
+    id="previewBanner"
+    class="course-preview-banner"
+    hidden>
+
+    <span>
+        👑
+    </span>
+
+    <div>
+
+        <b>
+            管理者プレビュー
+        </b>
+
+        <small>
+            この画面から履修登録の保存はできません
+        </small>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     ヘッダー
+======================================== -->
+
+<header class="header course-registration-header">
+
+    <div class="logo">
+        🗂️
+    </div>
+
+    <h1>
+        履修する科目を選ぶ
+    </h1>
+
+    <p>
+        科目を選ぶと、単位数と卒業要件がすぐに更新されます
+    </p>
+
+</header>
+
+
+<main class="course-registration-page">
+
+
+    <!-- ========================================
+         公開期間・学生情報
+    ======================================== -->
+
+    <section
+        id="registrationPhaseCard"
+        class="card setting-card course-registration-phase-card">
+
+
+        <div class="course-phase-heading">
+
+            <div>
+
+                <span
+                    id="registrationPhaseBadge"
+                    class="course-phase-badge">
+
+                    確認中
+
+                </span>
+
+
+                <h2 id="studentCourseInfo">
+
+                    登録情報を確認しています
+
+                </h2>
+
+            </div>
+
+
+            <div class="course-deadline-box">
+
+                <small>
+                    登録期限
+                </small>
+
+                <strong id="registrationDeadline">
+                    ----
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <p id="registrationSummary">
+
+            履修登録の公開設定を読み込んでいます。
+
+        </p>
+
+
+        <div class="course-student-information">
+
+
+            <div>
+
+                <small>
+                    対象カリキュラム
+                </small>
+
+                <strong id="studentCurriculumName">
+                    確認中
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    学科・専攻
+                </small>
+
+                <strong id="studentDepartmentInfo">
+                    確認中
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    学年
+                </small>
+
+                <strong id="studentGradeInfo">
+                    確認中
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    最終登録
+                </small>
+
+                <strong id="lastRegistrationInfo">
+                    未登録
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================
+         利用できない場合
+    ======================================== -->
+
+    <section
+        id="registrationUnavailable"
+        class="card setting-card course-registration-unavailable"
+        hidden>
+
+
+        <div class="course-registration-unavailable-icon">
+
+            🔒
+
+        </div>
+
+
+        <h2 id="registrationUnavailableTitle">
+
+            履修登録を利用できません
+
+        </h2>
+
+
+        <p id="registrationUnavailableMessage">
+
+            現在、履修登録は公開されていません。
+
+        </p>
+
+
+        <button
+            id="unavailableBackButton"
+            type="button"
+            class="btn">
+
+            ホームへ戻る
+
+        </button>
+
+    </section>
+
+
+    <!-- ========================================
+         使い方
+    ======================================== -->
+
+    <section
+        id="registrationGuide"
+        class="course-registration-guide">
+
+
+        <div class="course-guide-item">
+
+            <span class="course-guide-number">
+                1
+            </span>
+
+            <div>
+
+                <b>
+                    科目を選ぶ
+                </b>
+
+                <small>
+                    必修科目も自分で選択します
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="course-guide-arrow">
+            →
+        </div>
+
+
+        <div class="course-guide-item">
+
+            <span class="course-guide-number">
+                2
+            </span>
+
+            <div>
+
+                <b>
+                    単位を確認
+                </b>
+
+                <small>
+                    上限と卒業要件を自動計算します
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="course-guide-arrow">
+            →
+        </div>
+
+
+        <div class="course-guide-item">
+
+            <span class="course-guide-number">
+                3
+            </span>
+
+            <div>
+
+                <b>
+                    内容を確認して保存
+                </b>
+
+                <small>
+                    最後に確認画面を表示します
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================
+         PC：本文＋追従サマリー
+    ======================================== -->
+
+    <div
+        id="registrationMainLayout"
+        class="course-registration-main-layout">
+
+
+        <!-- ====================================
+             左側：科目選択
+        ===================================== -->
+
+        <div class="course-registration-main-content">
+
+
+            <!-- ================================
+                 重要警告
+            ================================= -->
+
+            <section
+                id="courseWarningPanel"
+                class="course-warning-panel"
+                hidden>
+
+
+                <div class="course-warning-heading">
+
+                    <span>
+                        ⚠️
+                    </span>
+
+                    <div>
+
+                        <strong id="courseWarningTitle">
+
+                            確認が必要です
+
+                        </strong>
+
+                        <small>
+
+                            保存前に以下の内容を確認してください
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div id="courseWarningList"></div>
+
+            </section>
+
+
+            <!-- ================================
+                 卒業要件進捗
+            ================================= -->
+
+            <section
+                id="graduationProgressCard"
+                class="card setting-card graduation-progress-card">
+
+
+                <div class="course-section-heading">
+
+                    <div>
+
+                        <h2>
+                            🎓 卒業要件の進み具合
+                        </h2>
+
+                        <p>
+                            取得済み単位と、今回選んだ科目を分けて表示します
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        id="toggleGraduationProgressButton"
+                        type="button"
+                        class="btn">
+
+                        詳細を閉じる
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="graduationProgressContent"
+                    class="graduation-progress-content">
+
+
+                    <div class="graduation-main-progress">
+
+
+                        <div class="graduation-progress-top">
+
+                            <div>
+
+                                <small>
+                                    卒業必要単位
+                                </small>
+
+                                <strong>
+
+                                    <span id="earnedCredits">
+                                        0
+                                    </span>
+
+                                    <span class="graduation-progress-separator">
+                                        /
+                                    </span>
+
+                                    <span id="requiredGraduationCredits">
+                                        0
+                                    </span>
+
+                                    <small>
+                                        単位
+                                    </small>
+
+                                </strong>
+
+                            </div>
+
+
+                            <div class="graduation-projected-box">
+
+                                <small>
+                                    今回の選択を含めると
+                                </small>
+
+                                <strong>
+
+                                    <span id="projectedCredits">
+                                        0
+                                    </span>
+
+                                    単位
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="graduation-progress-track">
+
+                            <div
+                                id="graduationProgressBar"
+                                class="graduation-progress-bar">
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="graduation-progress-bottom">
+
+                            <span>
+
+                                取得済み
+                                <b id="earnedCreditsLabel">
+                                    0単位
+                                </b>
+
+                            </span>
+
+                            <span>
+
+                                卒業まで残り
+                                <b id="remainingCredits">
+                                    0
+                                </b>
+                                単位
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="categoryProgressList"
+                        class="category-progress-list">
+
+                        <div class="course-data-loading">
+
+                            区分別の卒業要件を確認しています...
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="specialRequirementProgressList"
+                        class="special-requirement-progress-list">
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================
+                 過去の取得単位
+            ================================= -->
+
+            <section
+                id="courseProgressCard"
+                class="card setting-card course-progress-card">
+
+
+                <div class="course-section-heading">
+
+                    <div>
+
+                        <h2>
+                            ✅ 過去の取得単位
+                        </h2>
+
+                        <p>
+                            落単した科目は含めず、取得済みの単位だけ登録します
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        id="toggleProgressEditor"
+                        type="button"
+                        class="btn">
+
+                        初回登録
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="courseProgressSummary"
+                    class="course-progress-years">
+
+                    <div class="course-data-loading">
+
+                        取得単位を確認しています...
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="progressEditor"
+                    class="course-progress-editor"
+                    hidden>
+
+
+                    <div class="course-progress-lock-note">
+
+                        <span>
+                            🔐
+                        </span>
+
+                        <p>
+
+                            この登録は一度だけ行えます。
+                            保存後に学生側から変更することはできません。
+
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        id="courseProgressYearFields"
+                        class="course-progress-year-fields">
+
+                    </div>
+
+
+                    <button
+                        id="saveCourseProgress"
+                        type="button"
+                        class="btn btn-primary">
+
+                        この内容で取得単位を登録
+
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================
+                 検索・絞り込み
+            ================================= -->
+
+            <section class="card setting-card course-filter-card">
+
+
+                <div class="course-section-heading">
+
+                    <div>
+
+                        <h2>
+                            🔍 科目を探す
+                        </h2>
+
+                        <p>
+                            科目名や区分からすぐに絞り込めます
+                        </p>
+
+                    </div>
+
+
+                    <span id="visibleCourseCount">
+
+                        0科目
+
+                    </span>
+
+                </div>
+
+
+                <div class="course-filter-grid">
+
+
+                    <label class="full-width">
+
+                        <span>
+                            科目名で検索
+                        </span>
+
+                        <input
+                            id="courseSearchInput"
+                            type="search"
+                            autocomplete="off"
+                            placeholder="例：成人看護学">
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            必修・選択
+                        </span>
+
+                        <select id="courseRequirementFilter">
+
+                            <option value="">
+                                すべて
+                            </option>
+
+                            <option value="required">
+                                必修
+                            </option>
+
+                            <option value="elective">
+                                選択
+                            </option>
+
+                            <option value="free">
+                                自由
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            科目区分
+                        </span>
+
+                        <select id="courseCategoryFilter">
+
+                            <option value="">
+                                すべて
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            選択状態
+                        </span>
+
+                        <select id="courseSelectionFilter">
+
+                            <option value="">
+                                すべて
+                            </option>
+
+                            <option value="selected">
+                                選択中
+                            </option>
+
+                            <option value="unselected">
+                                未選択
+                            </option>
+
+                            <option value="warning">
+                                確認が必要
+                            </option>
+
+                        </select>
+
+                    </label>
+
+                </div>
+
+
+                <button
+                    id="resetCourseFiltersButton"
+                    type="button"
+                    class="btn course-filter-reset-button">
+
+                    絞り込みを解除
+
+                </button>
+
+            </section>
+
+
+            <!-- ================================
+                 一括操作
+            ================================= -->
+
+            <section class="course-bulk-actions">
+
+
+                <button
+                    id="selectRequiredCoursesButton"
+                    type="button"
+                    class="btn btn-primary">
+
+                    必修科目をまとめて選択
+
+                </button>
+
+
+                <button
+                    id="restorePreviousEnrollment"
+                    type="button"
+                    class="btn">
+
+                    前回の登録内容に戻す
+
+                </button>
+
+
+                <button
+                    id="clearOptionalCoursesButton"
+                    type="button"
+                    class="btn">
+
+                    選択科目をすべて外す
+
+                </button>
+
+            </section>
+
+
+            <p class="course-registration-important-note">
+
+                <span>
+                    💡
+                </span>
+
+                <span>
+
+                    <b>
+                        必修科目も履修登録が必要です。
+                    </b>
+
+                    科目カードを押して選択してください。
+                    必修科目の未選択がある場合は、保存前に警告します。
+
+                </span>
+
+            </p>
+
+
+            <!-- ================================
+                 科目一覧
+            ================================= -->
+
+            <section
+                id="courseList"
+                class="course-registration-list">
+
+
+                <div class="card setting-card course-data-loading">
+
+                    科目情報を読み込んでいます...
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- ====================================
+             右側：追従サマリー
+        ===================================== -->
+
+        <aside
+            id="desktopCreditSummary"
+            class="course-credit-summary-panel">
+
+
+            <div class="course-summary-header">
+
+                <div>
+
+                    <small>
+                        現在の選択
+                    </small>
+
+                    <strong id="selectedCourseCount">
+
+                        0科目
+
+                    </strong>
+
+                </div>
+
+
+                <span
+                    id="summaryWarningBadge"
+                    class="course-summary-warning-badge"
+                    hidden>
+
+                    0
+
+                </span>
+
+            </div>
+
+
+            <div class="course-summary-primary">
+
+                <small>
+                    今回選択した単位
+                </small>
+
+                <strong>
+
+                    <span id="currentCredits">
+                        0
+                    </span>
+
+                    <span>
+                        単位
+                    </span>
+
+                </strong>
+
+            </div>
+
+
+            <div class="course-summary-limit-list">
+
+
+                <div class="course-summary-limit-item">
+
+                    <div>
+
+                        <span>
+                            半期合計
+                        </span>
+
+                        <strong>
+
+                            <span id="semesterCredits">
+                                0
+                            </span>
+
+                            <small id="semesterLimitText">
+                                単位
+                            </small>
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="course-mini-progress-track">
+
+                        <div
+                            id="semesterLimitProgressBar"
+                            class="course-mini-progress-bar">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="course-summary-limit-item">
+
+                    <div>
+
+                        <span>
+                            年間合計
+                        </span>
+
+                        <strong>
+
+                            <span id="annualCredits">
+                                0
+                            </span>
+
+                            <small id="annualLimitText">
+                                単位
+                            </small>
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="course-mini-progress-track">
+
+                        <div
+                            id="annualLimitProgressBar"
+                            class="course-mini-progress-bar">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="course-summary-credit-grid">
+
+
+                <div>
+
+                    <small>
+                        取得済み
+                    </small>
+
+                    <strong id="earnedCreditsSummary">
+                        0
+                    </strong>
+
+                    <span>
+                        単位
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        選択後の見込み
+                    </small>
+
+                    <strong id="projectedCreditsSummary">
+                        0
+                    </strong>
+
+                    <span>
+                        単位
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        必修取得済み
+                    </small>
+
+                    <strong id="earnedRequiredCredits">
+                        0
+                    </strong>
+
+                    <span>
+                        単位
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        選択取得済み
+                    </small>
+
+                    <strong id="earnedElectiveCredits">
+                        0
+                    </strong>
+
+                    <span>
+                        単位
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="summaryMessage"
+                class="course-summary-message">
+
+                科目を選択してください
+
+            </div>
+
+
+            <button
+                id="saveCoursesButton"
+                type="button"
+                class="btn btn-primary course-summary-save-button"
+                disabled>
+
+                履修登録内容を確認
+
+            </button>
+
+
+            <small class="course-summary-save-help">
+
+                保存前に、選択科目と警告をもう一度確認できます
+
+            </small>
+
+        </aside>
+
+    </div>
+
+</main>
+
+
+<!-- ========================================
+     スマホ：追従保存バー
+======================================== -->
+
+<div
+    id="mobileRegistrationSaveBar"
+    class="course-mobile-save-bar">
+
+
+    <button
+        id="toggleMobileSummaryButton"
+        type="button"
+        class="course-mobile-summary-button">
+
+        <span>
+
+            <small>
+                選択中
+            </small>
+
+            <strong id="mobileSelectedCourseCount">
+                0科目
+            </strong>
+
+        </span>
+
+
+        <span>
+
+            <strong id="mobileSelectedCredits">
+                0
+            </strong>
+
+            <small>
+                単位
+            </small>
+
+        </span>
+
+
+        <span class="course-mobile-summary-arrow">
+            ▲
+        </span>
+
+    </button>
+
+
+    <button
+        id="mobileSaveCoursesButton"
+        type="button"
+        class="btn btn-primary"
+        disabled>
+
+        内容確認
+
+    </button>
+
+</div>
+
+
+<!-- ========================================
+     スマホ：単位サマリー
+======================================== -->
+
+<div
+    id="mobileSummaryOverlay"
+    class="course-mobile-summary-overlay"
+    hidden>
+
+</div>
+
+
+<aside
+    id="mobileSummaryPanel"
+    class="course-mobile-summary-panel"
+    hidden>
+
+
+    <div class="course-mobile-panel-handle"></div>
+
+
+    <div class="course-mobile-panel-heading">
+
+        <div>
+
+            <small>
+                履修登録サマリー
+            </small>
+
+            <h2>
+                選択内容を確認
+            </h2>
+
+        </div>
+
+
+        <button
+            id="closeMobileSummaryButton"
+            type="button"
+            class="circle-button"
+            aria-label="閉じる">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div class="course-mobile-summary-main">
+
+        <div>
+
+            <small>
+                選択科目
+            </small>
+
+            <strong id="mobilePanelCourseCount">
+                0科目
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <small>
+                選択単位
+            </small>
+
+            <strong>
+
+                <span id="mobilePanelCredits">
+                    0
+                </span>
+
+                単位
+
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="course-mobile-summary-list">
+
+
+        <div>
+
+            <span>
+                半期合計
+            </span>
+
+            <strong id="mobileSemesterCredits">
+                0単位
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                年間合計
+            </span>
+
+            <strong id="mobileAnnualCredits">
+                0単位
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                取得済み
+            </span>
+
+            <strong id="mobileEarnedCredits">
+                0単位
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                卒業まで残り
+            </span>
+
+            <strong id="mobileRemainingCredits">
+                0単位
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div
+        id="mobileSummaryWarning"
+        class="course-mobile-summary-warning"
+        hidden>
+
+        ⚠️ 確認が必要な項目があります
+
+    </div>
+
+
+    <button
+        id="mobilePanelSaveButton"
+        type="button"
+        class="btn btn-primary"
+        disabled>
+
+        履修登録内容を確認
+
+    </button>
+
+</aside>
+
+
+<!-- ========================================
+     最終確認モーダル
+======================================== -->
+
+<div
+    id="enrollmentConfirmModal"
+    class="admin-modal-overlay course-confirm-overlay"
+    hidden>
+
+
+    <div class="admin-modal course-confirm-modal">
+
+
+        <div class="course-confirm-heading">
+
+            <div>
+
+                <small>
+                    最終確認
+                </small>
+
+                <h2>
+                    この内容で履修登録しますか？
+                </h2>
+
+            </div>
+
+
+            <button
+                id="closeConfirmEnrollmentButton"
+                type="button"
+                class="circle-button"
+                aria-label="確認画面を閉じる">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <div class="course-confirm-summary">
+
+
+            <div>
+
+                <small>
+                    選択科目
+                </small>
+
+                <strong id="confirmCourseCount">
+                    0科目
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    選択単位
+                </small>
+
+                <strong id="confirmCreditCount">
+                    0単位
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    半期合計
+                </small>
+
+                <strong id="confirmSemesterCredits">
+                    0単位
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    年間合計
+                </small>
+
+                <strong id="confirmAnnualCredits">
+                    0単位
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <section class="course-confirm-section">
+
+            <h3>
+                選択した科目
+            </h3>
+
+            <div
+                id="confirmSelectedCourseList"
+                class="course-confirm-course-list">
+
+            </div>
+
+        </section>
+
+
+        <section
+            id="confirmWarningSection"
+            class="course-confirm-section course-confirm-warning-section"
+            hidden>
+
+            <h3>
+                ⚠️ 確認事項
+            </h3>
+
+            <div id="confirmWarningList"></div>
+
+        </section>
+
+
+        <label class="course-confirm-agreement">
+
+            <input
+                id="confirmAgreementCheckbox"
+                type="checkbox">
+
+            <span>
+
+                選択した科目、単位数、警告内容を確認しました
+
+            </span>
+
+        </label>
+
+
+        <div class="course-confirm-actions">
+
+
+            <button
+                id="cancelConfirmEnrollmentButton"
+                type="button"
+                class="btn">
+
+                修正する
+
+            </button>
+
+
+            <button
+                id="confirmEnrollmentButton"
+                type="button"
+                class="btn btn-primary"
+                disabled>
+
+                この内容で履修登録
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     保存完了モーダル
+======================================== -->
+
+<div
+    id="enrollmentCompleteModal"
+    class="admin-modal-overlay course-complete-overlay"
+    hidden>
+
+
+    <div class="admin-modal course-complete-modal">
+
+
+        <div class="course-complete-icon">
+
+            ✅
+
+        </div>
+
+
+        <h2>
+            履修登録を保存しました
+        </h2>
+
+
+        <p id="enrollmentCompleteMessage">
+
+            登録内容が保存されました。
+
+        </p>
+
+
+        <div class="course-complete-notice">
+
+            <span>
+                🔔
+            </span>
+
+            <p>
+
+                登録した科目は、今後の時間割や出席打刻通知にも利用されます。
+
+            </p>
+
+        </div>
+
+
+        <button
+            id="closeEnrollmentCompleteButton"
+            type="button"
+            class="btn btn-primary">
+
+            履修登録画面へ戻る
+
+        </button>
+
+
+        <button
+            id="goHomeAfterEnrollmentButton"
+            type="button"
+            class="btn">
+
+            ホームへ戻る
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     下部ナビゲーション
+======================================== -->
 
 <nav class="bottom-nav">
-    <a href="index.html">🏠<br><span>ホーム</span></a>
-    <a href="assignments.html">📚<br><span>課題</span></a>
-    <a href="share.html">🤝<br><span>共有</span></a>
-    <a href="news.html">📢<br><span>お知らせ</span></a>
-    <a href="settings.html">⚙️<br><span>設定</span></a>
+
+
+    <a href="index.html">
+
+        🏠
+        <br>
+
+        <span>
+            ホーム
+        </span>
+
+    </a>
+
+
+    <a href="assignments.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📚
+            </span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            課題
+        </span>
+
+    </a>
+
+
+    <a href="share.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                🤝
+            </span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            共有
+        </span>
+
+    </a>
+
+
+    <a href="news.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📢
+            </span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            お知らせ
+        </span>
+
+    </a>
+
+
+    <a
+        id="settingsTab"
+        href="settings.html">
+
+        ⚙️
+        <br>
+
+        <span>
+            設定
+        </span>
+
+    </a>
+
 </nav>
 
-<script type="module" src="course_registration.js"></script>
+
+<script
+    type="module"
+    src="course_registration.js">
+</script>
+
+
 </body>
+
 </html>
