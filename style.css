@@ -3587,3 +3587,177 @@ hidden属性を確実に有効にする。
     min-width: 0;
     width: auto;
 }
+
+/* ========================================
+   管理者用・学生登録画面
+======================================== */
+
+.admin-register-page {
+    padding-bottom: 30px;
+}
+
+
+/* 学科・専攻 */
+
+.admin-register-choice-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.admin-register-choice {
+    min-width: 0;
+}
+
+.admin-register-choice label,
+.admin-register-grade-area label,
+.admin-register-page .setting-card > label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.admin-register-grade-area {
+    margin-top: 18px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+}
+
+
+/* 入力欄の間隔 */
+
+.admin-register-page input,
+.admin-register-page select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-register-page .setting-card > input + label,
+.admin-register-page .setting-card > select + label {
+    margin-top: 20px;
+}
+
+.admin-register-page #studentPageId,
+.admin-register-page #studentPagePassword {
+    margin-bottom: 18px;
+}
+
+
+/* 無効状態 */
+
+.admin-register-page input:disabled,
+.admin-register-page select:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+
+/* 説明文 */
+
+.admin-register-page .admin-input-help {
+    margin: 8px 0 18px;
+    color: var(--subtext);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+
+/* 通知設定 */
+
+.admin-register-page .setting-row {
+    min-height: 58px;
+}
+
+.admin-register-page
+.setting-row
+input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+}
+
+
+/* 登録ボタン */
+
+.admin-register-page .admin-save-card {
+    position: sticky;
+    bottom: 82px;
+    z-index: 20;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 94%,
+            transparent
+        );
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.admin-register-page
+.admin-save-card
+#subscribe {
+    width: 100%;
+    margin: 0;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+}
+
+.admin-register-page
+.admin-save-card
+#subscribe:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+
+/* 入力エラー表示用 */
+
+.admin-register-input-error {
+    border-color: var(--danger) !important;
+    box-shadow:
+        0 0 0 3px
+        rgba(239, 68, 68, 0.15) !important;
+}
+
+.admin-register-error-text {
+    margin: 6px 0 0;
+    color: var(--danger);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* ダークモード */
+
+.dark .admin-register-grade-area {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .admin-register-page
+.admin-save-card {
+    background:
+        rgba(43, 43, 43, 0.94);
+}
+
+
+/* スマートフォン */
+
+@media (max-width: 600px) {
+
+    .admin-register-choice-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-register-page
+    .admin-save-card {
+        bottom: 74px;
+    }
+
+}
