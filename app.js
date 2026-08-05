@@ -10,7 +10,7 @@ import {
     initializePage,
     showPage,
     showNewsSkeleton,
-    setupAdminTab,
+    isAdmin,
     decryptData,
     setupOfflineAlert,
     updateAssignmentNavBadge,
@@ -135,6 +135,25 @@ const themeButton = document.getElementById("themeButton");
 const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
+const authSetupSection =
+    document.getElementById(
+        "authSetupSection"
+    );
+
+const homeUserMiniImage =
+    document.getElementById(
+        "homeUserMiniImage"
+    );
+
+const settingsTab =
+    document.getElementById(
+        "settingsTab"
+    );
+
+const adminTab =
+    document.getElementById(
+        "adminTab"
+    );
 
 let courses = {};
 let lectureSchedules = [];
@@ -270,13 +289,33 @@ console.log("studentNumber =", studentNumber);
     showPage();
 
     Promise.all([
-        loadUserName(userName),
+
+        loadUserName(
+            userName
+        ),
+
         loadMyRanking(),
-        loadProfileImage(topProfileImage),
-        loadActiveMailBadge(user),
+
+        loadProfileImage(
+            topProfileImage
+        ),
+
+        loadProfileImage(
+            homeUserMiniImage
+        ),
+
+        loadActiveMailBadge(
+            user
+        ),
+
+        setupHomeRoleTabs(),
+
         updateAssignmentNavBadge(),
+
         updateShareNavBadge(),
+
         updateNewsNavBadge()
+
     ]);
 
     await Promise.all([
@@ -296,47 +335,217 @@ console.log("studentNumber =", studentNumber);
 
     loadAttendancePopup();
 
-    setupAdminTab();
+}
+
+/* ========================================
+   設定・管理タブの仕分け
+======================================== */
+
+async function setupHomeRoleTabs() {
+
+    try {
+
+        const administrator =
+            await isAdmin();
+
+
+        if (administrator) {
+
+            if (settingsTab) {
+
+                settingsTab.style.display =
+                    "none";
+
+            }
+
+
+            if (adminTab) {
+
+                adminTab.style.display =
+                    "flex";
+
+            }
+
+        } else {
+
+            if (settingsTab) {
+
+                settingsTab.style.display =
+                    "flex";
+
+            }
+
+
+            if (adminTab) {
+
+                adminTab.style.display =
+                    "none";
+
+            }
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "ホーム管理者判定エラー:",
+            error
+        );
+
+
+        if (settingsTab) {
+
+            settingsTab.style.display =
+                "flex";
+
+        }
+
+
+        if (adminTab) {
+
+            adminTab.style.display =
+                "none";
+
+        }
+
+    }
 
 }
 
-function renderAuthSetupCards(user) {
+function renderAuthSetupCards(
+    user
+) {
 
-    if (!authSetupCards) return;
+    if (!authSetupCards) {
+        return;
+    }
+
 
     const cards = [];
 
-    if (!user.manabaPasswordEncrypted) {
+
+    if (
+        !user.manabaPasswordEncrypted
+    ) {
+
         cards.push(`
-            <div class="card setting-card"
-                onclick="location.href='manaba_setup.html'"
-                style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>📚 Manaba認証へ進む</b><br>
-                <small>
-                    課題取得・課題通知・Manaba関連機能を使うには設定が必要です。
-                </small>
+            <a
+                href="manaba_setup.html"
+                class="home-setup-card">
 
-            </div>
+
+                <span class="home-setup-icon">
+
+                    📚
+
+                </span>
+
+
+                <span class="home-setup-content">
+
+                    <small>
+
+                        初期設定
+
+                    </small>
+
+
+                    <strong>
+
+                        Manaba認証を設定
+
+                    </strong>
+
+
+                    <span>
+
+                        課題取得・課題通知・Manaba関連機能を利用するために必要です。
+
+                    </span>
+
+                </span>
+
+
+                <span class="home-setup-arrow">
+
+                    →
+
+                </span>
+
+            </a>
+
         `);
+
     }
 
-    if (!user.activeMailPasswordEncrypted) {
+
+    if (
+        !user.activeMailPasswordEncrypted
+    ) {
+
         cards.push(`
-            <div class="card setting-card"
-                onclick="location.href='activemail_setup.html'"
-                style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>📧 Active!Mail認証へ進む</b><br>
-                <small>
-                    大学メール通知・未読件数表示を使うには設定が必要です。
-                </small>
+            <a
+                href="activemail_setup.html"
+                class="home-setup-card">
 
-            </div>
+
+                <span class="home-setup-icon">
+
+                    📧
+
+                </span>
+
+
+                <span class="home-setup-content">
+
+                    <small>
+
+                        初期設定
+
+                    </small>
+
+
+                    <strong>
+
+                        Active!Mail認証を設定
+
+                    </strong>
+
+
+                    <span>
+
+                        大学メール通知や未読件数を表示するために必要です。
+
+                    </span>
+
+                </span>
+
+
+                <span class="home-setup-arrow">
+
+                    →
+
+                </span>
+
+            </a>
+
         `);
+
     }
 
-    authSetupCards.innerHTML = cards.join("");
+
+    authSetupCards.innerHTML =
+        cards.join("");
+
+
+    if (authSetupSection) {
+
+        authSetupSection.hidden =
+            cards.length === 0;
+
+    }
 
 }
 
@@ -483,86 +692,232 @@ async function loadNews() {
 
     try {
 
-        const department = localStorage.getItem("department");
-        const grade = localStorage.getItem("grade");
-        const major = localStorage.getItem("major");
+        const department =
+            localStorage.getItem(
+                "department"
+            );
 
-        if ((!department && !major) || !grade) {
+        const grade =
+            localStorage.getItem(
+                "grade"
+            );
+
+        const major =
+            localStorage.getItem(
+                "major"
+            );
+
+
+        if (
+            (!department && !major) ||
+            !grade
+        ) {
+
+            renderHomeNewsEmpty(
+                newsList,
+                "所属情報が設定されていません。"
+            );
+
             return;
+
         }
 
-        let q;
 
-        if (department !== "") {
-            q = query(
-                collection(db, "news"),
-                where("department", "==", department),
-                where("grade", "==", grade.replace("年", ""))
+        let newsQuery;
+
+
+        if (department) {
+
+            newsQuery = query(
+
+                collection(
+                    db,
+                    "news"
+                ),
+
+                where(
+                    "department",
+                    "==",
+                    department
+                ),
+
+                where(
+                    "grade",
+                    "==",
+                    grade.replace(
+                        "年",
+                        ""
+                    )
+                )
+
             );
+
         } else {
-            q = query(
-                collection(db, "news"),
-                where("major", "==", major),
-                where("grade", "==", grade.replace("年", ""))
+
+            newsQuery = query(
+
+                collection(
+                    db,
+                    "news"
+                ),
+
+                where(
+                    "major",
+                    "==",
+                    major
+                ),
+
+                where(
+                    "grade",
+                    "==",
+                    grade.replace(
+                        "年",
+                        ""
+                    )
+                )
+
             );
+
         }
 
-        const snapshot = await getDocs(q);
-        const notices = [];
 
-        snapshot.forEach((doc) => {
-            notices.push(doc.data());
-        });
+        const snapshot =
+            await getDocs(
+                newsQuery
+            );
 
-        notices.sort((a, b) => {
-            return b.postedAt.seconds - a.postedAt.seconds;
-        });
 
         if (snapshot.empty) {
-            newsList.innerHTML = "まだお知らせはありません";
+
+            renderHomeNewsEmpty(
+                newsList,
+                "大学からのお知らせはありません。"
+            );
+
             return;
+
         }
 
-        newsList.innerHTML = "";
 
-        notices.slice(0, 3).forEach((notice) => {
+        const notices =
+            snapshot.docs
+                .map(
+                    newsDocument => {
 
-            const posted = notice.postedAt.toDate();
+                        const data =
+                            newsDocument.data() || {};
 
-            const postedText = formatDateTime(posted);
 
-            newsList.innerHTML += `
-                <div class="card news-card"
-                    onclick="location.href='news.html'">
+                        return {
 
-                    <div class="news-date">
-                        ${postedText}
-                    </div>
+                            ...data,
 
-                    <div class="news-body">
+                            id:
+                                newsDocument.id
 
-                        ${notice.body
-                            .split("\n")[0]
-                            .substring(0, 40)}...
+                        };
 
-                    </div>
+                    }
+                )
+                .sort(
+                    (
+                        noticeA,
+                        noticeB
+                    ) =>
+                        getFirestoreTime(
+                            noticeB.postedAt
+                        ) -
+                        getFirestoreTime(
+                            noticeA.postedAt
+                        )
+                );
 
-                </div>
-            `;
-        });
 
-        newsList.innerHTML += `
-            <div style="text-align:center; margin-top:20px;">
-                <a href="news.html">
-                    もっと見る →
-                </a>
-            </div>
-        `;
+        const cards =
+            notices
+                .slice(
+                    0,
+                    3
+                )
+                .map(
+                    notice => {
 
-    } catch (e) {
-        console.error(e);
-        newsList.innerHTML = "お知らせの取得に失敗しました。";
+                        const body =
+                            String(
+                                notice.body ||
+                                notice.title ||
+                                "お知らせ"
+                            );
+
+
+                        const firstLine =
+                            body
+                                .split("\n")
+                                .find(
+                                    line =>
+                                        line.trim() !== ""
+                                ) ||
+                            "大学からのお知らせ";
+
+
+                        return createHomeNewsCard({
+
+                            href:
+                                "news.html",
+
+                            icon:
+                                "📢",
+
+                            category:
+                                "大学",
+
+                            title:
+                                shortenText(
+                                    firstLine,
+                                    34
+                                ),
+
+                            body:
+                                shortenText(
+                                    body,
+                                    56
+                                ),
+
+                            date:
+                                formatDateTime(
+                                    firestoreValueToDate(
+                                        notice.postedAt
+                                    )
+                                )
+
+                        });
+
+                    }
+                )
+                .join("");
+
+
+        newsList.innerHTML =
+            cards +
+            createHomeNewsMoreLink(
+                "news.html",
+                "大学のお知らせをすべて見る"
+            );
+
+    } catch (error) {
+
+        console.error(
+            "大学お知らせ取得エラー:",
+            error
+        );
+
+
+        renderHomeNewsError(
+            newsList
+        );
+
     }
+
 }
 
 function parseCourseNewsDate(value) {
@@ -623,154 +978,652 @@ function formatCourseNewsDate(value) {
 
 async function loadHomeCourseNews() {
 
-    const q = query(
-        collection(db, "courseNews", studentNumber, "news"),
-        orderBy("createdAt", "desc")
-    );
+    try {
 
-    const snapshot = await getDocs(q);
+        const courseNewsQuery =
+            query(
 
-    if (snapshot.empty) {
+                collection(
+                    db,
+                    "courseNews",
+                    studentNumber,
+                    "news"
+                ),
 
-        homeCourseNews.innerHTML =
-            "コースニュースはありません。";
+                orderBy(
+                    "createdAt",
+                    "desc"
+                )
 
-        return;
+            );
 
-    }
 
-    const notices =
-        snapshot.docs.map(newsDoc =>
-            newsDoc.data()
-        );
+        const snapshot =
+            await getDocs(
+                courseNewsQuery
+            );
 
-    notices.sort((a, b) => {
-
-        const dateA =
-            parseCourseNewsDate(a.posted);
-
-        const dateB =
-            parseCourseNewsDate(b.posted);
-
-        return dateB - dateA;
-
-    });
-
-    homeCourseNews.innerHTML = "";
-
-    notices.slice(0, 3).forEach(notice => {
-
-        homeCourseNews.innerHTML += `
-
-            <div class="card news-card"
-                onclick="location.href='news.html?tab=course'">
-
-                <div class="news-title">
-                    📘 ${notice.course}
-                </div>
-
-                <div class="news-body">
-                    ${notice.title}
-                </div>
-
-                <div class="news-date">
-                    ${formatCourseNewsDate(notice.posted)}
-                </div>
-
-            </div>
-
-        `;
-
-    });
-
-    homeCourseNews.innerHTML += `
-        <div style="text-align:center; margin-top:20px;">
-            <a href="news.html?tab=course">
-                もっと見る →
-            </a>
-        </div>
-    `;
-
-}
-
-async function loadHomeSystemNews() {
-
-    const userSnap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (
-        !userSnap.exists() ||
-        userSnap.data().manabaVerified !== true
-    ) {
-        homeSystemNews.innerHTML =
-            "Manaba認証後に表示されます。";
-        return;
-    }
-
-    const q = query(
-        collection(db, "systemNews"),
-        orderBy("createdAt", "desc")
-    );
-
-    onSnapshot(q, (snapshot) => {
 
         if (snapshot.empty) {
 
-            homeSystemNews.innerHTML =
-                "CareMateからのお知らせはありません。";
+            renderHomeNewsEmpty(
+                homeCourseNews,
+                "コースのお知らせはありません。"
+            );
 
             return;
 
         }
 
-        homeSystemNews.innerHTML = "";
 
-        snapshot.docs.slice(0, 3).forEach(newsDoc => {
+        const notices =
+            snapshot.docs
+                .map(
+                    newsDocument =>
+                        newsDocument.data() || {}
+                )
+                .sort(
+                    (
+                        noticeA,
+                        noticeB
+                    ) =>
+                        parseCourseNewsDate(
+                            noticeB.posted
+                        ) -
+                        parseCourseNewsDate(
+                            noticeA.posted
+                        )
+                );
 
-            const notice = newsDoc.data();
 
-            const created =
-                notice.createdAt
-                    ? notice.createdAt.toDate()
-                    : null;
+        const cards =
+            notices
+                .slice(
+                    0,
+                    3
+                )
+                .map(
+                    notice =>
+                        createHomeNewsCard({
 
-            const dateText = formatDateTime(created);
+                            href:
+                                "news.html?tab=course",
 
-            homeSystemNews.innerHTML += `
+                            icon:
+                                "📘",
 
-            <div class="card news-card"
-                onclick="location.href='news.html'">
+                            category:
+                                notice.course ||
+                                "コース",
 
-                <div class="news-title">
-                    💙 ${notice.title}
-                </div>
+                            title:
+                                shortenText(
+                                    notice.title ||
+                                    "コースからのお知らせ",
+                                    34
+                                ),
 
-                <div class="news-body">
-                    ${(notice.body || "")
-                        .split("\n")[0]
-                        .substring(0, 40)}...
-                </div>
+                            body:
+                                shortenText(
+                                    notice.body ||
+                                    notice.title ||
+                                    "",
+                                    56
+                                ),
 
-                <div class="news-date">
-                    ${dateText}
-                </div>
+                            date:
+                                formatCourseNewsDate(
+                                    notice.posted
+                                )
 
-            </div>
+                        })
+                )
+                .join("");
 
-            `;
 
-        });
+        homeCourseNews.innerHTML =
+            cards +
+            createHomeNewsMoreLink(
+                "news.html?tab=course",
+                "コースのお知らせをすべて見る"
+            );
 
-        homeSystemNews.innerHTML += `
-            <div style="text-align:center; margin-top:20px;">
-                <a href="news.html">
-                    もっと見る →
-                </a>
-            </div>
-        `;
+    } catch (error) {
 
-    });
+        console.error(
+            "コースお知らせ取得エラー:",
+            error
+        );
+
+
+        renderHomeNewsError(
+            homeCourseNews
+        );
+
+    }
+
+}
+
+async function loadHomeSystemNews() {
+
+    try {
+
+        const userSnapshot =
+            await getDoc(
+
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                )
+
+            );
+
+
+        if (
+            !userSnapshot.exists() ||
+            userSnapshot.data()
+                .manabaVerified !== true
+        ) {
+
+            renderHomeNewsEmpty(
+
+                homeSystemNews,
+
+                "Manaba認証後に表示されます。",
+
+                "🔐"
+
+            );
+
+            return;
+
+        }
+
+
+        const systemNewsQuery =
+            query(
+
+                collection(
+                    db,
+                    "systemNews"
+                ),
+
+                orderBy(
+                    "createdAt",
+                    "desc"
+                )
+
+            );
+
+
+        onSnapshot(
+
+            systemNewsQuery,
+
+            snapshot => {
+
+                if (snapshot.empty) {
+
+                    renderHomeNewsEmpty(
+                        homeSystemNews,
+                        "CareMateからのお知らせはありません。"
+                    );
+
+                    return;
+
+                }
+
+
+                const cards =
+                    snapshot.docs
+                        .slice(
+                            0,
+                            3
+                        )
+                        .map(
+                            newsDocument => {
+
+                                const notice =
+                                    newsDocument.data() || {};
+
+
+                                return createHomeNewsCard({
+
+                                    href:
+                                        "news.html",
+
+                                    icon:
+                                        "💙",
+
+                                    category:
+                                        "CareMate",
+
+                                    title:
+                                        shortenText(
+                                            notice.title ||
+                                            "CareMateからのお知らせ",
+                                            34
+                                        ),
+
+                                    body:
+                                        shortenText(
+                                            notice.body ||
+                                            "",
+                                            56
+                                        ),
+
+                                    date:
+                                        formatDateTime(
+                                            firestoreValueToDate(
+                                                notice.createdAt
+                                            )
+                                        )
+
+                                });
+
+                            }
+                        )
+                        .join("");
+
+
+                homeSystemNews.innerHTML =
+                    cards +
+                    createHomeNewsMoreLink(
+                        "news.html",
+                        "CareMateのお知らせをすべて見る"
+                    );
+
+            },
+
+            error => {
+
+                console.error(
+                    "CareMateお知らせ監視エラー:",
+                    error
+                );
+
+
+                renderHomeNewsError(
+                    homeSystemNews
+                );
+
+            }
+
+        );
+
+    } catch (error) {
+
+        console.error(
+            "CareMateお知らせ取得エラー:",
+            error
+        );
+
+
+        renderHomeNewsError(
+            homeSystemNews
+        );
+
+    }
+
+}
+
+/* ========================================
+   ホームお知らせ共通表示
+======================================== */
+
+function createHomeNewsCard({
+
+    href,
+    icon,
+    category,
+    title,
+    body,
+    date
+
+}) {
+
+    return `
+
+        <a
+            href="${escapeHtmlAttribute(
+                href
+            )}"
+            class="home-news-item">
+
+
+            <span class="home-news-item-icon">
+
+                ${escapeHtml(icon)}
+
+            </span>
+
+
+            <span class="home-news-item-content">
+
+
+                <span class="home-news-item-top">
+
+                    <span class="home-news-category">
+
+                        ${escapeHtml(
+                            category
+                        )}
+
+                    </span>
+
+
+                    ${
+                        date
+                            ? `
+
+                                <time>
+
+                                    ${escapeHtml(
+                                        date
+                                    )}
+
+                                </time>
+
+                            `
+                            : ""
+                    }
+
+                </span>
+
+
+                <strong>
+
+                    ${escapeHtml(
+                        title
+                    )}
+
+                </strong>
+
+
+                ${
+                    body
+                        ? `
+
+                            <span class="home-news-item-body">
+
+                                ${escapeHtml(
+                                    body
+                                )}
+
+                            </span>
+
+                        `
+                        : ""
+                }
+
+            </span>
+
+
+            <span class="home-news-item-arrow">
+
+                →
+
+            </span>
+
+        </a>
+
+    `;
+
+}
+
+
+function createHomeNewsMoreLink(
+    href,
+    label
+) {
+
+    return `
+
+        <a
+            href="${escapeHtmlAttribute(
+                href
+            )}"
+            class="home-news-more-link">
+
+            <span>
+
+                ${escapeHtml(
+                    label
+                )}
+
+            </span>
+
+            <b>
+                →
+            </b>
+
+        </a>
+
+    `;
+
+}
+
+
+function renderHomeNewsEmpty(
+    target,
+    message,
+    icon = "📭"
+) {
+
+    if (!target) {
+        return;
+    }
+
+
+    target.innerHTML = `
+
+        <div class="home-news-empty">
+
+            <span>
+
+                ${escapeHtml(
+                    icon
+                )}
+
+            </span>
+
+            <p>
+
+                ${escapeHtml(
+                    message
+                )}
+
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+
+function renderHomeNewsError(
+    target
+) {
+
+    if (!target) {
+        return;
+    }
+
+
+    target.innerHTML = `
+
+        <div class="home-news-empty is-error">
+
+            <span>
+                ⚠️
+            </span>
+
+            <p>
+                お知らせを取得できませんでした。
+            </p>
+
+            <button
+                type="button"
+                onclick="location.reload()">
+
+                再読み込み
+
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ========================================
+   日付変換
+======================================== */
+
+function firestoreValueToDate(
+    value
+) {
+
+    if (!value) {
+
+        return null;
+
+    }
+
+
+    if (
+        typeof value.toDate ===
+        "function"
+    ) {
+
+        return value.toDate();
+
+    }
+
+
+    if (
+        value instanceof Date
+    ) {
+
+        return value;
+
+    }
+
+
+    const convertedDate =
+        new Date(value);
+
+
+    return Number.isNaN(
+        convertedDate.getTime()
+    )
+        ? null
+        : convertedDate;
+
+}
+
+
+function getFirestoreTime(
+    value
+) {
+
+    const date =
+        firestoreValueToDate(
+            value
+        );
+
+
+    return date
+        ? date.getTime()
+        : 0;
+
+}
+
+
+/* ========================================
+   文字列処理
+======================================== */
+
+function shortenText(
+    value,
+    maximumLength
+) {
+
+    const normalized =
+        String(
+            value ||
+            ""
+        )
+        .replace(
+            /\s+/g,
+            " "
+        )
+        .trim();
+
+
+    if (
+        normalized.length <=
+        maximumLength
+    ) {
+
+        return normalized;
+
+    }
+
+
+    return (
+        normalized.slice(
+            0,
+            maximumLength
+        ) +
+        "…"
+    );
+
+}
+
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ??
+        ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+function escapeHtmlAttribute(
+    value
+) {
+
+    return escapeHtml(
+        value
+    );
 
 }
 
@@ -2598,5 +3451,56 @@ if(attendanceYes){
 
 
     };
+
+}
+
+/* ========================================
+   ホームカードのキーボード操作
+======================================== */
+
+setupHomeCardKeyboardAccess();
+
+
+function setupHomeCardKeyboardAccess() {
+
+    const cards = [
+
+        examCard,
+
+        attendanceCard,
+
+        courseRegistrationCard,
+
+        personalTimetableCard
+
+    ].filter(Boolean);
+
+
+    cards.forEach(
+        card => {
+
+            card.addEventListener(
+                "keydown",
+                event => {
+
+                    if (
+                        event.key !== "Enter" &&
+                        event.key !== " "
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    event.preventDefault();
+
+                    card.click();
+
+                }
+            );
+
+        }
+    );
 
 }
