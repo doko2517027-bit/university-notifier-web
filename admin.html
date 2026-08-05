@@ -235,6 +235,48 @@ onclick="location.href='reports_admin.html'">
 
 </div>
 
+<h2>🛠 システム管理</h2>
+
+<div class="card setting-card">
+
+    <label class="setting-row">
+
+        <span>
+            <b>メンテナンスモード</b>
+            <br>
+            <small>
+                ONにすると一般ユーザーを
+                メンテナンス画面へ移動させます
+            </small>
+        </span>
+
+        <input
+            type="checkbox"
+            id="maintenanceToggle">
+
+    </label>
+
+    <br>
+
+    <h3>メンテナンスメッセージ</h3>
+
+    <textarea
+        id="maintenanceMessage"
+        rows="5"
+        placeholder="メンテナンス中に表示するメッセージ"></textarea>
+
+    <br><br>
+
+    <button
+        id="saveMaintenance"
+        class="btn btn-primary">
+
+        保存する
+
+    </button>
+
+</div>
+
 
 </div>
 
@@ -243,8 +285,6 @@ onclick="location.href='reports_admin.html'">
 <div class="card setting-card">
 
     <h3>通知設定</h3>
-
-    <div class="card setting-card">
 
     <button id="enablePushButton" class="btn btn-primary">
 
