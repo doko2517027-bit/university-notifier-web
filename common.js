@@ -658,9 +658,28 @@ export async function setupAdminTab() {
     settingsTab.href = "admin.html";
 
     settingsTab.innerHTML = `
-        👑<br>
+        <span class="nav-icon-wrap">
+            <span class="nav-icon">👑</span>
+            <span id="adminReportBadge" class="nav-notification-badge" hidden>0</span>
+        </span>
         <span>管理</span>
     `;
+
+    try {
+        const reportsSnapshot = await getDocs(collection(db, "reports"));
+        const unresolvedCount = reportsSnapshot.docs.filter(item =>
+            !["closed", "corrected", "resolved"].includes(item.data().status || "open")
+        ).length;
+        ["adminReportBadge", "adminReportCardBadge"].forEach(id => {
+            const badge = document.getElementById(id);
+            if (badge && unresolvedCount > 0) {
+                badge.textContent = unresolvedCount > 99 ? "99+" : String(unresolvedCount);
+                badge.hidden = false;
+            }
+        });
+    } catch (error) {
+        console.error("管理通報バッジ取得エラー:", error);
+    }
 
 }
 

@@ -219,14 +219,10 @@ if(localStorage.getItem("theme")==="dark"){
 
 <h2>🚨 通報</h2>
 
-<div class="card setting-card">
-
+<div class="card setting-card admin-report-link" onclick="location.href='reports_admin.html'" style="cursor:pointer;">
+    <span id="adminReportCardBadge" class="admin-card-badge" hidden>0</span>
     <h3>通報一覧</h3>
-
-    <div id="reportList">
-        読み込み中...
-    </div>
-
+    <p>未解決の通報と、対応済みの履歴を確認します。</p>
 </div>
 
 <h2>⚙️ 設定</h2>

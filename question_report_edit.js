@@ -47,7 +47,7 @@ document.getElementById("saveReportedQuestion").onclick=async()=>{
         setDoc(doc(db,"examSubjects",report.subjectId,"units",report.unitId,"ai","edited"),{...next,lastCorrectedAt:serverTimestamp(),lastCorrectedBy:studentNumber},{merge:true}),
         updateDoc(doc(db,"reports",reportId),{status:"corrected",correctedAt:serverTimestamp(),correctedBy:studentNumber})
     ]);
-    alert("問題を修正しました");location.replace("admin.html");
+    alert("問題を修正しました");location.replace("reports_admin.html?view=resolved");
 };
 document.getElementById("backButton").onclick=()=>history.length>1?history.back():location.replace("admin.html");
 load().catch(error=>{console.error(error);alert(error.message);location.replace("admin.html")});showPage();

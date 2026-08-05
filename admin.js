@@ -106,7 +106,6 @@ await initializePage([
     setupAdminTab(),
     loadUserName(userName),
     loadMyRanking(),
-    loadReports(),
     loadProfileImage(topProfileImage),
     loadDashboard(),
     loadSystemStatus(),
