@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>学生登録 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div class="top-user-info">
+
+        <span id="userName">
+            Unknownさん
+        </span>
+
+        <span id="myRanking"></span>
+
+    </div>
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            type="button"
+            class="circle-button">
+
+            🌙
+
+        </button>
+
+        <button
+            id="profileButton"
+            type="button"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image"
+                alt="プロフィール">
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<header class="header">
+
+    <div class="logo">➕</div>
+
+    <h1>学生登録</h1>
+
+    <p>
+        管理者として新しい学生アカウントを登録します
+    </p>
+
+</header>
+
+
+<main class="admin-register-page">
+
+    <div class="card setting-card">
+
+        <button
+            id="backButton"
+            type="button"
+            class="btn">
+
+            ← ユーザー管理へ戻る
+
+        </button>
+
+    </div>
+
+
+    <h2>🎓 所属情報</h2>
+
+    <div class="card setting-card">
+
+        <p class="admin-input-help">
+
+            学科または専攻のどちらか一方を選択してください。
+
+        </p>
+
+        <div class="admin-register-choice-grid">
+
+            <div class="admin-register-choice">
+
+                <label for="department">
+
+                    <b>学科</b>
+
+                </label>
+
+                <select id="department">
+
+                    <option value="">
+                        選択しない
+                    </option>
+
+                    <option value="看護学科">
+                        看護学科
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="admin-register-choice">
+
+                <label for="major">
+
+                    <b>専攻</b>
+
+                </label>
+
+                <select id="major">
+
+                    <option value="">
+                        選択しない
+                    </option>
+
+                    <option value="理学療法学専攻">
+                        理学療法学専攻
+                    </option>
+
+                    <option value="作業療法学専攻">
+                        作業療法学専攻
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="departmentGradeArea"
+            class="admin-register-grade-area">
+
+            <label for="departmentGrade">
+
+                <b>看護学科の学年</b>
+
+            </label>
+
+            <select
+                id="departmentGrade"
+                disabled>
+
+                <option value="">
+                    学年を選択
+                </option>
+
+                <option value="1">
+                    1年
+                </option>
+
+                <option value="2">
+                    2年
+                </option>
+
+                <option value="3">
+                    3年
+                </option>
+
+                <option value="4">
+                    4年
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div
+            id="majorGradeArea"
+            class="admin-register-grade-area">
+
+            <label for="majorGrade">
+
+                <b>専攻の学年</b>
+
+            </label>
+
+            <select
+                id="majorGrade"
+                disabled>
+
+                <option value="">
+                    学年を選択
+                </option>
+
+                <option value="1">
+                    1年
+                </option>
+
+                <option value="2">
+                    2年
+                </option>
+
+                <option value="3">
+                    3年
+                </option>
+
+                <option value="4">
+                    4年
+                </option>
+
+            </select>
+
+        </div>
+
+    </div>
+
+
+    <h2>🪪 学生情報</h2>
+
+    <div class="card setting-card">
+
+        <label for="studentNumber">
+
+            <b>学籍番号</b>
+
+        </label>
+
+        <input
+            id="studentNumber"
+            type="text"
+            inputmode="numeric"
+            maxlength="7"
+            autocomplete="off"
+            placeholder="例：2510044">
+
+        <p class="admin-input-help">
+
+            7桁の学籍番号を入力してください。  
+            入学年度・所属コードは学籍番号から確認されます。
+
+        </p>
+
+
+        <label for="studentPageId">
+
+            <b>学生ページID</b>
+
+        </label>
+
+        <input
+            id="studentPageId"
+            type="text"
+            autocomplete="off"
+            placeholder="学生ページのログインID">
+
+
+        <label for="studentPagePassword">
+
+            <b>学生ページパスワード</b>
+
+        </label>
+
+        <input
+            id="studentPagePassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="学生ページのパスワード">
+
+    </div>
+
+
+    <h2>📧 Active!Mail設定</h2>
+
+    <div class="card setting-card">
+
+        <label for="activeMailPassword">
+
+            <b>Active!Mailパスワード</b>
+
+        </label>
+
+        <input
+            id="activeMailPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="未設定でも登録可能">
+
+        <p class="admin-input-help">
+
+            空欄で登録した場合、学生本人が後から設定します。
+
+        </p>
+
+    </div>
+
+
+    <h2>📚 Manaba設定</h2>
+
+    <div class="card setting-card">
+
+        <label for="manabaPassword">
+
+            <b>Manabaパスワード</b>
+
+        </label>
+
+        <input
+            id="manabaPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="未設定でも登録可能">
+
+        <p class="admin-input-help">
+
+            ManabaのIDには学籍番号が自動的に使用されます。  
+            空欄で登録した場合、学生本人が後から設定します。
+
+        </p>
+
+    </div>
+
+
+    <h2>🔐 CareMateログイン</h2>
+
+    <div class="card setting-card">
+
+        <label for="appPassword">
+
+            <b>アプリ用パスワード</b>
+
+        </label>
+
+        <input
+            id="appPassword"
+            type="password"
+            minlength="6"
+            autocomplete="new-password"
+            placeholder="6文字以上">
+
+        <br><br>
+
+        <label for="appPasswordConfirm">
+
+            <b>アプリ用パスワードを再入力</b>
+
+        </label>
+
+        <input
+            id="appPasswordConfirm"
+            type="password"
+            minlength="6"
+            autocomplete="new-password"
+            placeholder="同じパスワードを入力">
+
+    </div>
+
+
+    <h2>🔔 初期通知設定</h2>
+
+    <div class="card setting-card">
+
+        <p class="admin-input-help">
+
+            登録後、学生本人または管理者が変更できます。
+
+        </p>
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>🗓 時間割変更</b><br>
+
+                <small>
+                    時間割に変更があったとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifySchedule"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>📚 新しい課題</b><br>
+
+                <small>
+                    新しい課題を取得したとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifyAssignment"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>⏰ 課題リマインダー</b><br>
+
+                <small>
+                    課題の締切前
+                </small>
+
+            </span>
+
+            <input
+                id="notifyReminder"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>🗞️ コースニュース</b><br>
+
+                <small>
+                    新しいコースニュースが公開されたとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifyCourseNews"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>💙 CareMateお知らせ</b><br>
+
+                <small>
+                    運営からお知らせが投稿されたとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifySystemNews"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>🤝 共有の新規投稿</b><br>
+
+                <small>
+                    共有に新しい投稿があったとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifySharePost"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>❤️ いいね</b><br>
+
+                <small>
+                    本人の投稿にいいねが付いたとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifyLike"
+                type="checkbox"
+                checked>
+
+        </label>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>💬 コメント</b><br>
+
+                <small>
+                    本人の投稿にコメントが付いたとき
+                </small>
+
+            </span>
+
+            <input
+                id="notifyComment"
+                type="checkbox"
+                checked>
+
+        </label>
+
+    </div>
+
+
+    <div class="card setting-card admin-save-card">
+
+        <button
+            id="subscribe"
+            type="button"
+            class="btn btn-primary"
+            disabled>
+
+            学生を登録する
+
+        </button>
+
+    </div>
+
+</main>
+
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+
+        🏠<br>
+
+        <span>ホーム</span>
+
+    </a>
+
+    <a href="assignments.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📚
+            </span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>課題</span>
+
+    </a>
+
+    <a href="share.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                🤝
+            </span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>共有</span>
+
+    </a>
+
+    <a href="news.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📢
+            </span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>お知らせ</span>
+
+    </a>
+
+    <a
+        id="settingsTab"
+        href="admin.html"
+        class="active">
+
+        👑<br>
+
+        <span>管理</span>
+
+    </a>
+
+</nav>
+
+
+<script
+    type="module"
+    src="admin_user_register.js">
+</script>
+
+</body>
+</html>
