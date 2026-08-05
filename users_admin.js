@@ -542,7 +542,7 @@ function createUserHtml(user) {
 
     const grade =
         user.grade
-            ? `${user.grade}年`
+            ? `${user.grade}`
             : "学年未設定";
 
     return `

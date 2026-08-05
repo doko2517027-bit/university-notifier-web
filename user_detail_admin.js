@@ -465,7 +465,7 @@ function renderUserInformation() {
     setText(
         gradeValue,
         targetUserData.grade
-            ? `${targetUserData.grade}年`
+            ? `${targetUserData.grade}`
             : "未設定"
     );
 
