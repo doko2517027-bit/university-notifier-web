@@ -4,6 +4,7 @@ import {
     setupTheme,
     initializePage,
     loadProfileImage,
+    setupAdminTab,
     showToast
 } from "./common.js";
 
@@ -88,8 +89,15 @@ window.addEventListener("beforeunload", event => {
 });
 
 await initializePage([
-    loadProfileImage(elements.image),
+
+    setupAdminTab(),
+
+    loadProfileImage(
+        elements.image
+    ),
+
     loadRegistrationData()
+
 ]);
 
 async function loadRegistrationData() {
