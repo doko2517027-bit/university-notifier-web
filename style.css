@@ -9133,3 +9133,2201 @@ input[type="checkbox"] {
         0 12px 34px
         rgba(0, 0, 0, 0.38);
 }
+
+/* ========================================
+   テスト対策ダッシュボード
+======================================== */
+
+.exam-dashboard-body {
+    --exam-success: #16a34a;
+    --exam-success-soft: rgba(34, 197, 94, 0.1);
+
+    --exam-progress: #2563eb;
+    --exam-progress-soft: rgba(59, 130, 246, 0.1);
+
+    --exam-unstarted: #64748b;
+    --exam-unstarted-soft: rgba(100, 116, 139, 0.1);
+
+    --exam-daily: #ea580c;
+    --exam-daily-soft: rgba(249, 115, 22, 0.1);
+
+    --exam-reference: #7c3aed;
+    --exam-reference-soft: rgba(139, 92, 246, 0.1);
+
+    --exam-danger: #dc2626;
+    --exam-warning: #d97706;
+
+    padding-bottom:
+        calc(
+            105px +
+            env(safe-area-inset-bottom)
+        );
+}
+
+.exam-dashboard-body [hidden] {
+    display: none !important;
+}
+
+.exam-dashboard-page {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* ========================================
+   上部タイトル
+======================================== */
+
+.exam-top-buttons {
+    position: relative;
+}
+
+.exam-top-title {
+    position: absolute;
+    left: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    max-width: 45%;
+
+    transform: translateX(-50%);
+
+    color: var(--text);
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.exam-top-title > span {
+    font-size: 18px;
+}
+
+
+/* ========================================
+   試験情報
+======================================== */
+
+.exam-hero-card {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+
+    box-sizing: border-box;
+    margin-bottom: 18px;
+    padding: 23px;
+
+    border: 1px solid
+        rgba(15, 157, 138, 0.28);
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(15, 157, 138, 0.14),
+            rgba(20, 184, 166, 0.05) 48%,
+            var(--card)
+        );
+
+    box-shadow: var(--shadow);
+}
+
+.exam-hero-card::after {
+    content: "";
+
+    position: absolute;
+    top: -80px;
+    right: -65px;
+
+    width: 190px;
+    height: 190px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(20, 184, 166, 0.15),
+            transparent 68%
+        );
+
+    pointer-events: none;
+}
+
+.exam-hero-main {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    min-width: 0;
+}
+
+.exam-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 64px;
+    height: 64px;
+    flex: 0 0 64px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            145deg,
+            var(--primary),
+            var(--primary-light)
+        );
+
+    box-shadow:
+        0 10px 24px
+        rgba(15, 157, 138, 0.23);
+
+    font-size: 31px;
+}
+
+.exam-hero-text {
+    min-width: 0;
+}
+
+.exam-hero-text h1 {
+    margin: 7px 0 0;
+
+    color: var(--text);
+    font-size: 24px;
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-hero-text p {
+    margin: 6px 0 0;
+
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.exam-state-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 27px;
+    box-sizing: border-box;
+    padding: 5px 11px;
+
+    border-radius: 999px;
+
+    background:
+        var(--exam-unstarted-soft);
+    color:
+        var(--exam-unstarted);
+
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.exam-state-badge.is-active {
+    background:
+        var(--exam-success-soft);
+    color:
+        var(--exam-success);
+}
+
+.exam-state-badge.is-before {
+    background:
+        var(--exam-progress-soft);
+    color:
+        var(--exam-progress);
+}
+
+.exam-state-badge.is-ended,
+.exam-state-badge.is-off {
+    background:
+        var(--exam-unstarted-soft);
+    color:
+        var(--exam-unstarted);
+}
+
+.exam-period-information {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    flex: 0 0 auto;
+
+    box-sizing: border-box;
+    padding: 13px 15px;
+
+    border: 1px solid var(--border);
+    border-radius: 16px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 88%,
+            transparent
+        );
+}
+
+.exam-period-information > div {
+    min-width: 72px;
+    text-align: center;
+}
+
+.exam-period-information small,
+.exam-period-information strong {
+    display: block;
+}
+
+.exam-period-information small {
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.exam-period-information strong {
+    margin-top: 4px;
+
+    color: var(--text);
+    font-size: 13px;
+}
+
+.exam-period-information > span {
+    color: var(--subtext);
+    font-size: 14px;
+}
+
+
+/* ========================================
+   共通見出し
+======================================== */
+
+.exam-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.exam-section-heading > div {
+    min-width: 0;
+}
+
+.exam-section-label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+}
+
+.exam-section-heading h2 {
+    margin: 0;
+
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.4;
+}
+
+
+/* ========================================
+   達成状態共通バッジ
+======================================== */
+
+.exam-achievement-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 27px;
+    box-sizing: border-box;
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.exam-achievement-badge.is-completed {
+    background:
+        var(--exam-success-soft);
+    color:
+        var(--exam-success);
+}
+
+.exam-achievement-badge.is-in-progress {
+    background:
+        var(--exam-progress-soft);
+    color:
+        var(--exam-progress);
+}
+
+.exam-achievement-badge.is-unstarted {
+    background:
+        var(--exam-unstarted-soft);
+    color:
+        var(--exam-unstarted);
+}
+
+
+/* ========================================
+   全体達成度
+======================================== */
+
+.exam-overall-card {
+    overflow: hidden;
+
+    border-color:
+        rgba(37, 99, 235, 0.18);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(59, 130, 246, 0.045),
+            var(--card) 52%
+        );
+}
+
+.exam-overall-main {
+    display: grid;
+    grid-template-columns:
+        145px
+        minmax(0, 1fr);
+    align-items: center;
+    gap: 25px;
+
+    margin-top: 19px;
+}
+
+.exam-progress-ring {
+    --progress: 0;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 132px;
+    height: 132px;
+    margin: 0 auto;
+
+    border-radius: 50%;
+
+    background:
+        conic-gradient(
+            var(--primary)
+            calc(
+                var(--progress) * 1%
+            ),
+            rgba(127, 127, 127, 0.13)
+            0
+        );
+
+    box-shadow:
+        0 9px 24px
+        rgba(15, 23, 42, 0.09);
+}
+
+.exam-progress-ring::before {
+    content: "";
+
+    position: absolute;
+    inset: 11px;
+
+    border: 1px solid var(--border);
+    border-radius: 50%;
+
+    background: var(--card);
+}
+
+.exam-progress-ring > div {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.exam-progress-ring strong {
+    color: var(--text);
+    font-size: 36px;
+    line-height: 1;
+}
+
+.exam-progress-ring span {
+    margin-left: 2px;
+
+    color: var(--subtext);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.exam-overall-detail {
+    min-width: 0;
+}
+
+.exam-overall-detail > p {
+    margin: 0;
+
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.exam-overall-progress-track,
+.exam-today-progress-track,
+.exam-subject-progress-track,
+.exam-unit-progress-track {
+    overflow: hidden;
+
+    background:
+        rgba(127, 127, 127, 0.13);
+
+    border-radius: 999px;
+}
+
+.exam-overall-progress-track {
+    height: 11px;
+    margin-top: 13px;
+}
+
+.exam-overall-progress-bar,
+.exam-today-progress-bar,
+.exam-subject-progress-track > span,
+.exam-unit-progress-track > div {
+    width: 0;
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--primary),
+            var(--primary-light)
+        );
+
+    transition:
+        width 0.35s ease;
+}
+
+.exam-overall-counts {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 8px;
+
+    margin-top: 15px;
+}
+
+.exam-overall-counts > div {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 7px;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    background:
+        rgba(127, 127, 127, 0.035);
+
+    text-align: center;
+}
+
+.exam-overall-counts strong,
+.exam-overall-counts small {
+    display: block;
+}
+
+.exam-overall-counts strong {
+    color: var(--text);
+    font-size: 18px;
+}
+
+.exam-overall-counts small {
+    margin-top: 3px;
+
+    color: var(--subtext);
+    font-size: 8px;
+}
+
+
+/* ========================================
+   続きから学習
+======================================== */
+
+.exam-continue-section {
+    margin: 21px 0;
+}
+
+.exam-continue-section
+.exam-section-heading {
+    margin-bottom: 10px;
+}
+
+.exam-continue-card {
+    position: relative;
+    overflow: hidden;
+
+    display: grid;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: 14px;
+
+    width: 100%;
+    box-sizing: border-box;
+    padding: 17px;
+
+    border: 1px solid
+        rgba(37, 99, 235, 0.28);
+    border-radius: 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(59, 130, 246, 0.11),
+            rgba(20, 184, 166, 0.07),
+            var(--card)
+        );
+
+    color: var(--text);
+
+    box-shadow:
+        0 8px 23px
+        rgba(15, 23, 42, 0.08);
+
+    cursor: pointer;
+    text-align: left;
+
+    transition:
+        transform 0.17s ease,
+        border-color 0.17s ease,
+        box-shadow 0.17s ease;
+}
+
+.exam-continue-card:hover {
+    transform: translateY(-2px);
+
+    border-color:
+        rgba(37, 99, 235, 0.48);
+
+    box-shadow:
+        0 13px 28px
+        rgba(15, 23, 42, 0.12);
+}
+
+.exam-continue-card:active {
+    transform: scale(0.99);
+}
+
+.exam-continue-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 49px;
+    height: 49px;
+    flex: 0 0 49px;
+
+    border-radius: 15px;
+
+    background:
+        rgba(255, 255, 255, 0.64);
+
+    font-size: 24px;
+}
+
+.exam-continue-content {
+    min-width: 0;
+}
+
+.exam-continue-content small,
+.exam-continue-content strong,
+.exam-continue-content > span {
+    display: block;
+}
+
+.exam-continue-content small {
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.exam-continue-content strong {
+    margin-top: 3px;
+
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.45;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-continue-content > span {
+    margin-top: 4px;
+
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.exam-continue-action {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    flex: 0 0 auto;
+
+    padding: 8px 11px;
+
+    border-radius: 999px;
+
+    background: var(--primary);
+    color: #fff;
+
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.exam-continue-action b {
+    font-size: 14px;
+}
+
+
+/* ========================================
+   今日の1問
+======================================== */
+
+.exam-today-card {
+    border-color:
+        rgba(249, 115, 22, 0.22);
+
+    background:
+        linear-gradient(
+            145deg,
+            var(--exam-daily-soft),
+            var(--card) 55%
+        );
+}
+
+.exam-today-count,
+.exam-subject-total {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 29px;
+    box-sizing: border-box;
+    padding: 5px 11px;
+
+    border-radius: 999px;
+
+    background:
+        var(--exam-daily-soft);
+    color:
+        var(--exam-daily);
+
+    font-size: 9px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.exam-today-progress-track {
+    height: 9px;
+    margin-top: 16px;
+}
+
+.exam-today-progress-bar {
+    background:
+        linear-gradient(
+            90deg,
+            #f97316,
+            #f59e0b
+        );
+}
+
+.exam-today-card > p {
+    margin: 9px 0 0;
+
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+
+/* ========================================
+   検索・絞り込み
+======================================== */
+
+.exam-filter-card {
+    padding: 16px;
+}
+
+.exam-filter-search {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+}
+
+.exam-filter-search > span {
+    position: absolute;
+    left: 14px;
+    z-index: 1;
+
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.exam-filter-search input {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding:
+        13px
+        42px;
+
+    border-width: 1px;
+    border-radius: 14px;
+
+    font-size: 13px;
+}
+
+.exam-filter-search > button {
+    position: absolute;
+    right: 9px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 31px;
+    height: 31px;
+    padding: 0;
+
+    border: 0;
+    border-radius: 50%;
+
+    background:
+        rgba(127, 127, 127, 0.1);
+    color: var(--text);
+
+    font-size: 19px;
+    cursor: pointer;
+}
+
+.exam-status-filters {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 7px;
+
+    margin-top: 12px;
+}
+
+.exam-filter-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    min-width: 0;
+    min-height: 39px;
+    box-sizing: border-box;
+    padding: 7px 8px;
+
+    border: 1px solid var(--border);
+    border-radius: 11px;
+
+    background: var(--card);
+    color: var(--subtext);
+
+    font-size: 10px;
+    font-weight: 750;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.exam-filter-button > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    padding: 0 5px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(127, 127, 127, 0.1);
+
+    font-size: 8px;
+}
+
+.exam-filter-button.is-active {
+    border-color: var(--primary);
+
+    background:
+        rgba(15, 157, 138, 0.09);
+    color: var(--primary);
+}
+
+.exam-filter-button.is-active > span {
+    background: var(--primary);
+    color: #fff;
+}
+
+.exam-filter-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 13px;
+
+    margin-top: 13px;
+}
+
+.exam-filter-bottom > span {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.exam-text-button {
+    padding: 5px 0;
+
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+
+    font-size: 10px;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.exam-text-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+
+/* ========================================
+   科目一覧
+======================================== */
+
+.exam-subject-section {
+    margin-top: 25px;
+}
+
+.exam-subject-section
+> .exam-section-heading {
+    margin-bottom: 12px;
+}
+
+.exam-subject-total {
+    background:
+        rgba(15, 157, 138, 0.09);
+    color: var(--primary);
+}
+
+.exam-subject-list {
+    display: grid;
+    gap: 13px;
+}
+
+.exam-subject-card {
+    overflow: hidden;
+
+    border: 1px solid var(--border);
+    border-radius: 19px;
+
+    background: var(--card);
+
+    box-shadow:
+        0 5px 17px
+        rgba(15, 23, 42, 0.065);
+
+    transition:
+        border-color 0.17s ease,
+        box-shadow 0.17s ease;
+}
+
+.exam-subject-card.is-in-progress {
+    border-color:
+        rgba(37, 99, 235, 0.28);
+}
+
+.exam-subject-card.is-completed {
+    border-color:
+        rgba(22, 163, 74, 0.3);
+}
+
+.exam-subject-card.is-open {
+    box-shadow:
+        0 10px 28px
+        rgba(15, 23, 42, 0.1);
+}
+
+.exam-subject-card.is-exam-completed {
+    opacity: 0.82;
+}
+
+.exam-subject-toggle {
+    display: grid;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: 13px;
+
+    width: 100%;
+    box-sizing: border-box;
+    padding: 17px;
+
+    border: 0;
+    background: transparent;
+    color: var(--text);
+
+    cursor: pointer;
+    text-align: left;
+}
+
+.exam-subject-toggle:hover {
+    background:
+        rgba(127, 127, 127, 0.035);
+}
+
+.exam-subject-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 45px;
+    height: 45px;
+    flex: 0 0 45px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(15, 157, 138, 0.09);
+
+    font-size: 22px;
+}
+
+.exam-subject-card.is-in-progress
+.exam-subject-icon {
+    background:
+        var(--exam-progress-soft);
+}
+
+.exam-subject-card.is-completed
+.exam-subject-icon {
+    background:
+        var(--exam-success-soft);
+}
+
+.exam-subject-heading {
+    display: block;
+    min-width: 0;
+}
+
+.exam-subject-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.exam-subject-title-row > strong {
+    min-width: 0;
+
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.45;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-completed-exam-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    margin-top: 6px;
+    padding: 4px 7px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(100, 116, 139, 0.08);
+    color: var(--subtext);
+
+    font-size: 8px;
+    font-weight: 750;
+}
+
+.exam-subject-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 11px;
+
+    margin-top: 7px;
+
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.exam-subject-meta > span {
+    position: relative;
+}
+
+.exam-subject-meta
+> span:not(:last-child)::after {
+    content: "・";
+
+    position: absolute;
+    right: -8px;
+
+    color: var(--border);
+}
+
+.exam-subject-progress-row {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: 9px;
+
+    margin-top: 9px;
+}
+
+.exam-subject-progress-track {
+    height: 7px;
+}
+
+.exam-subject-progress-row > b {
+    min-width: 32px;
+
+    color: var(--text);
+    font-size: 10px;
+    text-align: right;
+}
+
+.exam-subject-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 31px;
+    height: 31px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(127, 127, 127, 0.08);
+    color: var(--subtext);
+
+    font-size: 9px;
+}
+
+.exam-subject-content {
+    padding:
+        0
+        14px
+        14px;
+}
+
+
+/* ========================================
+   テーマ一覧
+======================================== */
+
+.exam-unit-list {
+    display: grid;
+    gap: 11px;
+}
+
+.exam-unit-card {
+    box-sizing: border-box;
+    padding: 14px;
+
+    border: 1px solid var(--border);
+    border-radius: 15px;
+
+    background:
+        rgba(127, 127, 127, 0.025);
+}
+
+.exam-unit-card.is-in-progress {
+    border-color:
+        rgba(37, 99, 235, 0.25);
+
+    background:
+        rgba(59, 130, 246, 0.035);
+}
+
+.exam-unit-card.is-completed {
+    border-color:
+        rgba(22, 163, 74, 0.26);
+
+    background:
+        rgba(34, 197, 94, 0.035);
+}
+
+.exam-unit-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.exam-unit-title-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    min-width: 0;
+}
+
+.exam-unit-number-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(15, 157, 138, 0.08);
+
+    font-size: 16px;
+}
+
+.exam-unit-title-area > div {
+    min-width: 0;
+}
+
+.exam-unit-title-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.exam-unit-title-row h3 {
+    margin: 2px 0 0;
+
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.45;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-unit-title-area p {
+    margin: 5px 0 0;
+
+    color: var(--subtext);
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.exam-unit-progress-summary {
+    flex: 0 0 auto;
+
+    min-width: 71px;
+    text-align: right;
+}
+
+.exam-unit-progress-summary strong,
+.exam-unit-progress-summary span {
+    display: block;
+}
+
+.exam-unit-progress-summary strong {
+    color: var(--text);
+    font-size: 16px;
+}
+
+.exam-unit-progress-summary span {
+    margin-top: 3px;
+
+    color: var(--subtext);
+    font-size: 8px;
+    white-space: nowrap;
+}
+
+.exam-unit-progress-track {
+    height: 6px;
+    margin-top: 11px;
+}
+
+
+/* ========================================
+   問題形式
+======================================== */
+
+.exam-format-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 8px;
+
+    margin-top: 12px;
+}
+
+.exam-format-card {
+    display: grid;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: 9px;
+
+    min-width: 0;
+    min-height: 82px;
+    box-sizing: border-box;
+    padding: 11px;
+
+    border: 1px solid var(--border);
+    border-radius: 13px;
+
+    background: var(--card);
+    color: var(--text);
+
+    cursor: pointer;
+    text-align: left;
+
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.exam-format-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 17px
+        rgba(15, 23, 42, 0.08);
+}
+
+.exam-format-card:active {
+    transform: scale(0.99);
+}
+
+.exam-format-card.is-completed {
+    border-color:
+        rgba(22, 163, 74, 0.28);
+
+    background:
+        var(--exam-success-soft);
+}
+
+.exam-format-card.is-progress {
+    border-color:
+        rgba(37, 99, 235, 0.28);
+
+    background:
+        var(--exam-progress-soft);
+}
+
+.exam-format-card.is-unstarted {
+    border-color: var(--border);
+}
+
+.exam-format-card.is-today-completed {
+    border-color:
+        rgba(22, 163, 74, 0.28);
+
+    background:
+        var(--exam-success-soft);
+}
+
+.exam-format-card.is-today-unstarted {
+    border-color:
+        rgba(234, 88, 12, 0.25);
+
+    background:
+        var(--exam-daily-soft);
+}
+
+.exam-format-card.is-reference {
+    border-color:
+        rgba(124, 58, 237, 0.24);
+
+    background:
+        var(--exam-reference-soft);
+}
+
+.exam-format-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+
+    border-radius: 11px;
+
+    background:
+        rgba(127, 127, 127, 0.08);
+
+    font-size: 18px;
+}
+
+.exam-format-card.is-completed
+.exam-format-icon,
+.exam-format-card.is-today-completed
+.exam-format-icon {
+    background:
+        rgba(34, 197, 94, 0.12);
+}
+
+.exam-format-card.is-progress
+.exam-format-icon {
+    background:
+        rgba(59, 130, 246, 0.12);
+}
+
+.exam-format-card.is-today-unstarted
+.exam-format-icon {
+    background:
+        rgba(249, 115, 22, 0.12);
+}
+
+.exam-format-card.is-reference
+.exam-format-icon {
+    background:
+        rgba(139, 92, 246, 0.12);
+}
+
+.exam-format-content {
+    display: block;
+    min-width: 0;
+}
+
+.exam-format-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 7px;
+}
+
+.exam-format-title-row > strong {
+    min-width: 0;
+
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.35;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-format-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    flex: 0 0 auto;
+
+    padding: 3px 6px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(100, 116, 139, 0.09);
+    color: var(--subtext);
+
+    font-size: 7px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.exam-format-card.is-completed
+.exam-format-status,
+.exam-format-card.is-today-completed
+.exam-format-status {
+    background:
+        rgba(34, 197, 94, 0.13);
+    color:
+        var(--exam-success);
+}
+
+.exam-format-card.is-progress
+.exam-format-status {
+    background:
+        rgba(59, 130, 246, 0.13);
+    color:
+        var(--exam-progress);
+}
+
+.exam-format-card.is-today-unstarted
+.exam-format-status {
+    background:
+        rgba(249, 115, 22, 0.13);
+    color:
+        var(--exam-daily);
+}
+
+.exam-format-card.is-reference
+.exam-format-status {
+    background:
+        rgba(139, 92, 246, 0.12);
+    color:
+        var(--exam-reference);
+}
+
+.exam-format-description,
+.exam-format-question-count {
+    display: block;
+}
+
+.exam-format-description {
+    margin-top: 5px;
+
+    color: var(--subtext);
+    font-size: 8px;
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+}
+
+.exam-format-question-count {
+    margin-top: 4px;
+
+    color: var(--text);
+    font-size: 8px;
+    font-weight: 750;
+}
+
+.exam-format-arrow {
+    color: var(--subtext);
+    font-size: 15px;
+}
+
+
+/* ========================================
+   読み込み・空表示
+======================================== */
+
+.exam-loading-state,
+.exam-empty-state {
+    box-sizing: border-box;
+    padding: 40px 20px;
+
+    border: 1px solid var(--border);
+    border-radius: 18px;
+
+    background: var(--card);
+
+    text-align: center;
+}
+
+.exam-loading-state strong,
+.exam-empty-state h2 {
+    display: block;
+    margin: 11px 0 0;
+
+    color: var(--text);
+    font-size: 16px;
+}
+
+.exam-loading-state p,
+.exam-empty-state p {
+    margin: 7px auto 0;
+    max-width: 460px;
+
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+.exam-empty-state > div {
+    font-size: 40px;
+}
+
+.exam-empty-state .btn {
+    width: auto;
+    min-width: 180px;
+    margin:
+        17px
+        auto
+        0;
+}
+
+.exam-loading-spinner {
+    width: 37px;
+    height: 37px;
+    box-sizing: border-box;
+    margin: 0 auto;
+
+    border: 4px solid
+        rgba(127, 127, 127, 0.13);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+
+    animation:
+        examDashboardSpin
+        0.8s
+        linear
+        infinite;
+}
+
+@keyframes examDashboardSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* ========================================
+   達成度ヘルプ
+======================================== */
+
+.exam-floating-help-button {
+    position: fixed;
+    right:
+        max(
+            18px,
+            env(safe-area-inset-right)
+        );
+    bottom:
+        calc(
+            89px +
+            env(safe-area-inset-bottom)
+        );
+    z-index: 700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 45px;
+    height: 45px;
+    padding: 0;
+
+    border: 1px solid
+        rgba(15, 157, 138, 0.3);
+    border-radius: 50%;
+
+    background: var(--primary);
+    color: #fff;
+
+    box-shadow:
+        0 8px 22px
+        rgba(15, 157, 138, 0.28);
+
+    font-size: 19px;
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.16s ease;
+}
+
+.exam-floating-help-button:hover {
+    transform: translateY(-2px);
+}
+
+.exam-help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+    padding: 18px;
+
+    background:
+        rgba(15, 23, 42, 0.56);
+
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.exam-help-modal {
+    width:
+        min(
+            470px,
+            100%
+        );
+    max-height: 88vh;
+    overflow-y: auto;
+
+    box-sizing: border-box;
+    padding: 21px;
+
+    border: 1px solid var(--border);
+    border-radius: 21px;
+
+    background: var(--card);
+    color: var(--text);
+
+    box-shadow:
+        0 24px 65px
+        rgba(15, 23, 42, 0.26);
+}
+
+.exam-help-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.exam-help-heading > div {
+    min-width: 0;
+}
+
+.exam-help-heading small {
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.exam-help-heading h2 {
+    margin: 4px 0 0;
+
+    color: var(--text);
+    font-size: 19px;
+}
+
+.exam-help-heading .circle-button {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+
+    font-size: 20px;
+}
+
+.exam-help-list {
+    display: grid;
+    gap: 9px;
+
+    margin-top: 17px;
+}
+
+.exam-help-list > div {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+
+    box-sizing: border-box;
+    padding: 11px;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    background:
+        rgba(127, 127, 127, 0.035);
+}
+
+.exam-help-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 29px;
+    height: 29px;
+    flex: 0 0 29px;
+
+    border-radius: 50%;
+
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.exam-help-status.is-completed {
+    background:
+        var(--exam-success-soft);
+    color:
+        var(--exam-success);
+}
+
+.exam-help-status.is-progress {
+    background:
+        var(--exam-progress-soft);
+    color:
+        var(--exam-progress);
+}
+
+.exam-help-status.is-unstarted {
+    background:
+        var(--exam-unstarted-soft);
+    color:
+        var(--exam-unstarted);
+}
+
+.exam-help-list p {
+    margin: 0;
+
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.exam-help-list p b {
+    display: block;
+    margin-bottom: 2px;
+
+    color: var(--text);
+    font-size: 11px;
+}
+
+.exam-help-note {
+    box-sizing: border-box;
+    margin: 14px 0;
+    padding: 11px;
+
+    border-radius: 11px;
+
+    background:
+        rgba(59, 130, 246, 0.07);
+
+    color: var(--text);
+    font-size: 9px;
+    line-height: 1.65;
+}
+
+.exam-help-modal > .btn {
+    width: 100%;
+    margin: 0;
+}
+
+
+/* ========================================
+   PC表示
+======================================== */
+
+@media (min-width: 901px) {
+
+    body.exam-dashboard-body {
+        width: auto;
+        max-width: 1120px;
+
+        margin-right: auto;
+        margin-left: auto;
+
+        padding:
+            24px
+            30px
+            110px;
+    }
+
+    .exam-dashboard-body
+    .bottom-nav {
+        max-width: 900px;
+
+        border-right:
+            1px solid var(--border);
+        border-left:
+            1px solid var(--border);
+
+        border-radius:
+            18px
+            18px
+            0
+            0;
+    }
+
+    .exam-subject-list {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    .exam-subject-card.is-open {
+        grid-column: 1 / -1;
+    }
+
+    .exam-subject-card.is-open
+    .exam-unit-list {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+/* ========================================
+   タブレット
+======================================== */
+
+@media (
+    min-width: 651px
+) and (
+    max-width: 900px
+) {
+
+    .exam-format-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+/* ========================================
+   スマートフォン
+======================================== */
+
+@media (max-width: 650px) {
+
+    .exam-dashboard-body {
+        padding-bottom:
+            calc(
+                105px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+    .exam-top-title {
+        max-width: 39%;
+        font-size: 13px;
+    }
+
+    .exam-hero-card {
+        display: block;
+        padding: 18px;
+    }
+
+    .exam-hero-main {
+        align-items: flex-start;
+    }
+
+    .exam-hero-icon {
+        width: 52px;
+        height: 52px;
+        flex-basis: 52px;
+
+        border-radius: 16px;
+        font-size: 25px;
+    }
+
+    .exam-hero-text h1 {
+        font-size: 20px;
+    }
+
+    .exam-period-information {
+        justify-content: center;
+
+        width: 100%;
+        margin-top: 15px;
+    }
+
+    .exam-overall-main {
+        grid-template-columns: 1fr;
+        gap: 17px;
+    }
+
+    .exam-progress-ring {
+        width: 119px;
+        height: 119px;
+    }
+
+    .exam-progress-ring strong {
+        font-size: 32px;
+    }
+
+    .exam-overall-counts {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .exam-continue-card {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr);
+    }
+
+    .exam-continue-action {
+        grid-column: 1 / -1;
+
+        justify-content: center;
+
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .exam-status-filters {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .exam-subject-toggle {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr)
+            auto;
+
+        padding: 14px 12px;
+    }
+
+    .exam-subject-icon {
+        width: 39px;
+        height: 39px;
+        flex-basis: 39px;
+
+        border-radius: 12px;
+        font-size: 19px;
+    }
+
+    .exam-subject-title-row {
+        display: block;
+    }
+
+    .exam-subject-title-row
+    .exam-achievement-badge {
+        margin-top: 6px;
+    }
+
+    .exam-subject-meta {
+        gap:
+            4px
+            8px;
+    }
+
+    .exam-subject-meta
+    > span:not(:last-child)::after {
+        display: none;
+    }
+
+    .exam-subject-content {
+        padding:
+            0
+            10px
+            10px;
+    }
+
+    .exam-unit-heading {
+        display: block;
+    }
+
+    .exam-unit-progress-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+
+        width: 100%;
+        margin-top: 10px;
+
+        text-align: left;
+    }
+
+    .exam-unit-progress-summary span {
+        margin: 0;
+    }
+
+    .exam-format-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .exam-format-card {
+        min-height: 78px;
+    }
+
+    .exam-floating-help-button {
+        right: 14px;
+    }
+
+}
+
+
+/* ========================================
+   小さいスマートフォン
+======================================== */
+
+@media (max-width: 390px) {
+
+    .exam-top-title > span {
+        display: none;
+    }
+
+    .exam-top-title {
+        max-width: 33%;
+    }
+
+    .exam-hero-main {
+        display: block;
+    }
+
+    .exam-hero-icon {
+        margin-bottom: 11px;
+    }
+
+    .exam-period-information {
+        gap: 8px;
+        padding:
+            11px
+            8px;
+    }
+
+    .exam-period-information > div {
+        min-width: 62px;
+    }
+
+    .exam-section-heading {
+        gap: 9px;
+    }
+
+    .exam-section-heading h2 {
+        font-size: 16px;
+    }
+
+    .exam-overall-counts {
+        gap: 6px;
+    }
+
+    .exam-overall-counts > div {
+        padding:
+            9px
+            5px;
+    }
+
+    .exam-filter-card {
+        padding: 13px;
+    }
+
+    .exam-filter-button {
+        padding:
+            6px
+            4px;
+
+        font-size: 9px;
+    }
+
+    .exam-subject-toggle {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+    }
+
+    .exam-subject-icon {
+        display: none;
+    }
+
+    .exam-unit-title-area {
+        gap: 7px;
+    }
+
+    .exam-unit-number-icon {
+        display: none;
+    }
+
+    .exam-format-title-row {
+        display: block;
+    }
+
+    .exam-format-status {
+        margin-top: 5px;
+    }
+
+}
+
+
+/* ========================================
+   ダークモード
+======================================== */
+
+.dark .exam-state-badge.is-active,
+.dark .exam-achievement-badge.is-completed,
+.dark .exam-format-card.is-completed
+.exam-format-status,
+.dark .exam-format-card.is-today-completed
+.exam-format-status,
+.dark .exam-help-status.is-completed {
+    color: #86efac;
+}
+
+.dark .exam-state-badge.is-before,
+.dark .exam-achievement-badge.is-in-progress,
+.dark .exam-format-card.is-progress
+.exam-format-status,
+.dark .exam-help-status.is-progress {
+    color: #93c5fd;
+}
+
+.dark .exam-format-card.is-today-unstarted
+.exam-format-status,
+.dark .exam-today-count {
+    color: #fdba74;
+}
+
+.dark .exam-format-card.is-reference
+.exam-format-status {
+    color: #c4b5fd;
+}
+
+.dark .exam-continue-icon {
+    background:
+        rgba(255, 255, 255, 0.08);
+}
+
+.dark .exam-subject-card,
+.dark .exam-help-modal,
+.dark .exam-loading-state,
+.dark .exam-empty-state {
+    box-shadow:
+        0 9px 27px
+        rgba(0, 0, 0, 0.28);
+}
+
+
+/* ========================================
+   動きを減らす設定
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .exam-dashboard-body *,
+    .exam-dashboard-body *::before,
+    .exam-dashboard-body *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+}
