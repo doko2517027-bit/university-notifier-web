@@ -6732,3 +6732,2588 @@ input[type="checkbox"] {
     }
 
 }
+
+/* ========================================
+   履修登録画面
+======================================== */
+
+.course-registration-body [hidden] {
+    display: none !important;
+}
+
+.course-registration-page {
+    padding-bottom:
+        calc(
+            150px +
+            env(safe-area-inset-bottom)
+        );
+}
+
+.course-registration-body {
+    --course-required: #dc2626;
+    --course-elective: #2563eb;
+    --course-free: #059669;
+    --course-warning: #d97706;
+    --course-danger: #dc2626;
+    --course-success: #059669;
+}
+
+
+/* ========================================
+   上部タイトル
+======================================== */
+
+.top-page-title {
+    position: absolute;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 45%;
+    transform: translateX(-50%);
+    color: var(--text);
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.top-page-title > span {
+    font-size: 18px;
+}
+
+
+/* ========================================
+   管理者プレビュー
+======================================== */
+
+.course-preview-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    box-sizing: border-box;
+    margin:
+        10px
+        auto
+        14px;
+    padding: 11px 14px;
+    border: 1px solid
+        rgba(139, 92, 246, 0.3);
+    border-radius: 14px;
+    background:
+        rgba(139, 92, 246, 0.1);
+    color: #6d28d9;
+}
+
+.course-preview-banner > span {
+    flex: 0 0 auto;
+    font-size: 22px;
+}
+
+.course-preview-banner > div {
+    min-width: 0;
+}
+
+.course-preview-banner b,
+.course-preview-banner small {
+    display: block;
+}
+
+.course-preview-banner b {
+    font-size: 13px;
+}
+
+.course-preview-banner small {
+    margin-top: 2px;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+
+/* ========================================
+   ページヘッダー
+======================================== */
+
+.course-registration-header {
+    margin-bottom: 18px;
+}
+
+.course-registration-header h1 {
+    font-size: 26px;
+}
+
+.course-registration-header p {
+    max-width: 520px;
+    margin-right: auto;
+    margin-left: auto;
+    line-height: 1.65;
+}
+
+
+/* ========================================
+   公開期間・学生情報
+======================================== */
+
+.course-registration-phase-card {
+    overflow: hidden;
+    border-color:
+        rgba(20, 184, 166, 0.3);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 184, 166, 0.08),
+            var(--card) 58%
+        );
+}
+
+.course-phase-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.course-phase-heading > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.course-phase-heading h2 {
+    margin: 9px 0 0;
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1.45;
+}
+
+.course-phase-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    box-sizing: border-box;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background:
+        rgba(100, 116, 139, 0.12);
+    color: #475569;
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.course-phase-badge.is-registration {
+    background:
+        rgba(16, 185, 129, 0.13);
+    color: #047857;
+}
+
+.course-phase-badge.is-correction {
+    background:
+        rgba(59, 130, 246, 0.13);
+    color: #2563eb;
+}
+
+.course-phase-badge.is-cancellation {
+    background:
+        rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.course-phase-badge.is-view_only,
+.course-phase-badge.is-hidden {
+    background:
+        rgba(100, 116, 139, 0.13);
+    color: #475569;
+}
+
+.course-deadline-box {
+    flex: 0 0 auto;
+    min-width: 145px;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    text-align: right;
+}
+
+.course-deadline-box small,
+.course-deadline-box strong {
+    display: block;
+}
+
+.course-deadline-box small {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.course-deadline-box strong {
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+#registrationSummary {
+    margin: 13px 0 0;
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.course-student-information {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 17px;
+}
+
+.course-student-information > div {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background:
+        rgba(127, 127, 127, 0.045);
+}
+
+.course-student-information small,
+.course-student-information strong {
+    display: block;
+}
+
+.course-student-information small {
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-student-information strong {
+    margin-top: 5px;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+
+/* ========================================
+   利用不可
+======================================== */
+
+.course-registration-unavailable {
+    padding: 42px 22px;
+    text-align: center;
+}
+
+.course-registration-unavailable-icon {
+    margin-bottom: 13px;
+    font-size: 48px;
+}
+
+.course-registration-unavailable h2 {
+    margin: 0;
+    color: var(--text);
+}
+
+.course-registration-unavailable p {
+    max-width: 520px;
+    margin:
+        12px
+        auto
+        22px;
+    color: var(--subtext);
+    font-size: 13px;
+    line-height: 1.75;
+}
+
+.course-registration-unavailable .btn {
+    width: auto;
+    min-width: 200px;
+    margin: 0 auto;
+}
+
+
+/* ========================================
+   使い方
+======================================== */
+
+.course-registration-guide {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin:
+        16px
+        0
+        22px;
+}
+
+.course-guide-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 72px;
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: var(--card);
+}
+
+.course-guide-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    flex: 0 0 31px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.course-guide-item > div {
+    min-width: 0;
+}
+
+.course-guide-item b,
+.course-guide-item small {
+    display: block;
+}
+
+.course-guide-item b {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.course-guide-item small {
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+.course-guide-arrow {
+    color: var(--subtext);
+    font-size: 17px;
+}
+
+
+/* ========================================
+   PCメインレイアウト
+======================================== */
+
+.course-registration-main-layout {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        310px;
+    align-items: start;
+    gap: 22px;
+}
+
+.course-registration-main-content {
+    min-width: 0;
+}
+
+
+/* ========================================
+   共通セクション見出し
+======================================== */
+
+.course-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.course-section-heading > div {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.course-section-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.4;
+}
+
+.course-section-heading p {
+    margin: 5px 0 0;
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+.course-section-heading .btn {
+    width: auto;
+    min-width: 120px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 9px 12px;
+    font-size: 11px;
+}
+
+
+/* ========================================
+   警告パネル
+======================================== */
+
+.course-warning-panel {
+    box-sizing: border-box;
+    margin-bottom: 17px;
+    padding: 16px;
+    border: 1px solid
+        rgba(245, 158, 11, 0.4);
+    border-radius: 17px;
+    background:
+        rgba(245, 158, 11, 0.075);
+}
+
+.course-warning-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-bottom: 11px;
+}
+
+.course-warning-heading > span {
+    flex: 0 0 auto;
+    font-size: 23px;
+}
+
+.course-warning-heading strong,
+.course-warning-heading small {
+    display: block;
+}
+
+.course-warning-heading strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.course-warning-heading small {
+    margin-top: 3px;
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+#courseWarningList {
+    display: grid;
+    gap: 8px;
+}
+
+.course-warning-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border-radius: 11px;
+    background: var(--card);
+}
+
+.course-warning-item > span {
+    flex: 0 0 auto;
+}
+
+.course-warning-item p {
+    margin: 0;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.course-warning-item.is-error {
+    border: 1px solid
+        rgba(239, 68, 68, 0.3);
+    background:
+        rgba(239, 68, 68, 0.07);
+}
+
+.course-warning-item.is-warning {
+    border: 1px solid
+        rgba(245, 158, 11, 0.3);
+    background:
+        rgba(245, 158, 11, 0.07);
+}
+
+.course-warning-item.is-info {
+    border: 1px solid
+        rgba(59, 130, 246, 0.24);
+    background:
+        rgba(59, 130, 246, 0.06);
+}
+
+
+/* ========================================
+   卒業進捗
+======================================== */
+
+.graduation-progress-card {
+    border-color:
+        rgba(139, 92, 246, 0.25);
+}
+
+.graduation-progress-content {
+    display: grid;
+    gap: 16px;
+}
+
+.graduation-main-progress {
+    box-sizing: border-box;
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(139, 92, 246, 0.075),
+            rgba(20, 184, 166, 0.055)
+        );
+}
+
+.graduation-progress-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.graduation-progress-top small {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.graduation-progress-top > div:first-child > strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 25px;
+    line-height: 1.2;
+}
+
+.graduation-progress-top > div:first-child > strong small {
+    font-size: 11px;
+}
+
+.graduation-progress-separator {
+    margin: 0 3px;
+    color: var(--subtext);
+    font-size: 16px;
+}
+
+.graduation-projected-box {
+    text-align: right;
+}
+
+.graduation-projected-box strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--primary);
+    font-size: 18px;
+}
+
+.graduation-progress-track,
+.category-progress-track,
+.course-mini-progress-track {
+    position: relative;
+    overflow: hidden;
+    background:
+        rgba(127, 127, 127, 0.13);
+}
+
+.graduation-progress-track {
+    height: 13px;
+    margin-top: 15px;
+    border-radius: 999px;
+}
+
+.graduation-progress-bar,
+.category-progress-bar,
+.course-mini-progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            90deg,
+            var(--primary),
+            #8b5cf6
+        );
+    transition:
+        width 0.35s ease;
+}
+
+.graduation-progress-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 9px;
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.graduation-progress-bottom b {
+    color: var(--text);
+}
+
+
+/* ========================================
+   区分別進捗
+======================================== */
+
+.category-progress-list {
+    display: grid;
+    gap: 11px;
+}
+
+.category-progress-item {
+    box-sizing: border-box;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background:
+        rgba(127, 127, 127, 0.035);
+}
+
+.category-progress-item.is-complete {
+    border-color:
+        rgba(16, 185, 129, 0.3);
+    background:
+        rgba(16, 185, 129, 0.055);
+}
+
+.category-progress-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.category-progress-heading > div {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.category-progress-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.category-progress-heading small {
+    display: block;
+    margin-top: 3px;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.category-progress-heading > strong {
+    flex: 0 0 auto;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.category-progress-track {
+    height: 8px;
+    margin-top: 11px;
+    border-radius: 999px;
+}
+
+.category-progress-item.is-complete
+.category-progress-bar {
+    background:
+        linear-gradient(
+            90deg,
+            #10b981,
+            #14b8a6
+        );
+}
+
+.category-progress-breakdown {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 11px;
+}
+
+.category-progress-breakdown span {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 7px;
+    border-radius: 9px;
+    background:
+        rgba(127, 127, 127, 0.065);
+    color: var(--subtext);
+    font-size: 8px;
+    text-align: center;
+}
+
+.category-progress-breakdown b {
+    display: block;
+    margin-top: 3px;
+    color: var(--text);
+    font-size: 10px;
+}
+
+.course-category-data-note,
+.course-progress-empty {
+    box-sizing: border-box;
+    padding: 12px;
+    border-radius: 12px;
+    color: var(--subtext);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.course-category-data-note {
+    border: 1px solid
+        rgba(59, 130, 246, 0.22);
+    background:
+        rgba(59, 130, 246, 0.06);
+}
+
+.course-progress-empty {
+    background:
+        rgba(127, 127, 127, 0.055);
+    text-align: center;
+}
+
+
+/* ========================================
+   特別要件
+======================================== */
+
+.special-requirement-progress-list {
+    display: grid;
+    gap: 8px;
+}
+
+.special-requirement-heading {
+    margin:
+        4px
+        0
+        2px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.special-requirement-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid
+        rgba(245, 158, 11, 0.28);
+    border-radius: 12px;
+    background:
+        rgba(245, 158, 11, 0.065);
+    color: var(--text);
+    font-size: 11px;
+}
+
+.special-requirement-item.is-complete {
+    border-color:
+        rgba(16, 185, 129, 0.28);
+    background:
+        rgba(16, 185, 129, 0.065);
+}
+
+.special-requirement-item strong {
+    flex: 0 0 auto;
+}
+
+
+/* ========================================
+   過去の取得単位
+======================================== */
+
+.course-progress-years,
+.course-progress-year-fields {
+    display: grid;
+    gap: 10px;
+}
+
+.course-progress-years {
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+}
+
+.course-progress-year-summary {
+    box-sizing: border-box;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background:
+        rgba(127, 127, 127, 0.04);
+    text-align: center;
+}
+
+.course-progress-year-summary b,
+.course-progress-year-summary span,
+.course-progress-year-summary small {
+    display: block;
+}
+
+.course-progress-year-summary b {
+    color: var(--text);
+    font-size: 11px;
+}
+
+.course-progress-year-summary span {
+    margin-top: 5px;
+    color: var(--primary);
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.course-progress-year-summary small {
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-progress-official-summary {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    box-sizing: border-box;
+    padding: 15px;
+    border: 1px solid
+        rgba(16, 185, 129, 0.28);
+    border-radius: 14px;
+    background:
+        rgba(16, 185, 129, 0.065);
+}
+
+.course-progress-official-summary > span {
+    flex: 0 0 auto;
+    font-size: 25px;
+}
+
+.course-progress-official-summary > div {
+    min-width: 0;
+}
+
+.course-progress-official-summary b,
+.course-progress-official-summary strong,
+.course-progress-official-summary small {
+    display: block;
+}
+
+.course-progress-official-summary b {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.course-progress-official-summary strong {
+    margin-top: 4px;
+    color: var(--course-success);
+    font-size: 20px;
+}
+
+.course-progress-official-summary small {
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-progress-editor {
+    margin-top: 15px;
+}
+
+.course-progress-lock-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    margin-bottom: 13px;
+    padding: 11px 12px;
+    border: 1px solid
+        rgba(245, 158, 11, 0.27);
+    border-radius: 12px;
+    background:
+        rgba(245, 158, 11, 0.065);
+}
+
+.course-progress-lock-note > span {
+    flex: 0 0 auto;
+}
+
+.course-progress-lock-note p {
+    margin: 0;
+    color: var(--text);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.course-progress-year-fields {
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+}
+
+.course-progress-year {
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.course-progress-year legend {
+    padding: 0 7px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.course-progress-year label {
+    display: grid;
+    grid-template-columns:
+        52px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+}
+
+.course-progress-year label > span {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.course-progress-year input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#saveCourseProgress {
+    margin-top: 14px;
+}
+
+
+/* ========================================
+   科目検索
+======================================== */
+
+.course-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.course-filter-grid label {
+    min-width: 0;
+}
+
+.course-filter-grid label.full-width {
+    grid-column: 1 / -1;
+}
+
+.course-filter-grid label > span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.course-filter-grid input,
+.course-filter-grid select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#visibleCourseCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    min-height: 30px;
+    box-sizing: border-box;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background:
+        rgba(20, 184, 166, 0.1);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.course-filter-reset-button {
+    width: auto;
+    min-width: 145px;
+    margin:
+        14px
+        0
+        0
+        auto;
+}
+
+
+/* ========================================
+   一括操作
+======================================== */
+
+.course-bulk-actions {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 13px;
+}
+
+.course-bulk-actions .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    font-size: 11px;
+}
+
+.course-registration-important-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    margin:
+        0
+        0
+        18px;
+    padding: 12px 13px;
+    border: 1px solid
+        rgba(59, 130, 246, 0.24);
+    border-radius: 13px;
+    background:
+        rgba(59, 130, 246, 0.065);
+    color: var(--text);
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+.course-registration-important-note > span:first-child {
+    flex: 0 0 auto;
+    font-size: 17px;
+}
+
+
+/* ========================================
+   科目一覧
+======================================== */
+
+.course-registration-list {
+    display: grid;
+    gap: 20px;
+}
+
+.course-registration-section {
+    min-width: 0;
+}
+
+.course-list-section-heading {
+    margin-bottom: 10px;
+    padding:
+        0
+        2px;
+}
+
+.course-list-section-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 17px;
+}
+
+.course-list-section-heading h2 small {
+    margin-left: 6px;
+    color: var(--subtext);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.course-list-section-heading p {
+    margin: 4px 0 0;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-registration-card-list {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 11px;
+}
+
+.course-registration-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 130px;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    background: var(--card);
+    cursor: pointer;
+    user-select: none;
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.course-registration-item:hover {
+    transform: translateY(-2px);
+    border-color:
+        rgba(20, 184, 166, 0.42);
+    box-shadow:
+        0 8px 22px
+        rgba(15, 23, 42, 0.09);
+}
+
+.course-registration-item.is-selected {
+    border-color: var(--primary);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 184, 166, 0.115),
+            var(--card) 68%
+        );
+    box-shadow:
+        0 0 0 2px
+        rgba(20, 184, 166, 0.09);
+}
+
+.course-registration-item.is-earned {
+    border-color:
+        rgba(16, 185, 129, 0.3);
+    background:
+        rgba(16, 185, 129, 0.055);
+}
+
+.course-registration-item.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+}
+
+.course-registration-item.is-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.course-registration-item.has-warning {
+    border-color:
+        rgba(245, 158, 11, 0.43);
+}
+
+.course-checkbox {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.course-card-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+    box-sizing: border-box;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 900;
+    transition:
+        border-color 0.16s ease,
+        background-color 0.16s ease;
+}
+
+.course-registration-item.is-selected
+.course-card-check {
+    border-color: var(--primary);
+    background: var(--primary);
+}
+
+.course-registration-item.is-earned
+.course-card-check {
+    border-color: var(--course-success);
+    background: var(--course-success);
+}
+
+.course-registration-content {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.course-registration-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 9px;
+}
+
+.course-registration-title {
+    min-width: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 850;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.course-card-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 23px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background:
+        rgba(100, 116, 139, 0.11);
+    color: var(--subtext);
+    font-size: 8px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.course-card-status.is-selected {
+    background:
+        rgba(20, 184, 166, 0.13);
+    color: var(--primary);
+}
+
+.course-registration-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 23px;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 850;
+}
+
+.course-tag.required {
+    background:
+        rgba(239, 68, 68, 0.11);
+    color: var(--course-required);
+}
+
+.course-tag.elective {
+    background:
+        rgba(59, 130, 246, 0.11);
+    color: var(--course-elective);
+}
+
+.course-tag.free {
+    background:
+        rgba(16, 185, 129, 0.11);
+    color: var(--course-free);
+}
+
+.course-tag.category {
+    background:
+        rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+.course-tag.practical {
+    background:
+        rgba(236, 72, 153, 0.1);
+    color: #be185d;
+}
+
+.course-credit-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.course-credit-label b {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.course-subcategory {
+    display: block;
+    margin-top: 8px;
+    color: var(--subtext);
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+.course-requirement-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.course-requirement-tags > span {
+    display: inline-flex;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background:
+        rgba(139, 92, 246, 0.09);
+    color: #7c3aed;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.course-card-warning {
+    display: block;
+    margin-top: 9px;
+    padding: 7px 8px;
+    border-radius: 9px;
+    background:
+        rgba(245, 158, 11, 0.09);
+    color: #b45309;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.course-registration-empty,
+.course-data-loading {
+    box-sizing: border-box;
+    padding: 38px 18px;
+    border-radius: 17px;
+    background:
+        rgba(127, 127, 127, 0.05);
+    color: var(--subtext);
+    text-align: center;
+}
+
+.course-registration-empty > div {
+    margin-bottom: 10px;
+    font-size: 38px;
+}
+
+.course-registration-empty h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+}
+
+.course-registration-empty p {
+    margin:
+        9px
+        auto
+        0;
+    max-width: 500px;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+
+/* ========================================
+   PC追従サマリー
+======================================== */
+
+.course-credit-summary-panel {
+    position: sticky;
+    top: 18px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 17px;
+    border: 1px solid
+        rgba(20, 184, 166, 0.32);
+    border-radius: 20px;
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 94%,
+            transparent
+        );
+    box-shadow:
+        0 12px 34px
+        rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.course-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.course-summary-header small,
+.course-summary-header strong {
+    display: block;
+}
+
+.course-summary-header small {
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-summary-header strong {
+    margin-top: 3px;
+    color: var(--text);
+    font-size: 16px;
+}
+
+.course-summary-warning-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--course-danger);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.course-summary-primary {
+    box-sizing: border-box;
+    margin-top: 14px;
+    padding: 17px;
+    border-radius: 16px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 184, 166, 0.14),
+            rgba(139, 92, 246, 0.09)
+        );
+    text-align: center;
+}
+
+.course-summary-primary small {
+    display: block;
+    color: var(--subtext);
+    font-size: 9px;
+}
+
+.course-summary-primary strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--text);
+}
+
+.course-summary-primary strong span:first-child {
+    font-size: 37px;
+    line-height: 1;
+}
+
+.course-summary-primary strong span:last-child {
+    margin-left: 3px;
+    font-size: 11px;
+}
+
+.course-summary-limit-list {
+    display: grid;
+    gap: 13px;
+    margin-top: 16px;
+}
+
+.course-summary-limit-item > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.course-summary-limit-item span {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.course-summary-limit-item strong {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.course-summary-limit-item strong small {
+    color: var(--subtext);
+    font-size: 8px;
+}
+
+.course-mini-progress-track {
+    height: 6px;
+    margin-top: 7px;
+    border-radius: 999px;
+}
+
+.course-summary-credit-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.course-summary-credit-grid > div {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 7px;
+    border-radius: 11px;
+    background:
+        rgba(127, 127, 127, 0.055);
+    text-align: center;
+}
+
+.course-summary-credit-grid small,
+.course-summary-credit-grid strong,
+.course-summary-credit-grid span {
+    display: block;
+}
+
+.course-summary-credit-grid small {
+    min-height: 25px;
+    color: var(--subtext);
+    font-size: 8px;
+    line-height: 1.35;
+}
+
+.course-summary-credit-grid strong {
+    margin-top: 3px;
+    color: var(--text);
+    font-size: 17px;
+}
+
+.course-summary-credit-grid span {
+    color: var(--subtext);
+    font-size: 8px;
+}
+
+.course-summary-message {
+    box-sizing: border-box;
+    margin-top: 14px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    background:
+        rgba(100, 116, 139, 0.09);
+    color: var(--subtext);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.course-summary-message.is-error {
+    background:
+        rgba(239, 68, 68, 0.1);
+    color: var(--course-danger);
+}
+
+.course-summary-message.is-warning {
+    background:
+        rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.course-summary-message.is-ready {
+    background:
+        rgba(16, 185, 129, 0.1);
+    color: var(--course-success);
+}
+
+.course-summary-save-button {
+    width: 100%;
+    margin:
+        13px
+        0
+        0;
+}
+
+.course-summary-save-help {
+    display: block;
+    margin-top: 7px;
+    color: var(--subtext);
+    font-size: 8px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+
+/* ========================================
+   スマホ追従保存バー
+======================================== */
+
+.course-mobile-save-bar,
+.course-mobile-summary-overlay,
+.course-mobile-summary-panel {
+    display: none;
+}
+
+
+/* ========================================
+   最終確認モーダル
+======================================== */
+
+.course-confirm-modal {
+    width:
+        min(
+            680px,
+            calc(100vw - 30px)
+        );
+    max-height:
+        min(
+            86vh,
+            820px
+        );
+    overflow-y: auto;
+}
+
+.course-confirm-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.course-confirm-heading > div {
+    min-width: 0;
+}
+
+.course-confirm-heading small {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.course-confirm-heading h2 {
+    margin: 4px 0 0;
+    color: var(--text);
+    font-size: 20px;
+}
+
+.course-confirm-heading .circle-button {
+    flex: 0 0 auto;
+}
+
+.course-confirm-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 17px;
+}
+
+.course-confirm-summary > div {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background:
+        rgba(127, 127, 127, 0.04);
+    text-align: center;
+}
+
+.course-confirm-summary small,
+.course-confirm-summary strong {
+    display: block;
+}
+
+.course-confirm-summary small {
+    color: var(--subtext);
+    font-size: 8px;
+}
+
+.course-confirm-summary strong {
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.course-confirm-section {
+    margin-top: 18px;
+}
+
+.course-confirm-section h3 {
+    margin:
+        0
+        0
+        9px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.course-confirm-course-list {
+    display: grid;
+    gap: 7px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+
+.course-confirm-course-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 13px;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+}
+
+.course-confirm-course-item > div {
+    min-width: 0;
+}
+
+.course-confirm-course-item b,
+.course-confirm-course-item small {
+    display: block;
+}
+
+.course-confirm-course-item b {
+    color: var(--text);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.course-confirm-course-item small {
+    margin-top: 3px;
+    color: var(--subtext);
+    font-size: 8px;
+}
+
+.course-confirm-course-item > strong {
+    flex: 0 0 auto;
+    color: var(--text);
+    font-size: 11px;
+}
+
+.course-confirm-warning-section {
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid
+        rgba(245, 158, 11, 0.3);
+    border-radius: 13px;
+    background:
+        rgba(245, 158, 11, 0.065);
+}
+
+#confirmWarningList {
+    display: grid;
+    gap: 6px;
+}
+
+.course-confirm-warning-item {
+    color: var(--text);
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+.course-confirm-agreement {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    margin-top: 18px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    cursor: pointer;
+}
+
+.course-confirm-agreement input {
+    width: 21px;
+    height: 21px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--primary);
+}
+
+.course-confirm-agreement span {
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.course-confirm-actions {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 17px;
+}
+
+.course-confirm-actions .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+
+/* ========================================
+   保存完了モーダル
+======================================== */
+
+.course-complete-modal {
+    width:
+        min(
+            440px,
+            calc(100vw - 30px)
+        );
+    text-align: center;
+}
+
+.course-complete-icon {
+    margin-bottom: 11px;
+    font-size: 54px;
+}
+
+.course-complete-modal h2 {
+    margin: 0;
+    color: var(--text);
+}
+
+.course-complete-modal > p {
+    margin:
+        10px
+        0
+        0;
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.course-complete-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    margin:
+        17px
+        0;
+    padding: 12px;
+    border: 1px solid
+        rgba(59, 130, 246, 0.24);
+    border-radius: 12px;
+    background:
+        rgba(59, 130, 246, 0.06);
+    text-align: left;
+}
+
+.course-complete-notice > span {
+    flex: 0 0 auto;
+}
+
+.course-complete-notice p {
+    margin: 0;
+    color: var(--text);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.course-complete-modal .btn {
+    width: 100%;
+    margin:
+        9px
+        0
+        0;
+}
+
+
+/* ========================================
+   PC表示
+======================================== */
+
+@media (min-width: 901px) {
+
+    body.course-registration-body {
+        width: auto;
+        max-width: 1380px;
+        margin-right: auto;
+        margin-left: auto;
+        padding:
+            24px
+            30px
+            110px;
+    }
+
+    .course-registration-body
+    .course-registration-page {
+        width: 100%;
+        max-width: none;
+        margin: 0 auto;
+    }
+
+    .course-registration-body
+    .course-preview-banner {
+        max-width: 1380px;
+    }
+
+    .course-registration-body
+    .bottom-nav {
+        max-width: 900px;
+        border-right:
+            1px solid var(--border);
+        border-left:
+            1px solid var(--border);
+        border-radius:
+            18px
+            18px
+            0
+            0;
+    }
+
+    .course-registration-body input,
+    .course-registration-body select,
+    .course-registration-body textarea {
+        padding:
+            11px
+            12px;
+        border-radius: 11px;
+        font-size: 13px;
+    }
+
+}
+
+
+/* ========================================
+   中型PC
+======================================== */
+
+@media (
+    min-width: 901px
+) and (
+    max-width: 1120px
+) {
+
+    .course-registration-main-layout {
+        grid-template-columns:
+            minmax(0, 1fr)
+            275px;
+        gap: 16px;
+    }
+
+    .course-registration-card-list {
+        grid-template-columns: 1fr;
+    }
+
+    .course-student-information {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+/* ========================================
+   タブレット・スマートフォン
+======================================== */
+
+@media (max-width: 900px) {
+
+    .course-registration-main-layout {
+        display: block;
+    }
+
+    .course-credit-summary-panel {
+        display: none;
+    }
+
+    .course-registration-guide {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .course-guide-arrow {
+        display: none;
+    }
+
+    .course-guide-item {
+        min-height: 62px;
+    }
+
+    .course-student-information {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .course-registration-card-list {
+        grid-template-columns: 1fr;
+    }
+
+    .course-progress-year-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .course-mobile-save-bar {
+        position: fixed;
+        right: 0;
+        bottom:
+            calc(
+                67px +
+                env(safe-area-inset-bottom)
+            );
+        left: 0;
+        z-index: 850;
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(105px, 0.42fr);
+        gap: 9px;
+        box-sizing: border-box;
+        padding:
+            9px
+            max(
+                10px,
+                env(safe-area-inset-right)
+            )
+            9px
+            max(
+                10px,
+                env(safe-area-inset-left)
+            );
+        border-top: 1px solid var(--border);
+        background:
+            color-mix(
+                in srgb,
+                var(--card) 94%,
+                transparent
+            );
+        box-shadow:
+            0 -7px 24px
+            rgba(15, 23, 42, 0.13);
+        backdrop-filter: blur(17px);
+        -webkit-backdrop-filter: blur(17px);
+    }
+
+    .course-mobile-save-bar .btn {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        padding:
+            10px
+            8px;
+        font-size: 11px;
+    }
+
+    .course-mobile-summary-button {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto
+            auto;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        box-sizing: border-box;
+        padding:
+            8px
+            11px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .course-mobile-summary-button > span {
+        min-width: 0;
+    }
+
+    .course-mobile-summary-button small,
+    .course-mobile-summary-button strong {
+        display: block;
+    }
+
+    .course-mobile-summary-button small {
+        color: var(--subtext);
+        font-size: 8px;
+    }
+
+    .course-mobile-summary-button strong {
+        margin-top: 1px;
+        color: var(--text);
+        font-size: 12px;
+    }
+
+    .course-mobile-summary-button
+    > span:nth-child(2) {
+        text-align: right;
+    }
+
+    .course-mobile-summary-button
+    > span:nth-child(2) strong {
+        display: inline;
+        color: var(--primary);
+        font-size: 19px;
+    }
+
+    .course-mobile-summary-button
+    > span:nth-child(2) small {
+        display: inline;
+    }
+
+    .course-mobile-summary-arrow {
+        color: var(--subtext);
+        font-size: 10px;
+    }
+
+    .course-mobile-summary-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        display: block;
+        background:
+            rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        transition:
+            opacity 0.2s ease;
+    }
+
+    .course-mobile-summary-overlay.is-open {
+        opacity: 1;
+    }
+
+    .course-mobile-summary-panel {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1110;
+        display: block;
+        max-height: 78vh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding:
+            10px
+            17px
+            calc(
+                19px +
+                env(safe-area-inset-bottom)
+            );
+        border-radius:
+            23px
+            23px
+            0
+            0;
+        background: var(--card);
+        box-shadow:
+            0 -16px 42px
+            rgba(15, 23, 42, 0.23);
+        transform:
+            translateY(105%);
+        transition:
+            transform 0.22s ease;
+    }
+
+    .course-mobile-summary-panel.is-open {
+        transform:
+            translateY(0);
+    }
+
+    .course-mobile-panel-handle {
+        width: 46px;
+        height: 5px;
+        margin:
+            0
+            auto
+            14px;
+        border-radius: 999px;
+        background:
+            rgba(127, 127, 127, 0.28);
+    }
+
+    .course-mobile-panel-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 13px;
+    }
+
+    .course-mobile-panel-heading small {
+        color: var(--subtext);
+        font-size: 9px;
+    }
+
+    .course-mobile-panel-heading h2 {
+        margin: 3px 0 0;
+        color: var(--text);
+        font-size: 20px;
+    }
+
+    .course-mobile-summary-main {
+        display: grid;
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .course-mobile-summary-main > div {
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 15px;
+        border-radius: 14px;
+        background:
+            linear-gradient(
+                145deg,
+                rgba(20, 184, 166, 0.12),
+                rgba(139, 92, 246, 0.07)
+            );
+        text-align: center;
+    }
+
+    .course-mobile-summary-main small,
+    .course-mobile-summary-main strong {
+        display: block;
+    }
+
+    .course-mobile-summary-main small {
+        color: var(--subtext);
+        font-size: 9px;
+    }
+
+    .course-mobile-summary-main strong {
+        margin-top: 4px;
+        color: var(--text);
+        font-size: 20px;
+    }
+
+    .course-mobile-summary-list {
+        display: grid;
+        gap: 1px;
+        margin-top: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--border);
+    }
+
+    .course-mobile-summary-list > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 13px;
+        padding: 12px;
+        background: var(--card);
+    }
+
+    .course-mobile-summary-list span {
+        color: var(--subtext);
+        font-size: 10px;
+    }
+
+    .course-mobile-summary-list strong {
+        color: var(--text);
+        font-size: 11px;
+    }
+
+    .course-mobile-summary-warning {
+        box-sizing: border-box;
+        margin-top: 13px;
+        padding: 10px;
+        border-radius: 11px;
+        background:
+            rgba(245, 158, 11, 0.09);
+        color: #b45309;
+        font-size: 10px;
+        font-weight: 750;
+        text-align: center;
+    }
+
+    #mobilePanelSaveButton {
+        width: 100%;
+        margin:
+            14px
+            0
+            0;
+    }
+
+    body.course-mobile-panel-open {
+        overflow: hidden;
+    }
+
+}
+
+
+/* ========================================
+   スマートフォン
+======================================== */
+
+@media (max-width: 650px) {
+
+    .course-registration-page {
+        padding-bottom:
+            calc(
+                165px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+    .course-registration-header h1 {
+        font-size: 23px;
+    }
+
+    .course-registration-header p {
+        font-size: 11px;
+    }
+
+    .course-phase-heading {
+        display: block;
+    }
+
+    .course-deadline-box {
+        width: 100%;
+        min-width: 0;
+        margin-top: 13px;
+        text-align: left;
+    }
+
+    .course-student-information {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .course-section-heading {
+        display: block;
+    }
+
+    .course-section-heading .btn,
+    .course-section-heading
+    #visibleCourseCount {
+        width: 100%;
+        min-width: 0;
+        margin-top: 12px;
+    }
+
+    .graduation-progress-top {
+        align-items: flex-start;
+    }
+
+    .graduation-progress-top
+    > div:first-child
+    > strong {
+        font-size: 22px;
+    }
+
+    .graduation-projected-box strong {
+        font-size: 15px;
+    }
+
+    .category-progress-heading {
+        display: block;
+    }
+
+    .category-progress-heading > strong {
+        display: block;
+        margin-top: 8px;
+    }
+
+    .category-progress-breakdown {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .course-progress-years {
+        grid-template-columns: 1fr;
+    }
+
+    .course-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .course-filter-grid
+    label.full-width {
+        grid-column: auto;
+    }
+
+    .course-filter-reset-button {
+        width: 100%;
+        min-width: 0;
+        margin-left: 0;
+    }
+
+    .course-bulk-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .course-registration-item {
+        min-height: 0;
+        padding: 14px 12px;
+    }
+
+    .course-registration-title-row {
+        display: block;
+    }
+
+    .course-card-status {
+        margin-top: 7px;
+    }
+
+    .course-confirm-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .course-confirm-actions {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+/* ========================================
+   小さいスマートフォン
+======================================== */
+
+@media (max-width: 390px) {
+
+    .top-page-title {
+        max-width: 38%;
+        font-size: 13px;
+    }
+
+    .top-page-title > span {
+        display: none;
+    }
+
+    .course-student-information {
+        grid-template-columns: 1fr;
+    }
+
+    .graduation-progress-top {
+        display: block;
+    }
+
+    .graduation-projected-box {
+        margin-top: 12px;
+        text-align: left;
+    }
+
+    .graduation-progress-bottom {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .category-progress-breakdown {
+        grid-template-columns: 1fr;
+    }
+
+    .course-mobile-save-bar {
+        grid-template-columns:
+            minmax(0, 1fr)
+            96px;
+    }
+
+    .course-mobile-summary-button {
+        gap: 6px;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    .course-mobile-summary-arrow {
+        display: none;
+    }
+
+    .course-mobile-summary-main {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+/* ========================================
+   ダークモード
+======================================== */
+
+.dark .course-preview-banner {
+    color: #c4b5fd;
+}
+
+.dark .course-phase-badge.is-registration,
+.dark .course-summary-message.is-ready,
+.dark .course-progress-official-summary strong {
+    color: #6ee7b7;
+}
+
+.dark .course-phase-badge.is-correction {
+    color: #93c5fd;
+}
+
+.dark .course-phase-badge.is-cancellation,
+.dark .course-card-warning,
+.dark .course-summary-message.is-warning,
+.dark .course-mobile-summary-warning {
+    color: #fbbf24;
+}
+
+.dark .course-summary-message.is-error {
+    color: #fca5a5;
+}
+
+.dark .course-tag.required {
+    color: #fca5a5;
+}
+
+.dark .course-tag.elective {
+    color: #93c5fd;
+}
+
+.dark .course-tag.free {
+    color: #6ee7b7;
+}
+
+.dark .course-tag.category,
+.dark .course-requirement-tags > span {
+    color: #c4b5fd;
+}
+
+.dark .course-tag.practical {
+    color: #f9a8d4;
+}
+
+.dark .course-registration-item:hover {
+    box-shadow:
+        0 8px 24px
+        rgba(0, 0, 0, 0.34);
+}
+
+.dark .course-credit-summary-panel,
+.dark .course-mobile-save-bar,
+.dark .course-mobile-summary-panel {
+    box-shadow:
+        0 12px 34px
+        rgba(0, 0, 0, 0.38);
+}
