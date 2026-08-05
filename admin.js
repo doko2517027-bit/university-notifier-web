@@ -71,7 +71,6 @@ const notifySystemNews = document.getElementById("notifySystemNews");
 const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
-const reportList = document.getElementById("reportList");
 const enablePushButton = document.getElementById("enablePushButton");
 
 let systemAppPromise = null;
@@ -604,147 +603,6 @@ function loadSystemNews() {
 
 }
 
-function loadReports() {
-
-    const q = query(
-        collection(db, "reports"),
-        orderBy("createdAt", "desc")
-    );
-
-    onSnapshot(q, async (snapshot) => {
-
-        if (snapshot.empty) {
-
-            reportList.innerHTML =
-                "通報はありません。";
-
-            return;
-
-        }
-
-        reportList.innerHTML = "";
-
-        const questionReports = snapshot.docs
-            .map(item => item.data())
-            .filter(item => item.type === "questionAnswer");
-        const nameEntries = await Promise.all(questionReports.map(async report => {
-            const [subjectSnap, unitSnap] = await Promise.all([
-                report.subjectId ? getDoc(doc(db, "examSubjects", report.subjectId)) : null,
-                report.subjectId && report.unitId
-                    ? getDoc(doc(db, "examSubjects", report.subjectId, "units", report.unitId))
-                    : null
-            ]);
-            return [`${report.subjectId || ""}|${report.unitId || ""}`, {
-                subjectName: subjectSnap?.data()?.name || subjectSnap?.data()?.subjectName || report.subjectId || "-",
-                unitName: unitSnap?.data()?.name || unitSnap?.data()?.unitName || report.unitId || "-"
-            }];
-        }));
-        const reportNames = new Map(nameEntries);
-
-        snapshot.forEach(reportDoc => {
-
-            const report = reportDoc.data();
-
-            const isQuestionAnswerReport =
-                report.type === "questionAnswer";
-            const names = reportNames.get(`${report.subjectId || ""}|${report.unitId || ""}`) || {};
-
-            const typeLabel =
-                isQuestionAnswerReport
-                    ? "テスト問題の答え"
-                    : report.type === "post"
-                        ? "投稿"
-                        : "コメント";
-
-            const questionDetails =
-                isQuestionAnswerReport
-                    ? `
-                        <p><b>科目：</b>${escapeReportText(names.subjectName || "-")}</p>
-                        <p><b>単元：</b>${escapeReportText(names.unitName || "-")}</p>
-                        <p><b>問題形式：</b>${escapeReportText(report.questionType || "-")}</p>
-                        <p><b>問題ID：</b>${escapeReportText(report.questionId || "-")}</p>
-                        <p><b>問題文：</b><br>${escapeReportText(report.question || "-")}</p>
-                        <p><b>登録されている答え：</b><br>${escapeReportText(
-                            Array.isArray(report.registeredAnswer)
-                                ? report.registeredAnswer.join(" / ")
-                                : report.registeredAnswer ?? "-"
-                        )}</p>
-                        <a class="btn btn-primary" href="question_report_edit.html?reportId=${encodeURIComponent(reportDoc.id)}">
-                            この問題を直接修正
-                        </a>
-                    `
-                    : `
-                        <p>
-                            <b>対象者：</b>
-                            ${escapeReportText(report.targetStudentNumber || "-")}
-                        </p>
-                    `;
-
-            reportList.innerHTML += `
-
-            <div class="card setting-card">
-
-                <p>
-                    <b>種類：</b>
-                    ${typeLabel}
-                </p>
-
-                ${questionDetails}
-
-                <p>
-                    <b>通報者：</b>
-                    ${escapeReportText(report.reporterStudentNumber || "-")}
-                </p>
-
-                <p>
-                    <b>理由：</b><br>
-                    ${escapeReportText(report.reason || "-").replace(/\n/g, "<br>")}
-                </p>
-
-                <p>
-                    <b>状態：</b>
-                    ${report.status || "open"}
-                </p>
-
-                ${isQuestionAnswerReport ? "" : `
-                    <button
-                        class="btn btn-danger delete-reported-post"
-                        data-report-id="${reportDoc.id}"
-                        data-post-id="${report.postId || ""}">
-                        投稿を削除
-                    </button>
-                    <br><br>
-                `}
-
-                <button
-                    class="btn btn-secondary close-report"
-                    data-report-id="${reportDoc.id}">
-
-                    対応済みにする
-
-                </button>
-
-            </div>
-
-            `;
-
-        });
-
-    });
-
-}
-
-function escapeReportText(value) {
-
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
-}
-
 async function loadMaintenance() {
 
     const snap =
@@ -840,43 +698,6 @@ function setupEvents() {
     });
 
     document.addEventListener("click", async (e) => {
-    
-        if (e.target.classList.contains("close-report")) {
-
-            await updateDoc(
-                doc(db, "reports", e.target.dataset.reportId),
-                {
-                    status: "closed"
-                }
-            );
-        
-            showToast("対応済みにしました");
-            return;
-        
-        }
-	
-        if (e.target.classList.contains("delete-reported-post")) {
-        
-            const ok =
-                confirm("この投稿を削除しますか？");
-        
-            if (!ok) return;
-        
-            await deleteDoc(
-                doc(db, "posts", e.target.dataset.postId)
-            );
-        
-            await updateDoc(
-                doc(db, "reports", e.target.dataset.reportId),
-                {
-                    status: "closed"
-                }
-            );
-        
-            showToast("投稿を削除しました");
-            return;
-        
-        }
 	
 	    if (!e.target.classList.contains("delete-system-news")) {
 	        return;
