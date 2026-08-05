@@ -2,7 +2,6 @@ import { VERSION } from "./version.js";
 
 import {
     db,
-    realtimeDb,
     studentNumber,
     setupTheme,
     initializePage,
@@ -20,71 +19,149 @@ import {
 import {
     doc,
     getDoc,
+    setDoc,
     updateDoc,
     collection,
-    getDocs,
-    addDoc,
-    deleteDoc,
-    query,
-    orderBy,
-    serverTimestamp,
-    onSnapshot
+    getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-import {
-    ref,
-    onValue
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 import {
     registerDevicePushSubscription
 } from "./push_subscription.js";
 
-const userName = document.getElementById("userName");
-const themeButton = document.getElementById("themeButton");
-const topProfileImage = document.getElementById("topProfileImage");
 
-const userCount = document.getElementById("userCount");
-const userCountDetail = document.getElementById("userCountDetail");
-const userList = document.getElementById("userList");
-const versionText = document.getElementById("versionText");
-const firestoreStatus = document.getElementById("firestoreStatus");
-const renderStatus = document.getElementById("renderStatus");
-const lastCronText = document.getElementById("lastCronText");
-const lastScheduleCheckText = document.getElementById("lastScheduleCheckText");
-const lastAssignmentCheckText = document.getElementById("lastAssignmentCheckText");
+/* ========================================
+   HTML要素
+======================================== */
 
-const systemNewsTitle = document.getElementById("systemNewsTitle");
-const systemNewsBody = document.getElementById("systemNewsBody");
-const postSystemNews = document.getElementById("postSystemNews");
-const systemNewsList = document.getElementById("systemNewsList");
+const userName =
+    document.getElementById("userName");
 
-const maintenanceToggle = document.getElementById("maintenanceToggle");
-const maintenanceMessage = document.getElementById("maintenanceMessage");
-const saveMaintenance = document.getElementById("saveMaintenance");
+const themeButton =
+    document.getElementById("themeButton");
 
-const notifySchedule = document.getElementById("notifySchedule");
-const notifyAssignment = document.getElementById("notifyAssignment");
-const notifyReminder = document.getElementById("notifyReminder");
-const notifyCourseNews = document.getElementById("notifyCourseNews");
-const notifySystemNews = document.getElementById("notifySystemNews");
-const notifySharePost = document.getElementById("notifySharePost");
-const notifyLike = document.getElementById("notifyLike");
-const notifyComment = document.getElementById("notifyComment");
-const enablePushButton = document.getElementById("enablePushButton");
+const topProfileImage =
+    document.getElementById("topProfileImage");
+
+
+const userCount =
+    document.getElementById("userCount");
+
+const versionText =
+    document.getElementById("versionText");
+
+const firestoreStatus =
+    document.getElementById("firestoreStatus");
+
+const renderStatus =
+    document.getElementById("renderStatus");
+
+const lastCronText =
+    document.getElementById("lastCronText");
+
+const lastScheduleCheckText =
+    document.getElementById(
+        "lastScheduleCheckText"
+    );
+
+const lastAssignmentCheckText =
+    document.getElementById(
+        "lastAssignmentCheckText"
+    );
+
+
+const maintenanceToggle =
+    document.getElementById(
+        "maintenanceToggle"
+    );
+
+const maintenanceMessage =
+    document.getElementById(
+        "maintenanceMessage"
+    );
+
+const saveMaintenance =
+    document.getElementById(
+        "saveMaintenance"
+    );
+
+
+const notifySchedule =
+    document.getElementById(
+        "notifySchedule"
+    );
+
+const notifyAssignment =
+    document.getElementById(
+        "notifyAssignment"
+    );
+
+const notifyReminder =
+    document.getElementById(
+        "notifyReminder"
+    );
+
+const notifyCourseNews =
+    document.getElementById(
+        "notifyCourseNews"
+    );
+
+const notifySystemNews =
+    document.getElementById(
+        "notifySystemNews"
+    );
+
+const notifySharePost =
+    document.getElementById(
+        "notifySharePost"
+    );
+
+const notifyLike =
+    document.getElementById(
+        "notifyLike"
+    );
+
+const notifyComment =
+    document.getElementById(
+        "notifyComment"
+    );
+
+
+const enablePushButton =
+    document.getElementById(
+        "enablePushButton"
+    );
+
+const sendTestPush =
+    document.getElementById(
+        "sendTestPush"
+    );
+
+const logoutButton =
+    document.getElementById(
+        "logout"
+    );
+
+
+/* ========================================
+   状態
+======================================== */
 
 let systemAppPromise = null;
-let presenceStatuses = {};
-let dashboardUsers = [];
-let presenceTimer = null;
+
 
 function getSystemAppSnapshot() {
 
     if (!systemAppPromise) {
 
-        systemAppPromise = getDoc(
-            doc(db, "system", "app")
-        );
+        systemAppPromise =
+            getDoc(
+                doc(
+                    db,
+                    "system",
+                    "app"
+                )
+            );
 
     }
 
@@ -92,14 +169,32 @@ function getSystemAppSnapshot() {
 
 }
 
+
+/* ========================================
+   初期化
+======================================== */
+
 setupTheme(themeButton);
 
-const admin = await isAdmin();
+
+const admin =
+    await isAdmin();
 
 if (!admin) {
-    alert("管理者のみアクセスできます。");
-    location.href = "index.html";
+
+    alert(
+        "管理者のみアクセスできます。"
+    );
+
+    location.href =
+        "index.html";
+
+    throw new Error(
+        "管理者権限がありません。"
+    );
+
 }
+
 
 await initializePage([
     setupAdminTab(),
@@ -108,7 +203,6 @@ await initializePage([
     loadProfileImage(topProfileImage),
     loadDashboard(),
     loadSystemStatus(),
-    loadSystemNews(),
     loadMaintenance(),
     loadNotificationSettings(),
     updateAssignmentNavBadge(),
@@ -116,478 +210,173 @@ await initializePage([
     updateNewsNavBadge()
 ]);
 
-startPresenceListener();
-
-loadMyRanking();
 
 setupEvents();
 
+
+/* ========================================
+   ダッシュボード
+======================================== */
+
 async function loadDashboard() {
 
-    if(versionText){
+    setText(
+        versionText,
+        `Version ${VERSION}`
+    );
 
-        versionText.textContent =
-            `Version ${VERSION}`;
-
-    }
 
     try {
 
-        const usersSnap = await getDocs(
-            collection(db, "users")
+        const usersSnapshot =
+            await getDocs(
+                collection(
+                    db,
+                    "users"
+                )
+            );
+
+
+        setText(
+            userCount,
+            `${usersSnapshot.size}人`
         );
 
-        dashboardUsers =
-            usersSnap.docs.map(userDoc => ({
-                id: userDoc.id,
-                ...userDoc.data()
-            }));
 
-        if(userCount){
-
-            userCount.textContent =
-                `${dashboardUsers.length}人`;
-
-        }
-
-        if(userCountDetail){
-
-            userCountDetail.textContent =
-                `${dashboardUsers.length}人`;
-
-        }
-
-        renderDashboardUsers();
-
-        if(firestoreStatus){
-
-            firestoreStatus.textContent =
-                "🟢 正常";
-
-        }
+        setText(
+            firestoreStatus,
+            "🟢 正常"
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        if(userCount){
-
-            userCount.textContent =
-                "取得失敗";
-
-        }
-
-        if(userCountDetail){
-
-            userCountDetail.textContent =
-                "取得失敗";
-
-        }
-
-        if(firestoreStatus){
-
-            firestoreStatus.textContent =
-                "🔴 エラー";
-
-        }
-
-    }
-
-}
-
-function startPresenceListener() {
-
-    const statusRef = ref(
-        realtimeDb,
-        "status"
-    );
-
-    onValue(
-        statusRef,
-        snapshot => {
-
-            presenceStatuses =
-                snapshot.val() || {};
-
-            renderDashboardUsers();
-
-        },
-        error => {
-
-            console.error(
-                "Presence取得エラー:",
-                error
-            );
-
-        }
-    );
-
-    clearInterval(presenceTimer);
-
-    presenceTimer = setInterval(
-        renderDashboardUsers,
-        30 * 1000
-    );
-
-}
-
-function renderDashboardUsers() {
-
-    if (!userList) {
-        return;
-    }
-
-    if (dashboardUsers.length === 0) {
-
-        userList.innerHTML =
-            "登録ユーザーはいません。";
-
-        return;
-
-    }
-
-    const sortedUsers = [
-        ...dashboardUsers
-    ].sort((a, b) => {
-
-        const statusA =
-            getPresencePriority(
-                presenceStatuses[a.id]
-            );
-
-        const statusB =
-            getPresencePriority(
-                presenceStatuses[b.id]
-            );
-
-        if (statusA !== statusB) {
-            return statusA - statusB;
-        }
-
-        const changedA =
-            Number(
-                presenceStatuses[a.id]
-                    ?.lastChanged || 0
-            );
-
-        const changedB =
-            Number(
-                presenceStatuses[b.id]
-                    ?.lastChanged || 0
-            );
-
-        return changedB - changedA;
-
-    });
-
-    const html = sortedUsers
-        .map(user => {
-
-            const presence =
-                presenceStatuses[user.id] || null;
-
-            const status =
-                formatPresenceStatus(presence);
-
-            const pageName =
-                presence?.pageName ||
-                formatPageName(
-                    presence?.page
-                );
-
-            return `
-                <div
-                    class="setting-row admin-user"
-                    data-id="${user.id}">
-
-                    <span>
-
-                        <b>
-                            ${status.icon}
-                            ${user.id}
-                        </b>
-
-                        <br>
-
-                        <span class="admin-presence-status">
-                            ${status.text}
-                        </span>
-
-                        ${
-                            pageName
-                                ? `
-                                    <br>
-
-                                    <small class="admin-presence-page">
-                                        📱 ${pageName}
-                                    </small>
-                                `
-                                : ""
-                        }
-
-                        <br>
-
-                        <small>
-                            ${
-                                user.department ||
-                                user.major ||
-                                "所属なし"
-                            }
-
-                            ${user.grade || ""}
-                        </small>
-
-                    </span>
-
-                </div>
-            `;
-
-        })
-        .join("");
-
-    userList.innerHTML = html;
-
-}
-
-function getPresencePriority(presence) {
-
-    if (!presence) {
-        return 3;
-    }
-
-    if (presence.state === "online") {
-        return 0;
-    }
-
-    if (presence.state === "away") {
-        return 1;
-    }
-
-    return 2;
-
-}
-
-function formatPresenceStatus(presence) {
-
-    if (!presence) {
-
-        return {
-            icon: "⚫",
-            text: "接続履歴なし"
-        };
-
-    }
-
-    const state =
-        presence.state || "offline";
-
-    const lastChanged =
-        Number(
-            presence.lastChanged || 0
+        console.error(
+            "ダッシュボード取得エラー:",
+            error
         );
 
-    if (state === "online") {
 
-        return {
-            icon: "🟢",
-            text: "オンライン"
-        };
-
-    }
-
-    if (state === "away") {
-
-        return {
-            icon: "🟡",
-            text: "バックグラウンド"
-        };
-
-    }
-
-    return {
-        icon: "🔴",
-        text: formatLastSeen(lastChanged)
-    };
-
-}
-
-function formatLastSeen(timestamp) {
-
-    if (!timestamp) {
-        return "オフライン";
-    }
-
-    const diff =
-        Math.max(
-            0,
-            Date.now() - timestamp
+        setText(
+            userCount,
+            "取得失敗"
         );
 
-    const seconds =
-        Math.floor(diff / 1000);
 
-    const minutes =
-        Math.floor(diff / 60000);
+        setText(
+            firestoreStatus,
+            "🔴 エラー"
+        );
 
-    const hours =
-        Math.floor(diff / 3600000);
-
-    const days =
-        Math.floor(diff / 86400000);
-
-    if (seconds < 30) {
-        return "たった今";
     }
-
-    if (minutes < 1) {
-        return `${seconds}秒前`;
-    }
-
-    if (minutes < 60) {
-        return `${minutes}分前`;
-    }
-
-    if (hours < 24) {
-        return `${hours}時間前`;
-    }
-
-    if (days < 7) {
-        return `${days}日前`;
-    }
-
-    const date =
-        new Date(timestamp);
-
-    return (
-        `${date.getMonth() + 1}/` +
-        `${date.getDate()} ` +
-        `${String(date.getHours())
-            .padStart(2, "0")}:` +
-        `${String(date.getMinutes())
-            .padStart(2, "0")}`
-    );
 
 }
 
-function formatPageName(page) {
 
-    if (!page) {
-        return "";
-    }
-
-    const fileName =
-        String(page)
-            .split("/")
-            .pop();
-
-    const pageNames = {
-        "index.html": "ホーム画面",
-        "news.html": "お知らせ",
-        "share.html": "共有画面",
-        "post.html": "投稿作成",
-        "comments.html": "コメント画面",
-        "profile.html": "プロフィール",
-        "settings.html": "設定画面",
-        "assignment.html": "課題画面",
-        "exam.html": "テスト対策",
-        "quiz.html": "四択問題",
-        "fill_blank.html": "穴埋め問題",
-        "daily_question.html": "今日の1問",
-        "must_remember.html": "重要ポイント",
-        "weather-settings.html": "天気設定",
-        "admin.html": "管理画面"
-    };
-
-    return (
-        pageNames[fileName] ||
-        fileName
-    );
-
-}
+/* ========================================
+   システム状態
+======================================== */
 
 async function loadSystemStatus() {
 
     try {
 
-        const snap =
+        const snapshot =
             await getSystemAppSnapshot();
 
-        if (!snap.exists()) {
 
-            if (renderStatus) {
-                renderStatus.textContent =
-                    "⚫ 未確認";
-            }
+        if (!snapshot.exists()) {
+
+            setText(
+                renderStatus,
+                "⚫ 未確認"
+            );
+
+            setText(
+                lastCronText,
+                "----"
+            );
+
+            setText(
+                lastScheduleCheckText,
+                "----"
+            );
+
+            setText(
+                lastAssignmentCheckText,
+                "----"
+            );
 
             return;
-        }
-
-        const data = snap.data();
-
-        if (data.renderStatus === "ok") {
-            if(renderStatus){
-
-                renderStatus.textContent =
-                    "🟢 正常";
-
-            }
-        } else if (data.renderStatus === "running") {
-            if(renderStatus){
-
-                renderStatus.textContent =
-                    "🟡 実行中";
-
-            }
-        } else if (data.renderStatus === "error") {
-            if(renderStatus){
-
-                renderStatus.textContent = "🔴 エラー";
-
-            }
-        } else {
-            if(renderStatus){
-
-                renderStatus.textContent =
-                    "⚫ 未確認";
-
-            }
-        }
-
-        if(lastCronText){
-
-            lastCronText.textContent =
-                formatAdminDate(data.lastCronAt);
 
         }
 
-        if(lastScheduleCheckText){
 
-            lastScheduleCheckText.textContent =
-                formatAdminDate(data.lastScheduleCheckAt);
+        const data =
+            snapshot.data();
 
-        }
 
-        if(lastAssignmentCheckText){
+        const renderStatusText = {
 
-            lastAssignmentCheckText.textContent =
-                formatAdminDate(data.lastAssignmentCheckAt);
+            ok:
+                "🟢 正常",
 
-        }
+            running:
+                "🟡 実行中",
 
-    } catch (e) {
+            error:
+                "🔴 エラー"
 
-        console.error(e);
+        };
 
-        if(renderStatus){
 
-            renderStatus.textContent =
-                "🔴 取得失敗";
+        setText(
+            renderStatus,
+            renderStatusText[
+                data.renderStatus
+            ] || "⚫ 未確認"
+        );
 
-        }
+
+        setText(
+            lastCronText,
+            formatAdminDate(
+                data.lastCronAt
+            )
+        );
+
+
+        setText(
+            lastScheduleCheckText,
+            formatAdminDate(
+                data.lastScheduleCheckAt
+            )
+        );
+
+
+        setText(
+            lastAssignmentCheckText,
+            formatAdminDate(
+                data.lastAssignmentCheckAt
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "システム状態取得エラー:",
+            error
+        );
+
+
+        setText(
+            renderStatus,
+            "🔴 取得失敗"
+        );
 
     }
 
 }
+
 
 function formatAdminDate(timestamp) {
 
@@ -595,231 +384,404 @@ function formatAdminDate(timestamp) {
         return "----";
     }
 
-    const date = timestamp.toDate();
 
-    return (
-        `${date.getFullYear()}/` +
-        `${date.getMonth() + 1}/` +
-        `${date.getDate()} ` +
-        `${String(date.getHours()).padStart(2, "0")}:` +
-        `${String(date.getMinutes()).padStart(2, "0")}`
-    );
+    try {
+
+        const date =
+            typeof timestamp.toDate ===
+            "function"
+                ? timestamp.toDate()
+                : new Date(timestamp);
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return "----";
+
+        }
+
+
+        return (
+            `${date.getFullYear()}/` +
+            `${date.getMonth() + 1}/` +
+            `${date.getDate()} ` +
+            `${String(
+                date.getHours()
+            ).padStart(2, "0")}:` +
+            `${String(
+                date.getMinutes()
+            ).padStart(2, "0")}`
+        );
+
+    } catch {
+
+        return "----";
+
+    }
 
 }
 
-function loadSystemNews() {
 
-    if(!systemNewsList){
+/* ========================================
+   メンテナンス設定
+======================================== */
+
+async function loadMaintenance() {
+
+    try {
+
+        const snapshot =
+            await getSystemAppSnapshot();
+
+
+        if (!snapshot.exists()) {
+            return;
+        }
+
+
+        const data =
+            snapshot.data();
+
+
+        if (maintenanceToggle) {
+
+            maintenanceToggle.checked =
+                data.maintenance === true;
+
+        }
+
+
+        if (maintenanceMessage) {
+
+            maintenanceMessage.value =
+                data.message || "";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "メンテナンス設定取得エラー:",
+            error
+        );
+
+    }
+
+}
+
+
+async function saveMaintenanceSettings() {
+
+    if (
+        !maintenanceToggle ||
+        !maintenanceMessage ||
+        !saveMaintenance
+    ) {
 
         return;
 
     }
 
-    const q = query(
-        collection(db, "systemNews"),
-        orderBy("createdAt", "desc")
-    );
 
-    onSnapshot(q, async (snapshot) => {
+    saveMaintenance.disabled =
+        true;
 
-        if (snapshot.empty) {
+    saveMaintenance.textContent =
+        "保存中...";
 
-            systemNewsList.innerHTML =
-                "CareMateお知らせはありません。";
 
-            return;
+    try {
 
-        }
+        await setDoc(
+            doc(
+                db,
+                "system",
+                "app"
+            ),
+            {
+                maintenance:
+                    maintenanceToggle.checked,
 
-        systemNewsList.innerHTML = "";
+                message:
+                    maintenanceMessage.value
+                        .trim()
+            },
+            {
+                merge: true
+            }
+        );
 
-        snapshot.forEach(newsDoc => {
 
-            const news = newsDoc.data();
+        systemAppPromise = null;
 
-            const date = news.createdAt
-                ? news.createdAt.toDate()
-                : null;
 
-            const dateText = date
-                ? `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}`
-                : "";
+        showToast(
+            "メンテナンス設定を保存しました"
+        );
 
-            systemNewsList.innerHTML += `
+    } catch (error) {
 
-            <div class="card setting-card">
+        console.error(
+            "メンテナンス設定保存エラー:",
+            error
+        );
 
-                <p><b>${news.title}</b></p>
 
-                <p>
-                    ${(news.body || "").replace(/\n/g,"<br>")}
-                </p>
+        alert(
+            "メンテナンス設定の保存に失敗しました。"
+        );
 
-                <small>${dateText}</small>
+    } finally {
 
-                <br><br>
+        saveMaintenance.disabled =
+            false;
 
-                <button
-                    class="btn btn-danger delete-system-news"
-                    data-id="${newsDoc.id}">
-                    削除
-                </button>
-
-            </div>
-
-            `;
-
-        });
-
-    });
-
-}
-
-async function loadMaintenance() {
-
-    const snap =
-        await getSystemAppSnapshot();
-
-    if (!snap.exists()) return;
-
-    const data = snap.data();
-
-    if(maintenanceToggle){
-
-        maintenanceToggle.checked =
-            data.maintenance === true;
-
-    }
-
-    if(maintenanceMessage){
-
-        maintenanceMessage.value =
-            data.message || "";
+        saveMaintenance.textContent =
+            "保存する";
 
     }
 
 }
+
+
+/* ========================================
+   管理者本人の通知設定
+======================================== */
 
 async function loadNotificationSettings() {
 
-    if (!studentNumber) return;
-
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const settings =
-        snap.data().notificationSettings || {};
-
-    if(notifySchedule){
-
-        notifySchedule.checked =
-            settings.schedule ?? true;
-
+    if (!studentNumber) {
+        return;
     }
 
-    if(notifyAssignment){
 
-        notifyAssignment.checked =
-            settings.assignment ?? true;
+    try {
 
-    }
+        const snapshot =
+            await getDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                )
+            );
 
-    if(notifyReminder){
 
-        notifyReminder.checked =
-            settings.reminder ?? true;
+        if (!snapshot.exists()) {
+            return;
+        }
 
-    }
 
-    if(notifyCourseNews){
+        const settings =
+            snapshot.data()
+                .notificationSettings ||
+            {};
 
-        notifyCourseNews.checked =
-            settings.courseNews ?? true;
 
-    }
+        setChecked(
+            notifySchedule,
+            settings.schedule ?? true
+        );
 
-    if(notifySystemNews){
+        setChecked(
+            notifyAssignment,
+            settings.assignment ?? true
+        );
 
-        notifySystemNews.checked =
-            settings.systemNews ?? true;
+        setChecked(
+            notifyReminder,
+            settings.reminder ?? true
+        );
 
-    }
+        setChecked(
+            notifyCourseNews,
+            settings.courseNews ?? true
+        );
 
-    if(notifySharePost){
+        setChecked(
+            notifySystemNews,
+            settings.systemNews ?? true
+        );
 
-        notifySharePost.checked =
-            settings.sharePost ?? true;
+        setChecked(
+            notifySharePost,
+            settings.sharePost ?? true
+        );
 
-    }
+        setChecked(
+            notifyLike,
+            settings.like ?? true
+        );
 
-    if(notifyLike){
+        setChecked(
+            notifyComment,
+            settings.comment ?? true
+        );
 
-        notifyLike.checked =
-            settings.like ?? true;
+    } catch (error) {
 
-    }
-
-    if(notifyComment){
-
-        notifyComment.checked =
-            settings.comment ?? true;
+        console.error(
+            "通知設定取得エラー:",
+            error
+        );
 
     }
 
 }
 
+
+async function saveNotificationSettings() {
+
+    if (!studentNumber) {
+        return;
+    }
+
+
+    try {
+
+        await updateDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
+            {
+                notificationSettings: {
+
+                    schedule:
+                        getChecked(
+                            notifySchedule,
+                            true
+                        ),
+
+                    assignment:
+                        getChecked(
+                            notifyAssignment,
+                            true
+                        ),
+
+                    reminder:
+                        getChecked(
+                            notifyReminder,
+                            true
+                        ),
+
+                    courseNews:
+                        getChecked(
+                            notifyCourseNews,
+                            true
+                        ),
+
+                    systemNews:
+                        getChecked(
+                            notifySystemNews,
+                            true
+                        ),
+
+                    sharePost:
+                        getChecked(
+                            notifySharePost,
+                            true
+                        ),
+
+                    like:
+                        getChecked(
+                            notifyLike,
+                            true
+                        ),
+
+                    comment:
+                        getChecked(
+                            notifyComment,
+                            true
+                        )
+                }
+            }
+        );
+
+
+        showToast(
+            "通知設定を保存しました"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "通知設定保存エラー:",
+            error
+        );
+
+
+        alert(
+            "通知設定の保存に失敗しました。"
+        );
+
+    }
+
+}
+
+
+/* ========================================
+   イベント
+======================================== */
+
 function setupEvents() {
 
-    if(enablePushButton){
+    if (enablePushButton) {
 
         enablePushButton.onclick =
             enablePushNotification;
 
     }
 
-    if(postSystemNews){
 
-        postSystemNews.onclick =
-            postNews;
-
-    }
-
-    if(saveMaintenance){
-
-        saveMaintenance.onclick =
-            saveMaintenanceSettings;
-
-    }
-
-    const sendTestPush =
-        document.getElementById("sendTestPush");
-
-    if(sendTestPush){
+    if (sendTestPush) {
 
         sendTestPush.onclick =
             sendTestNotification;
 
     }
 
-    const logout =
-        document.getElementById("logout");
 
-    if(logout){
+    if (saveMaintenance) {
 
-        logout.onclick = () => {
+        saveMaintenance.onclick =
+            saveMaintenanceSettings;
 
-            if (!confirm("ログアウトしますか？")) return;
+    }
 
-            localStorage.removeItem("loggedIn");
 
-            location.href="login.html";
+    if (logoutButton) {
+
+        logoutButton.onclick = () => {
+
+            if (
+                !confirm(
+                    "ログアウトしますか？"
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            localStorage.removeItem(
+                "loggedIn"
+            );
+
+
+            location.href =
+                "login.html";
 
         };
 
     }
+
 
     [
         notifySchedule,
@@ -841,203 +803,141 @@ function setupEvents() {
 
     });
 
-    document.addEventListener("click", async (e) => {
-	
-	    if (!e.target.classList.contains("delete-system-news")) {
-	        return;
-	    }
-	
-	    const ok =
-	        confirm("このお知らせを削除しますか？");
-	
-	    if (!ok) return;
-	
-	    await deleteDoc(
-	        doc(db, "systemNews", e.target.dataset.id)
-	    );
-	
-	    showToast("削除しました");
-	
-	        
-	
-	});
-	
 }
 
-async function postNews() {
 
-    const title =
-        systemNewsTitle.value.trim();
+/* ========================================
+   Push通知
+======================================== */
 
-    const body =
-        systemNewsBody.value.trim();
+async function enablePushNotification() {
 
-    if (!title || !body) {
-        alert("タイトルと本文を入力してください。");
-        return;
+    try {
+
+        await registerDevicePushSubscription(
+            db,
+            studentNumber,
+            "admin",
+            "sw.js"
+        );
+
+
+        showToast(
+            "通知を再登録しました"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Push通知登録エラー:",
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "通知の登録に失敗しました。"
+        );
+
     }
 
-    await addDoc(
-        collection(db, "systemNews"),
-        {
-            title,
-            body,
-            author: studentNumber,
-            createdAt: serverTimestamp(),
-
-            notifyTarget: "allUsers",
-            notificationSentAt: null
-        }
-    );
-
-    systemNewsTitle.value = "";
-    systemNewsBody.value = "";
-
-    showToast("投稿しました");
-
-    
-
 }
 
-async function saveMaintenanceSettings() {
-
-    if(!maintenanceToggle || !maintenanceMessage){
-        return;
-    }
-
-    await updateDoc(
-        doc(db, "system", "app"),
-        {
-            maintenance: maintenanceToggle.checked,
-            message: maintenanceMessage.value
-        }
-    );
-
-    showToast("保存しました");
-
-}
-
-async function saveNotificationSettings() {
-
-    if (!studentNumber) return;
-
-    await updateDoc(
-        doc(db, "users", studentNumber),
-        {
-            notificationSettings: {
-                schedule: notifySchedule.checked,
-                assignment: notifyAssignment.checked,
-                reminder: notifyReminder.checked,
-                courseNews: notifyCourseNews.checked,
-                systemNews: notifySystemNews.checked,
-                sharePost: notifySharePost.checked,
-                like: notifyLike.checked,
-                comment: notifyComment.checked
-            }
-        }
-    );
-
-    showToast("通知設定を保存しました");
-
-}
 
 async function sendTestNotification() {
 
-    if (!("Notification" in window)) {
-        alert("この端末は通知に対応していません。");
+    if (
+        !(
+            "Notification"
+            in window
+        )
+    ) {
+
+        alert(
+            "この端末は通知に対応していません。"
+        );
+
         return;
+
     }
+
 
     const permission =
-        await Notification.requestPermission();
+        await Notification
+            .requestPermission();
 
-    if (permission !== "granted") {
-        alert("通知が許可されていません。");
+
+    if (
+        permission !==
+        "granted"
+    ) {
+
+        alert(
+            "通知が許可されていません。"
+        );
+
+        return;
+
+    }
+
+
+    new Notification(
+        "CareMate テスト通知",
+        {
+            body:
+                "通知は正常に動作しています。",
+
+            icon:
+                "icon-192.png"
+        }
+    );
+
+}
+
+
+/* ========================================
+   共通
+======================================== */
+
+function setText(
+    element,
+    value
+) {
+
+    if (!element) {
         return;
     }
 
-    new Notification("CareMate テスト通知", {
-        body: "通知は正常に動作しています。",
-        icon: "icon-192.png"
-    });
+    element.textContent =
+        String(value ?? "");
 
 }
 
-document.addEventListener("click", async (e) => {
 
-    const row =
-        e.target.closest(".admin-user");
+function setChecked(
+    element,
+    value
+) {
 
-    if (!row) return;
-
-    openUserDetail(row.dataset.id);
-
-});
-
-async function openUserDetail(studentNumber) {
-
-    const snap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (!snap.exists()) return;
-
-    const user = snap.data();
-
-    let text = `
-
-学籍番号：${studentNumber}
-
-学科：${user.department || "-"}
-
-専攻：${user.major || "-"}
-
-学年：${user.grade || "-"}
-
-`;
-
-    if (user.lastLoginAt) {
-
-        text += `
-
-最終ログイン
-
-${user.lastLoginAt.toDate().toLocaleString()}
-
-`;
-
+    if (!element) {
+        return;
     }
 
-    const ok = confirm(
-	    text + "\n\nこのユーザーを削除しますか？"
-	);
-	
-	if (!ok) return;
-	
-	const deleteOk = confirm(
-	    "本当に削除しますか？\nこの操作は元に戻せません。"
-	);
-	
-	if (!deleteOk) return;
-	
-	await deleteDoc(
-	    doc(db, "users", studentNumber)
-	);
-	
-	showToast("ユーザーを削除しました");
-	
-	await loadDashboard();
+    element.checked =
+        value === true;
 
 }
 
-async function enablePushNotification() {
-    await registerDevicePushSubscription(
-        db,
-        studentNumber,
-        "admin",
-        "sw.js"
-    );
 
-    showToast("通知を再登録しました");
+function getChecked(
+    element,
+    fallback
+) {
+
+    if (!element) {
+        return fallback;
+    }
+
+    return element.checked;
 
 }
