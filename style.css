@@ -5231,3 +5231,342 @@ input[type="checkbox"] {
     }
 
 }
+
+/* ========================================
+   履修科目管理・PC表示最適化
+======================================== */
+
+@media (min-width: 901px) {
+
+    /* この画面だけ共通700px制限を解除 */
+    body.subjects-admin-body {
+        width: auto;
+        max-width: 1180px;
+        margin-right: auto;
+        margin-left: auto;
+        padding:
+            24px
+            30px
+            110px;
+    }
+
+    .subjects-admin-body
+    .subjects-admin-page {
+        width: 100%;
+        max-width: none;
+        margin: 0 auto;
+    }
+
+
+    /* 見出しを少しコンパクトに */
+    .subjects-admin-body h2 {
+        margin:
+            28px
+            0
+            11px;
+        font-size: 19px;
+    }
+
+
+    /* PCでは入力欄を少し小さくする */
+    .subjects-admin-body input,
+    .subjects-admin-body select,
+    .subjects-admin-body textarea {
+        padding:
+            11px
+            12px;
+        border-radius: 11px;
+        font-size: 14px;
+    }
+
+
+    /* 履修登録設定を3列にする */
+    .subjects-admin-body
+    .registration-admin-grid {
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+        gap: 14px;
+    }
+
+    .subjects-admin-body
+    .registration-admin-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .subjects-admin-body
+    .registration-admin-toggle {
+        min-height: 68px;
+        padding: 12px 14px;
+    }
+
+
+    /* サマリーはPCで横一列 */
+    .subjects-admin-body
+    .subject-admin-summary {
+        grid-template-columns:
+            repeat(
+                5,
+                minmax(0, 1fr)
+            );
+        gap: 12px;
+    }
+
+    .subjects-admin-body
+    .subject-admin-summary-item {
+        padding:
+            15px
+            10px;
+    }
+
+    .subjects-admin-body
+    .subject-admin-summary-item small {
+        min-height: auto;
+        margin-bottom: 6px;
+    }
+
+    .subjects-admin-body
+    .subject-admin-summary-item strong {
+        font-size: 25px;
+    }
+
+
+    /* 検索欄を4列にする */
+    .subjects-admin-body
+    .subject-filter-grid {
+        grid-template-columns:
+            repeat(
+                4,
+                minmax(0, 1fr)
+            );
+        gap: 13px;
+    }
+
+    .subjects-admin-body
+    .subject-filter-grid
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+
+    /* 操作ボタンを横並び */
+    .subjects-admin-body
+    .subject-admin-actions {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+        gap: 12px;
+    }
+
+    .subjects-admin-body
+    .subject-admin-actions
+    .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+
+    /* 科目カード内を3列にする */
+    .subjects-admin-body
+    .subject-editor-grid {
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+        gap: 14px;
+    }
+
+    .subjects-admin-body
+    .subject-editor-grid
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+
+    /* カリキュラム選択を2列にする */
+    .subjects-admin-body
+    .subject-curriculum-checkbox-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+
+    /* 科目カードを少しコンパクトに */
+    .subjects-admin-body
+    .subject-editor-card {
+        padding: 18px;
+    }
+
+    .subjects-admin-body
+    .subject-editor-title {
+        font-size: 18px;
+    }
+
+    .subjects-admin-body
+    .subject-editor-heading {
+        padding-bottom: 13px;
+    }
+
+    .subjects-admin-body
+    .subject-editor-heading-actions
+    .btn {
+        width: auto;
+        min-width: 84px;
+        height: 42px;
+        padding:
+            8px
+            12px;
+        font-size: 12px;
+    }
+
+
+    /* 公開設定・JSONボタンも横並び */
+    .subjects-admin-body
+    .registration-publish-actions,
+    .subjects-admin-body
+    .subject-data-actions {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+        gap: 12px;
+    }
+
+    .subjects-admin-body
+    .registration-publish-actions
+    .btn,
+    .subjects-admin-body
+    .subject-data-actions
+    .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+
+    /* 上部の戻るボタン */
+    .subjects-admin-body
+    .subjects-admin-top-actions {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+        gap: 12px;
+    }
+
+    .subjects-admin-body
+    .subjects-admin-top-actions
+    .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+}
+
+
+/* ========================================
+   大きいPC・2列カード表示
+======================================== */
+
+@media (min-width: 1380px) {
+
+    body.subjects-admin-body {
+        max-width: 1540px;
+        padding-right: 34px;
+        padding-left: 34px;
+    }
+
+
+    /*
+    科目カード自体を2列表示。
+    1画面で複数科目を比較しやすくする。
+    */
+
+    .subjects-admin-body
+    #subjectEditorList {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+        align-items: start;
+        gap: 18px;
+    }
+
+    .subjects-admin-body
+    .subject-editor-card {
+        min-width: 0;
+        margin: 0;
+    }
+
+
+    /*
+    2列カード時はカード内部を2列に戻す。
+    1項目が細くなりすぎるのを防ぐ。
+    */
+
+    .subjects-admin-body
+    .subject-editor-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+
+    /*
+    科目間の追加線はPCの2列配置では
+    レイアウトを崩すため非表示。
+    上部の「科目を追加」は利用できる。
+    */
+
+    .subjects-admin-body
+    .subject-insert-area {
+        display: none;
+    }
+
+}
+
+
+/* ========================================
+   PC版下部ナビ
+======================================== */
+
+@media (min-width: 901px) {
+
+    .subjects-admin-body
+    .bottom-nav {
+        max-width: 900px;
+        border-right:
+            1px solid var(--border);
+        border-left:
+            1px solid var(--border);
+        border-radius:
+            18px
+            18px
+            0
+            0;
+    }
+
+
+    /* 追従ボタンを画面端へ配置 */
+    .subjects-admin-body
+    .subject-floating-actions {
+        right: 24px;
+    }
+
+}
