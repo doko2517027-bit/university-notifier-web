@@ -22,7 +22,8 @@ import {
     setDoc,
     deleteDoc,
     writeBatch,
-    serverTimestamp
+    serverTimestamp,
+    deleteField
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
@@ -286,7 +287,7 @@ const confirmNewCurriculumButton =
     );
 
 
-/* 削除モーダル */
+/* 削除確認モーダル */
 
 const deleteCurriculumModal =
     document.getElementById(
@@ -310,7 +311,7 @@ const confirmDeleteCurriculumButton =
 
 
 /* ========================================
-   学生便覧の初期データ
+   学生便覧の初期カリキュラム
 ======================================== */
 
 const HANDBOOK_DEFAULT_CURRICULA = [
@@ -640,7 +641,8 @@ let categoryRequirements = [];
 
 let specialRequirements = [];
 
-let hasUnsavedChanges = false;
+let hasUnsavedChanges =
+    false;
 
 let newCurriculumMode =
     "create";
@@ -655,6 +657,7 @@ setupTheme(themeButton);
 
 const admin =
     await isAdmin();
+
 
 if (!admin) {
 
@@ -673,13 +676,25 @@ if (!admin) {
 
 
 await initializePage([
+
     setupAdminTab(),
-    loadUserName(userName),
+
+    loadUserName(
+        userName
+    ),
+
     loadMyRanking(),
-    loadProfileImage(topProfileImage),
+
+    loadProfileImage(
+        topProfileImage
+    ),
+
     updateAssignmentNavBadge(),
+
     updateShareNavBadge(),
+
     updateNewsNavBadge()
+
 ]);
 
 
@@ -687,9 +702,15 @@ setupEvents();
 
 
 await Promise.all([
+
     loadSubjects(),
+
     loadCurricula()
+
 ]);
+
+
+selectInitialCurriculum();
 
 
 /* ========================================
@@ -700,50 +721,11 @@ function setupEvents() {
 
     if (profileButton) {
 
-        profileButton.onclick = () => {
-
-            navigateWithUnsavedCheck(
-                "profile.html"
-            );
-
-        };
-
-    }
-
-
-    if (backButton) {
-
-        backButton.onclick = () => {
-
-            navigateWithUnsavedCheck(
-                "admin.html"
-            );
-
-        };
-
-    }
-
-
-    if (openSubjectsAdminButton) {
-
-        openSubjectsAdminButton.onclick =
+        profileButton.onclick =
             () => {
 
-                let url =
-                    "subjects_admin.html";
-
-                if (currentCurriculumId) {
-
-                    url +=
-                        "?curriculumId=" +
-                        encodeURIComponent(
-                            currentCurriculumId
-                        );
-
-                }
-
                 navigateWithUnsavedCheck(
-                    url
+                    "profile.html"
                 );
 
             };
@@ -751,13 +733,34 @@ function setupEvents() {
     }
 
 
+    if (backButton) {
+
+        backButton.onclick =
+            () => {
+
+                navigateWithUnsavedCheck(
+                    "admin.html"
+                );
+
+            };
+
+    }
+
+
+    if (openSubjectsAdminButton) {
+
+        openSubjectsAdminButton.onclick =
+            openSubjectsAdmin;
+
+    }
+
+
     if (curriculumSelect) {
 
-        curriculumSelect
-            .addEventListener(
-                "change",
-                handleCurriculumSelection
-            );
+        curriculumSelect.addEventListener(
+            "change",
+            handleCurriculumSelection
+        );
 
     }
 
@@ -804,46 +807,39 @@ function setupEvents() {
 
     if (categoryRequirementList) {
 
-        categoryRequirementList
-            .addEventListener(
-                "input",
-                handleCategoryRequirementInput
-            );
+        categoryRequirementList.addEventListener(
+            "input",
+            handleCategoryRequirementInput
+        );
 
-        categoryRequirementList
-            .addEventListener(
-                "click",
-                handleCategoryRequirementClick
-            );
+        categoryRequirementList.addEventListener(
+            "click",
+            handleCategoryRequirementClick
+        );
 
     }
 
 
     if (specialRequirementList) {
 
-        specialRequirementList
-            .addEventListener(
-                "input",
-                handleSpecialRequirementInput
-            );
+        specialRequirementList.addEventListener(
+            "input",
+            handleSpecialRequirementInput
+        );
 
-        specialRequirementList
-            .addEventListener(
-                "click",
-                handleSpecialRequirementClick
-            );
+        specialRequirementList.addEventListener(
+            "click",
+            handleSpecialRequirementClick
+        );
 
     }
 
 
-    const mainFormElements = [
+    const textAndNumberFields = [
 
         curriculumName,
-        curriculumDepartment,
-        curriculumMajor,
         admissionYearFrom,
         admissionYearTo,
-        curriculumPublished,
         graduationCredits,
         requiredCredits,
         electiveCreditsMinimum
@@ -851,51 +847,76 @@ function setupEvents() {
     ].filter(Boolean);
 
 
-    mainFormElements.forEach(element => {
+    textAndNumberFields.forEach(
+        element => {
 
-        element.addEventListener(
-            "input",
-            handleMainFormChange
-        );
+            element.addEventListener(
+                "input",
+                handleMainFormChange
+            );
 
-        element.addEventListener(
-            "change",
-            handleMainFormChange
-        );
-
-    });
+        }
+    );
 
 
     if (curriculumDepartment) {
 
-        curriculumDepartment
-            .addEventListener(
-                "change",
-                updateMajorAvailability
-            );
+        curriculumDepartment.addEventListener(
+            "change",
+            () => {
+
+                updateMajorAvailability();
+
+                handleMainFormChange();
+
+            }
+        );
 
     }
 
+
+    if (curriculumMajor) {
+
+        curriculumMajor.addEventListener(
+            "change",
+            handleMainFormChange
+        );
+
+    }
+
+
+    if (curriculumPublished) {
+
+        curriculumPublished.addEventListener(
+            "change",
+            handleMainFormChange
+        );
+
+    }
+
+
+    /*
+    renderSubjectListをそのままイベントへ渡すと、
+    第1引数にEventが入り配列として扱われるため、
+    必ず無名関数を挟む。
+    */
 
     if (curriculumSubjectSearch) {
 
-        curriculumSubjectSearch
-            .addEventListener(
-                "input",
-                renderSubjectList
-            );
+        curriculumSubjectSearch.addEventListener(
+            "input",
+            () => renderSubjectList()
+        );
 
     }
 
 
-    if (
-        curriculumSubjectCategoryFilter
-    ) {
+    if (curriculumSubjectCategoryFilter) {
 
         curriculumSubjectCategoryFilter
             .addEventListener(
                 "change",
-                renderSubjectList
+                () => renderSubjectList()
             );
 
     }
@@ -906,18 +927,15 @@ function setupEvents() {
         curriculumSubjectTypeFilter
             .addEventListener(
                 "change",
-                renderSubjectList
+                () => renderSubjectList()
             );
 
     }
 
 
-    if (
-        refreshCurriculumSubjectsButton
-    ) {
+    if (refreshCurriculumSubjectsButton) {
 
-        refreshCurriculumSubjectsButton
-            .onclick =
+        refreshCurriculumSubjectsButton.onclick =
             refreshSubjects;
 
     }
@@ -925,21 +943,17 @@ function setupEvents() {
 
     if (curriculumSubjectList) {
 
-        curriculumSubjectList
-            .addEventListener(
-                "click",
-                handleSubjectListClick
-            );
+        curriculumSubjectList.addEventListener(
+            "click",
+            handleSubjectListClick
+        );
 
     }
 
 
-    if (
-        previewCourseRegistrationButton
-    ) {
+    if (previewCourseRegistrationButton) {
 
-        previewCourseRegistrationButton
-            .onclick =
+        previewCourseRegistrationButton.onclick =
             previewCourseRegistration;
 
     }
@@ -947,8 +961,7 @@ function setupEvents() {
 
     if (previewCreditProgressButton) {
 
-        previewCreditProgressButton
-            .onclick =
+        previewCreditProgressButton.onclick =
             previewCreditProgress;
 
     }
@@ -957,9 +970,13 @@ function setupEvents() {
     if (saveCurriculumDraftButton) {
 
         saveCurriculumDraftButton.onclick =
-            () => saveCurrentCurriculum(
-                false
-            );
+            () => {
+
+                saveCurrentCurriculum(
+                    false
+                );
+
+            };
 
     }
 
@@ -967,9 +984,13 @@ function setupEvents() {
     if (publishCurriculumButton) {
 
         publishCurriculumButton.onclick =
-            () => saveCurrentCurriculum(
-                true
-            );
+            () => {
+
+                saveCurrentCurriculum(
+                    true
+                );
+
+            };
 
     }
 
@@ -985,9 +1006,13 @@ function setupEvents() {
     if (cancelNewCurriculumButton) {
 
         cancelNewCurriculumButton.onclick =
-            () => closeModal(
-                newCurriculumModal
-            );
+            () => {
+
+                closeModal(
+                    newCurriculumModal
+                );
+
+            };
 
     }
 
@@ -1000,21 +1025,21 @@ function setupEvents() {
     }
 
 
-    if (
-        cancelDeleteCurriculumButton
-    ) {
+    if (cancelDeleteCurriculumButton) {
 
         cancelDeleteCurriculumButton.onclick =
-            () => closeModal(
-                deleteCurriculumModal
-            );
+            () => {
+
+                closeModal(
+                    deleteCurriculumModal
+                );
+
+            };
 
     }
 
 
-    if (
-        confirmDeleteCurriculumButton
-    ) {
+    if (confirmDeleteCurriculumButton) {
 
         confirmDeleteCurriculumButton.onclick =
             deleteSelectedCurriculum;
@@ -1027,24 +1052,48 @@ function setupEvents() {
         deleteCurriculumModal
     ]
     .filter(Boolean)
-    .forEach(modal => {
+    .forEach(
+        modal => {
 
-        modal.addEventListener(
-            "click",
-            event => {
+            modal.addEventListener(
+                "click",
+                event => {
 
-                if (
-                    event.target === modal
-                ) {
+                    if (
+                        event.target === modal
+                    ) {
 
-                    closeModal(modal);
+                        closeModal(
+                            modal
+                        );
+
+                    }
 
                 }
+            );
 
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key !== "Escape") {
+                return;
             }
-        );
 
-    });
+            closeModal(
+                newCurriculumModal
+            );
+
+            closeModal(
+                deleteCurriculumModal
+            );
+
+        }
+    );
 
 
     window.addEventListener(
@@ -1057,7 +1106,8 @@ function setupEvents() {
 
             event.preventDefault();
 
-            event.returnValue = "";
+            event.returnValue =
+                "";
 
         }
     );
@@ -1066,12 +1116,61 @@ function setupEvents() {
 
 
 /* ========================================
+   初期選択
+======================================== */
+
+function selectInitialCurriculum(
+    preferredCurriculumId = ""
+) {
+
+    const queryCurriculumId =
+        new URLSearchParams(
+            location.search
+        )
+        .get(
+            "curriculumId"
+        ) || "";
+
+
+    const targetId = [
+
+        preferredCurriculumId,
+        currentCurriculumId,
+        queryCurriculumId,
+        curricula[0]?.curriculumId
+
+    ].find(
+        id =>
+            id &&
+            curricula.some(
+                curriculum =>
+                    curriculum.curriculumId ===
+                    id
+            )
+    );
+
+
+    if (targetId) {
+
+        selectCurriculum(
+            targetId
+        );
+
+        return;
+
+    }
+
+
+    clearCurriculumForm();
+
+}
+
+
+/* ========================================
    カリキュラム取得
 ======================================== */
 
-async function loadCurricula(
-    preferredCurriculumId = ""
-) {
+async function loadCurricula() {
 
     try {
 
@@ -1085,60 +1184,24 @@ async function loadCurricula(
 
 
         curricula =
-            snapshot.docs.map(
-                curriculumDocument =>
-                    normalizeCurriculum({
-                        ...curriculumDocument.data(),
+            snapshot.docs
+                .map(
+                    curriculumDocument =>
+                        normalizeCurriculum({
 
-                        curriculumId:
-                            curriculumDocument.id
-                    })
-            );
+                            ...curriculumDocument.data(),
 
+                            curriculumId:
+                                curriculumDocument.id
 
-        curricula.sort(
-            compareCurricula
-        );
+                        })
+                )
+                .sort(
+                    compareCurricula
+                );
 
 
         renderCurriculumSelect();
-
-
-        const queryCurriculumId =
-            new URLSearchParams(
-                location.search
-            )
-            .get("curriculumId") || "";
-
-
-        const targetId = [
-
-            preferredCurriculumId,
-            currentCurriculumId,
-            queryCurriculumId,
-            curricula[0]?.curriculumId
-
-        ].find(id =>
-            id &&
-            curricula.some(
-                curriculum =>
-                    curriculum.curriculumId ===
-                    id
-            )
-        );
-
-
-        if (targetId) {
-
-            selectCurriculum(
-                targetId
-            );
-
-        } else {
-
-            clearCurriculumForm();
-
-        }
 
     } catch (error) {
 
@@ -1148,21 +1211,49 @@ async function loadCurricula(
         );
 
 
+        curricula =
+            [];
+
+
+        renderCurriculumSelect();
+
+
         alert(
             "カリキュラムを取得できませんでした。"
         );
-
-
-        clearCurriculumForm();
 
     }
 
 }
 
 
+/* ========================================
+   カリキュラム正規化
+======================================== */
+
 function normalizeCurriculum(
     curriculum
 ) {
+
+    const draft =
+        curriculum?.draft &&
+        typeof curriculum.draft ===
+            "object" &&
+        !Array.isArray(
+            curriculum.draft
+        )
+            ? curriculum.draft
+            : null;
+
+
+    const editableData =
+        draft
+            ? {
+                ...curriculum,
+                ...draft
+            }
+            : curriculum;
+
 
     return {
 
@@ -1170,58 +1261,58 @@ function normalizeCurriculum(
             String(
                 curriculum.curriculumId ||
                 ""
-            ),
+            ).trim(),
 
         name:
             String(
-                curriculum.name ||
+                editableData.name ||
                 ""
-            ),
+            ).trim(),
 
         department:
             String(
-                curriculum.department ||
+                editableData.department ||
                 ""
-            ),
+            ).trim(),
 
         major:
             String(
-                curriculum.major ||
+                editableData.major ||
                 ""
-            ),
+            ).trim(),
 
         admissionYearFrom:
             toNonNegativeNumber(
-                curriculum.admissionYearFrom
+                editableData.admissionYearFrom
             ),
 
         admissionYearTo:
-            curriculum.admissionYearTo
+            editableData.admissionYearTo
                 ? toNonNegativeNumber(
-                    curriculum.admissionYearTo
+                    editableData.admissionYearTo
                 )
                 : null,
 
         graduationCredits:
             toNonNegativeNumber(
-                curriculum.graduationCredits
+                editableData.graduationCredits
             ),
 
         requiredCredits:
             toNonNegativeNumber(
-                curriculum.requiredCredits
+                editableData.requiredCredits
             ),
 
         electiveCreditsMinimum:
             toNonNegativeNumber(
-                curriculum.electiveCreditsMinimum
+                editableData.electiveCreditsMinimum
             ),
 
         categoryRequirements:
             Array.isArray(
-                curriculum.categoryRequirements
+                editableData.categoryRequirements
             )
-                ? curriculum
+                ? editableData
                     .categoryRequirements
                     .map(
                         normalizeCategoryRequirement
@@ -1230,9 +1321,9 @@ function normalizeCurriculum(
 
         specialRequirements:
             Array.isArray(
-                curriculum.specialRequirements
+                editableData.specialRequirements
             )
-                ? curriculum
+                ? editableData
                     .specialRequirements
                     .map(
                         normalizeSpecialRequirement
@@ -1240,34 +1331,49 @@ function normalizeCurriculum(
                 : [],
 
         published:
-            curriculum.published === true,
+            curriculum.published ===
+            true,
+
+        hasDraft:
+            draft !== null,
 
         source:
             String(
-                curriculum.source ||
+                editableData.source ||
                 ""
             ),
 
         sourceLabel:
             String(
-                curriculum.sourceLabel ||
+                editableData.sourceLabel ||
                 ""
             ),
 
         sourceNote:
             String(
-                curriculum.sourceNote ||
+                editableData.sourceNote ||
                 ""
             ),
 
         createdAt:
-            curriculum.createdAt || null,
+            curriculum.createdAt ||
+            null,
 
         updatedAt:
-            curriculum.updatedAt || null,
+            curriculum.updatedAt ||
+            null,
+
+        draftUpdatedAt:
+            curriculum.draftUpdatedAt ||
+            null,
+
+        publishedAt:
+            curriculum.publishedAt ||
+            null,
 
         updatedBy:
-            curriculum.updatedBy || ""
+            curriculum.updatedBy ||
+            ""
 
     };
 
@@ -1292,7 +1398,7 @@ function normalizeCategoryRequirement(
             String(
                 requirement.category ||
                 ""
-            ),
+            ).trim(),
 
         requiredCredits:
             toNonNegativeNumber(
@@ -1333,7 +1439,7 @@ function normalizeSpecialRequirement(
             String(
                 requirement.requirementTag ||
                 ""
-            ),
+            ).trim(),
 
         minimumCredits:
             toNonNegativeNumber(
@@ -1345,6 +1451,10 @@ function normalizeSpecialRequirement(
 }
 
 
+/* ========================================
+   カリキュラム選択欄
+======================================== */
+
 function renderCurriculumSelect() {
 
     if (!curriculumSelect) {
@@ -1355,10 +1465,15 @@ function renderCurriculumSelect() {
     if (curricula.length === 0) {
 
         curriculumSelect.innerHTML = `
+
             <option value="">
+
                 カリキュラムがありません
+
             </option>
+
         `;
+
 
         curriculumSelect.disabled =
             true;
@@ -1373,29 +1488,60 @@ function renderCurriculumSelect() {
 
 
     curriculumSelect.innerHTML =
-        curricula.map(curriculum => {
+        curricula
+            .map(
+                curriculum => {
 
-            const publishedLabel =
-                curriculum.published
-                    ? "公開中"
-                    : "下書き";
+                    let statusLabel =
+                        "下書き";
 
-            return `
-                <option
-                    value="${escapeAttribute(
-                        curriculum.curriculumId
-                    )}">
 
-                    ${escapeHtml(
-                        curriculum.name
-                    )}
+                    if (
+                        curriculum.published &&
+                        curriculum.hasDraft
+                    ) {
 
-                    （${publishedLabel}）
+                        statusLabel =
+                            "公開中・下書きあり";
 
-                </option>
-            `;
+                    } else if (
+                        curriculum.published
+                    ) {
 
-        }).join("");
+                        statusLabel =
+                            "公開中";
+
+                    } else if (
+                        curriculum.hasDraft
+                    ) {
+
+                        statusLabel =
+                            "未公開・下書きあり";
+
+                    }
+
+
+                    return `
+
+                        <option
+                            value="${escapeAttribute(
+                                curriculum
+                                    .curriculumId
+                            )}">
+
+                            ${escapeHtml(
+                                curriculum.name
+                            )}
+
+                            （${statusLabel}）
+
+                        </option>
+
+                    `;
+
+                }
+            )
+            .join("");
 
 }
 
@@ -1406,13 +1552,15 @@ function renderCurriculumSelect() {
 
 function handleCurriculumSelection() {
 
-    const newId =
-        curriculumSelect?.value || "";
+    const selectedId =
+        curriculumSelect?.value ||
+        "";
 
 
     if (
         hasUnsavedChanges &&
-        newId !== currentCurriculumId
+        selectedId !==
+            currentCurriculumId
     ) {
 
         const discard =
@@ -1435,7 +1583,7 @@ function handleCurriculumSelection() {
 
 
     selectCurriculum(
-        newId
+        selectedId
     );
 
 }
@@ -1476,7 +1624,14 @@ function selectCurriculum(
         currentCurriculum
             .categoryRequirements
             .map(
-                normalizeCategoryRequirement
+                (
+                    requirement,
+                    index
+                ) =>
+                    normalizeCategoryRequirement(
+                        requirement,
+                        index
+                    )
             );
 
 
@@ -1484,7 +1639,14 @@ function selectCurriculum(
         currentCurriculum
             .specialRequirements
             .map(
-                normalizeSpecialRequirement
+                (
+                    requirement,
+                    index
+                ) =>
+                    normalizeSpecialRequirement(
+                        requirement,
+                        index
+                    )
             );
 
 
@@ -1509,13 +1671,19 @@ function selectCurriculum(
 
     updateCurriculumStatus();
 
+    updateActionAvailability();
+
     analyzeCurriculum();
 
-    setUnsavedState(false);
+    setUnsavedState(
+        false
+    );
 
 
     const url =
-        new URL(location.href);
+        new URL(
+            location.href
+        );
 
 
     url.searchParams.set(
@@ -1533,6 +1701,10 @@ function selectCurriculum(
 }
 
 
+/* ========================================
+   フォーム反映
+======================================== */
+
 function fillCurriculumForm(
     curriculum
 ) {
@@ -1547,12 +1719,14 @@ function fillCurriculumForm(
         curriculum.curriculumId
     );
 
+
     if (curriculumId) {
 
         curriculumId.readOnly =
             true;
 
     }
+
 
     setInputValue(
         curriculumDepartment,
@@ -1627,11 +1801,14 @@ function clearCurriculumForm() {
 
     ]
     .filter(Boolean)
-    .forEach(element => {
+    .forEach(
+        element => {
 
-        element.value = "";
+            element.value =
+                "";
 
-    });
+        }
+    );
 
 
     setChecked(
@@ -1643,9 +1820,13 @@ function clearCurriculumForm() {
     if (categoryRequirementList) {
 
         categoryRequirementList.innerHTML = `
+
             <div class="curriculum-loading">
+
                 カリキュラムを作成または選択してください。
+
             </div>
+
         `;
 
     }
@@ -1654,9 +1835,13 @@ function clearCurriculumForm() {
     if (specialRequirementList) {
 
         specialRequirementList.innerHTML = `
+
             <div class="curriculum-empty">
+
                 特別要件はありません。
+
             </div>
+
         `;
 
     }
@@ -1665,9 +1850,13 @@ function clearCurriculumForm() {
     if (curriculumSubjectList) {
 
         curriculumSubjectList.innerHTML = `
+
             <div class="curriculum-loading">
+
                 カリキュラムを選択してください。
+
             </div>
+
         `;
 
     }
@@ -1683,18 +1872,37 @@ function clearCurriculumForm() {
         "最終更新：----"
     );
 
+    setText(
+        curriculumSubjectFilteredCount,
+        "0科目"
+    );
+
 
     updateAnalysisSummary({
-        count: 0,
-        total: 0,
-        required: 0,
-        elective: 0,
-        unassigned: 0,
-        incomplete: 0
+
+        count:
+            0,
+
+        total:
+            0,
+
+        required:
+            0,
+
+        elective:
+            0,
+
+        unassigned:
+            0,
+
+        incomplete:
+            0
+
     });
 
 
     renderWarnings([
+
         {
             level:
                 "info",
@@ -1702,12 +1910,15 @@ function clearCurriculumForm() {
             message:
                 "カリキュラムを作成または選択してください。"
         }
+
     ]);
 
 
     updateActionAvailability();
 
-    setUnsavedState(false);
+    setUnsavedState(
+        false
+    );
 
 }
 
@@ -1737,16 +1948,16 @@ function updateMajorAvailability() {
     }
 
 
-    const isRehabilitation =
+    const rehabilitation =
         curriculumDepartment?.value ===
         "リハビリテーション学科";
 
 
     curriculumMajor.disabled =
-        !isRehabilitation;
+        !rehabilitation;
 
 
-    if (!isRehabilitation) {
+    if (!rehabilitation) {
 
         curriculumMajor.value =
             "";
@@ -1765,19 +1976,23 @@ function readCurriculumForm() {
 
         name:
             curriculumName
-                ?.value.trim() || "",
+                ?.value.trim() ||
+            "",
 
         department:
             curriculumDepartment
-                ?.value || "",
+                ?.value ||
+            "",
 
         major:
             curriculumMajor
-                ?.value || "",
+                ?.value ||
+            "",
 
         admissionYearFrom:
             toNonNegativeNumber(
-                admissionYearFrom?.value
+                admissionYearFrom
+                    ?.value
             ),
 
         admissionYearTo:
@@ -1790,22 +2005,26 @@ function readCurriculumForm() {
 
         graduationCredits:
             toNonNegativeNumber(
-                graduationCredits?.value
+                graduationCredits
+                    ?.value
             ),
 
         requiredCredits:
             toNonNegativeNumber(
-                requiredCredits?.value
+                requiredCredits
+                    ?.value
             ),
 
         electiveCreditsMinimum:
             toNonNegativeNumber(
-                electiveCreditsMinimum?.value
+                electiveCreditsMinimum
+                    ?.value
             ),
 
         categoryRequirements:
             categoryRequirements.map(
                 requirement => ({
+
                     category:
                         requirement.category,
 
@@ -1820,35 +2039,39 @@ function readCurriculumForm() {
                     totalCreditsMinimum:
                         requirement
                             .totalCreditsMinimum
+
                 })
             ),
 
         specialRequirements:
             specialRequirements.map(
                 requirement => ({
+
                     requirementTag:
-                        requirement.requirementTag,
+                        requirement
+                            .requirementTag,
 
                     minimumCredits:
-                        requirement.minimumCredits
+                        requirement
+                            .minimumCredits
+
                 })
             ),
 
-        published:
-            curriculumPublished
-                ?.checked === true,
-
         source:
             currentCurriculum
-                ?.source || "",
+                ?.source ||
+            "",
 
         sourceLabel:
             currentCurriculum
-                ?.sourceLabel || "",
+                ?.sourceLabel ||
+            "",
 
         sourceNote:
             currentCurriculum
-                ?.sourceNote || ""
+                ?.sourceNote ||
+            ""
 
     };
 
@@ -1867,13 +2090,18 @@ function renderCategoryRequirements() {
 
 
     if (
-        categoryRequirements.length === 0
+        categoryRequirements.length ===
+        0
     ) {
 
         categoryRequirementList.innerHTML = `
+
             <div class="curriculum-empty">
+
                 区分別要件はありません。
+
             </div>
+
         `;
 
         return;
@@ -1896,11 +2124,13 @@ function createCategoryRequirementHtml(
 ) {
 
     return `
+
         <div
             class="curriculum-requirement-row"
             data-local-id="${escapeAttribute(
                 requirement.localId
             )}">
+
 
             <label class="curriculum-requirement-name">
 
@@ -1928,9 +2158,12 @@ function createCategoryRequirementHtml(
                 <input
                     type="number"
                     min="0"
-                    step="1"
+                    step="0.5"
                     data-field="requiredCredits"
-                    value="${requirement.requiredCredits}">
+                    value="${formatCredit(
+                        requirement
+                            .requiredCredits
+                    )}">
 
             </label>
 
@@ -1944,9 +2177,12 @@ function createCategoryRequirementHtml(
                 <input
                     type="number"
                     min="0"
-                    step="1"
+                    step="0.5"
                     data-field="electiveCreditsMinimum"
-                    value="${requirement.electiveCreditsMinimum}">
+                    value="${formatCredit(
+                        requirement
+                            .electiveCreditsMinimum
+                    )}">
 
             </label>
 
@@ -1960,9 +2196,12 @@ function createCategoryRequirementHtml(
                 <input
                     type="number"
                     min="0"
-                    step="1"
+                    step="0.5"
                     data-field="totalCreditsMinimum"
-                    value="${requirement.totalCreditsMinimum}">
+                    value="${formatCredit(
+                        requirement
+                            .totalCreditsMinimum
+                    )}">
 
             </label>
 
@@ -1977,6 +2216,7 @@ function createCategoryRequirementHtml(
             </button>
 
         </div>
+
     `;
 
 }
@@ -1998,10 +2238,19 @@ function addCategoryRequirement() {
     categoryRequirements.push(
         normalizeCategoryRequirement(
             {
-                category: "",
-                requiredCredits: 0,
-                electiveCreditsMinimum: 0,
-                totalCreditsMinimum: 0
+
+                category:
+                    "",
+
+                requiredCredits:
+                    0,
+
+                electiveCreditsMinimum:
+                    0,
+
+                totalCreditsMinimum:
+                    0
+
             },
             categoryRequirements.length
         )
@@ -2102,6 +2351,17 @@ function handleCategoryRequirementClick(
     }
 
 
+    const confirmed =
+        confirm(
+            "この区分別要件を削除しますか？"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
     categoryRequirements =
         categoryRequirements.filter(
             requirement =>
@@ -2131,13 +2391,18 @@ function renderSpecialRequirements() {
 
 
     if (
-        specialRequirements.length === 0
+        specialRequirements.length ===
+        0
     ) {
 
         specialRequirementList.innerHTML = `
+
             <div class="curriculum-empty">
+
                 特別要件はありません。
+
             </div>
+
         `;
 
         return;
@@ -2160,11 +2425,13 @@ function createSpecialRequirementHtml(
 ) {
 
     return `
+
         <div
             class="curriculum-special-row"
             data-local-id="${escapeAttribute(
                 requirement.localId
             )}">
+
 
             <label>
 
@@ -2176,7 +2443,8 @@ function createSpecialRequirementHtml(
                     type="text"
                     data-field="requirementTag"
                     value="${escapeAttribute(
-                        requirement.requirementTag
+                        requirement
+                            .requirementTag
                     )}"
                     placeholder="専門共通">
 
@@ -2192,9 +2460,12 @@ function createSpecialRequirementHtml(
                 <input
                     type="number"
                     min="0"
-                    step="1"
+                    step="0.5"
                     data-field="minimumCredits"
-                    value="${requirement.minimumCredits}">
+                    value="${formatCredit(
+                        requirement
+                            .minimumCredits
+                    )}">
 
             </label>
 
@@ -2209,6 +2480,7 @@ function createSpecialRequirementHtml(
             </button>
 
         </div>
+
     `;
 
 }
@@ -2230,8 +2502,13 @@ function addSpecialRequirement() {
     specialRequirements.push(
         normalizeSpecialRequirement(
             {
-                requirementTag: "",
-                minimumCredits: 0
+
+                requirementTag:
+                    "",
+
+                minimumCredits:
+                    0
+
             },
             specialRequirements.length
         )
@@ -2335,6 +2612,17 @@ function handleSpecialRequirementClick(
     }
 
 
+    const confirmed =
+        confirm(
+            "この特別要件を削除しますか？"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
     specialRequirements =
         specialRequirements.filter(
             requirement =>
@@ -2353,7 +2641,7 @@ function handleSpecialRequirementClick(
 
 
 /* ========================================
-   学生便覧データ作成
+   学生便覧初期データ
 ======================================== */
 
 async function createDefaultCurricula() {
@@ -2364,7 +2652,7 @@ async function createDefaultCurricula() {
             "・看護学科 2024年度以降\n" +
             "・理学療法学専攻 2020年度以降\n" +
             "・作業療法学専攻 2020年度以降\n\n" +
-            "既存のカリキュラムは上書きしません。"
+            "すでに存在するカリキュラムは上書きしません。"
         );
 
 
@@ -2373,97 +2661,109 @@ async function createDefaultCurricula() {
     }
 
 
-    createDefaultCurriculaButton.disabled =
-        true;
-
-    createDefaultCurriculaButton.textContent =
-        "作成中...";
+    const originalText =
+        createDefaultCurriculaButton
+            .textContent;
 
 
     try {
 
+        createDefaultCurriculaButton.disabled =
+            true;
+
+        createDefaultCurriculaButton.textContent =
+            "作成中...";
+
+
         const existingSnapshots =
             await Promise.all(
                 HANDBOOK_DEFAULT_CURRICULA
-                    .map(defaultCurriculum =>
-                        getDoc(
-                            doc(
-                                db,
-                                "curricula",
-                                defaultCurriculum
-                                    .curriculumId
+                    .map(
+                        item =>
+                            getDoc(
+                                doc(
+                                    db,
+                                    "curricula",
+                                    item.curriculumId
+                                )
                             )
-                        )
                     )
             );
 
 
         const batch =
-            writeBatch(db);
+            writeBatch(
+                db
+            );
 
 
-        let createdCount = 0;
+        let createdCount =
+            0;
 
-        let firstCreatedId = "";
-
-
-        HANDBOOK_DEFAULT_CURRICULA
-            .forEach(
-                (
-                    defaultCurriculum,
-                    index
-                ) => {
-
-                    if (
-                        existingSnapshots[
-                            index
-                        ].exists()
-                    ) {
-
-                        return;
-
-                    }
+        let firstCreatedId =
+            "";
 
 
-                    const curriculumRef =
-                        doc(
-                            db,
-                            "curricula",
-                            defaultCurriculum
-                                .curriculumId
-                        );
+        HANDBOOK_DEFAULT_CURRICULA.forEach(
+            (
+                item,
+                index
+            ) => {
+
+                if (
+                    existingSnapshots[
+                        index
+                    ].exists()
+                ) {
+
+                    return;
+
+                }
 
 
-                    batch.set(
-                        curriculumRef,
-                        {
-                            ...defaultCurriculum,
-
-                            createdAt:
-                                serverTimestamp(),
-
-                            updatedAt:
-                                serverTimestamp(),
-
-                            updatedBy:
-                                studentNumber || ""
-                        }
+                const reference =
+                    doc(
+                        db,
+                        "curricula",
+                        item.curriculumId
                     );
 
 
-                    createdCount++;
+                batch.set(
+                    reference,
+                    {
 
+                        ...item,
 
-                    if (!firstCreatedId) {
+                        hasDraft:
+                            false,
 
-                        firstCreatedId =
-                            defaultCurriculum
-                                .curriculumId;
+                        createdAt:
+                            serverTimestamp(),
+
+                        updatedAt:
+                            serverTimestamp(),
+
+                        updatedBy:
+                            studentNumber ||
+                            ""
 
                     }
+                );
+
+
+                createdCount++;
+
+
+                if (!firstCreatedId) {
+
+                    firstCreatedId =
+                        item.curriculumId;
 
                 }
-            );
+
+            }
+        );
 
 
         if (createdCount === 0) {
@@ -2485,7 +2785,7 @@ async function createDefaultCurricula() {
         );
 
 
-        await loadCurricula(
+        await reloadAllData(
             firstCreatedId
         );
 
@@ -2507,7 +2807,7 @@ async function createDefaultCurricula() {
             false;
 
         createDefaultCurriculaButton.textContent =
-            "学生便覧から初期データを作成";
+            originalText;
 
     }
 
@@ -2524,20 +2824,15 @@ function openCreateCurriculumModal() {
         "create";
 
 
-    if (newCurriculumId) {
+    setInputValue(
+        newCurriculumId,
+        ""
+    );
 
-        newCurriculumId.value =
-            "";
-
-    }
-
-
-    if (newCurriculumName) {
-
-        newCurriculumName.value =
-            "";
-
-    }
+    setInputValue(
+        newCurriculumName,
+        ""
+    );
 
 
     openModal(
@@ -2567,27 +2862,23 @@ function openDuplicateCurriculumModal() {
         "duplicate";
 
 
-    if (newCurriculumId) {
+    setInputValue(
+        newCurriculumId,
+        currentCurriculumId +
+        "_copy"
+    );
 
-        newCurriculumId.value =
-            currentCurriculumId +
-            "_copy";
-
-    }
-
-
-    if (newCurriculumName) {
-
-        newCurriculumName.value =
-            (
-                curriculumName
-                    ?.value.trim() ||
-                currentCurriculum?.name ||
-                ""
-            ) +
-            " コピー";
-
-    }
+    setInputValue(
+        newCurriculumName,
+        (
+            curriculumName
+                ?.value.trim() ||
+            currentCurriculum
+                ?.name ||
+            ""
+        ) +
+        " コピー"
+    );
 
 
     openModal(
@@ -2604,16 +2895,20 @@ async function createOrDuplicateCurriculum() {
 
     const id =
         newCurriculumId
-            ?.value.trim() || "";
+            ?.value.trim() ||
+        "";
 
     const name =
         newCurriculumName
-            ?.value.trim() || "";
+            ?.value.trim() ||
+        "";
 
 
     if (
         !/^[a-zA-Z0-9_-]+$/
-            .test(id)
+            .test(
+                id
+            )
     ) {
 
         alert(
@@ -2636,16 +2931,21 @@ async function createOrDuplicateCurriculum() {
     }
 
 
-    confirmNewCurriculumButton.disabled =
-        true;
-
-    confirmNewCurriculumButton.textContent =
-        "作成中...";
+    const originalText =
+        confirmNewCurriculumButton
+            .textContent;
 
 
     try {
 
-        const curriculumRef =
+        confirmNewCurriculumButton.disabled =
+            true;
+
+        confirmNewCurriculumButton.textContent =
+            "作成中...";
+
+
+        const reference =
             doc(
                 db,
                 "curricula",
@@ -2655,11 +2955,13 @@ async function createOrDuplicateCurriculum() {
 
         const existingSnapshot =
             await getDoc(
-                curriculumRef
+                reference
             );
 
 
-        if (existingSnapshot.exists()) {
+        if (
+            existingSnapshot.exists()
+        ) {
 
             alert(
                 "同じカリキュラムIDがすでに存在します。"
@@ -2678,13 +2980,9 @@ async function createOrDuplicateCurriculum() {
             "duplicate"
         ) {
 
-            const currentForm =
-                readCurriculumForm();
-
-
             data = {
 
-                ...currentForm,
+                ...readCurriculumForm(),
 
                 curriculumId:
                     id,
@@ -2692,6 +2990,9 @@ async function createOrDuplicateCurriculum() {
                 name,
 
                 published:
+                    false,
+
+                hasDraft:
                     false
 
             };
@@ -2736,6 +3037,9 @@ async function createOrDuplicateCurriculum() {
                 published:
                     false,
 
+                hasDraft:
+                    false,
+
                 source:
                     "manual",
 
@@ -2751,8 +3055,9 @@ async function createOrDuplicateCurriculum() {
 
 
         await setDoc(
-            curriculumRef,
+            reference,
             {
+
                 ...data,
 
                 createdAt:
@@ -2762,7 +3067,9 @@ async function createOrDuplicateCurriculum() {
                     serverTimestamp(),
 
                 updatedBy:
-                    studentNumber || ""
+                    studentNumber ||
+                    ""
+
             }
         );
 
@@ -2777,7 +3084,9 @@ async function createOrDuplicateCurriculum() {
         );
 
 
-        await loadCurricula(id);
+        await reloadAllData(
+            id
+        );
 
     } catch (error) {
 
@@ -2797,7 +3106,7 @@ async function createOrDuplicateCurriculum() {
             false;
 
         confirmNewCurriculumButton.textContent =
-            "作成する";
+            originalText;
 
     }
 
@@ -2805,7 +3114,7 @@ async function createOrDuplicateCurriculum() {
 
 
 /* ========================================
-   カリキュラム保存
+   保存・公開
 ======================================== */
 
 async function saveCurrentCurriculum(
@@ -2828,7 +3137,9 @@ async function saveCurrentCurriculum(
 
 
     const validation =
-        validateCurriculum(data);
+        validateCurriculum(
+            data
+        );
 
 
     if (!validation.valid) {
@@ -2846,30 +3157,37 @@ async function saveCurrentCurriculum(
 
     if (publish) {
 
-        const warnings =
-            createCurriculumAnalysis()
-                .warnings
-                .filter(
-                    warning =>
-                        warning.level ===
-                            "error" ||
-                        warning.level ===
-                            "warning"
-                );
+        const analysis =
+            createCurriculumAnalysis();
+
+
+        const importantWarnings =
+            analysis.warnings.filter(
+                warning =>
+                    warning.level ===
+                        "error" ||
+                    warning.level ===
+                        "warning"
+            );
 
 
         const warningText =
-            warnings
-                .slice(0, 8)
+            importantWarnings
+                .slice(
+                    0,
+                    8
+                )
                 .map(
                     warning =>
                         `・${warning.message}`
                 )
-                .join("\n");
+                .join(
+                    "\n"
+                );
 
 
         const message =
-            warnings.length > 0
+            importantWarnings.length > 0
                 ? (
                     "確認が必要な項目があります。\n\n" +
                     warningText +
@@ -2897,57 +3215,131 @@ async function saveCurrentCurriculum(
         button.textContent;
 
 
-    button.disabled =
-        true;
-
-    button.textContent =
-        "保存中...";
-
-
     try {
 
-        await setDoc(
+        button.disabled =
+            true;
+
+        button.textContent =
+            "保存中...";
+
+
+        const reference =
             doc(
                 db,
                 "curricula",
                 currentCurriculumId
-            ),
-            {
-                ...data,
+            );
 
-                published:
-                    publish,
 
-                updatedAt:
-                    serverTimestamp(),
+        if (publish) {
 
-                updatedBy:
-                    studentNumber || ""
-            },
-            {
-                merge:
-                    true
-            }
+            await setDoc(
+                reference,
+                {
+
+                    ...data,
+
+                    published:
+                        true,
+
+                    hasDraft:
+                        false,
+
+                    draft:
+                        deleteField(),
+
+                    draftUpdatedAt:
+                        deleteField(),
+
+                    publishedAt:
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp(),
+
+                    updatedBy:
+                        studentNumber ||
+                        ""
+
+                },
+                {
+                    merge:
+                        true
+                }
+            );
+
+
+            setChecked(
+                curriculumPublished,
+                true
+            );
+
+
+            showToast(
+                "カリキュラムを公開しました"
+            );
+
+        } else {
+
+            /*
+            公開済みカリキュラムは公開内容を残したまま
+            draftへ編集内容を保存する。
+
+            公開チェックを外した状態で保存した場合だけ
+            学生側を非公開にする。
+            */
+
+            const keepPublished =
+                currentCurriculum
+                    ?.published === true &&
+                curriculumPublished
+                    ?.checked === true;
+
+
+            await setDoc(
+                reference,
+                {
+
+                    draft:
+                        data,
+
+                    hasDraft:
+                        true,
+
+                    published:
+                        keepPublished,
+
+                    draftUpdatedAt:
+                        serverTimestamp(),
+
+                    updatedBy:
+                        studentNumber ||
+                        ""
+
+                },
+                {
+                    merge:
+                        true
+                }
+            );
+
+
+            showToast(
+                keepPublished
+                    ? "公開内容を維持して下書きを保存しました"
+                    : "下書きを保存しました"
+            );
+
+        }
+
+
+        setUnsavedState(
+            false
         );
 
 
-        setChecked(
-            curriculumPublished,
-            publish
-        );
-
-
-        showToast(
-            publish
-                ? "カリキュラムを公開しました"
-                : "下書きを保存しました"
-        );
-
-
-        setUnsavedState(false);
-
-
-        await loadCurricula(
+        await reloadAllData(
             currentCurriculumId
         );
 
@@ -2976,11 +3368,16 @@ async function saveCurrentCurriculum(
 }
 
 
+/* ========================================
+   入力チェック
+======================================== */
+
 function validateCurriculum(
     curriculum
 ) {
 
-    const messages = [];
+    const messages =
+        [];
 
 
     if (!curriculum.name) {
@@ -3064,19 +3461,45 @@ function validateCurriculum(
     }
 
 
-    const emptyCategoryCount =
+    if (
+        curriculum.requiredCredits >
+        curriculum.graduationCredits
+    ) {
+
+        messages.push(
+            "必修必要単位が卒業必要単位を超えています。"
+        );
+
+    }
+
+
+    if (
+        curriculum.requiredCredits +
+        curriculum.electiveCreditsMinimum >
+        curriculum.graduationCredits
+    ) {
+
+        messages.push(
+            "必修必要単位と選択必要単位の合計が、卒業必要単位を超えています。"
+        );
+
+    }
+
+
+    const emptyCategories =
         curriculum.categoryRequirements
             .filter(
                 requirement =>
                     !requirement.category
-            )
-            .length;
+            );
 
 
-    if (emptyCategoryCount > 0) {
+    if (
+        emptyCategories.length > 0
+    ) {
 
         messages.push(
-            `科目区分名が未入力の項目が${emptyCategoryCount}件あります。`
+            `科目区分名が未入力の項目が${emptyCategories.length}件あります。`
         );
 
     }
@@ -3094,12 +3517,13 @@ function validateCurriculum(
     const duplicateCategoryNames =
         categoryNames.filter(
             (
-                name,
+                value,
                 index,
                 array
             ) =>
-                array.indexOf(name) !==
-                index
+                array.indexOf(
+                    value
+                ) !== index
         );
 
 
@@ -3115,20 +3539,43 @@ function validateCurriculum(
     }
 
 
-    const emptySpecialCount =
+    const invalidCategories =
+        curriculum.categoryRequirements
+            .filter(
+                requirement =>
+                    requirement.requiredCredits +
+                    requirement.electiveCreditsMinimum >
+                    requirement.totalCreditsMinimum
+            );
+
+
+    if (
+        invalidCategories.length > 0
+    ) {
+
+        messages.push(
+            "区分別要件で、必修と選択の合計が区分合計を超えている項目があります。"
+        );
+
+    }
+
+
+    const emptySpecialRequirements =
         curriculum.specialRequirements
             .filter(
                 requirement =>
                     !requirement
                         .requirementTag
-            )
-            .length;
+            );
 
 
-    if (emptySpecialCount > 0) {
+    if (
+        emptySpecialRequirements.length >
+        0
+    ) {
 
         messages.push(
-            `要件タグが未入力の項目が${emptySpecialCount}件あります。`
+            `要件タグが未入力の項目が${emptySpecialRequirements.length}件あります。`
         );
 
     }
@@ -3147,7 +3594,7 @@ function validateCurriculum(
 
 
 /* ========================================
-   カリキュラム削除
+   削除
 ======================================== */
 
 function openDeleteCurriculumModal() {
@@ -3167,7 +3614,8 @@ function openDeleteCurriculumModal() {
         deleteCurriculumName,
         curriculumName
             ?.value.trim() ||
-        currentCurriculum?.name ||
+        currentCurriculum
+            ?.name ||
         currentCurriculumId
     );
 
@@ -3186,17 +3634,22 @@ async function deleteSelectedCurriculum() {
     }
 
 
-    confirmDeleteCurriculumButton.disabled =
-        true;
+    const deletedId =
+        currentCurriculumId;
 
-    confirmDeleteCurriculumButton.textContent =
-        "削除中...";
+
+    const originalText =
+        confirmDeleteCurriculumButton
+            .textContent;
 
 
     try {
 
-        const deletedId =
-            currentCurriculumId;
+        confirmDeleteCurriculumButton.disabled =
+            true;
+
+        confirmDeleteCurriculumButton.textContent =
+            "削除中...";
 
 
         await deleteDoc(
@@ -3213,14 +3666,16 @@ async function deleteSelectedCurriculum() {
         );
 
 
-        currentCurriculumId =
-            "";
-
         currentCurriculum =
             null;
 
+        currentCurriculumId =
+            "";
 
-        setUnsavedState(false);
+
+        setUnsavedState(
+            false
+        );
 
 
         showToast(
@@ -3228,7 +3683,7 @@ async function deleteSelectedCurriculum() {
         );
 
 
-        await loadCurricula();
+        await reloadAllData();
 
     } catch (error) {
 
@@ -3248,7 +3703,7 @@ async function deleteSelectedCurriculum() {
             false;
 
         confirmDeleteCurriculumButton.textContent =
-            "削除する";
+            originalText;
 
     }
 
@@ -3273,27 +3728,21 @@ async function loadSubjects() {
 
 
         subjects =
-            snapshot.docs.map(
-                subjectDocument =>
-                    normalizeSubject({
-                        ...subjectDocument.data(),
+            snapshot.docs
+                .map(
+                    subjectDocument =>
+                        normalizeSubject({
 
-                        firestoreId:
-                            subjectDocument.id
-                    })
-            );
+                            ...subjectDocument.data(),
 
+                            firestoreId:
+                                subjectDocument.id
 
-        subjects.sort(
-            compareSubjects
-        );
-
-
-        if (currentCurriculumId) {
-
-            analyzeCurriculum();
-
-        }
+                        })
+                )
+                .sort(
+                    compareSubjects
+                );
 
     } catch (error) {
 
@@ -3303,55 +3752,53 @@ async function loadSubjects() {
         );
 
 
-        subjects = [];
+        subjects =
+            [];
 
 
-        if (curriculumWarningList) {
+        renderWarnings([
 
-            renderWarnings([
-                {
-                    level:
-                        "error",
+            {
+                level:
+                    "error",
 
-                    message:
-                        "subjectsコレクションを取得できませんでした。"
-                }
-            ]);
+                message:
+                    "subjectsコレクションを取得できませんでした。"
+            }
 
-        }
+        ]);
 
     }
 
 }
 
 
+/* ========================================
+   科目正規化
+======================================== */
+
 function normalizeSubject(
     subject
 ) {
-
-    const legacyRequired =
-        typeof subject.required ===
-        "boolean"
-            ? subject.required
-            : null;
-
 
     let requirementType =
         String(
             subject.requirementType ||
             ""
-        );
+        ).trim();
 
 
     if (!requirementType) {
 
-        if (legacyRequired === true) {
+        if (
+            subject.required === true
+        ) {
 
             requirementType =
                 "required";
 
         } else if (
-            legacyRequired === false
+            subject.required === false
         ) {
 
             requirementType =
@@ -3366,15 +3813,18 @@ function normalizeSubject(
         Array.isArray(
             subject.curriculumIds
         )
-            ? subject.curriculumIds
-                .map(String)
+            ? normalizeStringArray(
+                subject.curriculumIds
+            )
             : [];
 
 
     if (
         subject.curriculumId &&
         !curriculumIds.includes(
-            String(subject.curriculumId)
+            String(
+                subject.curriculumId
+            )
         )
     ) {
 
@@ -3383,6 +3833,48 @@ function normalizeSubject(
                 subject.curriculumId
             )
         );
+
+    }
+
+
+    let department =
+        String(
+            subject.department ||
+            ""
+        ).trim();
+
+
+    let major =
+        String(
+            subject.major ||
+            ""
+        ).trim();
+
+
+    if (
+        department ===
+        "理学療法学専攻"
+    ) {
+
+        department =
+            "リハビリテーション学科";
+
+        major =
+            "理学療法学専攻";
+
+    }
+
+
+    if (
+        department ===
+        "作業療法学専攻"
+    ) {
+
+        department =
+            "リハビリテーション学科";
+
+        major =
+            "作業療法学専攻";
 
     }
 
@@ -3399,28 +3891,23 @@ function normalizeSubject(
             String(
                 subject.name ||
                 ""
-            ),
+            ).trim(),
 
         subjectKey:
             String(
                 subject.subjectKey ||
                 subject.name ||
                 ""
-            ),
+            ).trim(),
 
-        department:
-            String(
-                subject.department ||
-                ""
-            ),
+        department,
 
-        major:
-            String(
-                subject.major ||
-                ""
-            ),
+        major,
 
-        curriculumIds,
+        curriculumIds:
+            normalizeStringArray(
+                curriculumIds
+            ),
 
         category:
             String(
@@ -3428,14 +3915,14 @@ function normalizeSubject(
                 subject.subjectCategory ||
                 subject.courseCategory ||
                 ""
-            ),
+            ).trim(),
 
         subcategory:
             String(
                 subject.subcategory ||
                 subject.subCategory ||
                 ""
-            ),
+            ).trim(),
 
         requirementType,
 
@@ -3443,22 +3930,29 @@ function normalizeSubject(
             Array.isArray(
                 subject.requirementTags
             )
-                ? subject
-                    .requirementTags
-                    .map(String)
-                : [],
+                ? normalizeStringArray(
+                    subject.requirementTags
+                )
+                : splitTags(
+                    subject.requirementTags ||
+                    subject.requirementTag ||
+                    ""
+                ),
 
         grade:
             String(
                 subject.grade ||
                 ""
             )
-            .replace("年", ""),
+            .replace(
+                "年",
+                ""
+            )
+            .trim(),
 
         semester:
-            String(
-                subject.semester ||
-                ""
+            normalizeSemester(
+                subject.semester
             ),
 
         credits:
@@ -3472,10 +3966,12 @@ function normalizeSubject(
             ),
 
         isPractical:
-            subject.isPractical === true,
+            subject.isPractical ===
+            true,
 
         active:
-            subject.active !== false
+            subject.active !==
+            false
 
     };
 
@@ -3483,7 +3979,7 @@ function normalizeSubject(
 
 
 /* ========================================
-   科目とカリキュラムの照合
+   カリキュラム対象科目
 ======================================== */
 
 function getCurriculumSubjects() {
@@ -3498,29 +3994,33 @@ function getCurriculumSubjects() {
 
 
     return subjects
-        .map(subject => {
+        .map(
+            subject => {
 
-            const matchType =
-                getSubjectMatchType(
-                    subject,
-                    curriculum
-                );
+                const matchType =
+                    getSubjectMatchType(
+                        subject,
+                        curriculum
+                    );
 
 
-            if (!matchType) {
-                return null;
+                if (!matchType) {
+
+                    return null;
+
+                }
+
+
+                return {
+
+                    ...subject,
+
+                    matchType
+
+                };
+
             }
-
-
-            return {
-
-                ...subject,
-
-                matchType
-
-            };
-
-        })
+        )
         .filter(Boolean);
 
 }
@@ -3536,19 +4036,16 @@ function getSubjectMatchType(
         0
     ) {
 
-        return subject.curriculumIds
-            .includes(
-                curriculum.curriculumId
-            )
+        return subject.curriculumIds.includes(
+            curriculum.curriculumId
+        )
             ? "explicit"
             : "";
 
     }
 
 
-    if (
-        curriculum.major
-    ) {
+    if (curriculum.major) {
 
         if (
             subject.major ===
@@ -3570,33 +4067,21 @@ function getSubjectMatchType(
         }
 
 
-        /*
-        リハビリテーション学科だけが設定され、
-        専攻がない科目はPT・OTのどちらか判断できない。
-        */
-
         return "";
 
     }
 
 
-    if (
-        subject.department ===
+    return subject.department ===
         curriculum.department
-    ) {
-
-        return "legacy";
-
-    }
-
-
-    return "";
+            ? "legacy"
+            : "";
 
 }
 
 
 /* ========================================
-   自動集計
+   自動分析
 ======================================== */
 
 function analyzeCurriculum() {
@@ -3614,21 +4099,17 @@ function analyzeCurriculum() {
         analysis.summary
     );
 
-
     renderWarnings(
         analysis.warnings
     );
-
 
     updateCategoryFilter(
         analysis.subjects
     );
 
-
     renderSubjectList(
         analysis.subjects
     );
-
 
     updateActionAvailability();
 
@@ -3645,87 +4126,74 @@ function createCurriculumAnalysis() {
         getCurriculumSubjects();
 
 
-    let total = 0;
+    /*
+    非公開科目は一覧には出すが、
+    学生が履修できないため単位計算には含めない。
+    */
 
-    let required = 0;
-
-    let elective = 0;
-
-    let free = 0;
-
-    let unassigned = 0;
-
-    let incomplete = 0;
-
-    let legacyCount = 0;
+    const countedSubjects =
+        matchedSubjects.filter(
+            subject =>
+                subject.active
+        );
 
 
-    matchedSubjects.forEach(subject => {
-
-        total +=
-            subject.credits;
-
-
-        if (
-            subject.requirementType ===
-            "required"
-        ) {
-
-            required +=
-                subject.credits;
-
-        } else if (
-            subject.requirementType ===
-            "elective"
-        ) {
-
-            elective +=
-                subject.credits;
-
-        } else if (
-            subject.requirementType ===
-            "free"
-        ) {
-
-            free +=
-                subject.credits;
-
-        }
+    const total =
+        sumCredits(
+            countedSubjects
+        );
 
 
-        if (!subject.category) {
-
-            unassigned++;
-
-        }
-
-
-        if (
-            !subject.name ||
-            !subject.subjectKey ||
-            !subject.category ||
-            !subject.requirementType ||
-            subject.credits <= 0
-        ) {
-
-            incomplete++;
-
-        }
+    const required =
+        sumCredits(
+            countedSubjects.filter(
+                subject =>
+                    subject.requirementType ===
+                    "required"
+            )
+        );
 
 
-        if (
-            subject.matchType ===
-            "legacy"
-        ) {
-
-            legacyCount++;
-
-        }
-
-    });
+    const elective =
+        sumCredits(
+            countedSubjects.filter(
+                subject =>
+                    subject.requirementType ===
+                    "elective"
+            )
+        );
 
 
-    const warnings = [];
+    const unassigned =
+        matchedSubjects.filter(
+            subject =>
+                !subject.category
+        ).length;
+
+
+    const incomplete =
+        matchedSubjects.filter(
+            isSubjectIncomplete
+        ).length;
+
+
+    const legacyCount =
+        matchedSubjects.filter(
+            subject =>
+                subject.matchType ===
+                "legacy"
+        ).length;
+
+
+    const inactiveCount =
+        matchedSubjects.filter(
+            subject =>
+                !subject.active
+        ).length;
+
+
+    const warnings =
+        [];
 
 
     if (
@@ -3753,7 +4221,22 @@ function createCurriculumAnalysis() {
                 "warning",
 
             message:
-                `${legacyCount}科目はcurriculumId未設定のため、学科・専攻で仮照合しています。`
+                `${legacyCount}科目はカリキュラムID未設定のため、学科・専攻で仮照合しています。`
+
+        });
+
+    }
+
+
+    if (inactiveCount > 0) {
+
+        warnings.push({
+
+            level:
+                "info",
+
+            message:
+                `${inactiveCount}科目は非公開のため、登録可能単位の集計から除外しています。`
 
         });
 
@@ -3783,7 +4266,7 @@ function createCurriculumAnalysis() {
                 "warning",
 
             message:
-                `単位数・必修選択・科目区分などが不足している科目が${incomplete}件あります。`
+                `カリキュラム判定に必要な情報が不足している科目が${incomplete}件あります。`
 
         });
 
@@ -3801,7 +4284,7 @@ function createCurriculumAnalysis() {
                 "error",
 
             message:
-                `登録科目の単位合計が卒業要件より${formatCredit(
+                `登録可能な科目の単位合計が、卒業要件より${formatCredit(
                     curriculum.graduationCredits -
                     total
                 )}単位不足しています。`
@@ -3843,7 +4326,7 @@ function createCurriculumAnalysis() {
                 "warning",
 
             message:
-                `選択科目として登録された単位が最低要件より${formatCredit(
+                `選択科目の登録単位が最低要件より${formatCredit(
                     curriculum.electiveCreditsMinimum -
                     elective
                 )}単位少なくなっています。`
@@ -3853,8 +4336,8 @@ function createCurriculumAnalysis() {
     }
 
 
-    curriculum.categoryRequirements
-        .forEach(requirement => {
+    curriculum.categoryRequirements.forEach(
+        requirement => {
 
             if (!requirement.category) {
                 return;
@@ -3862,7 +4345,7 @@ function createCurriculumAnalysis() {
 
 
             const categorySubjects =
-                matchedSubjects.filter(
+                countedSubjects.filter(
                     subject =>
                         subject.category ===
                         requirement.category
@@ -3918,8 +4401,7 @@ function createCurriculumAnalysis() {
 
             if (
                 categoryElective <
-                requirement
-                    .electiveCreditsMinimum
+                requirement.electiveCreditsMinimum
             ) {
 
                 warnings.push({
@@ -3958,11 +4440,12 @@ function createCurriculumAnalysis() {
 
             }
 
-        });
+        }
+    );
 
 
-    curriculum.specialRequirements
-        .forEach(requirement => {
+    curriculum.specialRequirements.forEach(
+        requirement => {
 
             if (
                 !requirement.requirementTag
@@ -3974,17 +4457,13 @@ function createCurriculumAnalysis() {
 
 
             const taggedSubjects =
-                matchedSubjects.filter(
+                countedSubjects.filter(
                     subject =>
-                        subject
-                            .requirementTags
-                            .includes(
-                                requirement
-                                    .requirementTag
-                            ) ||
+                        subject.requirementTags.includes(
+                            requirement.requirementTag
+                        ) ||
                         subject.subcategory ===
-                            requirement
-                                .requirementTag
+                            requirement.requirementTag
                 );
 
 
@@ -4014,38 +4493,39 @@ function createCurriculumAnalysis() {
 
             }
 
-        });
+        }
+    );
 
 
     const categoryRequiredTotal =
         curriculum.categoryRequirements
             .reduce(
                 (
-                    totalValue,
+                    sum,
                     requirement
                 ) =>
-                    totalValue +
+                    sum +
                     requirement.requiredCredits,
                 0
             );
 
 
-    const categoryMinimumTotal =
+    const categoryTotalMinimum =
         curriculum.categoryRequirements
             .reduce(
                 (
-                    totalValue,
+                    sum,
                     requirement
                 ) =>
-                    totalValue +
+                    sum +
                     requirement.totalCreditsMinimum,
                 0
             );
 
 
     if (
-        curriculum.categoryRequirements
-            .length > 0 &&
+        curriculum.categoryRequirements.length >
+            0 &&
         categoryRequiredTotal !==
             curriculum.requiredCredits
     ) {
@@ -4068,9 +4548,9 @@ function createCurriculumAnalysis() {
 
 
     if (
-        curriculum.categoryRequirements
-            .length > 0 &&
-        categoryMinimumTotal !==
+        curriculum.categoryRequirements.length >
+            0 &&
+        categoryTotalMinimum !==
             curriculum.graduationCredits
     ) {
 
@@ -4080,8 +4560,8 @@ function createCurriculumAnalysis() {
                 "warning",
 
             message:
-                `区分別卒業要件の合計${formatCredit(
-                    categoryMinimumTotal
+                `区分別要件の合計${formatCredit(
+                    categoryTotalMinimum
                 )}単位と、卒業必要単位${formatCredit(
                     curriculum.graduationCredits
                 )}単位が一致していません。`
@@ -4097,7 +4577,9 @@ function createCurriculumAnalysis() {
         );
 
 
-    if (duplicateKeys.length > 0) {
+    if (
+        duplicateKeys.length > 0
+    ) {
 
         warnings.push({
 
@@ -4140,9 +4622,7 @@ function createCurriculumAnalysis() {
     }
 
 
-    if (
-        warnings.length === 0
-    ) {
+    if (warnings.length === 0) {
 
         warnings.push({
 
@@ -4164,6 +4644,8 @@ function createCurriculumAnalysis() {
         subjects:
             matchedSubjects,
 
+        countedSubjects,
+
         warnings,
 
         summary: {
@@ -4177,13 +4659,13 @@ function createCurriculumAnalysis() {
 
             elective,
 
-            free,
-
             unassigned,
 
             incomplete,
 
-            legacyCount
+            legacyCount,
+
+            inactiveCount
 
         }
 
@@ -4191,6 +4673,10 @@ function createCurriculumAnalysis() {
 
 }
 
+
+/* ========================================
+   分析数値表示
+======================================== */
 
 function updateAnalysisSummary(
     summary
@@ -4249,80 +4735,87 @@ function renderWarnings(
 
 
     curriculumWarningList.innerHTML =
-        warnings.map(warning => {
+        warnings
+            .map(
+                warning => {
 
-            const icon = {
+                    const icon = {
 
-                success:
-                    "✅",
+                        success:
+                            "✅",
 
-                info:
-                    "ℹ️",
+                        info:
+                            "ℹ️",
 
-                warning:
-                    "⚠️",
+                        warning:
+                            "⚠️",
 
-                error:
-                    "🚨"
+                        error:
+                            "🚨"
 
-            }[warning.level] || "ℹ️";
+                    }[
+                        warning.level
+                    ] || "ℹ️";
 
 
-            return `
-                <div
-                    class="
-                        curriculum-warning-item
-                        is-${escapeAttribute(
-                            warning.level
-                        )}
-                    ">
+                    return `
 
-                    <span class="curriculum-warning-icon">
-                        ${icon}
-                    </span>
+                        <div
+                            class="
+                                curriculum-warning-item
+                                is-${escapeAttribute(
+                                    warning.level
+                                )}
+                            ">
 
-                    <span>
-                        ${escapeHtml(
-                            warning.message
-                        )}
-                    </span>
+                            <span class="curriculum-warning-icon">
 
-                </div>
-            `;
+                                ${icon}
 
-        }).join("");
+                            </span>
+
+                            <span>
+
+                                ${escapeHtml(
+                                    warning.message
+                                )}
+
+                            </span>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
 
 }
 
 
 /* ========================================
-   対象科目一覧
+   科目区分フィルター
 ======================================== */
 
 function updateCategoryFilter(
     matchedSubjects
 ) {
 
-    if (
-        !curriculumSubjectCategoryFilter
-    ) {
-
+    if (!curriculumSubjectCategoryFilter) {
         return;
-
     }
 
 
     const currentValue =
-        curriculumSubjectCategoryFilter
-            .value;
+        curriculumSubjectCategoryFilter.value;
 
 
     const categories =
         new Set();
 
 
-    categoryRequirements
-        .forEach(requirement => {
+    categoryRequirements.forEach(
+        requirement => {
 
             if (requirement.category) {
 
@@ -4332,11 +4825,12 @@ function updateCategoryFilter(
 
             }
 
-        });
+        }
+    );
 
 
-    matchedSubjects
-        .forEach(subject => {
+    matchedSubjects.forEach(
+        subject => {
 
             if (subject.category) {
 
@@ -4346,33 +4840,39 @@ function updateCategoryFilter(
 
             }
 
-        });
+        }
+    );
 
 
-    curriculumSubjectCategoryFilter
-        .innerHTML = `
-            <option value="">
-                すべての区分
-            </option>
+    curriculumSubjectCategoryFilter.innerHTML = `
 
-            <option value="__unset__">
-                区分未設定
-            </option>
+        <option value="">
 
-            ${
-                [...categories]
-                    .sort(
-                        (
-                            categoryA,
-                            categoryB
-                        ) =>
-                            categoryA
-                                .localeCompare(
-                                    categoryB,
-                                    "ja"
-                                )
-                    )
-                    .map(category => `
+            すべての区分
+
+        </option>
+
+        <option value="__unset__">
+
+            区分未設定
+
+        </option>
+
+        ${
+            [...categories]
+                .sort(
+                    (
+                        categoryA,
+                        categoryB
+                    ) =>
+                        categoryA.localeCompare(
+                            categoryB,
+                            "ja"
+                        )
+                )
+                .map(
+                    category => `
+
                         <option
                             value="${escapeAttribute(
                                 category
@@ -4383,30 +4883,40 @@ function updateCategoryFilter(
                             )}
 
                         </option>
-                    `)
-                    .join("")
-            }
-        `;
+
+                    `
+                )
+                .join("")
+        }
+
+    `;
 
 
-    if (
-        [...curriculumSubjectCategoryFilter
-            .options]
-            .some(
-                option =>
-                    option.value ===
-                    currentValue
-            )
-    ) {
+    const exists =
+        Array.from(
+            curriculumSubjectCategoryFilter
+                .options
+        )
+        .some(
+            option =>
+                option.value ===
+                currentValue
+        );
 
-        curriculumSubjectCategoryFilter
-            .value =
+
+    if (exists) {
+
+        curriculumSubjectCategoryFilter.value =
             currentValue;
 
     }
 
 }
 
+
+/* ========================================
+   対象科目一覧
+======================================== */
 
 function renderSubjectList(
     suppliedSubjects = null
@@ -4420,10 +4930,19 @@ function renderSubjectList(
     if (!currentCurriculumId) {
 
         curriculumSubjectList.innerHTML = `
+
             <div class="curriculum-loading">
+
                 カリキュラムを選択してください。
+
             </div>
+
         `;
+
+        setText(
+            curriculumSubjectFilteredCount,
+            "0科目"
+        );
 
         return;
 
@@ -4431,14 +4950,18 @@ function renderSubjectList(
 
 
     const matchedSubjects =
-        suppliedSubjects ||
-        getCurriculumSubjects();
+        Array.isArray(
+            suppliedSubjects
+        )
+            ? suppliedSubjects
+            : getCurriculumSubjects();
 
 
     const keyword =
         String(
             curriculumSubjectSearch
-                ?.value || ""
+                ?.value ||
+            ""
         )
         .trim()
         .toLowerCase();
@@ -4446,92 +4969,100 @@ function renderSubjectList(
 
     const categoryFilter =
         curriculumSubjectCategoryFilter
-            ?.value || "";
+            ?.value ||
+        "";
 
 
     const typeFilter =
         curriculumSubjectTypeFilter
-            ?.value || "";
+            ?.value ||
+        "";
 
 
     const filteredSubjects =
-        matchedSubjects.filter(subject => {
+        matchedSubjects.filter(
+            subject => {
 
-            if (keyword) {
+                if (keyword) {
 
-                const searchTarget = (
+                    const searchTarget = (
 
-                    `${subject.name} ` +
-                    `${subject.subjectKey} ` +
-                    `${subject.category} ` +
-                    `${subject.subcategory}`
+                        `${subject.name} ` +
+                        `${subject.subjectKey} ` +
+                        `${subject.category} ` +
+                        `${subject.subcategory} ` +
+                        `${subject.requirementTags.join(
+                            " "
+                        )}`
 
-                ).toLowerCase();
+                    ).toLowerCase();
+
+
+                    if (
+                        !searchTarget.includes(
+                            keyword
+                        )
+                    ) {
+
+                        return false;
+
+                    }
+
+                }
 
 
                 if (
-                    !searchTarget.includes(
-                        keyword
-                    )
+                    categoryFilter ===
+                        "__unset__" &&
+                    subject.category
                 ) {
 
                     return false;
 
                 }
 
-            }
+
+                if (
+                    categoryFilter &&
+                    categoryFilter !==
+                        "__unset__" &&
+                    subject.category !==
+                        categoryFilter
+                ) {
+
+                    return false;
+
+                }
 
 
-            if (
-                categoryFilter ===
-                "__unset__" &&
-                subject.category
-            ) {
+                if (
+                    typeFilter ===
+                        "unset" &&
+                    subject.requirementType
+                ) {
 
-                return false;
+                    return false;
 
-            }
-
-
-            if (
-                categoryFilter &&
-                categoryFilter !==
-                    "__unset__" &&
-                subject.category !==
-                    categoryFilter
-            ) {
-
-                return false;
-
-            }
+                }
 
 
-            if (
-                typeFilter ===
-                "unset" &&
-                subject.requirementType
-            ) {
+                if (
+                    typeFilter &&
+                    typeFilter !==
+                        "unset" &&
+                    subject.requirementType !==
+                        typeFilter
+                ) {
 
-                return false;
+                    return false;
 
-            }
+                }
 
 
-            if (
-                typeFilter &&
-                typeFilter !== "unset" &&
-                subject.requirementType !==
-                    typeFilter
-            ) {
-
-                return false;
+                return true;
 
             }
-
-
-            return true;
-
-        });
+        );
 
 
     setText(
@@ -4545,9 +5076,13 @@ function renderSubjectList(
     ) {
 
         curriculumSubjectList.innerHTML = `
+
             <div class="curriculum-empty">
+
                 条件に一致する科目はありません。
+
             </div>
+
         `;
 
         return;
@@ -4564,6 +5099,10 @@ function renderSubjectList(
 
 }
 
+
+/* ========================================
+   科目カード
+======================================== */
 
 function createCurriculumSubjectHtml(
     subject
@@ -4590,40 +5129,45 @@ function createCurriculumSubjectHtml(
         "unset";
 
 
-    const hasIncompleteData =
-
-        !subject.category ||
-        !subject.requirementType ||
-        subject.credits <= 0;
+    const incomplete =
+        isSubjectIncomplete(
+            subject
+        );
 
 
     return `
+
         <article
             class="
                 curriculum-subject-item
                 ${
-                    hasIncompleteData
+                    incomplete
                         ? "has-warning"
                         : ""
                 }
             ">
+
 
             <div class="curriculum-subject-heading">
 
                 <div>
 
                     <h3>
+
                         ${escapeHtml(
                             subject.name ||
                             "科目名未設定"
                         )}
+
                     </h3>
 
                     <small>
+
                         ${escapeHtml(
                             subject.subjectKey ||
                             "subjectKey未設定"
                         )}
+
                     </small>
 
                 </div>
@@ -4647,6 +5191,7 @@ function createCurriculumSubjectHtml(
             <div class="curriculum-subject-meta">
 
                 <span>
+
                     🧩
                     ${
                         escapeHtml(
@@ -4654,22 +5199,28 @@ function createCurriculumSubjectHtml(
                         ) ||
                         "区分未設定"
                     }
+
                 </span>
 
                 ${
                     subject.subcategory
                         ? `
+
                             <span>
+
                                 🏷️
                                 ${escapeHtml(
                                     subject.subcategory
                                 )}
+
                             </span>
+
                         `
                         : ""
                 }
 
                 <span>
+
                     🎓
                     ${
                         subject.grade
@@ -4678,9 +5229,11 @@ function createCurriculumSubjectHtml(
                             )}年`
                             : "学年未設定"
                     }
+
                 </span>
 
                 <span>
+
                     📅
                     ${
                         escapeHtml(
@@ -4688,21 +5241,42 @@ function createCurriculumSubjectHtml(
                         ) ||
                         "学期未設定"
                     }
+
                 </span>
 
                 <span>
+
                     📘
                     ${formatCredit(
                         subject.credits
                     )}単位
+
                 </span>
 
                 ${
                     subject.isPractical
                         ? `
+
                             <span>
+
                                 🏥 実習科目
+
                             </span>
+
+                        `
+                        : ""
+                }
+
+                ${
+                    !subject.active
+                        ? `
+
+                            <span>
+
+                                🚫 非公開
+
+                            </span>
+
                         `
                         : ""
                 }
@@ -4711,25 +5285,32 @@ function createCurriculumSubjectHtml(
 
 
             ${
-                subject.requirementTags
-                    .length > 0
+                subject.requirementTags.length >
+                    0
                     ? `
+
                         <div class="curriculum-subject-tags">
 
                             ${
-                                subject
-                                    .requirementTags
-                                    .map(tag => `
-                                        <span>
-                                            ${escapeHtml(
-                                                tag
-                                            )}
-                                        </span>
-                                    `)
+                                subject.requirementTags
+                                    .map(
+                                        tag => `
+
+                                            <span>
+
+                                                ${escapeHtml(
+                                                    tag
+                                                )}
+
+                                            </span>
+
+                                        `
+                                    )
                                     .join("")
                             }
 
                         </div>
+
                     `
                     : ""
             }
@@ -4737,33 +5318,39 @@ function createCurriculumSubjectHtml(
 
             ${
                 subject.matchType ===
-                "legacy"
+                    "legacy"
                     ? `
+
                         <div class="curriculum-subject-notice">
 
-                            ⚠️ curriculumId未設定のため
-                            学科・専攻で仮照合
+                            ⚠️ カリキュラムID未設定のため、
+                            学科・専攻で仮照合しています
 
                         </div>
+
                     `
                     : `
+
                         <div class="curriculum-subject-connected">
 
                             ✅ カリキュラムと接続済み
 
                         </div>
+
                     `
             }
 
 
             ${
-                hasIncompleteData
+                incomplete
                     ? `
+
                         <div class="curriculum-subject-notice">
 
                             ⚠️ 科目情報に未設定項目があります
 
                         </div>
+
                     `
                     : ""
             }
@@ -4781,10 +5368,15 @@ function createCurriculumSubjectHtml(
             </button>
 
         </article>
+
     `;
 
 }
 
+
+/* ========================================
+   科目カード操作
+======================================== */
 
 function handleSubjectListClick(
     event
@@ -4801,81 +5393,66 @@ function handleSubjectListClick(
     }
 
 
-    const subjectKey =
-        button.dataset.subjectKey || "";
-
-
-    let url =
-        "subjects_admin.html";
-
-
     const parameters =
         new URLSearchParams();
 
 
-    if (currentCurriculumId) {
-
-        parameters.set(
-            "curriculumId",
-            currentCurriculumId
-        );
-
-    }
+    parameters.set(
+        "curriculumId",
+        currentCurriculumId
+    );
 
 
-    if (subjectKey) {
+    if (
+        button.dataset.subjectKey
+    ) {
 
         parameters.set(
             "subjectKey",
-            subjectKey
+            button.dataset.subjectKey
         );
 
     }
 
 
-    const queryString =
-        parameters.toString();
-
-
-    if (queryString) {
-
-        url += `?${queryString}`;
-
-    }
-
-
-    navigateWithUnsavedCheck(url);
+    navigateWithUnsavedCheck(
+        "subjects_admin.html?" +
+        parameters.toString()
+    );
 
 }
 
 
 /* ========================================
-   再読み込み・プレビュー
+   再読み込み
 ======================================== */
 
 async function refreshSubjects() {
 
-    if (
-        !refreshCurriculumSubjectsButton
-    ) {
-
+    if (!refreshCurriculumSubjectsButton) {
         return;
-
     }
 
 
-    refreshCurriculumSubjectsButton.disabled =
-        true;
-
-    refreshCurriculumSubjectsButton.textContent =
-        "再読み込み中...";
+    const originalText =
+        refreshCurriculumSubjectsButton
+            .textContent;
 
 
     try {
 
+        refreshCurriculumSubjectsButton.disabled =
+            true;
+
+        refreshCurriculumSubjectsButton.textContent =
+            "再読み込み中...";
+
+
         await loadSubjects();
 
+
         analyzeCurriculum();
+
 
         showToast(
             "科目情報を再読み込みしました"
@@ -4887,12 +5464,16 @@ async function refreshSubjects() {
             false;
 
         refreshCurriculumSubjectsButton.textContent =
-            "↻ 再読み込み";
+            originalText;
 
     }
 
 }
 
+
+/* ========================================
+   学生画面プレビュー
+======================================== */
 
 function previewCourseRegistration() {
 
@@ -4907,13 +5488,21 @@ function previewCourseRegistration() {
     }
 
 
+    const parameters =
+        new URLSearchParams({
+
+            preview:
+                "1",
+
+            curriculumId:
+                currentCurriculumId
+
+        });
+
+
     window.open(
-        "course_registration.html" +
-        "?preview=1" +
-        "&curriculumId=" +
-        encodeURIComponent(
-            currentCurriculumId
-        ),
+        "course_registration.html?" +
+        parameters.toString(),
         "_blank"
     );
 
@@ -4933,14 +5522,24 @@ function previewCreditProgress() {
     }
 
 
+    const parameters =
+        new URLSearchParams({
+
+            preview:
+                "1",
+
+            creditPanel:
+                "1",
+
+            curriculumId:
+                currentCurriculumId
+
+        });
+
+
     window.open(
-        "course_registration.html" +
-        "?preview=1" +
-        "&creditPanel=1" +
-        "&curriculumId=" +
-        encodeURIComponent(
-            currentCurriculumId
-        ),
+        "course_registration.html?" +
+        parameters.toString(),
         "_blank"
     );
 
@@ -4948,7 +5547,7 @@ function previewCreditProgress() {
 
 
 /* ========================================
-   公開状態・未保存状態
+   公開・下書き状態
 ======================================== */
 
 function updateCurriculumStatus() {
@@ -4958,49 +5557,79 @@ function updateCurriculumStatus() {
     }
 
 
-    const published =
-        currentCurriculum.published ===
-        true;
+    let statusText =
+        "下書き";
+
+
+    if (
+        currentCurriculum.published &&
+        currentCurriculum.hasDraft
+    ) {
+
+        statusText =
+            "公開中・下書きあり";
+
+    } else if (
+        currentCurriculum.published
+    ) {
+
+        statusText =
+            "公開中";
+
+    } else if (
+        currentCurriculum.hasDraft
+    ) {
+
+        statusText =
+            "未公開・下書きあり";
+
+    }
 
 
     setText(
         curriculumStatusBadge,
-        published
-            ? "公開中"
-            : "下書き"
+        statusText
     );
 
 
-    curriculumStatusBadge
-        ?.classList.toggle(
-            "is-published",
-            published
-        );
+    curriculumStatusBadge?.classList.toggle(
+        "is-published",
+        currentCurriculum.published
+    );
 
 
-    curriculumStatusBadge
-        ?.classList.toggle(
-            "is-draft",
-            !published
-        );
+    curriculumStatusBadge?.classList.toggle(
+        "is-draft",
+        !currentCurriculum.published ||
+        currentCurriculum.hasDraft
+    );
+
+
+    const updatedValue =
+        currentCurriculum.hasDraft
+            ? currentCurriculum.draftUpdatedAt
+            : currentCurriculum.updatedAt;
 
 
     setText(
         curriculumUpdatedAt,
         `最終更新：${formatDate(
-            currentCurriculum.updatedAt
+            updatedValue
         )}`
     );
-
-
-    updateActionAvailability();
 
 }
 
 
+/* ========================================
+   未保存状態
+======================================== */
+
 function markUnsaved() {
 
-    setUnsavedState(true);
+    setUnsavedState(
+        true
+    );
 
 }
 
@@ -5021,18 +5650,21 @@ function setUnsavedState(
     );
 
 
-    curriculumUnsavedStatus
-        ?.classList.toggle(
-            "has-unsaved",
-            unsaved
-        );
+    curriculumUnsavedStatus?.classList.toggle(
+        "has-unsaved",
+        unsaved
+    );
 
 }
 
 
+/* ========================================
+   操作可否
+======================================== */
+
 function updateActionAvailability() {
 
-    const hasCurriculum =
+    const available =
         Boolean(
             currentCurriculumId
         );
@@ -5051,19 +5683,66 @@ function updateActionAvailability() {
 
     ]
     .filter(Boolean)
-    .forEach(button => {
+    .forEach(
+        button => {
 
-        button.disabled =
-            !hasCurriculum;
+            button.disabled =
+                !available;
 
-    });
+        }
+    );
 
 }
 
 
 /* ========================================
-   補助計算
+   全データ再読込
 ======================================== */
+
+async function reloadAllData(
+    preferredCurriculumId = ""
+) {
+
+    await Promise.all([
+
+        loadSubjects(),
+
+        loadCurricula()
+
+    ]);
+
+
+    selectInitialCurriculum(
+        preferredCurriculumId
+    );
+
+}
+
+
+/* ========================================
+   科目分析補助
+======================================== */
+
+function isSubjectIncomplete(
+    subject
+) {
+
+    return (
+
+        !subject.name ||
+
+        !subject.subjectKey ||
+
+        !subject.category ||
+
+        !subject.requirementType ||
+
+        subject.credits <= 0
+
+    );
+
+}
+
 
 function sumCredits(
     subjectList
@@ -5088,27 +5767,37 @@ function findDuplicateSubjectKeys(
     subjectList
 ) {
 
-    const counts = {};
+    const counts =
+        new Map();
 
 
-    subjectList.forEach(subject => {
+    subjectList.forEach(
+        subject => {
 
-        const key =
-            subject.subjectKey.trim();
+            const key =
+                subject.subjectKey.trim();
 
 
-        if (!key) {
-            return;
+            if (!key) {
+                return;
+            }
+
+
+            counts.set(
+                key,
+                (
+                    counts.get(
+                        key
+                    ) ||
+                    0
+                ) + 1
+            );
+
         }
+    );
 
 
-        counts[key] =
-            (counts[key] || 0) + 1;
-
-    });
-
-
-    return Object.entries(counts)
+    return [...counts.entries()]
         .filter(
             ([, count]) =>
                 count > 1
@@ -5126,49 +5815,53 @@ function findOverlappingCurricula(
 ) {
 
     return curricula
-        .filter(other => {
+        .filter(
+            other => {
 
-            if (
-                other.curriculumId ===
-                curriculum.curriculumId
-            ) {
+                if (
+                    other.curriculumId ===
+                    curriculum.curriculumId
+                ) {
 
-                return false;
+                    return false;
+
+                }
+
+
+                if (
+                    other.department !==
+                    curriculum.department
+                ) {
+
+                    return false;
+
+                }
+
+
+                if (
+                    other.major !==
+                    curriculum.major
+                ) {
+
+                    return false;
+
+                }
+
+
+                return rangesOverlap(
+
+                    curriculum.admissionYearFrom,
+
+                    curriculum.admissionYearTo,
+
+                    other.admissionYearFrom,
+
+                    other.admissionYearTo
+
+                );
 
             }
-
-
-            if (
-                other.department !==
-                curriculum.department
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                other.major !==
-                curriculum.major
-            ) {
-
-                return false;
-
-            }
-
-
-            return rangesOverlap(
-
-                curriculum.admissionYearFrom,
-                curriculum.admissionYearTo,
-
-                other.admissionYearFrom,
-                other.admissionYearTo
-
-            );
-
-        })
+        )
         .map(
             other =>
                 other.name ||
@@ -5186,15 +5879,20 @@ function rangesOverlap(
 ) {
 
     const normalizedEndA =
-        endA || Number.MAX_SAFE_INTEGER;
+        endA ||
+        Number.MAX_SAFE_INTEGER;
 
     const normalizedEndB =
-        endB || Number.MAX_SAFE_INTEGER;
+        endB ||
+        Number.MAX_SAFE_INTEGER;
 
 
     return (
+
         startA <= normalizedEndB &&
+
         startB <= normalizedEndA
+
     );
 
 }
@@ -5210,14 +5908,15 @@ function compareCurricula(
 ) {
 
     const departmentComparison =
-        curriculumA.department
-            .localeCompare(
-                curriculumB.department,
-                "ja"
-            );
+        curriculumA.department.localeCompare(
+            curriculumB.department,
+            "ja"
+        );
 
 
-    if (departmentComparison !== 0) {
+    if (
+        departmentComparison !== 0
+    ) {
 
         return departmentComparison;
 
@@ -5225,14 +5924,15 @@ function compareCurricula(
 
 
     const majorComparison =
-        curriculumA.major
-            .localeCompare(
-                curriculumB.major,
-                "ja"
-            );
+        curriculumA.major.localeCompare(
+            curriculumB.major,
+            "ja"
+        );
 
 
-    if (majorComparison !== 0) {
+    if (
+        majorComparison !== 0
+    ) {
 
         return majorComparison;
 
@@ -5254,12 +5954,14 @@ function compareSubjects(
 
     const gradeA =
         Number(
-            subjectA.grade || 99
+            subjectA.grade ||
+            99
         );
 
     const gradeB =
         Number(
-            subjectB.grade || 99
+            subjectB.grade ||
+            99
         );
 
 
@@ -5311,8 +6013,32 @@ function compareSubjects(
 
 
 /* ========================================
-   画面移動・モーダル
+   画面移動
 ======================================== */
+
+function openSubjectsAdmin() {
+
+    let url =
+        "subjects_admin.html";
+
+
+    if (currentCurriculumId) {
+
+        url +=
+            "?curriculumId=" +
+            encodeURIComponent(
+                currentCurriculumId
+            );
+
+    }
+
+
+    navigateWithUnsavedCheck(
+        url
+    );
+
+}
+
 
 function navigateWithUnsavedCheck(
     url
@@ -5344,6 +6070,10 @@ function navigateWithUnsavedCheck(
 }
 
 
+/* ========================================
+   モーダル
+======================================== */
+
 function openModal(
     modal
 ) {
@@ -5368,7 +6098,11 @@ function closeModal(
     modal
 ) {
 
-    if (!modal) {
+    if (
+        !modal ||
+        modal.hidden
+    ) {
+
         return;
     }
 
@@ -5392,7 +6126,7 @@ function closeModal(
 
 
 /* ========================================
-   共通
+   共通補助
 ======================================== */
 
 function createLocalId(
@@ -5403,16 +6137,142 @@ function createLocalId(
     return (
 
         prefix +
+
         "_" +
+
         Date.now() +
+
         "_" +
+
         index +
+
         "_" +
+
         Math.random()
-            .toString(36)
-            .slice(2, 8)
+            .toString(
+                36
+            )
+            .slice(
+                2,
+                8
+            )
 
     );
+
+}
+
+
+function normalizeStringArray(
+    value
+) {
+
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+
+    return [
+
+        ...new Set(
+
+            value
+                .map(
+                    item =>
+                        String(
+                            item
+                        ).trim()
+                )
+                .filter(Boolean)
+
+        )
+
+    ];
+
+}
+
+
+function splitTags(
+    value
+) {
+
+    if (Array.isArray(value)) {
+
+        return normalizeStringArray(
+            value
+        );
+
+    }
+
+
+    return [
+
+        ...new Set(
+
+            String(
+                value ||
+                ""
+            )
+            .split(
+                /[、,\n]/
+            )
+            .map(
+                item =>
+                    item.trim()
+            )
+            .filter(Boolean)
+
+        )
+
+    ];
+
+}
+
+
+function normalizeSemester(
+    value
+) {
+
+    const semester =
+        String(
+            value ||
+            ""
+        ).trim();
+
+
+    if (
+        semester.includes(
+            "通"
+        )
+    ) {
+
+        return "通期";
+
+    }
+
+
+    if (
+        semester.includes(
+            "前"
+        )
+    ) {
+
+        return "前期";
+
+    }
+
+
+    if (
+        semester.includes(
+            "後"
+        )
+    ) {
+
+        return "後期";
+
+    }
+
+
+    return semester;
 
 }
 
@@ -5422,11 +6282,15 @@ function toNonNegativeNumber(
 ) {
 
     const number =
-        Number(value);
+        Number(
+            value
+        );
 
 
     if (
-        !Number.isFinite(number) ||
+        !Number.isFinite(
+            number
+        ) ||
         number < 0
     ) {
 
@@ -5450,10 +6314,20 @@ function formatCredit(
         );
 
 
-    return Number.isInteger(number)
-        ? String(number)
-        : number.toFixed(1)
-            .replace(/\.0$/, "");
+    return Number.isInteger(
+        number
+    )
+        ? String(
+            number
+        )
+        : number
+            .toFixed(
+                1
+            )
+            .replace(
+                /\.0$/,
+                ""
+            );
 
 }
 
@@ -5471,9 +6345,11 @@ function formatDate(
 
         const date =
             typeof value.toDate ===
-            "function"
+                "function"
                 ? value.toDate()
-                : new Date(value);
+                : new Date(
+                    value
+                );
 
 
         if (
@@ -5511,7 +6387,10 @@ function setText(
 
 
     element.textContent =
-        String(value ?? "");
+        String(
+            value ??
+            ""
+        );
 
 }
 
@@ -5527,7 +6406,8 @@ function setInputValue(
 
 
     element.value =
-        value ?? "";
+        value ??
+        "";
 
 }
 
@@ -5552,12 +6432,30 @@ function escapeHtml(
     value
 ) {
 
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    return String(
+        value ??
+        ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
 
 }
 
@@ -5566,6 +6464,8 @@ function escapeAttribute(
     value
 ) {
 
-    return escapeHtml(value);
+    return escapeHtml(
+        value
+    );
 
 }
