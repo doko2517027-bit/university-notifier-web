@@ -59,6 +59,150 @@ export const realtimeDb = getDatabase(app);
 export const studentNumber =
     localStorage.getItem("studentNumber");
 
+// ======================
+// 学籍番号から学生情報を取得
+// ======================
+
+export function parseStudentNumber(value) {
+
+    const normalizedStudentNumber =
+        String(value || "")
+            .replace(/\D/g, "");
+
+    if (
+        !/^\d{7}$/.test(
+            normalizedStudentNumber
+        )
+    ) {
+
+        return {
+            valid: false,
+            studentNumber:
+                normalizedStudentNumber,
+            admissionYear: null,
+            departmentCode: "",
+            department: "",
+            major: "",
+            curriculumId: ""
+        };
+
+    }
+
+    // 先頭2桁＝入学年度
+    const admissionYear =
+        2000 +
+        Number(
+            normalizedStudentNumber.slice(
+                0,
+                2
+            )
+        );
+
+    // 3・4桁目＝学科・専攻コード
+    const departmentCode =
+        normalizedStudentNumber.slice(
+            2,
+            4
+        );
+
+    let department = "";
+    let major = "";
+    let curriculumPrefix = "";
+
+    switch (departmentCode) {
+
+        case "10":
+
+            department =
+                "看護学科";
+
+            major = "";
+
+            curriculumPrefix =
+                "nursing";
+
+            break;
+
+        case "20":
+
+            department =
+                "リハビリテーション学科";
+
+            major =
+                "理学療法学専攻";
+
+            curriculumPrefix =
+                "physical_therapy";
+
+            break;
+
+        case "30":
+
+            department =
+                "リハビリテーション学科";
+
+            major =
+                "作業療法学専攻";
+
+            curriculumPrefix =
+                "occupational_therapy";
+
+            break;
+
+        case "40":
+
+            department =
+                "医療薬学科";
+
+            major = "";
+
+            curriculumPrefix =
+                "pharmacy";
+
+            break;
+
+        default:
+
+            return {
+                valid: false,
+                studentNumber:
+                    normalizedStudentNumber,
+                admissionYear,
+                departmentCode,
+                department: "",
+                major: "",
+                curriculumId: ""
+            };
+
+    }
+
+    return {
+        valid: true,
+
+        studentNumber:
+            normalizedStudentNumber,
+
+        admissionYear,
+
+        departmentCode,
+
+        department,
+
+        major,
+
+        curriculumId:
+            `${curriculumPrefix}_${admissionYear}`
+    };
+
+}
+
+
+// 現在ログイン中の学生情報
+export const studentAcademicContext =
+    parseStudentNumber(
+        studentNumber
+    );
+
 export function setupTheme(themeButton){
 
     if(localStorage.getItem("theme")==="dark"){

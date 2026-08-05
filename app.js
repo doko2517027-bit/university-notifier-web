@@ -16,7 +16,8 @@ import {
     updateAssignmentNavBadge,
     updateShareNavBadge,
     updateNewsNavBadge,
-    setupAttendanceWebPush
+    setupAttendanceWebPush,
+    studentAcademicContext
 } from "./common.js";
 import { loadPersonalTimetableData, isEnrolledScheduleItem } from "./personal_timetable_data.js";
 
@@ -289,6 +290,7 @@ console.log("studentNumber =", studentNumber);
         loadCourseRegistrationBanner(user),
     ]);
 
+    console.log(studentAcademicContext);
 
     loadRankingPopup();
 
