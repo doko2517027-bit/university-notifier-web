@@ -13,6 +13,7 @@ const defaults=PERIOD_TIMES[period]||{};
 const startTime=params.get("startTime")||defaults.startTime||"";
 const endTime=params.get("endTime")||defaults.endTime||"";
 const recordId=params.get("recordId")||slotId(scheduleId,date,period,subject);
+const notificationChoice=params.get("choice")||"";
 const subjectName=document.getElementById("subjectName");
 const attendanceStatus=document.getElementById("attendanceStatus");
 const primaryButton=document.getElementById("attendanceButton");
@@ -76,6 +77,9 @@ async function init(){
     }else{
         primaryButton.textContent="✅ 出席・到着";secondaryButton.textContent="❌ 欠席";
         primaryButton.onclick=()=>saveChoice("arrival").catch(showError);secondaryButton.onclick=()=>saveChoice("absence").catch(showError);
+    }
+    if(action==="arrival"&&(notificationChoice==="arrival"||notificationChoice==="absence")&&!snap.exists()){
+        await saveChoice(notificationChoice);
     }
 }
 function showError(error){console.error(error);attendanceStatus.textContent=`⚠️ ${error.message||"保存に失敗しました"}`;alert(error.message||"保存に失敗しました")}

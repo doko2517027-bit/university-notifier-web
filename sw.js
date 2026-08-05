@@ -2,6 +2,8 @@ self.addEventListener("push", event => {
 
     const data = event.data.json();
 
+    const targetUrl=data.url||"./index.html";
+    const isArrival=new URL(targetUrl,self.location.origin).searchParams.get("action")==="arrival";
     event.waitUntil(
 
         self.registration.showNotification(
@@ -10,9 +12,13 @@ self.addEventListener("push", event => {
                 body: data.body,
                 icon: "icon-192.png",
                 badge: "icon-192.png",
-                data: { url: data.url || "./index.html" },
+                data: { url: targetUrl },
                 tag: data.tag || undefined,
-                renotify: Boolean(data.tag)
+                renotify: Boolean(data.tag),
+                actions: isArrival ? [
+                    { action: "attendance", title: "出席" },
+                    { action: "absence", title: "欠席" }
+                ] : []
             }
         )
 
@@ -30,7 +36,10 @@ self.addEventListener("notificationclick", event => {
             ? notificationData
             : notificationData?.url||"./index.html",
         self.location.origin
-    ).href;
+    );
+    if(event.action==="attendance")targetUrl.searchParams.set("choice","arrival");
+    if(event.action==="absence")targetUrl.searchParams.set("choice","absence");
+    const targetHref=targetUrl.href;
 
     event.waitUntil(
         clients.matchAll({
@@ -42,7 +51,7 @@ self.addEventListener("notificationclick", event => {
 
                 if ("focus" in client && "navigate" in client) {
                     try {
-                        await client.navigate(targetUrl);
+                        await client.navigate(targetHref);
                         return await client.focus();
                     } catch (error) {
                         // 別オリジン等で再利用できない場合は新しい画面を開く。
@@ -51,7 +60,7 @@ self.addEventListener("notificationclick", event => {
 
             }
 
-            return clients.openWindow(targetUrl);
+            return clients.openWindow(targetHref);
 
         })
     );

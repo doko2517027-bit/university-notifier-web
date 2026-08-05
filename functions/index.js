@@ -103,10 +103,6 @@ async function processAttendanceNotifications() {
         if (!scheduleCache.has(scheduleId)) {
             scheduleCache.set(scheduleId, (await db.collection("schedule").doc(scheduleId).get()).data() || {});
         }
-        const day = (scheduleCache.get(scheduleId).allDays || [])
-            .find(item => item.date === clock.date);
-        if (!day) continue;
-
         const enrolledSnap = await userDoc.ref.collection("enrolledSubjects").get();
         const enrolled = new Set();
         enrolledSnap.docs.forEach(doc => {
@@ -119,13 +115,37 @@ async function processAttendanceNotifications() {
         });
         if (!enrolled.size) continue;
 
+        const day = (scheduleCache.get(scheduleId).allDays || [])
+            .find(item => item.date === clock.date);
+        const schedules = [...(day?.schedules || [])];
+        const notificationTest = user.attendanceNotificationTest || {};
+        const notificationTestActive = userDoc.id === "2510044" &&
+            notificationTest.enabled === true &&
+            notificationTest.date === realClock.date &&
+            Date.parse(notificationTest.expiresAt || "") > Date.now() &&
+            enrolled.has(normalizeCourseName(notificationTest.subject));
+        if (notificationTestActive) {
+            schedules.push({
+                subject: notificationTest.subject,
+                grade: user.grade || "",
+                period: notificationTest.period || 1,
+                classGroup: notificationTest.classGroup || "",
+                startTime: notificationTest.startTime,
+                endTime: notificationTest.endTime,
+                attendanceNotificationTest: true,
+                testId: notificationTest.testId || "today"
+            });
+        }
+
         const grade = String(user.grade || "").replace("年", "").trim();
-        for (const item of day.schedules || []) {
+        for (const item of schedules) {
             if (!enrolled.has(normalizeCourseName(item.subject))) continue;
             if (grade && String(item.grade || "").replace("年", "").trim() !== grade) continue;
 
             const periodNumber = Number.parseInt(item.period, 10);
-            const recordId = slotId(scheduleId, clock.date, periodNumber, item.subject);
+            const recordScheduleId = item.attendanceNotificationTest
+                ? `${scheduleId}_test_${item.testId}` : scheduleId;
+            const recordId = slotId(recordScheduleId, clock.date, periodNumber, item.subject);
             const override = attendanceOverrides[recordId] || {};
             const defaults = PERIOD_TIMES[periodNumber] || {};
             const startTime = override.startTime || item.startTime || defaults.startTime;
@@ -155,15 +175,23 @@ async function processAttendanceNotifications() {
             });
             if (!claimed) continue;
 
-            const query = new URLSearchParams({ action: notificationType, recordId, scheduleId,
+            const query = new URLSearchParams({ action: notificationType, recordId, scheduleId: recordScheduleId,
                 date: clock.date, period: String(periodNumber), subject: item.subject,
-                classGroup: group, startTime, endTime }).toString();
+                classGroup: group, startTime, endTime,
+                notificationTest: item.attendanceNotificationTest ? "1" : "" }).toString();
             const label = group ? `（${group}）` : "";
             const payload = notificationType === "arrival"
                 ? { title: `📚 出席確認 ${label}`, body: `${item.subject}：出席または欠席を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `attendance-${recordId}-${encodeURIComponent(group || "all")}` }
                 : { title: `🚪 退席確認 ${label}`, body: `${item.subject}：退席または早退を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `departure-${recordId}` };
             const results = await sendToUserDevices(userDoc.id, payload);
             await dispatchRef.update({ results, sentAt: new Date() });
+            if (item.attendanceNotificationTest) {
+                await userDoc.ref.update({
+                    "attendanceNotificationTest.enabled": false,
+                    "attendanceNotificationTest.sentAt": new Date(),
+                    "attendanceNotificationTest.results": results
+                });
+            }
         }
     }
 }

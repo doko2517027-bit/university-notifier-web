@@ -882,8 +882,39 @@ async function loadTodaySchedule() {
         /^\d{4}-\d{2}-\d{2}$/.test(userTestClock.date || "") &&
         Date.parse(userTestClock.expiresAt || "") > Date.now();
 
+    if (!userTestDateActive && localStorage.getItem("careMateAttendanceTestDate")) {
+        localStorage.removeItem("careMateAttendanceTestDate");
+        localStorage.removeItem("careMateSelectedScheduleDate");
+    }
+
+    const notificationTest = userSnapshot?.data()?.attendanceNotificationTest || {};
+    const notificationTestActive = notificationTest.enabled === true &&
+        notificationTest.date === new Date().toLocaleDateString("sv-SE") &&
+        Date.parse(notificationTest.expiresAt || "") > Date.now() &&
+        isEnrolledScheduleItem({ subject: notificationTest.subject }, enrolledAliases);
+    if (notificationTestActive) {
+        let testDay = lectureSchedules.find(item => item.date === notificationTest.date);
+        if (!testDay) {
+            testDay = { date: notificationTest.date, title: "今日", label: "通知テスト", schedules: [] };
+            lectureSchedules.push(testDay);
+            lectureSchedules.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+        }
+        testDay.schedules.push({
+            subject: notificationTest.subject,
+            grade,
+            period: `${notificationTest.period || 1}限`,
+            classGroup: notificationTest.classGroup || "",
+            startTime: notificationTest.startTime,
+            endTime: notificationTest.endTime,
+            building: "CareMate",
+            room: "通知テスト",
+            attendanceNotificationTest: true
+        });
+    }
+
     const actualToday = new Date().toLocaleDateString("sv-SE");
-    let initialDate = userTestDateActive ? userTestClock.date : "";
+    let initialDate = userTestDateActive ? userTestClock.date
+        : notificationTestActive ? notificationTest.date : "";
     if (!initialDate) {
         const exactToday = lectureSchedules.find(item => item.date === actualToday);
         const nextDay = lectureSchedules.find(item => item.date >= actualToday);
