@@ -103,6 +103,58 @@ async function loadQuestions() {
 
 }
 
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderQuestionImage(question) {
+
+    const imageUrl =
+        String(
+            question?.imageUrl || ""
+        ).trim();
+
+    if (!imageUrl) {
+        return "";
+    }
+
+    const description =
+        String(
+            question?.imageDescription ||
+            ""
+        ).trim();
+
+    return `
+        <figure class="test-question-image">
+
+            <img
+                src="${escapeHtml(imageUrl)}"
+                alt="${escapeHtml(
+                    description ||
+                    "問題画像"
+                )}"
+                loading="lazy">
+
+            ${
+                description
+                    ? `
+                        <figcaption>
+                            ${escapeHtml(description)}
+                        </figcaption>
+                    `
+                    : ""
+            }
+
+        </figure>
+    `;
+}
+
 function renderFillQuestion() {
     const q = visibleFillBlank[currentFillIndex];
     const answers = q.answers && q.answers.length > 0 ? q.answers : [q.answer || ""];
@@ -116,7 +168,9 @@ function renderFillQuestion() {
 
                 <div class="test-question-number">問題 ${currentFillIndex + 1} / ${visibleFillBlank.length}</div>
 
-                <h2 class="test-question-text">${q.question}</h2>
+                <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
+
+                ${renderQuestionImage(q)}
 
                 ${answers.map((answer, answerIndex) => `
                     <input

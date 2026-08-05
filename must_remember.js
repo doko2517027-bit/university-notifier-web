@@ -59,21 +59,108 @@ async function loadRemember() {
 
     const data = snap.data();
     const points = (data.important_points || []).filter(point =>
-        typeof point === "string" &&
-        point.trim() !== ""
-    );
+            typeof point === "string" &&
+            point.trim() !== ""
+        );
 
-    if (points.length === 0) {
+        const pointImages =
+        (
+            data.important_point_images ||
+            []
+        ).filter(item =>
+            item &&
+            typeof item === "object" &&
+            String(
+                item.imageUrl || ""
+            ).trim() !== ""
+        );
+
+    if (
+        points.length === 0 &&
+        pointImages.length === 0
+    ) {
         rememberArea.innerHTML = "重要ポイントが生成されていません。";
         return;
     }
 
     rememberArea.innerHTML = `
         <div class="card setting-card">
-            <h3>⭐ 試験前にここだけ確認</h3>
-            <ul>
-                ${points.map(point => `<li>${point}</li>`).join("")}
-            </ul>
+
+            <h3>
+                ⭐ 試験前にここだけ確認
+            </h3>
+
+            ${
+                points.length
+                    ? `
+                        <ul>
+                            ${points
+                                .map(
+                                    point =>
+                                        `<li>${escapeHtml(point)}</li>`
+                                )
+                                .join("")}
+                        </ul>
+                    `
+                    : ""
+            }
+
+            ${
+                pointImages.length
+                    ? `
+                        <div class="important-point-image-list">
+
+                            ${pointImages
+                                .map(item => {
+
+                                    const description =
+                                        String(
+                                            item.description ||
+                                            ""
+                                        );
+
+                                    return `
+                                        <figure class="important-point-image-card">
+
+                                            <img
+                                                src="${escapeHtml(item.imageUrl)}"
+                                                alt="${escapeHtml(
+                                                    description ||
+                                                    "重要ポイント画像"
+                                                )}"
+                                                loading="lazy">
+
+                                            ${
+                                                description
+                                                    ? `
+                                                        <figcaption>
+                                                            ${escapeHtml(description)}
+                                                        </figcaption>
+                                                    `
+                                                    : ""
+                                            }
+
+                                        </figure>
+                                    `;
+
+                                })
+                                .join("")}
+
+                        </div>
+                    `
+                    : ""
+            }
+
         </div>
     `;
+}
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }

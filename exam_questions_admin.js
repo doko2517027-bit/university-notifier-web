@@ -248,6 +248,13 @@ function renderQuestions(data) {
             ? data.important_points
             : [];
 
+    const importantPointImages =
+        Array.isArray(
+            data.important_point_images
+        )
+            ? data.important_point_images
+            : [];
+
     const fillBlank =
         Array.isArray(
             data.fill_blank
@@ -293,6 +300,39 @@ function renderQuestions(data) {
                 id="editImportantPoints"
                 rows="6"
                 placeholder="例：左心不全では肺うっ血が起こりやすい。">${importantPoints.join("\n")}</textarea>
+
+            <hr>
+
+            <h4>重要ポイント画像</h4>
+
+            <p>
+                図や写真と、その画像で覚える内容を登録できます。
+            </p>
+
+            <div id="importantPointImageList">
+
+                ${
+                    importantPointImages
+                        .map(
+                            (item, index) =>
+                                renderImportantPointImageItem(
+                                    item,
+                                    index
+                                )
+                        )
+                        .join("")
+                }
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="addImportantPointImage">
+
+                ＋ 重要ポイント画像を追加
+
+            </button>
 
         </div>
 
@@ -487,6 +527,7 @@ function renderQuizItem(
                 data-index="${quizIndex}"
                 rows="3"
                 placeholder="問題文を入力してください。">${item.question || ""}</textarea>
+                ${renderQuestionImageEditor(item)}
 
             <p>選択肢</p>
 
@@ -688,6 +729,7 @@ function renderFillBlankItem(
                 data-index="${index}"
                 rows="3"
                 placeholder="例：心臓から送り出される血液量を〇〇という。">${item.question || ""}</textarea>
+                ${renderQuestionImageEditor(item)}
 
             <p>模範解答表示</p>
 
@@ -741,6 +783,327 @@ function renderFillBlankItem(
 
         </div>
     `;
+}
+
+function renderQuestionImageEditor(item = {}) {
+
+    const imageUrl =
+        String(
+            item.imageUrl || ""
+        );
+
+    const imagePublicId =
+        String(
+            item.imagePublicId || ""
+        );
+
+    const imageDescription =
+        String(
+            item.imageDescription || ""
+        );
+
+    return `
+        <div class="question-image-editor">
+
+            <p>
+                <b>問題画像（任意）</b>
+            </p>
+
+            <input
+                type="file"
+                accept="image/*"
+                class="edit-question-image-file">
+
+            <input
+                type="hidden"
+                class="edit-question-image-url"
+                value="${escapeAdminAttribute(imageUrl)}">
+
+            <input
+                type="hidden"
+                class="edit-question-image-public-id"
+                value="${escapeAdminAttribute(imagePublicId)}">
+
+            <textarea
+                class="edit-question-image-description"
+                rows="2"
+                placeholder="画像の説明を入力してください。例：心臓の血液循環を示した図">${escapeAdminHtml(imageDescription)}</textarea>
+
+            <div class="question-image-preview">
+
+                ${
+                    imageUrl
+                        ? `
+                            <img
+                                src="${escapeAdminAttribute(imageUrl)}"
+                                alt="${escapeAdminAttribute(
+                                    imageDescription ||
+                                    "問題画像"
+                                )}">
+
+                            <button
+                                type="button"
+                                class="btn btn-danger remove-question-image">
+
+                                画像を削除
+
+                            </button>
+                        `
+                        : `
+                            <small>
+                                画像は登録されていません。
+                            </small>
+                        `
+                }
+
+            </div>
+
+        </div>
+    `;
+}
+
+function renderImportantPointImageItem(
+    item = {},
+    index = 0
+) {
+
+    return `
+        <div
+            class="card setting-card important-point-image-card"
+            data-index="${index}">
+
+            <p>
+                <b>重要ポイント画像 ${index + 1}</b>
+            </p>
+
+            ${renderQuestionImageEditor({
+                imageUrl:
+                    item.imageUrl || "",
+
+                imagePublicId:
+                    item.imagePublicId || "",
+
+                imageDescription:
+                    item.description || ""
+            })}
+
+            <button
+                type="button"
+                class="btn btn-danger delete-important-point-image">
+
+                この画像ポイントを削除
+
+            </button>
+
+        </div>
+    `;
+}
+
+async function uploadQuestionImage(
+    file,
+    editor
+) {
+
+    if (!file) {
+        return;
+    }
+
+    if (
+        !String(file.type)
+            .startsWith("image/")
+    ) {
+
+        alert(
+            "画像ファイルを選択してください。"
+        );
+
+        return;
+    }
+
+    if (
+        file.size >
+        10 * 1024 * 1024
+    ) {
+
+        alert(
+            "画像は10MB以下にしてください。"
+        );
+
+        return;
+    }
+
+    const fileInput =
+        editor.querySelector(
+            ".edit-question-image-file"
+        );
+
+    const urlInput =
+        editor.querySelector(
+            ".edit-question-image-url"
+        );
+
+    const publicIdInput =
+        editor.querySelector(
+            ".edit-question-image-public-id"
+        );
+
+    const descriptionInput =
+        editor.querySelector(
+            ".edit-question-image-description"
+        );
+
+    const preview =
+        editor.querySelector(
+            ".question-image-preview"
+        );
+
+    try {
+
+        if (fileInput) {
+            fileInput.disabled = true;
+        }
+
+        if (preview) {
+
+            preview.innerHTML = `
+                <p>
+                    画像をアップロード中...
+                </p>
+            `;
+        }
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "file",
+            file
+        );
+
+        formData.append(
+            "upload_preset",
+            "caremate_upload"
+        );
+
+        const response =
+            await fetch(
+                "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (
+            !response.ok ||
+            !data.secure_url
+        ) {
+
+            throw new Error(
+                data.error?.message ||
+                "画像URLを取得できませんでした。"
+            );
+        }
+
+        if (urlInput) {
+
+            urlInput.value =
+                data.secure_url;
+        }
+
+        if (publicIdInput) {
+
+            publicIdInput.value =
+                data.public_id || "";
+        }
+
+        if (preview) {
+
+            preview.innerHTML = `
+                <img
+                    src="${escapeAdminAttribute(data.secure_url)}"
+                    alt="${escapeAdminAttribute(
+                        descriptionInput?.value ||
+                        "問題画像"
+                    )}">
+
+                <button
+                    type="button"
+                    class="btn btn-danger remove-question-image">
+
+                    画像を削除
+
+                </button>
+            `;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "問題画像アップロードエラー:",
+            error
+        );
+
+        alert(
+            `画像をアップロードできませんでした。\n${error.message}`
+        );
+
+        if (preview) {
+
+            preview.innerHTML = `
+                <small>
+                    画像は登録されていません。
+                </small>
+            `;
+        }
+
+    } finally {
+
+        if (fileInput) {
+
+            fileInput.disabled =
+                false;
+
+            fileInput.value =
+                "";
+        }
+
+    }
+}
+
+function readImageData(card) {
+
+    return {
+        imageUrl:
+            card
+                .querySelector(
+                    ".edit-question-image-url"
+                )
+                ?.value
+                .trim() ||
+            "",
+
+        imagePublicId:
+            card
+                .querySelector(
+                    ".edit-question-image-public-id"
+                )
+                ?.value
+                .trim() ||
+            "",
+
+        imageDescription:
+            card
+                .querySelector(
+                    ".edit-question-image-description"
+                )
+                ?.value
+                .trim() ||
+            ""
+    };
 }
 
 publishQuestions.onclick =
@@ -904,6 +1267,33 @@ saveEditedQuestions.onclick =
                 .filter(text =>
                     text !== ""
                 );
+        
+        const important_point_images =
+            Array.from(
+                document.querySelectorAll(
+                    ".important-point-image-card"
+                )
+            )
+                .map(card => {
+
+                    const imageData =
+                        readImageData(card);
+
+                    return {
+                        imageUrl:
+                            imageData.imageUrl,
+
+                        imagePublicId:
+                            imageData.imagePublicId,
+
+                        description:
+                            imageData.imageDescription
+                    };
+
+                })
+                .filter(item =>
+                    item.imageUrl !== ""
+                );
 
         const fill_blank =
             Array.from(
@@ -944,10 +1334,15 @@ saveEditedQuestions.onclick =
                                 value !== ""
                             );
 
+                    const imageData =
+                        readImageData(card);
+
                     return {
                         question,
                         answer,
                         answers,
+
+                        ...imageData,
 
                         source_type:
                             "manual",
@@ -1093,6 +1488,11 @@ saveEditedQuestions.onclick =
                     .trim() ||
                 "";
 
+            const imageData =
+                readImageData(
+                    todayCard
+                );
+
             if (
                 question !== ""
             ) {
@@ -1102,6 +1502,8 @@ saveEditedQuestions.onclick =
                     choices,
                     answer,
                     explanation,
+
+                    ...imageData,
 
                     source_type:
                         "manual",
@@ -1192,8 +1594,8 @@ saveEditedQuestions.onclick =
             {
                 ...current,
 
-                summary,
                 important_points,
+                important_point_images,
                 fill_blank,
                 quiz,
                 today_question,
@@ -1226,6 +1628,93 @@ saveEditedQuestions.onclick =
 document.addEventListener(
     "click",
     e => {
+
+        if (
+            e.target.classList.contains(
+                "remove-question-image"
+            )
+        ) {
+
+            const editor =
+                e.target.closest(
+                    ".question-image-editor"
+                );
+
+            if (!editor) {
+                return;
+            }
+
+            editor.querySelector(
+                ".edit-question-image-url"
+            ).value = "";
+
+            editor.querySelector(
+                ".edit-question-image-public-id"
+            ).value = "";
+
+            editor.querySelector(
+                ".edit-question-image-file"
+            ).value = "";
+
+            editor.querySelector(
+                ".question-image-preview"
+            ).innerHTML = `
+                <small>
+                    画像は登録されていません。
+                </small>
+            `;
+
+            return;
+        }
+
+        if (
+            e.target.id ===
+            "addImportantPointImage"
+        ) {
+
+            const list =
+                document.getElementById(
+                    "importantPointImageList"
+                );
+
+            const index =
+                list.querySelectorAll(
+                    ".important-point-image-card"
+                ).length;
+
+            list.insertAdjacentHTML(
+                "beforeend",
+                renderImportantPointImageItem(
+                    {},
+                    index
+                )
+            );
+
+            return;
+        }
+
+        if (
+            e.target.classList.contains(
+                "delete-important-point-image"
+            )
+        ) {
+
+            if (
+                !confirm(
+                    "この重要ポイント画像を削除しますか？"
+                )
+            ) {
+                return;
+            }
+
+            e.target
+                .closest(
+                    ".important-point-image-card"
+                )
+                ?.remove();
+
+            return;
+        }
 
         if (
             e.target.id ===
@@ -2150,3 +2639,40 @@ importJson.onclick =
 
         }
     };
+
+document.addEventListener(
+    "change",
+    async event => {
+
+        const fileInput =
+            event.target.closest(
+                ".edit-question-image-file"
+            );
+
+        if (!fileInput) {
+            return;
+        }
+
+        const editor =
+            fileInput.closest(
+                ".question-image-editor"
+            );
+
+        if (!editor) {
+            return;
+        }
+
+        const file =
+            fileInput.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        await uploadQuestionImage(
+            file,
+            editor
+        );
+
+    }
+);

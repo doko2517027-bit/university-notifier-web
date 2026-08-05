@@ -37,6 +37,58 @@ document.getElementById("profileButton").onclick = () => {
     location.href = "profile.html";
 };
 
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderQuestionImage(question) {
+
+    const imageUrl =
+        String(
+            question?.imageUrl || ""
+        ).trim();
+
+    if (!imageUrl) {
+        return "";
+    }
+
+    const description =
+        String(
+            question?.imageDescription ||
+            ""
+        ).trim();
+
+    return `
+        <figure class="test-question-image">
+
+            <img
+                src="${escapeHtml(imageUrl)}"
+                alt="${escapeHtml(
+                    description ||
+                    "問題画像"
+                )}"
+                loading="lazy">
+
+            ${
+                description
+                    ? `
+                        <figcaption>
+                            ${escapeHtml(description)}
+                        </figcaption>
+                    `
+                    : ""
+            }
+
+        </figure>
+    `;
+}
+
 async function loadDailyQuestion() {
 
     if (!subjectId || !unitId) {
@@ -83,13 +135,15 @@ async function loadDailyQuestion() {
     questionArea.innerHTML = `
         <div class="card setting-card test-focus-card" data-answer="${q.answer}">
             <div class="test-question-number">今日の1問</div>
-            <h2 class="test-question-text">${q.question}</h2>
+            <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
+
+            ${renderQuestionImage(q)}
 
             <div class="test-choice-list">${q.choices.map((choice, index) => `
                 <button
                     class="test-choice answer-button"
                     data-index="${index}">
-                    <b>${index + 1}</b><span>${choice}</span>
+                    <b>${index + 1}</b><span>${escapeHtml(choice)}</span>
                 </button>
             `).join("")}</div>
 

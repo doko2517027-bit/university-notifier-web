@@ -50,6 +50,48 @@ function escapeHtml(value) {
         .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 
+function renderQuestionImage(question) {
+
+    const imageUrl =
+        String(
+            question?.imageUrl || ""
+        ).trim();
+
+    if (!imageUrl) {
+        return "";
+    }
+
+    const description =
+        String(
+            question?.imageDescription ||
+            ""
+        ).trim();
+
+    return `
+        <figure class="test-question-image">
+
+            <img
+                src="${escapeHtml(imageUrl)}"
+                alt="${escapeHtml(
+                    description ||
+                    "問題画像"
+                )}"
+                loading="lazy">
+
+            ${
+                description
+                    ? `
+                        <figcaption>
+                            ${escapeHtml(description)}
+                        </figcaption>
+                    `
+                    : ""
+            }
+
+        </figure>
+    `;
+}
+
 function renderQuestion() {
     const q = visibleQuiz[currentIndex];
     quizArea.innerHTML = `
@@ -57,6 +99,9 @@ function renderQuestion() {
         <div class="card setting-card test-focus-card quiz-card" data-answer="${Number(q.answer)}">
             <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
+
+            ${renderQuestionImage(q)}
+
             <div class="test-choice-list">
                 ${q.choices.map((choice, index) => `<button class="test-choice quiz-answer" data-index="${index}"><b>${index + 1}</b><span>${escapeHtml(choice)}</span></button>`).join("")}
             </div>
