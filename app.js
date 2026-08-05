@@ -888,7 +888,7 @@ async function loadTodaySchedule() {
     }
 
     const notificationTest = userSnapshot?.data()?.attendanceNotificationTest || {};
-    const notificationTestActive = notificationTest.enabled === true &&
+    const notificationTestActive = (notificationTest.enabled === true || notificationTest.sentAt) &&
         notificationTest.date === new Date().toLocaleDateString("sv-SE") &&
         Date.parse(notificationTest.expiresAt || "") > Date.now() &&
         isEnrolledScheduleItem({ subject: notificationTest.subject }, enrolledAliases);
