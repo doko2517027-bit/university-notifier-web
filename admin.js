@@ -124,8 +124,12 @@ setupEvents();
 
 async function loadDashboard() {
 
-    versionText.textContent =
-        `Version ${VERSION}`;
+    if(versionText){
+
+        versionText.textContent =
+            `Version ${VERSION}`;
+
+    }
 
     try {
 
@@ -139,32 +143,53 @@ async function loadDashboard() {
                 ...userDoc.data()
             }));
 
-        userCount.textContent =
-            `${dashboardUsers.length}人`;
+        if(userCount){
 
-        userCountDetail.textContent =
-            `${dashboardUsers.length}人`;
+            userCount.textContent =
+                `${dashboardUsers.length}人`;
+
+        }
+
+        if(userCountDetail){
+
+            userCountDetail.textContent =
+                `${dashboardUsers.length}人`;
+
+        }
 
         renderDashboardUsers();
 
-        firestoreStatus.textContent =
-            "🟢 正常";
+        if(firestoreStatus){
+
+            firestoreStatus.textContent =
+                "🟢 正常";
+
+        }
 
     } catch (error) {
 
         console.error(error);
 
-        userCount.textContent =
-            "取得失敗";
+        if(userCount){
 
-        userCountDetail.textContent =
-            "取得失敗";
+            userCount.textContent =
+                "取得失敗";
 
-        userList.innerHTML =
-            "ユーザー一覧の取得に失敗しました。";
+        }
 
-        firestoreStatus.textContent =
-            "🔴 エラー";
+        if(userCountDetail){
+
+            userCountDetail.textContent =
+                "取得失敗";
+
+        }
+
+        if(firestoreStatus){
+
+            firestoreStatus.textContent =
+                "🔴 エラー";
+
+        }
 
     }
 
@@ -495,23 +520,54 @@ async function loadSystemStatus() {
         const data = snap.data();
 
         if (data.renderStatus === "ok") {
-            renderStatus.textContent = "🟢 正常";
+            if(renderStatus){
+
+                renderStatus.textContent =
+                    "🟢 正常";
+
+            }
         } else if (data.renderStatus === "running") {
-            renderStatus.textContent = "🟡 実行中";
+            if(renderStatus){
+
+                renderStatus.textContent =
+                    "🟡 実行中";
+
+            }
         } else if (data.renderStatus === "error") {
-            renderStatus.textContent = "🔴 エラー";
+            if(renderStatus){
+
+                renderStatus.textContent = "🔴 エラー";
+
+            }
         } else {
-            renderStatus.textContent = "⚫ 未確認";
+            if(renderStatus){
+
+                renderStatus.textContent =
+                    "⚫ 未確認";
+
+            }
         }
 
-        lastCronText.textContent =
-            formatAdminDate(data.lastCronAt);
+        if(lastCronText){
 
-        lastScheduleCheckText.textContent =
-            formatAdminDate(data.lastScheduleCheckAt);
+            lastCronText.textContent =
+                formatAdminDate(data.lastCronAt);
 
-        lastAssignmentCheckText.textContent =
-            formatAdminDate(data.lastAssignmentCheckAt);
+        }
+
+        if(lastScheduleCheckText){
+
+            lastScheduleCheckText.textContent =
+                formatAdminDate(data.lastScheduleCheckAt);
+
+        }
+
+        if(lastAssignmentCheckText){
+
+            lastAssignmentCheckText.textContent =
+                formatAdminDate(data.lastAssignmentCheckAt);
+
+        }
 
     } catch (e) {
 
@@ -542,6 +598,12 @@ function formatAdminDate(timestamp) {
 }
 
 function loadSystemNews() {
+
+    if(!systemNewsList){
+
+        return;
+
+    }
 
     const q = query(
         collection(db, "systemNews"),
@@ -612,11 +674,19 @@ async function loadMaintenance() {
 
     const data = snap.data();
 
-    maintenanceToggle.checked =
-        data.maintenance === true;
+    if(maintenanceToggle){
 
-    maintenanceMessage.value =
-        data.message || "";
+        maintenanceToggle.checked =
+            data.maintenance === true;
+
+    }
+
+    if(maintenanceMessage){
+
+        maintenanceMessage.value =
+            data.message || "";
+
+    }
 
 }
 
@@ -633,51 +703,113 @@ async function loadNotificationSettings() {
     const settings =
         snap.data().notificationSettings || {};
 
-    notifySchedule.checked =
-        settings.schedule ?? true;
+    if(notifySchedule){
 
-    notifyAssignment.checked =
-        settings.assignment ?? true;
+        notifySchedule.checked =
+            settings.schedule ?? true;
 
-    notifyReminder.checked =
-        settings.reminder ?? true;
+    }
 
-    notifyCourseNews.checked =
-        settings.courseNews ?? true;
+    if(notifyAssignment){
 
-    notifySystemNews.checked =
-        settings.systemNews ?? true;
+        notifyAssignment.checked =
+            settings.assignment ?? true;
 
-    notifySharePost.checked =
-        settings.sharePost ?? true;
+    }
 
-    notifyLike.checked =
-        settings.like ?? true;
+    if(notifyReminder){
 
-    notifyComment.checked =
-        settings.comment ?? true;
+        notifyReminder.checked =
+            settings.reminder ?? true;
+
+    }
+
+    if(notifyCourseNews){
+
+        notifyCourseNews.checked =
+            settings.courseNews ?? true;
+
+    }
+
+    if(notifySystemNews){
+
+        notifySystemNews.checked =
+            settings.systemNews ?? true;
+
+    }
+
+    if(notifySharePost){
+
+        notifySharePost.checked =
+            settings.sharePost ?? true;
+
+    }
+
+    if(notifyLike){
+
+        notifyLike.checked =
+            settings.like ?? true;
+
+    }
+
+    if(notifyComment){
+
+        notifyComment.checked =
+            settings.comment ?? true;
+
+    }
 
 }
 
 function setupEvents() {
 
-    enablePushButton.onclick = enablePushNotification;
+    if(enablePushButton){
 
-    postSystemNews.onclick = postNews;
+        enablePushButton.onclick =
+            enablePushNotification;
 
-    saveMaintenance.onclick = saveMaintenanceSettings;
+    }
 
-    document.getElementById("sendTestPush").onclick =
-        sendTestNotification;
-    document.getElementById("logout").onclick = () => {
+    if(postSystemNews){
 
-        if (!confirm("ログアウトしますか？")) return;
+        postSystemNews.onclick =
+            postNews;
 
-        localStorage.removeItem("loggedIn");
+    }
 
-        location.href = "login.html";
+    if(saveMaintenance){
 
-    };
+        saveMaintenance.onclick =
+            saveMaintenanceSettings;
+
+    }
+
+    const sendTestPush =
+        document.getElementById("sendTestPush");
+
+    if(sendTestPush){
+
+        sendTestPush.onclick =
+            sendTestNotification;
+
+    }
+
+    const logout =
+        document.getElementById("logout");
+
+    if(logout){
+
+        logout.onclick = () => {
+
+            if (!confirm("ログアウトしますか？")) return;
+
+            localStorage.removeItem("loggedIn");
+
+            location.href="login.html";
+
+        };
+
+    }
 
     [
         notifySchedule,
