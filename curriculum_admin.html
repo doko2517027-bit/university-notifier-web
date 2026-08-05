@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>カリキュラム管理 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+
+<body class="page-loading">
+
+
+<!-- ========================================
+     上部ユーザー情報
+======================================== -->
+
+<div class="top-buttons">
+
+    <div class="top-user-info">
+
+        <span id="userName">
+            Unknownさん
+        </span>
+
+        <span id="myRanking"></span>
+
+    </div>
+
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            type="button"
+            class="circle-button">
+
+            🌙
+
+        </button>
+
+
+        <button
+            id="profileButton"
+            type="button"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image"
+                alt="プロフィール">
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     ヘッダー
+======================================== -->
+
+<header class="header">
+
+    <div class="logo">
+        📘
+    </div>
+
+    <h1>
+        カリキュラム管理
+    </h1>
+
+    <p>
+        卒業要件と履修科目を統合して管理
+    </p>
+
+</header>
+
+
+<main class="curriculum-admin-page">
+
+
+    <!-- ========================================
+         上部操作
+    ======================================== -->
+
+    <div class="card setting-card curriculum-top-actions">
+
+        <button
+            id="backButton"
+            type="button"
+            class="btn">
+
+            ← 管理画面へ戻る
+
+        </button>
+
+
+        <button
+            id="openSubjectsAdminButton"
+            type="button"
+            class="btn">
+
+            📖 履修科目管理を開く
+
+        </button>
+
+    </div>
+
+
+    <!-- ========================================
+         対象カリキュラム
+    ======================================== -->
+
+    <h2>
+        🎓 対象カリキュラム
+    </h2>
+
+    <div class="card setting-card">
+
+        <label for="curriculumSelect">
+
+            <b>
+                編集するカリキュラム
+            </b>
+
+        </label>
+
+
+        <select id="curriculumSelect">
+
+            <option value="">
+                読み込み中...
+            </option>
+
+        </select>
+
+
+        <div class="curriculum-action-grid">
+
+            <button
+                id="createDefaultCurriculaButton"
+                type="button"
+                class="btn btn-primary">
+
+                学生便覧から初期データを作成
+
+            </button>
+
+
+            <button
+                id="addCurriculumButton"
+                type="button"
+                class="btn">
+
+                ＋ 新規作成
+
+            </button>
+
+
+            <button
+                id="duplicateCurriculumButton"
+                type="button"
+                class="btn">
+
+                複製して作成
+
+            </button>
+
+        </div>
+
+
+        <div class="curriculum-publish-state">
+
+            <span
+                id="curriculumStatusBadge"
+                class="curriculum-status-badge">
+
+                未選択
+
+            </span>
+
+            <span id="curriculumUpdatedAt">
+
+                最終更新：----
+
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         基本情報
+    ======================================== -->
+
+    <h2>
+        🪪 基本情報
+    </h2>
+
+    <div class="card setting-card">
+
+        <div class="curriculum-form-grid">
+
+
+            <label class="full-width">
+
+                <span>
+                    カリキュラム名
+                </span>
+
+                <input
+                    id="curriculumName"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="例：看護学科 2026年度以降">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    カリキュラムID
+                </span>
+
+                <input
+                    id="curriculumId"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="例：nursing_2026_plus">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    学科
+                </span>
+
+                <select id="curriculumDepartment">
+
+                    <option value="">
+                        選択してください
+                    </option>
+
+                    <option value="看護学科">
+                        看護学科
+                    </option>
+
+                    <option value="リハビリテーション学科">
+                        リハビリテーション学科
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    専攻
+                </span>
+
+                <select id="curriculumMajor">
+
+                    <option value="">
+                        専攻なし
+                    </option>
+
+                    <option value="理学療法学専攻">
+                        理学療法学専攻
+                    </option>
+
+                    <option value="作業療法学専攻">
+                        作業療法学専攻
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    入学年度・開始
+                </span>
+
+                <input
+                    id="admissionYearFrom"
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    step="1"
+                    placeholder="2026">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    入学年度・終了
+                </span>
+
+                <input
+                    id="admissionYearTo"
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    step="1"
+                    placeholder="空欄なら期限なし">
+
+            </label>
+
+        </div>
+
+
+        <label class="setting-row">
+
+            <span>
+
+                <b>
+                    学生側へ公開
+                </b>
+
+                <br>
+
+                <small>
+                    ONにすると卒業要件・単位進捗の判定に利用します
+                </small>
+
+            </span>
+
+            <input
+                id="curriculumPublished"
+                type="checkbox">
+
+        </label>
+
+    </div>
+
+
+    <!-- ========================================
+         卒業要件
+    ======================================== -->
+
+    <h2>
+        🏁 卒業要件
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="curriculum-credit-main-grid">
+
+
+            <label>
+
+                <span>
+                    卒業必要単位
+                </span>
+
+                <input
+                    id="graduationCredits"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="126">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    必修必要単位
+                </span>
+
+                <input
+                    id="requiredCredits"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="106">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    選択必要単位
+                </span>
+
+                <input
+                    id="electiveCreditsMinimum"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="20">
+
+            </label>
+
+        </div>
+
+
+        <p class="admin-input-help">
+
+            この数値は卒業要件全体の基準です。
+            区分ごとの条件は下で設定します。
+
+        </p>
+
+    </div>
+
+
+    <!-- ========================================
+         区分別要件
+    ======================================== -->
+
+    <h2>
+        🧩 区分別要件
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="curriculum-section-heading">
+
+            <div>
+
+                <h3>
+                    科目区分ごとの必要単位
+                </h3>
+
+                <p>
+                    総合教育科目・専門基礎科目・専門科目など
+                </p>
+
+            </div>
+
+
+            <button
+                id="addCategoryRequirementButton"
+                type="button"
+                class="btn">
+
+                ＋ 区分を追加
+
+            </button>
+
+        </div>
+
+
+        <div id="categoryRequirementList">
+
+            <div class="curriculum-loading">
+
+                カリキュラムを選択してください。
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         特別要件
+    ======================================== -->
+
+    <h2>
+        🏷️ 特別要件
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="curriculum-section-heading">
+
+            <div>
+
+                <h3>
+                    詳細区分・要件タグ
+                </h3>
+
+                <p>
+                    専門共通・地域理学療法学・作業治療学など
+                </p>
+
+            </div>
+
+
+            <button
+                id="addSpecialRequirementButton"
+                type="button"
+                class="btn">
+
+                ＋ 条件を追加
+
+            </button>
+
+        </div>
+
+
+        <div id="specialRequirementList">
+
+            <div class="curriculum-empty">
+
+                特別要件はありません。
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         科目情報との統合結果
+    ======================================== -->
+
+    <h2>
+        📊 履修科目との統合結果
+    </h2>
+
+    <div class="curriculum-analysis-grid">
+
+
+        <div class="card setting-card curriculum-analysis-card">
+
+            <small>
+                対象科目
+            </small>
+
+            <strong id="integratedSubjectCount">
+                --
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card curriculum-analysis-card">
+
+            <small>
+                登録単位合計
+            </small>
+
+            <strong id="calculatedTotalCredits">
+                --
+            </strong>
+
+            <span>
+                単位
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card curriculum-analysis-card">
+
+            <small>
+                必修単位
+            </small>
+
+            <strong id="calculatedRequiredCredits">
+                --
+            </strong>
+
+            <span>
+                単位
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card curriculum-analysis-card">
+
+            <small>
+                選択単位
+            </small>
+
+            <strong id="calculatedElectiveCredits">
+                --
+            </strong>
+
+            <span>
+                単位
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card curriculum-analysis-card warning">
+
+            <small>
+                未分類科目
+            </small>
+
+            <strong id="unassignedSubjectCount">
+                --
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card curriculum-analysis-card warning">
+
+            <small>
+                情報不足
+            </small>
+
+            <strong id="incompleteCurriculumSubjectCount">
+                --
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         不一致・警告
+    ======================================== -->
+
+    <h2>
+        ⚠️ 確認が必要な項目
+    </h2>
+
+    <div class="card setting-card">
+
+        <div id="curriculumWarningList">
+
+            <div class="curriculum-loading">
+
+                科目情報を確認しています...
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         対象科目一覧
+    ======================================== -->
+
+    <h2>
+        📚 対象科目一覧
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="curriculum-subject-toolbar">
+
+
+            <input
+                id="curriculumSubjectSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="科目名・subjectKeyで検索">
+
+
+            <select id="curriculumSubjectCategoryFilter">
+
+                <option value="">
+                    すべての区分
+                </option>
+
+            </select>
+
+
+            <select id="curriculumSubjectTypeFilter">
+
+                <option value="">
+                    必修・選択すべて
+                </option>
+
+                <option value="required">
+                    必修
+                </option>
+
+                <option value="elective">
+                    選択
+                </option>
+
+                <option value="free">
+                    自由
+                </option>
+
+                <option value="unset">
+                    未設定
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="curriculum-subject-list-header">
+
+            <span id="curriculumSubjectFilteredCount">
+
+                0科目
+
+            </span>
+
+
+            <button
+                id="refreshCurriculumSubjectsButton"
+                type="button"
+                class="btn">
+
+                ↻ 再読み込み
+
+            </button>
+
+        </div>
+
+
+        <div id="curriculumSubjectList">
+
+            <div class="curriculum-loading">
+
+                カリキュラムを選択してください。
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         学生側表示
+    ======================================== -->
+
+    <h2>
+        👀 学生側表示
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <p>
+
+            学生側では、履修科目を選択するたびに
+            単位数・卒業要件・区分別進捗をリアルタイムで計算します。
+
+        </p>
+
+
+        <div class="curriculum-preview-actions">
+
+            <button
+                id="previewCourseRegistrationButton"
+                type="button"
+                class="btn">
+
+                履修登録画面をプレビュー
+
+            </button>
+
+
+            <button
+                id="previewCreditProgressButton"
+                type="button"
+                class="btn">
+
+                単位進捗をプレビュー
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         保存
+    ======================================== -->
+
+    <div class="card setting-card curriculum-save-bar">
+
+
+        <div class="curriculum-save-status">
+
+            <strong id="curriculumUnsavedStatus">
+
+                変更なし
+
+            </strong>
+
+            <small>
+
+                保存後に科目情報との整合性を再確認します
+
+            </small>
+
+        </div>
+
+
+        <div class="curriculum-save-actions">
+
+            <button
+                id="saveCurriculumDraftButton"
+                type="button"
+                class="btn">
+
+                下書き保存
+
+            </button>
+
+
+            <button
+                id="publishCurriculumButton"
+                type="button"
+                class="btn btn-primary">
+
+                保存して公開
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         危険操作
+    ======================================== -->
+
+    <h2>
+        🚨 危険操作
+    </h2>
+
+    <div class="card setting-card admin-danger-zone">
+
+        <h3>
+            カリキュラムを削除
+        </h3>
+
+        <p>
+
+            カリキュラムを削除しても科目そのものは削除されません。
+            ただし学生側の卒業要件判定に利用できなくなります。
+
+        </p>
+
+
+        <button
+            id="deleteCurriculumButton"
+            type="button"
+            class="btn btn-danger">
+
+            このカリキュラムを削除
+
+        </button>
+
+    </div>
+
+</main>
+
+
+<!-- ========================================
+     新規カリキュラムモーダル
+======================================== -->
+
+<div
+    id="newCurriculumModal"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal curriculum-create-modal">
+
+
+        <h2>
+            新しいカリキュラム
+        </h2>
+
+
+        <label for="newCurriculumId">
+
+            <b>
+                カリキュラムID
+            </b>
+
+        </label>
+
+
+        <input
+            id="newCurriculumId"
+            type="text"
+            autocomplete="off"
+            placeholder="例：nursing_2027_plus">
+
+
+        <br><br>
+
+
+        <label for="newCurriculumName">
+
+            <b>
+                カリキュラム名
+            </b>
+
+        </label>
+
+
+        <input
+            id="newCurriculumName"
+            type="text"
+            autocomplete="off"
+            placeholder="例：看護学科 2027年度以降">
+
+
+        <div class="admin-modal-actions">
+
+            <button
+                id="cancelNewCurriculumButton"
+                type="button"
+                class="btn">
+
+                キャンセル
+
+            </button>
+
+
+            <button
+                id="confirmNewCurriculumButton"
+                type="button"
+                class="btn btn-primary">
+
+                作成する
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     削除確認モーダル
+======================================== -->
+
+<div
+    id="deleteCurriculumModal"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal">
+
+
+        <h2>
+            カリキュラムを削除しますか？
+        </h2>
+
+
+        <p id="deleteCurriculumName">
+
+            ----
+
+        </p>
+
+
+        <p>
+
+            この操作は元に戻せません。
+            科目データは削除されません。
+
+        </p>
+
+
+        <div class="admin-modal-actions">
+
+            <button
+                id="cancelDeleteCurriculumButton"
+                type="button"
+                class="btn">
+
+                キャンセル
+
+            </button>
+
+
+            <button
+                id="confirmDeleteCurriculumButton"
+                type="button"
+                class="btn btn-danger">
+
+                削除する
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
+     下部ナビゲーション
+======================================== -->
+
+<nav class="bottom-nav">
+
+
+    <a href="index.html">
+
+        🏠
+        <br>
+
+        <span>
+            ホーム
+        </span>
+
+    </a>
+
+
+    <a href="assignments.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📚
+            </span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            課題
+        </span>
+
+    </a>
+
+
+    <a href="share.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                🤝
+            </span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            共有
+        </span>
+
+    </a>
+
+
+    <a href="news.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📢
+            </span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            お知らせ
+        </span>
+
+    </a>
+
+
+    <a
+        id="settingsTab"
+        href="admin.html"
+        class="active">
+
+        👑
+        <br>
+
+        <span>
+            管理
+        </span>
+
+    </a>
+
+</nav>
+
+
+<script
+    type="module"
+    src="curriculum_admin.js">
+</script>
+
+
+</body>
+
+</html>
