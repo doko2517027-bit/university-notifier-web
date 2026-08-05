@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>学生詳細 | CareMateApp</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script>
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}
+</script>
+
+</head>
+
+<body class="page-loading">
+
+<div class="top-buttons">
+
+    <div class="top-user-info">
+
+        <span id="userName">
+            Unknownさん
+        </span>
+
+        <span id="myRanking"></span>
+
+    </div>
+
+    <div class="top-right">
+
+        <button
+            id="themeButton"
+            class="circle-button">
+            🌙
+        </button>
+
+        <button
+            id="profileButton"
+            class="circle-button">
+
+            <img
+                id="topProfileImage"
+                src="images/default.png"
+                class="header-profile-image"
+                alt="プロフィール">
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<header class="header">
+
+    <div class="logo">👤</div>
+
+    <h1>学生詳細</h1>
+
+    <p id="studentDetailSubtitle">
+        学生情報を読み込んでいます
+    </p>
+
+</header>
+
+
+<div class="card setting-card">
+
+    <button
+        id="backButton"
+        type="button"
+        class="btn">
+
+        ← ユーザー管理へ戻る
+
+    </button>
+
+</div>
+
+
+<h2>🟢 利用状況</h2>
+
+<div class="card setting-card">
+
+    <div class="admin-detail-grid">
+
+        <div class="admin-detail-field">
+
+            <small>接続状態</small>
+
+            <strong id="presenceStatus">
+                確認中...
+            </strong>
+
+        </div>
+
+        <div class="admin-detail-field">
+
+            <small>現在の画面</small>
+
+            <strong id="currentPageValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-detail-field">
+
+            <small>最終更新</small>
+
+            <strong id="lastSeenValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-detail-field">
+
+            <small>画面状態</small>
+
+            <strong id="backgroundStatus">
+                ----
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<h2>🎓 学生情報</h2>
+
+<div class="card setting-card">
+
+    <div class="admin-readonly-list">
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>学籍番号</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="studentNumberValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>名前</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="studentNameValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>学科</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="departmentValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>専攻</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="majorValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>学年</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="gradeValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>入学年度</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="admissionYearValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>学生ページID</b>
+                <small>変更不可</small>
+            </span>
+
+            <strong id="studentPageIdValue">
+                ----
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<h2>📊 アカウント状態</h2>
+
+<div class="card setting-card">
+
+    <div class="admin-readonly-list">
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>最終ログイン</b>
+            </span>
+
+            <strong id="lastLoginAtValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>Manaba認証</b>
+            </span>
+
+            <strong id="manabaVerifiedValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>Active!Mail設定</b>
+            </span>
+
+            <strong id="activeMailConfiguredValue">
+                ----
+            </strong>
+
+        </div>
+
+        <div class="admin-readonly-row">
+
+            <span>
+                <b>Push通知登録</b>
+            </span>
+
+            <strong id="pushConfiguredValue">
+                ----
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<h2>📧 Active!Mailパスワード</h2>
+
+<div class="card setting-card">
+
+    <p>
+        現在のパスワード確認なしで、新しいパスワードに変更します。
+    </p>
+
+    <label for="activeMailPassword">
+        <b>新しいパスワード</b>
+    </label>
+
+    <input
+        id="activeMailPassword"
+        type="password"
+        autocomplete="new-password"
+        placeholder="変更する場合のみ入力">
+
+    <br><br>
+
+    <label for="activeMailPasswordConfirm">
+        <b>新しいパスワードを再入力</b>
+    </label>
+
+    <input
+        id="activeMailPasswordConfirm"
+        type="password"
+        autocomplete="new-password"
+        placeholder="同じパスワードを入力">
+
+    <p class="admin-input-help">
+        空欄のまま保存した場合、現在のパスワードは変更されません。
+    </p>
+
+</div>
+
+
+<h2>📚 Manabaパスワード</h2>
+
+<div class="card setting-card">
+
+    <p>
+        現在のパスワード確認なしで、新しいパスワードに変更します。
+    </p>
+
+    <label for="manabaPassword">
+        <b>新しいパスワード</b>
+    </label>
+
+    <input
+        id="manabaPassword"
+        type="password"
+        autocomplete="new-password"
+        placeholder="変更する場合のみ入力">
+
+    <br><br>
+
+    <label for="manabaPasswordConfirm">
+        <b>新しいパスワードを再入力</b>
+    </label>
+
+    <input
+        id="manabaPasswordConfirm"
+        type="password"
+        autocomplete="new-password"
+        placeholder="同じパスワードを入力">
+
+    <p class="admin-input-help">
+        空欄のまま保存した場合、現在のパスワードは変更されません。
+    </p>
+
+</div>
+
+
+<h2>🔔 通知設定</h2>
+
+<div class="card setting-card">
+
+    <label class="setting-row">
+
+        <span>
+            <b>🗓 時間割変更</b><br>
+            <small>時間割に変更があったとき</small>
+        </span>
+
+        <input
+            id="notifySchedule"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>📚 新しい課題</b><br>
+            <small>新しい課題が取得されたとき</small>
+        </span>
+
+        <input
+            id="notifyAssignment"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>⏰ 課題リマインダー</b><br>
+            <small>課題の締切前</small>
+        </span>
+
+        <input
+            id="notifyReminder"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>🗞️ コースニュース</b><br>
+            <small>新しいコースニュースが公開されたとき</small>
+        </span>
+
+        <input
+            id="notifyCourseNews"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>💙 CareMateお知らせ</b><br>
+            <small>運営からお知らせが投稿されたとき</small>
+        </span>
+
+        <input
+            id="notifySystemNews"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>🤝 共有の新規投稿</b><br>
+            <small>共有に新しい投稿があったとき</small>
+        </span>
+
+        <input
+            id="notifySharePost"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>❤️ いいね</b><br>
+            <small>本人の投稿にいいねが付いたとき</small>
+        </span>
+
+        <input
+            id="notifyLike"
+            type="checkbox">
+
+    </label>
+
+    <label class="setting-row">
+
+        <span>
+            <b>💬 コメント</b><br>
+            <small>本人の投稿にコメントが付いたとき</small>
+        </span>
+
+        <input
+            id="notifyComment"
+            type="checkbox">
+
+    </label>
+
+</div>
+
+
+<div class="card setting-card admin-save-card">
+
+    <button
+        id="saveUserButton"
+        type="button"
+        class="btn btn-primary">
+
+        変更内容を保存
+
+    </button>
+
+</div>
+
+
+<h2>⚠️ 危険な操作</h2>
+
+<div class="card setting-card admin-danger-zone">
+
+    <h3>ユーザー情報の完全削除</h3>
+
+    <p>
+        この学生に関連するFirebase上の情報を削除します。
+    </p>
+
+    <p>
+        <b>この操作は取り消せません。</b>
+    </p>
+
+    <button
+        id="deleteUserButton"
+        type="button"
+        class="btn btn-danger">
+
+        ユーザー情報をすべて削除
+
+    </button>
+
+</div>
+
+
+<!-- 1回目の削除確認 -->
+
+<div
+    id="deleteConfirmModal1"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal">
+
+        <h2>ユーザー情報を全て削除しますか</h2>
+
+        <p id="deleteConfirmStudent1">
+            ----
+        </p>
+
+        <div class="admin-modal-actions">
+
+            <!-- 1回目は「はい → いいえ」の順番 -->
+
+            <button
+                id="deleteConfirmYes1"
+                type="button"
+                class="btn btn-danger">
+
+                はい
+
+            </button>
+
+            <button
+                id="deleteConfirmNo1"
+                type="button"
+                class="btn">
+
+                いいえ
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- 2回目の削除確認 -->
+
+<div
+    id="deleteConfirmModal2"
+    class="admin-modal-overlay"
+    hidden>
+
+    <div class="admin-modal">
+
+        <h2>本当に削除しますか</h2>
+
+        <p>
+            ※この操作は取り消せません
+        </p>
+
+        <label for="deleteStudentNumberInput">
+            確認のため学籍番号を入力してください
+        </label>
+
+        <input
+            id="deleteStudentNumberInput"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="学籍番号">
+
+        <div class="admin-modal-actions">
+
+            <!-- 2回目は「いいえ → はい」の順番 -->
+
+            <button
+                id="deleteConfirmNo2"
+                type="button"
+                class="btn">
+
+                いいえ
+
+            </button>
+
+            <button
+                id="deleteConfirmYes2"
+                type="button"
+                class="btn btn-danger"
+                disabled>
+
+                はい
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<nav class="bottom-nav">
+
+    <a href="index.html">
+        🏠<br>
+        <span>ホーム</span>
+    </a>
+
+    <a href="assignments.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">📚</span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+                0
+            </span>
+
+        </span>
+
+        <span>課題</span>
+
+    </a>
+
+    <a href="share.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">🤝</span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+                0
+            </span>
+
+        </span>
+
+        <span>共有</span>
+
+    </a>
+
+    <a href="news.html">
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">📢</span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+                0
+            </span>
+
+        </span>
+
+        <span>お知らせ</span>
+
+    </a>
+
+    <a
+        id="settingsTab"
+        href="admin.html"
+        class="active">
+
+        👑<br>
+        <span>管理</span>
+
+    </a>
+
+</nav>
+
+
+<script
+    type="module"
+    src="user_detail_admin.js">
+</script>
+
+</body>
+</html>
