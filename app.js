@@ -290,8 +290,6 @@ console.log("studentNumber =", studentNumber);
         loadCourseRegistrationBanner(user),
     ]);
 
-    console.log(studentAcademicContext);
-
     loadRankingPopup();
 
     loadRanking();
