@@ -81,7 +81,7 @@ async function init(){
         primaryButton.textContent="🚪 退席";secondaryButton.textContent="⏱ 早退";
         primaryButton.onclick=()=>saveChoice("departure").catch(showError);secondaryButton.onclick=()=>saveChoice("early").catch(showError);
     }else{
-        primaryButton.textContent="✅ 出席・到着";secondaryButton.textContent="❌ 欠席";
+        primaryButton.textContent="✅ 出席";secondaryButton.textContent="❌ 欠席";
         primaryButton.onclick=()=>saveChoice("arrival").catch(showError);secondaryButton.onclick=()=>saveChoice("absence").catch(showError);
     }
     if(action==="arrival"&&(notificationChoice==="arrival"||notificationChoice==="absence")&&!snap.exists()){
