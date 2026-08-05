@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 
 <meta charset="UTF-8">
@@ -13,199 +14,28 @@
 <link rel="stylesheet" href="style.css">
 
 <script>
-if(localStorage.getItem("theme") === "dark"){
-    document.documentElement.classList.add("dark");
+
+if (
+    localStorage.getItem("theme") === "dark"
+) {
+
+    document.documentElement.classList.add(
+        "dark"
+    );
+
 }
+
 </script>
-
-<style>
-
-.subject-admin-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.subject-admin-actions .btn {
-    flex: 1;
-    min-width: 140px;
-}
-
-.subject-admin-summary {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.subject-admin-summary-item {
-    flex: 1;
-    min-width: 120px;
-    padding: 12px;
-    border-radius: 14px;
-    background: rgba(127, 127, 127, 0.08);
-    text-align: center;
-}
-
-.subject-editor-card {
-    margin-bottom: 14px;
-}
-
-.subject-editor-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.subject-editor-grid .full-width {
-    grid-column: 1 / -1;
-}
-
-.subject-editor-card input,
-.subject-editor-card select {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.subject-editor-label {
-    display: block;
-    font-size: 13px;
-    margin-bottom: 5px;
-    opacity: 0.8;
-}
-
-.subject-required-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 42px;
-}
-
-.subject-required-row input {
-    width: auto;
-}
-
-.subject-delete-button {
-    margin-top: 14px;
-}
-
-.subject-warning {
-    margin-top: 10px;
-    color: #d97706;
-    font-size: 13px;
-}
-
-.subject-empty {
-    padding: 30px 15px;
-    text-align: center;
-    opacity: 0.7;
-}
-
-@media (max-width: 600px) {
-
-    .subject-editor-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .subject-editor-grid .full-width {
-        grid-column: auto;
-    }
-
-}
-
-.subject-incomplete-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 10px;
-}
-
-.subject-incomplete-actions .btn {
-    min-width: auto;
-    padding: 8px 12px;
-}
-
-.subject-floating-actions {
-    position: fixed;
-    right: 14px;
-    bottom: calc(82px + env(safe-area-inset-bottom));
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 9px;
-}
-
-.subject-floating-actions .btn {
-    min-width: 112px;
-    padding: 11px 14px;
-    border-radius: 999px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
-    font-size: 13px;
-    white-space: nowrap;
-}
-
-.subject-floating-actions .btn:disabled {
-    opacity: 0.55;
-}
-
-.subject-insert-area {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 4px 0 18px;
-}
-
-.subject-insert-area::before,
-.subject-insert-area::after {
-    content: "";
-    height: 1px;
-    flex: 1;
-    background: rgba(127, 127, 127, 0.25);
-}
-
-.subject-insert-button {
-    white-space: nowrap;
-    padding: 8px 14px;
-    font-size: 13px;
-}
-
-.subject-jump-highlight {
-    animation: subjectJumpHighlight 1.5s ease;
-}
-
-@keyframes subjectJumpHighlight {
-
-    0% {
-        transform: scale(1);
-    }
-
-    35% {
-        transform: scale(1.015);
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-
-}
-
-.registration-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.registration-admin-field label{display:block;margin-bottom:6px;font-size:13px;font-weight:700}
-.registration-admin-field input,.registration-admin-field select,.registration-admin-field textarea{width:100%;box-sizing:border-box}
-.registration-admin-field.full{grid-column:1/-1}
-.registration-admin-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:12px;background:rgba(127,127,127,.08)}
-.registration-admin-toggle input{width:22px;height:22px}
-.registration-publish-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-.registration-publish-actions .btn{flex:1;min-width:150px}
-#registrationPublishStatus{margin-top:12px;font-size:13px;opacity:.8}
-@media(max-width:600px){.registration-admin-grid{grid-template-columns:1fr}.registration-admin-field.full{grid-column:auto}}
-
-</style>
 
 </head>
 
+
 <body class="page-loading">
+
+
+<!-- ========================================
+     上部ユーザー情報
+======================================== -->
 
 <div class="top-buttons">
 
@@ -219,22 +49,31 @@ if(localStorage.getItem("theme") === "dark"){
 
     </div>
 
+
     <div class="top-right">
 
         <button
             id="themeButton"
-            class="circle-button">
+            type="button"
+            class="circle-button"
+            aria-label="テーマを切り替える">
+
             🌙
+
         </button>
+
 
         <button
             id="profileButton"
-            class="circle-button">
+            type="button"
+            class="circle-button"
+            aria-label="プロフィールを開く">
 
             <img
                 id="topProfileImage"
                 src="images/default.png"
-                class="header-profile-image">
+                class="header-profile-image"
+                alt="プロフィール">
 
         </button>
 
@@ -242,171 +81,969 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+
+<!-- ========================================
+     ヘッダー
+======================================== -->
+
 <header class="header">
 
-    <div class="logo">📝</div>
+    <div class="logo">
+        📖
+    </div>
 
-    <h1>履修科目管理</h1>
+    <h1>
+        履修科目管理
+    </h1>
 
     <p>
-        シラバス科目の確認・編集・登録
+        科目・単位・カリキュラム情報を一括管理
     </p>
 
 </header>
 
-<h2>📣 履修登録の公開設定</h2>
 
-<div class="card setting-card">
-    <div class="registration-admin-grid">
-        <div class="registration-admin-field"><label for="registrationAcademicYear">対象年度</label><input id="registrationAcademicYear" type="number" min="2020" max="2100"></div>
-        <div class="registration-admin-field"><label for="registrationSemester">対象学期</label><select id="registrationSemester"><option value="前期">前期</option><option value="後期">後期</option></select></div>
-        <div class="registration-admin-field"><label for="registrationPhase">期間の種類</label><select id="registrationPhase"><option value="hidden">非公開</option><option value="registration">履修登録期間</option><option value="correction">履修修正期間</option><option value="cancellation">履修取消期間</option><option value="view_only">閲覧のみ</option></select></div>
-        <div class="registration-admin-field"><label for="registrationCorrectionMode">修正期間の操作</label><select id="registrationCorrectionMode"><option value="add_delete">追加・削除</option><option value="delete_only">削除のみ</option></select></div>
-        <div class="registration-admin-field"><label for="registrationStartAt">開始日時</label><input id="registrationStartAt" type="datetime-local"></div>
-        <div class="registration-admin-field"><label for="registrationEndAt">終了日時</label><input id="registrationEndAt" type="datetime-local"></div>
-        <div class="registration-admin-field full registration-admin-toggle"><span><b>ホーム上部の流れる案内</b><br><small>ホーム画面だけに表示します</small></span><input id="registrationBannerEnabled" type="checkbox"></div>
-        <div class="registration-admin-field full"><label for="registrationBannerText">流す文章</label><textarea id="registrationBannerText" rows="2" placeholder="履修登録期間中！！ 4月10日17:00まで"></textarea></div>
-        <div class="registration-admin-field"><label for="registrationBannerSpeed">表示速度</label><select id="registrationBannerSpeed"><option value="slow">ゆっくり</option><option value="normal">標準</option><option value="fast">速い</option></select></div>
-        <div class="registration-admin-field registration-admin-toggle"><span><b>履修登録画面を開く</b></span><input id="registrationPageEnabled" type="checkbox"></div>
-        <div class="registration-admin-field full registration-admin-toggle"><span><b>便利タブの履修登録カード</b><br><small>ホームの便利タブへ別の履修登録ボタンを表示します</small></span><input id="registrationConvenienceCardEnabled" type="checkbox"></div>
-        <div class="registration-admin-field"><label for="semesterCreditLimit">半期の上限単位</label><input id="semesterCreditLimit" type="number" min="0"></div>
-        <div class="registration-admin-field"><label for="annualCreditLimit">年間の上限単位</label><input id="annualCreditLimit" type="number" min="0"></div>
-        <div class="registration-admin-field"><label for="graduationRequiredCredits">卒業必要単位</label><input id="graduationRequiredCredits" type="number" min="0"></div>
-        <div class="registration-admin-field"><label for="electiveRequiredCredits">選択科目の必要単位</label><input id="electiveRequiredCredits" type="number" min="0"></div>
+<main class="subjects-admin-page">
+
+
+    <!-- ========================================
+         上部操作
+    ======================================== -->
+
+    <div class="card setting-card subjects-admin-top-actions">
+
+        <button
+            id="backButton"
+            type="button"
+            class="btn">
+
+            ← 管理画面へ戻る
+
+        </button>
+
+
+        <button
+            id="openCurriculumAdminButton"
+            type="button"
+            class="btn">
+
+            📘 カリキュラム管理を開く
+
+        </button>
+
     </div>
-    <div class="registration-publish-actions">
-        <button id="saveRegistrationDraft" class="btn btn-secondary">下書き保存</button>
-        <button id="previewRegistrationPage" class="btn btn-secondary">学生画面を確認</button>
-        <button id="publishRegistrationSettings" class="btn btn-primary">学生側へ公開</button>
+
+
+    <!-- ========================================
+         履修登録公開設定
+    ======================================== -->
+
+    <h2>
+        📣 履修登録の公開設定
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="registration-admin-grid">
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationAcademicYear">
+
+                    対象年度
+
+                </label>
+
+                <input
+                    id="registrationAcademicYear"
+                    type="number"
+                    min="2020"
+                    max="2100"
+                    step="1"
+                    placeholder="2026">
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationSemester">
+
+                    対象学期
+
+                </label>
+
+                <select id="registrationSemester">
+
+                    <option value="前期">
+                        前期
+                    </option>
+
+                    <option value="後期">
+                        後期
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationPhase">
+
+                    公開状態
+
+                </label>
+
+                <select id="registrationPhase">
+
+                    <option value="hidden">
+                        非公開
+                    </option>
+
+                    <option value="registration">
+                        履修登録期間
+                    </option>
+
+                    <option value="correction">
+                        履修修正期間
+                    </option>
+
+                    <option value="cancellation">
+                        履修取消期間
+                    </option>
+
+                    <option value="view_only">
+                        閲覧のみ
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationCorrectionMode">
+
+                    修正期間中の操作
+
+                </label>
+
+                <select id="registrationCorrectionMode">
+
+                    <option value="add_delete">
+                        科目の追加・削除
+                    </option>
+
+                    <option value="delete_only">
+                        登録済み科目の削除のみ
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationStartAt">
+
+                    開始日時
+
+                </label>
+
+                <input
+                    id="registrationStartAt"
+                    type="datetime-local">
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationEndAt">
+
+                    終了日時
+
+                </label>
+
+                <input
+                    id="registrationEndAt"
+                    type="datetime-local">
+
+            </div>
+
+
+            <label
+                class="
+                    registration-admin-field
+                    full
+                    registration-admin-toggle
+                ">
+
+                <span>
+
+                    <b>
+                        ホーム上部の流れる案内
+                    </b>
+
+                    <br>
+
+                    <small>
+                        ホーム画面に履修登録期間のお知らせを表示します
+                    </small>
+
+                </span>
+
+                <input
+                    id="registrationBannerEnabled"
+                    type="checkbox">
+
+            </label>
+
+
+            <div class="registration-admin-field full">
+
+                <label for="registrationBannerText">
+
+                    流す文章
+
+                </label>
+
+                <textarea
+                    id="registrationBannerText"
+                    rows="3"
+                    maxlength="300"
+                    placeholder="履修登録期間中！！ 4月10日17:00まで"></textarea>
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="registrationBannerSpeed">
+
+                    表示速度
+
+                </label>
+
+                <select id="registrationBannerSpeed">
+
+                    <option value="slow">
+                        ゆっくり
+                    </option>
+
+                    <option value="normal">
+                        標準
+                    </option>
+
+                    <option value="fast">
+                        速い
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <label
+                class="
+                    registration-admin-field
+                    registration-admin-toggle
+                ">
+
+                <span>
+
+                    <b>
+                        履修登録画面を公開
+                    </b>
+
+                    <br>
+
+                    <small>
+                        OFFの場合、学生は画面を開けません
+                    </small>
+
+                </span>
+
+                <input
+                    id="registrationPageEnabled"
+                    type="checkbox">
+
+            </label>
+
+
+            <label
+                class="
+                    registration-admin-field
+                    full
+                    registration-admin-toggle
+                ">
+
+                <span>
+
+                    <b>
+                        便利タブに履修登録カードを表示
+                    </b>
+
+                    <br>
+
+                    <small>
+                        ホーム画面の便利タブから履修登録画面を開けるようにします
+                    </small>
+
+                </span>
+
+                <input
+                    id="registrationConvenienceCardEnabled"
+                    type="checkbox">
+
+            </label>
+
+
+            <div class="registration-admin-field">
+
+                <label for="semesterCreditLimit">
+
+                    半期の上限単位
+
+                </label>
+
+                <input
+                    id="semesterCreditLimit"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="30">
+
+            </div>
+
+
+            <div class="registration-admin-field">
+
+                <label for="annualCreditLimit">
+
+                    年間の上限単位
+
+                </label>
+
+                <input
+                    id="annualCreditLimit"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="50">
+
+            </div>
+
+        </div>
+
+
+        <div class="registration-admin-notice">
+
+            <span>
+                📘
+            </span>
+
+            <div>
+
+                <b>
+                    卒業必要単位はカリキュラム管理で設定します
+                </b>
+
+                <p>
+                    学科・専攻・入学年度ごとに卒業要件が異なるため、
+                    この画面では半期・年間の履修上限のみ管理します。
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="registration-publish-actions">
+
+            <button
+                id="saveRegistrationDraft"
+                type="button"
+                class="btn">
+
+                下書き保存
+
+            </button>
+
+
+            <button
+                id="previewRegistrationPage"
+                type="button"
+                class="btn">
+
+                学生画面を確認
+
+            </button>
+
+
+            <button
+                id="publishRegistrationSettings"
+                type="button"
+                class="btn btn-primary">
+
+                学生側へ公開
+
+            </button>
+
+        </div>
+
+
+        <div id="registrationPublishStatus">
+
+            公開設定を読み込んでいます...
+
+        </div>
+
     </div>
-    <div id="registrationPublishStatus">公開設定を読み込んでいます...</div>
-</div>
 
-<div class="card setting-card">
 
-    <h3>subjects.jsonを読み込む</h3>
+    <!-- ========================================
+         JSON入出力
+    ======================================== -->
 
-    <p>
-        ローカルで作成したsubjects.jsonを選択してください。
-    </p>
+    <h2>
+        📂 科目データ
+    </h2>
 
-    <input
-        id="subjectsJsonFile"
-        type="file"
-        accept=".json,application/json">
+    <div class="card setting-card">
 
-    <br><br>
 
-    <button
-        id="loadJsonButton"
-        class="btn btn-primary">
+        <h3>
+            subjects.jsonの読み込み
+        </h3>
 
-        JSONを読み込む
+        <p class="admin-input-help">
 
-    </button>
+            ローカルで作成した科目JSONを読み込みます。
+            読み込んだだけではFirestoreには保存されません。
 
-</div>
+        </p>
 
-<div class="card setting-card">
 
-    <h3>登録状況</h3>
+        <input
+            id="subjectsJsonFile"
+            type="file"
+            accept=".json,application/json">
+
+
+        <div class="subject-data-actions">
+
+            <button
+                id="loadJsonButton"
+                type="button"
+                class="btn">
+
+                JSONを読み込む
+
+            </button>
+
+
+            <button
+                id="exportSubjectsJsonButton"
+                type="button"
+                class="btn">
+
+                JSONを書き出す
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         登録状況
+    ======================================== -->
+
+    <h2>
+        📊 登録状況
+    </h2>
 
     <div class="subject-admin-summary">
 
-        <div class="subject-admin-summary-item">
 
-            <small>表示科目</small>
+        <div class="card setting-card subject-admin-summary-item">
 
-            <div>
-                <b id="subjectCount">0</b>科目
-            </div>
+            <small>
+                全科目
+            </small>
 
-        </div>
+            <strong id="subjectCount">
+                0
+            </strong>
 
-        <div class="subject-admin-summary-item">
-
-            <small>未入力あり</small>
-
-            <div>
-                <b id="incompleteSubjectCount">0</b>科目
-            </div>
+            <span>
+                科目
+            </span>
 
         </div>
 
+
+        <div class="card setting-card subject-admin-summary-item">
+
+            <small>
+                現在表示
+            </small>
+
+            <strong id="filteredSubjectCount">
+                0
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card subject-admin-summary-item warning">
+
+            <small>
+                未入力あり
+            </small>
+
+            <strong id="incompleteSubjectCount">
+                0
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card subject-admin-summary-item warning">
+
+            <small>
+                カリキュラム未設定
+            </small>
+
+            <strong id="unassignedCurriculumCount">
+                0
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
+
+        <div class="card setting-card subject-admin-summary-item">
+
+            <small>
+                非公開科目
+            </small>
+
+            <strong id="inactiveSubjectCount">
+                0
+            </strong>
+
+            <span>
+                科目
+            </span>
+
+        </div>
+
     </div>
 
-</div>
 
-<div class="card setting-card">
+    <!-- ========================================
+         検索・絞り込み
+    ======================================== -->
 
-    <div class="subject-admin-actions">
+    <h2>
+        🔍 科目検索
+    </h2>
+
+    <div class="card setting-card">
+
+
+        <div class="subject-filter-grid">
+
+
+            <label class="full-width">
+
+                <span>
+                    科目名・subjectKeyで検索
+                </span>
+
+                <input
+                    id="subjectSearchInput"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="例：成人看護学">
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    カリキュラム
+                </span>
+
+                <select id="subjectCurriculumFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    学科
+                </span>
+
+                <select id="subjectDepartmentFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="看護学科">
+                        看護学科
+                    </option>
+
+                    <option value="リハビリテーション学科">
+                        リハビリテーション学科
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    専攻
+                </span>
+
+                <select id="subjectMajorFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="__none__">
+                        専攻なし
+                    </option>
+
+                    <option value="理学療法学専攻">
+                        理学療法学専攻
+                    </option>
+
+                    <option value="作業療法学専攻">
+                        作業療法学専攻
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    学年
+                </span>
+
+                <select id="subjectGradeFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="1">
+                        1年
+                    </option>
+
+                    <option value="2">
+                        2年
+                    </option>
+
+                    <option value="3">
+                        3年
+                    </option>
+
+                    <option value="4">
+                        4年
+                    </option>
+
+                    <option value="__unset__">
+                        未設定
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    学期
+                </span>
+
+                <select id="subjectSemesterFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="前期">
+                        前期
+                    </option>
+
+                    <option value="後期">
+                        後期
+                    </option>
+
+                    <option value="通期">
+                        通期
+                    </option>
+
+                    <option value="__unset__">
+                        未設定
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    必修・選択
+                </span>
+
+                <select id="subjectRequirementTypeFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="required">
+                        必修
+                    </option>
+
+                    <option value="elective">
+                        選択
+                    </option>
+
+                    <option value="free">
+                        自由
+                    </option>
+
+                    <option value="__unset__">
+                        未設定
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    科目区分
+                </span>
+
+                <select id="subjectCategoryFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="__unset__">
+                        未設定
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <label>
+
+                <span>
+                    公開状態
+                </span>
+
+                <select id="subjectStatusFilter">
+
+                    <option value="">
+                        すべて
+                    </option>
+
+                    <option value="active">
+                        学生側へ表示
+                    </option>
+
+                    <option value="inactive">
+                        非公開
+                    </option>
+
+                </select>
+
+            </label>
+
+        </div>
+
 
         <button
-            id="loadFirestoreSubjects"
-            class="btn btn-secondary">
+            id="resetSubjectFiltersButton"
+            type="button"
+            class="btn subject-filter-reset-button">
 
-            Firestoreから読み込む
+            絞り込みを解除
 
         </button>
 
+    </div>
+
+
+    <!-- ========================================
+         科目操作
+    ======================================== -->
+
+    <h2>
+        🛠 科目操作
+    </h2>
+
+    <div class="card setting-card">
+
+        <div class="subject-admin-actions">
+
+
+            <button
+                id="loadFirestoreSubjects"
+                type="button"
+                class="btn">
+
+                ↻ Firestoreから読み込む
+
+            </button>
+
+
+            <button
+                id="addSubjectButton"
+                type="button"
+                class="btn">
+
+                ＋ 科目を追加
+
+            </button>
+
+
+            <button
+                id="saveSubjectsButton"
+                type="button"
+                class="btn btn-primary">
+
+                Firestoreへ保存
+
+            </button>
+
+        </div>
+
+
+        <p
+            id="subjectSaveStatus"
+            class="subject-save-status">
+
+            変更なし
+
+        </p>
+
+    </div>
+
+
+    <!-- ========================================
+         科目一覧
+    ======================================== -->
+
+    <h2>
+        📚 科目一覧
+    </h2>
+
+    <div id="subjectEditorList">
+
+        <div class="card setting-card subject-empty">
+
+            FirestoreまたはJSONから科目を読み込んでください。
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+         下部戻る
+    ======================================== -->
+
+    <div class="card setting-card subjects-admin-bottom-actions">
+
         <button
-            id="addSubjectButton"
-            class="btn btn-secondary">
+            id="bottomBackButton"
+            type="button"
+            class="btn">
 
-            ＋ 講義を追加
-
-        </button>
-
-        <button
-            id="saveSubjectsButton"
-            class="btn btn-primary">
-
-            Firestoreへ保存
+            ← 管理画面へ戻る
 
         </button>
 
     </div>
 
-</div>
+</main>
 
-<h2>📚 科目一覧</h2>
 
-<div id="subjectEditorList">
-
-    <div class="subject-empty">
-        JSONまたはFirestoreから科目を読み込んでください。
-    </div>
-
-</div>
-
-<br>
-
-<button
-    class="btn btn-secondary"
-    onclick="location.href='admin.html'">
-
-    管理画面へ戻る
-
-</button>
+<!-- ========================================
+     追従操作
+======================================== -->
 
 <div
     class="subject-floating-actions"
     aria-label="科目一覧の移動操作">
 
+
     <button
         id="incompleteNextButton"
         type="button"
         class="btn btn-primary"
-        aria-label="次の未入力科目へ移動">
+        aria-label="次の未入力科目へ移動"
+        disabled>
 
         未入力 🔻
 
     </button>
 
+
     <button
         id="scrollTopButton"
         type="button"
-        class="btn btn-secondary"
+        class="btn"
         aria-label="ページの一番上へ移動">
 
         ⬆ 一番上へ
@@ -415,43 +1052,127 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+
+<!-- ========================================
+     下部ナビゲーション
+======================================== -->
+
 <nav class="bottom-nav">
 
+
     <a href="index.html">
-        🏠<br>
-        <span>ホーム</span>
+
+        🏠
+        <br>
+
+        <span>
+            ホーム
+        </span>
+
     </a>
+
 
     <a href="assignments.html">
-        📚<br>
-        <span>課題</span>
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📚
+            </span>
+
+            <span
+                id="assignmentNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            課題
+        </span>
+
     </a>
+
 
     <a href="share.html">
-        🤝<br>
-        <span>共有</span>
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                🤝
+            </span>
+
+            <span
+                id="shareNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            共有
+        </span>
+
     </a>
+
 
     <a href="news.html">
-        📢<br>
-        <span>お知らせ</span>
+
+        <span class="nav-icon-wrap">
+
+            <span class="nav-icon">
+                📢
+            </span>
+
+            <span
+                id="newsNavBadge"
+                class="nav-notification-badge"
+                hidden>
+
+                0
+
+            </span>
+
+        </span>
+
+        <span>
+            お知らせ
+        </span>
+
     </a>
 
+
     <a
+        id="settingsTab"
         href="admin.html"
         class="active">
 
-        👑<br>
-        <span>管理</span>
+        👑
+        <br>
+
+        <span>
+            管理
+        </span>
 
     </a>
 
 </nav>
+
 
 <script
     type="module"
     src="subjects_admin.js">
 </script>
 
+
 </body>
+
 </html>
