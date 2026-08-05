@@ -2866,3 +2866,47 @@ white-space:pre-wrap;
 .dark .important-point-image-card {
     border-color: rgba(255, 255, 255, 0.18);
 }
+
+.admin-menu-grid{
+
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:16px;
+
+}
+
+
+.admin-menu-card{
+
+    cursor:pointer;
+    text-align:center;
+    min-height:140px;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+}
+
+
+.admin-menu-icon{
+
+    font-size:36px;
+    margin-bottom:10px;
+
+}
+
+
+.admin-menu-card h3{
+
+    margin:5px 0;
+
+}
+
+
+.admin-menu-card p{
+
+    font-size:13px;
+
+}

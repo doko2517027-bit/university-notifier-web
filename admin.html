@@ -173,33 +173,87 @@ if(localStorage.getItem("theme")==="dark"){
     <p>補講・実習など、授業ごとの開始／終了時刻を変更します。</p>
 </div>
 
-<div
-    class="card setting-card"
-    onclick="location.href='subjects_admin.html'"
-    style="cursor:pointer;">
+<div class="admin-menu-grid">
 
-    <h3>履修科目管理</h3>
-
-    <p>
-        シラバスから抽出した科目の確認・修正・追加を行います。
-    </p>
-
-    <small>
-        単位数・講義回数の手動入力にも対応します。
-    </small>
 
     <div
-        class="card setting-card"
-        onclick="location.href='curriculum_admin.html'"
-        style="cursor:pointer;">
+        class="card setting-card admin-menu-card"
+        onclick="location.href='exam_admin.html'">
 
-        <h3>📘 カリキュラム管理</h3>
+        <div class="admin-menu-icon">
+            📚
+        </div>
+
+        <h3>
+            テスト管理
+        </h3>
 
         <p>
-            入学年度ごとの卒業要件・必修単位・選択単位を管理します。
+            試験・問題・AI問題管理
         </p>
 
     </div>
+
+
+
+    <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='subjects_admin.html'">
+
+        <div class="admin-menu-icon">
+            📖
+        </div>
+
+        <h3>
+            履修科目管理
+        </h3>
+
+        <p>
+            科目・単位・講義回数管理
+        </p>
+
+    </div>
+
+
+
+    <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='curriculum_admin.html'">
+
+        <div class="admin-menu-icon">
+            📘
+        </div>
+
+        <h3>
+            カリキュラム管理
+        </h3>
+
+        <p>
+            入学年度別卒業要件管理
+        </p>
+
+    </div>
+
+
+
+    <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='attendance_admin.html'">
+
+        <div class="admin-menu-icon">
+            🕒
+        </div>
+
+        <h3>
+            出席管理
+        </h3>
+
+        <p>
+            出席通知設定
+        </p>
+
+    </div>
+
 
 </div>
 
