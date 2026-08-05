@@ -2910,3 +2910,297 @@ white-space:pre-wrap;
     font-size:13px;
 
 }
+
+/* ========================================
+   ユーザー管理画面
+======================================== */
+
+.admin-user-page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.admin-user-page-actions .btn {
+    margin: 0;
+}
+
+
+/* 利用状況 */
+
+.admin-user-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.admin-user-summary-card {
+    margin: 0;
+    padding: 18px 12px;
+    text-align: center;
+}
+
+.admin-user-summary-card small {
+    display: block;
+    margin-bottom: 8px;
+    color: #777;
+    font-size: 13px;
+}
+
+.admin-user-summary-card strong {
+    display: block;
+    font-size: 24px;
+}
+
+
+/* 検索・絞り込み */
+
+#userSearchInput,
+#departmentFilter,
+#gradeFilter,
+#statusFilter {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    background: #fff;
+    color: #222;
+    font-size: 16px;
+    outline: none;
+}
+
+#userSearchInput:focus,
+#departmentFilter:focus,
+#gradeFilter:focus,
+#statusFilter:focus {
+    border-color: #4285f4;
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.12);
+}
+
+.admin-user-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.admin-user-filter-grid label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+
+/* 一覧上部 */
+
+.admin-user-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+#filteredUserCount {
+    font-weight: bold;
+}
+
+.admin-presence-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-bottom: 18px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.035);
+    font-size: 12px;
+}
+
+
+/* 読み込み・空表示 */
+
+.admin-user-loading {
+    padding: 36px 16px;
+    color: #777;
+    text-align: center;
+}
+
+
+/* ユーザーカード */
+
+#userList {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid #e3e3e3;
+    border-radius: 14px;
+    background: #fff;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.admin-user-item:hover {
+    transform: translateY(-1px);
+    border-color: #c9d8f5;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.07);
+}
+
+.admin-user-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-user-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 6px;
+}
+
+.admin-user-title strong {
+    font-size: 17px;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.055);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.admin-user-name {
+    margin: 6px 0;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.admin-user-affiliation {
+    margin: 4px 0 10px;
+    color: #666;
+    font-size: 14px;
+}
+
+.admin-user-presence-detail {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.035);
+}
+
+.admin-user-presence-detail p {
+    margin: 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-presence-detail small {
+    color: #777;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-detail-button {
+    flex-shrink: 0;
+    min-width: 110px;
+    margin: 0;
+}
+
+
+/* ダークモード */
+
+.dark #userSearchInput,
+.dark #departmentFilter,
+.dark #gradeFilter,
+.dark #statusFilter {
+    border-color: #555;
+    background: #242424;
+    color: #f5f5f5;
+}
+
+.dark .admin-user-summary-card small,
+.dark .admin-user-affiliation,
+.dark .admin-user-presence-detail small,
+.dark .admin-user-loading {
+    color: #bdbdbd;
+}
+
+.dark .admin-presence-legend,
+.dark .admin-user-status,
+.dark .admin-user-presence-detail {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.dark .admin-user-item {
+    border-color: #444;
+    background: #242424;
+}
+
+.dark .admin-user-item:hover {
+    border-color: #667ba0;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.3);
+}
+
+
+/* スマートフォン */
+
+@media (max-width: 700px) {
+
+    .admin-user-summary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-user-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-user-item {
+        display: block;
+    }
+
+    .admin-user-detail-button {
+        width: 100%;
+        margin-top: 14px;
+    }
+
+}
+
+
+/* 画面がかなり狭い場合 */
+
+@media (max-width: 420px) {
+
+    .admin-user-page-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .admin-user-page-actions .btn {
+        width: 100%;
+    }
+
+    .admin-user-summary-card {
+        padding: 14px 8px;
+    }
+
+    .admin-user-summary-card strong {
+        font-size: 21px;
+    }
+
+}
