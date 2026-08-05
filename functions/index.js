@@ -119,22 +119,27 @@ async function processAttendanceNotifications() {
             .find(item => item.date === clock.date);
         const schedules = [...(day?.schedules || [])];
         const notificationTest = user.attendanceNotificationTest || {};
+        const notificationTestLectures = Array.isArray(notificationTest.lectures)
+            ? notificationTest.lectures : [notificationTest];
         const notificationTestActive = userDoc.id === "2510044" &&
             notificationTest.enabled === true &&
             notificationTest.date === realClock.date &&
             Date.parse(notificationTest.expiresAt || "") > Date.now() &&
-            enrolled.has(normalizeCourseName(notificationTest.subject));
+            notificationTestLectures.some(test => enrolled.has(normalizeCourseName(test.subject)));
         if (notificationTestActive) {
-            schedules.push({
-                subject: notificationTest.subject,
-                grade: user.grade || "",
-                period: notificationTest.period || 1,
-                classGroup: notificationTest.classGroup || "",
-                startTime: notificationTest.startTime,
-                endTime: notificationTest.endTime,
-                attendanceNotificationTest: true,
-                testId: notificationTest.testId || "today"
-            });
+            for (const test of notificationTestLectures) {
+                if (!enrolled.has(normalizeCourseName(test.subject))) continue;
+                schedules.push({
+                    subject: test.subject,
+                    grade: user.grade || "",
+                    period: test.period || 1,
+                    classGroup: test.classGroup || "",
+                    startTime: test.startTime,
+                    endTime: test.endTime,
+                    attendanceNotificationTest: true,
+                    testId: `${notificationTest.testId || "today"}_${test.period}_${test.classGroup || "all"}`
+                });
+            }
         }
 
         const grade = String(user.grade || "").replace("年", "").trim();
@@ -151,7 +156,8 @@ async function processAttendanceNotifications() {
             const startTime = override.startTime || item.startTime || defaults.startTime;
             const endTime = override.endTime || item.endTime || defaults.endTime;
             const preference = user.attendancePreferences?.[encodeURIComponent(item.subject)] || {};
-            if (preference.classGroup && item.classGroup && preference.classGroup !== item.classGroup) continue;
+            const selectedGroup = user.attendanceClassGroup || preference.classGroup || "";
+            if (selectedGroup && item.classGroup && selectedGroup !== item.classGroup) continue;
 
             const group = item.classGroup || "";
             const notificationType = clock.minutes === timeMinutes(startTime) - 10 ? "arrival"
@@ -187,9 +193,8 @@ async function processAttendanceNotifications() {
             await dispatchRef.update({ results, sentAt: new Date() });
             if (item.attendanceNotificationTest) {
                 await userDoc.ref.update({
-                    "attendanceNotificationTest.enabled": false,
-                    "attendanceNotificationTest.sentAt": new Date(),
-                    "attendanceNotificationTest.results": results
+                    "attendanceNotificationTest.lastSentAt": new Date(),
+                    "attendanceNotificationTest.lastResults": results
                 });
             }
         }

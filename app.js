@@ -888,10 +888,11 @@ async function loadTodaySchedule() {
     }
 
     const notificationTest = userSnapshot?.data()?.attendanceNotificationTest || {};
-    const notificationTestActive = (notificationTest.enabled === true || notificationTest.sentAt) &&
+    const notificationTestActive = notificationTest.enabled === true &&
         notificationTest.date === new Date().toLocaleDateString("sv-SE") &&
         Date.parse(notificationTest.expiresAt || "") > Date.now() &&
-        isEnrolledScheduleItem({ subject: notificationTest.subject }, enrolledAliases);
+        (Array.isArray(notificationTest.lectures) ? notificationTest.lectures : [notificationTest])
+            .some(test => isEnrolledScheduleItem({ subject: test.subject }, enrolledAliases));
     if (notificationTestActive) {
         let testDay = lectureSchedules.find(item => item.date === notificationTest.date);
         if (!testDay) {
@@ -899,17 +900,34 @@ async function loadTodaySchedule() {
             lectureSchedules.push(testDay);
             lectureSchedules.sort((a, b) => String(a.date).localeCompare(String(b.date)));
         }
-        testDay.schedules.push({
-            subject: notificationTest.subject,
-            grade,
-            period: `${notificationTest.period || 1}限`,
-            classGroup: notificationTest.classGroup || "",
-            startTime: notificationTest.startTime,
-            endTime: notificationTest.endTime,
-            building: "CareMate",
-            room: "通知テスト",
-            attendanceNotificationTest: true
-        });
+        const testLectures = Array.isArray(notificationTest.lectures)
+            ? notificationTest.lectures : [notificationTest];
+        for (const test of testLectures) {
+            if (!isEnrolledScheduleItem({ subject: test.subject }, enrolledAliases)) continue;
+            testDay.schedules.push({
+                subject: test.subject,
+                grade,
+                period: `${test.period || 1}限`,
+                classGroup: test.classGroup || "",
+                startTime: test.startTime,
+                endTime: test.endTime,
+                building: "CareMate",
+                room: "クラス通知テスト",
+                attendanceNotificationTest: true
+            });
+        }
+    }
+
+    let availableClassGroups = [...new Set(
+        lectureSchedules.flatMap(day => day.schedules || [])
+            .filter(item => !grade || String(item.grade || "") === String(grade))
+            .map(item => String(item.classGroup || "").trim())
+            .filter(Boolean)
+    )];
+    const standardClassGroups = availableClassGroups.filter(group => /^[A-DＡ-Ｄ]クラス$/.test(group));
+    if (standardClassGroups.length > 1) availableClassGroups = standardClassGroups;
+    if (!userSnapshot?.data()?.attendanceClassGroup && availableClassGroups.length > 1) {
+        showAttendanceClassSelector(availableClassGroups);
     }
 
     const actualToday = new Date().toLocaleDateString("sv-SE");
@@ -1020,6 +1038,45 @@ function renderCurrentLectureSchedule(grade) {
 
     }
 
+}
+
+function showAttendanceClassSelector(groups) {
+    if (document.getElementById("attendanceClassSelector")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "attendanceClassSelector";
+    overlay.className = "exam-popup-overlay show attendance-class-selector";
+    const card = document.createElement("div");
+    card.className = "exam-popup-card";
+    const title = document.createElement("h2");
+    title.textContent = "所属クラスを選択";
+    const description = document.createElement("p");
+    description.textContent = "時間割がクラス別に分かれています。選択すると、そのクラスの出席通知だけが届きます。";
+    const choices = document.createElement("div");
+    choices.className = "attendance-class-options";
+    for (const group of groups) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "main-button";
+        button.textContent = group;
+        button.onclick = async () => {
+            button.disabled = true;
+            await updateDoc(doc(db, "users", studentNumber), {
+                attendanceClassGroup: group,
+                attendanceClassGroupSelectedAt: new Date().toISOString()
+            });
+            overlay.remove();
+            location.reload();
+        };
+        choices.appendChild(button);
+    }
+    const later = document.createElement("button");
+    later.type = "button";
+    later.className = "btn attendance-class-later";
+    later.textContent = "あとで選ぶ（全クラス通知）";
+    later.onclick = () => overlay.remove();
+    card.append(title, description, choices, later);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
 }
 
 function splitLectureScheduleLabel(schedule) {

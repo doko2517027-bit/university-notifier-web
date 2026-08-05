@@ -51,7 +51,13 @@ async function saveChoice(choice){
         else Object.assign(base,{departureStatus:status,checkOutAt:Timestamp.fromDate(now)});
         transaction.set(ref,base,{merge:true});
     });
-    if(classGroup)await updateDoc(doc(db,"users",studentNumber),{[`attendancePreferences.${encodeURIComponent(subject)}`]:{subject,classGroup,selectedAt:new Date().toISOString(),source:"attendance"}});
+    if(classGroup){
+        const classUpdate={
+            [`attendancePreferences.${encodeURIComponent(subject)}`]:{subject,classGroup,selectedAt:new Date().toISOString(),source:"attendance"}
+        };
+        if(/^[A-DＡ-Ｄ]クラス$/.test(classGroup))classUpdate.attendanceClassGroup=classGroup;
+        await updateDoc(doc(db,"users",studentNumber),classUpdate);
+    }
     attendanceStatus.textContent=`✅ ${status}として保存しました`;
     primaryButton.disabled=true;secondaryButton.disabled=true;
     primaryButton.hidden=true;secondaryButton.hidden=true;
