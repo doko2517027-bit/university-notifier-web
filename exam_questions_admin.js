@@ -1428,11 +1428,16 @@ saveEditedQuestions.onclick =
                             )
                         );
 
+                    const imageData =
+                        readImageData(card);
+
                     return {
                         question,
                         choices,
                         answer,
                         explanation,
+
+                        ...imageData,
 
                         source_type:
                             "manual",
