@@ -12424,3 +12424,149 @@ body:has(#weatherCard)
 #attendanceNo {
     color: #fca5a5;
 }
+
+/* ========================================
+   ホーム画面ポップアップ
+   透過を完全に解除
+======================================== */
+
+/* 背景の暗幕だけ半透明 */
+body:has(#weatherCard) .exam-popup-overlay {
+    background: rgba(15, 23, 42, 0.68) !important;
+    opacity: 1 !important;
+}
+
+/* ポップアップ本体は完全に不透明 */
+body:has(#weatherCard) .exam-popup-card {
+    opacity: 1 !important;
+
+    background-color: #ffffff !important;
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    color: #172033 !important;
+}
+
+/* テスト情報 */
+body:has(#weatherCard)
+#examPopupOverlay
+.exam-popup-card {
+    background-color: #f7faff !important;
+
+    border-color:
+        rgba(37, 99, 235, 0.32) !important;
+}
+
+/* 出席確認 */
+body:has(#weatherCard)
+#attendancePopupOverlay
+.exam-popup-card {
+    background-color: #f7fcf8 !important;
+
+    border-color:
+        rgba(22, 163, 74, 0.32) !important;
+}
+
+/* ランキング */
+body:has(#weatherCard)
+#rankingPopupOverlay
+.exam-popup-card {
+    background-color: #fffaf5 !important;
+
+    border-color:
+        rgba(249, 115, 22, 0.34) !important;
+}
+
+/* ポップアップ内の文字 */
+body:has(#weatherCard)
+.exam-popup-card h2,
+body:has(#weatherCard)
+.exam-popup-card h3,
+body:has(#weatherCard)
+.exam-popup-card strong {
+    color: #172033 !important;
+}
+
+body:has(#weatherCard)
+.exam-popup-card p,
+body:has(#weatherCard)
+#rankingPopupDate,
+body:has(#weatherCard)
+#rankingDate,
+body:has(#weatherCard)
+#rankingList {
+    opacity: 1 !important;
+}
+
+/* 閉じるボタンも不透明 */
+body:has(#weatherCard)
+.exam-popup-close {
+    opacity: 1 !important;
+
+    background-color:
+        rgba(100, 116, 139, 0.12) !important;
+
+    color: #172033 !important;
+}
+
+
+/* ========================================
+   ダークモード
+======================================== */
+
+.dark body:has(#weatherCard)
+.exam-popup-card {
+    color: #f1f5f9 !important;
+}
+
+/* テスト情報 */
+.dark body:has(#weatherCard)
+#examPopupOverlay
+.exam-popup-card {
+    background-color: #182235 !important;
+}
+
+/* 出席確認 */
+.dark body:has(#weatherCard)
+#attendancePopupOverlay
+.exam-popup-card {
+    background-color: #18271f !important;
+}
+
+/* ランキング */
+.dark body:has(#weatherCard)
+#rankingPopupOverlay
+.exam-popup-card {
+    background-color: #2a2119 !important;
+}
+
+/* ダークモードの文字 */
+.dark body:has(#weatherCard)
+.exam-popup-card h2,
+.dark body:has(#weatherCard)
+.exam-popup-card h3,
+.dark body:has(#weatherCard)
+.exam-popup-card strong,
+.dark body:has(#weatherCard)
+#rankingList {
+    color: #f1f5f9 !important;
+}
+
+.dark body:has(#weatherCard)
+.exam-popup-card p,
+.dark body:has(#weatherCard)
+#rankingPopupDate,
+.dark body:has(#weatherCard)
+#rankingDate {
+    color: #cbd5e1 !important;
+}
+
+.dark body:has(#weatherCard)
+.exam-popup-close {
+    background-color:
+        rgba(255, 255, 255, 0.1) !important;
+
+    color: #f1f5f9 !important;
+}
