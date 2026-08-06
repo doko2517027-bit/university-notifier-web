@@ -379,7 +379,7 @@ if (
     <div class="card setting-card">
 
         <small>
-            直接欠席
+            欠席打刻
         </small>
 
         <p
@@ -551,9 +551,10 @@ if (
 <div class="attendance-rule-help">
 
 
-<button
-    id="attendanceRuleButton"
-    class="attendance-rule-button">
+<div
+    id="attendanceRulePopup"
+    class="attendance-rule-popup"
+    hidden>
 
     ⏱ 打刻基準？
 
@@ -598,7 +599,13 @@ if (
 
 
 <p>
-遅刻・早退3回＝欠席1回換算
+遅刻・早退3回＝欠席1回換算(換算欠席)
+</p>
+
+
+<p>
+欠席操作<br>
+編集で欠席と入力した場合
 </p>
 
 
