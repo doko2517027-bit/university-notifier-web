@@ -19,7 +19,15 @@ import {
     setupAttendanceWebPush,
     studentAcademicContext
 } from "./common.js";
-import { loadPersonalTimetableData, isEnrolledScheduleItem } from "./personal_timetable_data.js";
+
+import { loadPersonalTimetableData, isEnrolledScheduleItem }
+from "./personal_timetable_data.js";
+
+import {
+    setupClassSelection,
+    checkClassSelectionRequired,
+    setClassSelectionSchedule
+} from "./class_selection.js";
 
 import {
     doc,
@@ -279,6 +287,10 @@ console.log("studentNumber =", studentNumber);
         updateNewsNavBadge()
     ]);
 
+    await loadTodaySchedule();
+
+    await checkClassSelectionRequired();
+
     await Promise.all([
         loadExamMode(),
         loadWeather(user),
@@ -286,7 +298,6 @@ console.log("studentNumber =", studentNumber);
         loadHomeCourseNews(),
         loadHomeSystemNews(),
         loadCourseLinks(),
-        loadTodaySchedule(),
         loadCourseRegistrationBanner(user),
     ]);
 
@@ -838,7 +849,24 @@ async function loadTodaySchedule() {
                 title: day.title || "次回講義日",
                 label: day.label || "",
                 schedules: Array.isArray(day.schedules)
-                    ? day.schedules.filter(item => isEnrolledScheduleItem(item,enrolledAliases))
+                    ? day.schedules.filter(item => {
+
+                        if(
+                            !isEnrolledScheduleItem(
+                                item,
+                                enrolledAliases
+                            )
+                        ){
+                            return false;
+                        }
+
+
+                        return isSelectedClassSchedule(
+                            item,
+                            day.date
+                        );
+
+                    })
                     : []
             }));
 
@@ -861,6 +889,16 @@ async function loadTodaySchedule() {
         ];
 
     }
+
+    // クラス選択用に時間割を渡す
+    setClassSelectionSchedule(
+        lectureSchedules.flatMap(day =>
+            (day.schedules || []).map(item => ({
+                ...item,
+                date: day.date
+            }))
+        )
+    );
 
     const scheduleParams = new URLSearchParams(location.search);
     if (scheduleParams.get("clearAttendanceTestDate") === "1") {
@@ -983,6 +1021,72 @@ async function loadTodaySchedule() {
         firstLectureDate.getMonth();
 
     renderCurrentLectureSchedule(grade);
+
+}
+
+function isSelectedClassSchedule(
+    item,
+    date
+){
+
+    const classGroup =
+        item.classGroup;
+
+
+    // クラス指定なし
+    if(!classGroup){
+
+        return true;
+
+    }
+
+
+
+    const groups =
+        extractClassGroups(
+            classGroup
+        );
+
+
+    // A/Bなど複数クラスではない
+    if(groups.length <= 1){
+
+        return true;
+
+    }
+
+
+
+    const key =
+        `${item.subject}_${date}_${item.period}`;
+
+
+
+    const selections =
+        JSON.parse(
+            localStorage.getItem(
+                "classSelections"
+            ) || "{}"
+        );
+
+
+
+    const selected =
+        selections[key];
+
+
+
+    // 未選択なら一旦表示
+    // popup側で選択を促す
+    if(!selected){
+
+        return true;
+
+    }
+
+
+
+    return selected === item.class;
 
 }
 

@@ -172,6 +172,41 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
+<!-- クラス選択 -->
+<div id="classSelectionOverlay" class="exam-popup-overlay" hidden>
+
+    <div class="exam-popup-card">
+
+        <div class="exam-popup-icon">
+            🏫
+        </div>
+
+        <p class="exam-popup-label">
+            クラス確認
+        </p>
+
+        <h2>
+            今日の授業クラス
+        </h2>
+
+
+        <div id="classSelectionList">
+            読み込み中...
+        </div>
+
+
+        <button
+            id="saveClassSelection"
+            class="btn btn-primary">
+
+            保存
+
+        </button>
+
+    </div>
+
+</div>
+
 <div class="top-buttons">
 
     <div class="top-user-info">
@@ -476,13 +511,6 @@ if(localStorage.getItem("theme")==="dark"){
         <div id="courseRegistrationCard" class="card setting-card home-card">
             <h2>📘 履修登録</h2>
             <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
-        </div>
-    </div>
-
-    <div class="home-slide">
-        <div id="personalTimetableCard" class="card setting-card home-card">
-            <h2>📅 自分の時間割</h2>
-            <p>履修登録した科目だけを一覧表示</p>
         </div>
     </div>
 
