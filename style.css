@@ -12570,3 +12570,380 @@ body:has(#weatherCard)
 
     color: #f1f5f9 !important;
 }
+
+/* ========================================
+   出席管理 UI 調整
+======================================== */
+
+
+/* 出席通知 小型化 */
+
+.attendance-notice-mini{
+    padding:10px 14px;
+    margin-bottom:12px;
+}
+
+
+.attendance-notice-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:14px;
+}
+
+
+.attendance-notice-time{
+    font-size:12px;
+    color:var(--subtext);
+    margin-top:4px;
+}
+
+
+
+/* 更新ボタン小型化 */
+
+#attendanceRefreshButton{
+
+    width:auto;
+    height:34px;
+
+    padding:0 14px;
+
+    font-size:13px;
+
+    border-radius:999px;
+
+}
+
+
+
+/* 今日の講義ヘッダー */
+
+.attendance-section-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+
+
+/* 打刻状況 横並び */
+
+.attendance-summary-list{
+
+    display:flex;
+
+    gap:10px;
+
+    overflow-x:auto;
+
+    padding-bottom:8px;
+
+}
+
+
+.attendance-summary-list::-webkit-scrollbar{
+
+    display:none;
+
+}
+
+
+.attendance-summary-list .setting-card{
+
+    min-width:110px;
+
+    margin:0;
+
+    padding:12px;
+
+    text-align:center;
+
+    flex-shrink:0;
+
+}
+
+
+.attendance-summary-list p{
+
+    font-size:22px !important;
+
+}
+
+
+
+/* 科目別出席 */
+
+.attendance-subject-list{
+
+    display:grid;
+
+    gap:12px;
+
+}
+
+
+
+.attendance-subject-summary{
+
+    cursor:pointer;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:16px;
+
+}
+
+
+
+.attendance-subject-name{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+.attendance-subject-name span{
+
+    font-size:12px;
+
+    color:var(--subtext);
+
+}
+
+
+.attendance-subject-rate{
+
+    text-align:right;
+
+}
+
+
+.attendance-subject-rate strong{
+
+    display:block;
+
+    font-size:20px;
+
+}
+
+
+
+/* 科目詳細 */
+
+.attendance-subject-detail{
+
+    padding:0 16px 16px;
+
+}
+
+
+
+.attendance-subject-counts{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+
+    margin-bottom:12px;
+
+}
+
+
+.attendance-subject-counts span{
+
+    padding:5px 10px;
+
+    border-radius:999px;
+
+    background:var(--bg);
+
+    font-size:12px;
+
+}
+
+
+
+/* 日別記録 */
+
+.attendance-date-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:8px 0;
+
+    border-bottom:1px solid var(--border);
+
+}
+
+
+
+.attendance-date-status{
+
+    padding:4px 10px;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:bold;
+
+}
+
+
+
+/* 判定色 */
+
+.is-present{
+
+    background:#dcfce7;
+
+    color:#166534;
+
+}
+
+
+.is-late{
+
+    background:#fef3c7;
+
+    color:#92400e;
+
+}
+
+
+.is-early{
+
+    background:#dbeafe;
+
+    color:#1d4ed8;
+
+}
+
+
+.is-absent{
+
+    background:#fee2e2;
+
+    color:#991b1b;
+
+}
+
+
+
+/* 打刻ルール吹き出し */
+
+.attendance-rule-help{
+
+    position:relative;
+
+    text-align:right;
+
+}
+
+
+.attendance-rule-button{
+
+    border:none;
+
+    background:var(--card);
+
+    color:var(--primary);
+
+    font-size:12px;
+
+    border-radius:999px;
+
+    padding:6px 12px;
+
+    box-shadow:var(--shadow);
+
+}
+
+
+
+.attendance-rule-popup{
+
+    position:absolute;
+
+    right:0;
+
+    bottom:45px;
+
+    width:260px;
+
+    padding:14px;
+
+    background:var(--card);
+
+    border:1px solid var(--border);
+
+    border-radius:16px;
+
+    box-shadow:var(--shadow);
+
+    font-size:13px;
+
+    text-align:left;
+
+    z-index:20;
+
+}
+
+
+
+.attendance-rule-popup p{
+
+    margin:8px 0;
+
+}
+
+
+
+/* スマホ */
+
+@media(max-width:430px){
+
+
+    .attendance-summary-list .setting-card{
+
+        min-width:95px;
+
+    }
+
+
+    .attendance-summary-list p{
+
+        font-size:20px !important;
+
+    }
+
+
+    .attendance-subject-summary{
+
+        padding:14px;
+
+    }
+
+
+}

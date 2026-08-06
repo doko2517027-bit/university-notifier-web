@@ -21,7 +21,8 @@ import {
     doc,
     getDoc,
     collection,
-    getDocs
+    getDocs,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -549,6 +550,69 @@ function setupEvents() {
     );
 
 }
+
+document.addEventListener(
+"click",
+event=>{
+
+const target =
+event.target.closest(
+"[data-edit-attendance]"
+);
+
+
+if(!target){
+
+return;
+
+}
+
+
+const status =
+prompt(
+"変更後の状態を入力してください\n\n出席\n遅刻\n早退\n欠席"
+);
+
+
+if(!status){
+
+return;
+
+}
+
+
+const reason =
+prompt(
+"編集理由を入力してください"
+);
+
+
+if(!reason){
+
+return;
+
+}
+
+
+saveAttendanceEdit({
+
+date:
+target.dataset.editAttendance,
+
+period:
+target.dataset.period,
+
+subject:
+target.dataset.subject,
+
+status,
+
+reason
+
+});
+
+
+});
 
 
 /* ========================================
@@ -3557,11 +3621,16 @@ function renderSubjectSessionRow(
             </div>
 
             <span
-                class="attendance-date-status ${display.className}">
+            class="attendance-date-status ${display.className}"
+            data-edit-attendance="${session.date}"
+            data-period="${session.period || ""}"
+            data-subject="${escapeHtml(
+                session.lecture?.subject || ""
+            )}">
 
-                ${escapeHtml(
-                    display.label
-                )}
+            ${escapeHtml(
+            display.label
+            )}
 
             </span>
 
@@ -5981,5 +6050,60 @@ function escapeHtml(
             "'",
             "&#039;"
         );
+
+}
+
+async function saveAttendanceEdit(data){
+
+const id =
+createAttendanceRecordId({
+
+date:data.date,
+
+period:data.period,
+
+subject:data.subject
+
+});
+
+
+await setDoc(
+
+doc(
+db,
+"users",
+studentNumber,
+"attendanceRecords",
+id
+),
+
+{
+
+manualEdited:true,
+
+editedStatus:data.status,
+
+editReason:data.reason,
+
+editedAt:new Date()
+
+},
+
+{
+
+merge:true
+
+}
+
+);
+
+
+showToast(
+"出席記録を修正しました。"
+);
+
+
+await refreshAttendance(true);
+
 
 }

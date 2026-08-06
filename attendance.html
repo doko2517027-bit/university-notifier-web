@@ -187,65 +187,30 @@ if (
 
 <div
     id="attendanceNotificationCard"
-    class="card setting-card">
-
-    <h3>
-        🔔 出席通知
-    </h3>
+    class="attendance-notice-mini card setting-card">
 
 
-    <p id="attendanceNotificationState">
-        通知状態を確認中...
-    </p>
+    <div class="attendance-notice-header">
 
+        <b>
+            🔔 出席通知
+        </b>
 
-    <div class="attendance-record-list">
-
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
-
-            <span>
-                開始通知
-            </span>
-
-            <b>
-                講義開始10分前
-            </b>
-
-        </div>
-
-
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
-
-            <span>
-                終了通知
-            </span>
-
-            <b>
-                講義終了5分前
-            </b>
-
-        </div>
+        <span
+            id="attendanceNotificationState">
+            確認中...
+        </span>
 
     </div>
 
 
-    <br>
+    <div class="attendance-notice-time">
+
+        開始10分前　
+        /
+        終了5分前
+
+    </div>
 
 
     <button
@@ -254,9 +219,10 @@ if (
         type="button"
         hidden>
 
-        🔔 出席通知を有効にする
+        🔔 有効化
 
     </button>
+
 
 </div>
 
@@ -265,14 +231,7 @@ if (
      今日の講義
 ======================================== -->
 
-<div
-    style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:12px;
-        margin-top:22px;
-    ">
+<div class="attendance-section-header">
 
     <h2 style="margin:0;">
         📅 今日の講義
@@ -293,11 +252,8 @@ if (
 
 <div
     id="attendanceTodayList"
-    style="
-        display:grid;
-        gap:14px;
-        margin-top:14px;
-    ">
+    class="attendance-today-list">
+
 
     <div class="card setting-card">
 
@@ -334,12 +290,8 @@ if (
 
 
 <div
-    id="attendanceSummary"
-    style="
-        display:grid;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
-        gap:10px;
-    ">
+    id="attendanceSummaryList"
+    class="attendance-summary-list">
 
     <div class="card setting-card">
 
@@ -417,6 +369,55 @@ if (
                 font-size:26px;
                 font-weight:900;
             ">
+
+            0
+
+        </p>
+
+    </div>
+
+    <div class="card setting-card">
+
+        <small>
+            直接欠席
+        </small>
+
+        <p
+            id="attendanceSummaryManualAbsent">
+
+            0
+
+        </p>
+
+    </div>
+
+
+
+    <div class="card setting-card">
+
+        <small>
+            換算欠席
+        </small>
+
+        <p
+            id="attendanceSummaryConvertedAbsent">
+
+            0
+
+        </p>
+
+    </div>
+
+
+
+    <div class="card setting-card">
+
+        <small>
+            欠席合計
+        </small>
+
+        <p
+            id="attendanceSummaryTotalAbsent">
 
             0
 
@@ -531,120 +532,69 @@ if (
      判定ルール表示
 ======================================== -->
 
-<div class="card setting-card">
-
-    <h3>
-        ⏱ 打刻時間の目安
-    </h3>
+<div class="attendance-rule-help">
 
 
-    <div class="attendance-record-list">
+<button
+    id="attendanceRuleButton"
+    class="attendance-rule-button">
 
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
+    ⏱ 打刻基準？
 
-            <span>
-                正常開始
-            </span>
-
-            <b>
-                開始10分前〜開始時刻
-            </b>
-
-        </div>
+</button>
 
 
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
 
-            <span>
-                遅刻
-            </span>
-
-            <b>
-                開始1〜30分後
-            </b>
-
-        </div>
+<div
+    id="attendanceRulePopup"
+    class="attendance-rule-popup"
+    hidden>
 
 
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
-
-            <span>
-                終了時の欠席
-            </span>
-
-            <b>
-                終了30分前より前
-            </b>
-
-        </div>
+<p>
+正常開始<br>
+開始10分前〜開始
+</p>
 
 
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
-
-            <span>
-                早退
-            </span>
-
-            <b>
-                終了30〜6分前
-            </b>
-
-        </div>
+<p>
+遅刻<br>
+開始1〜30分後
+</p>
 
 
-        <div
-            style="
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-                padding:10px;
-                border-radius:10px;
-                background:var(--card-bg, #f4f6fa);
-            ">
+<p>
+欠席<br>
+開始31分後〜
+</p>
 
-            <span>
-                正常終了
-            </span>
 
-            <b>
-                終了5分前〜10分後
-            </b>
+<p>
+早退<br>
+終了30〜6分前
+</p>
 
-        </div>
 
-    </div>
+<p>
+正常終了<br>
+終了5分前〜10分後
+</p>
+
+
+<p>
+遅刻・早退3回＝欠席1回換算
+</p>
+
+
+<p>
+通常科目 2/3未満<br>
+実習科目 4/5未満<br>
+評価資格なし
+</p>
+
+
+</div>
+
 
 </div>
 
