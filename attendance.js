@@ -245,6 +245,11 @@ const el = {
             "attendanceSubjectEmpty"
         ),
 
+    manualAbsent:
+        document.getElementById(
+            "attendanceSummaryManualAbsent"
+        ),
+
     convertedAbsent:
         document.getElementById(
             "attendanceSummaryConvertedAbsent"
@@ -2254,7 +2259,13 @@ function renderSummary() {
 
         early: 0,
 
-        absent: 0,
+        directAbsent: 0,
+
+        timingAbsent: 0,
+
+        convertedAbsent: 0,
+
+        totalAbsent: 0,
 
         pending: 0
 
@@ -2334,7 +2345,18 @@ function renderSummary() {
             case ATTENDANCE_STATUS
                 .ABSENT:
 
-                count.absent++;
+                if (
+                    record?.absenceTapped === true ||
+                    record?.manualEdited === true
+                ) {
+
+                    count.directAbsent++;
+
+                } else {
+
+                    count.timingAbsent++;
+
+                }
 
                 break;
 
@@ -2348,10 +2370,30 @@ function renderSummary() {
     }
 
 
+    count.convertedAbsent =
+        Math.floor(
+            (
+                count.late +
+                count.early
+            ) / 3
+        );
+
+
+    count.totalAbsent =
+
+        count.directAbsent +
+
+        count.timingAbsent +
+
+        count.convertedAbsent;
+
+
     if (el.present) {
 
         el.present.textContent =
-            String(count.present);
+            String(
+                count.present
+            );
 
     }
 
@@ -2359,7 +2401,9 @@ function renderSummary() {
     if (el.late) {
 
         el.late.textContent =
-            String(count.late);
+            String(
+                count.late
+            );
 
     }
 
@@ -2367,7 +2411,9 @@ function renderSummary() {
     if (el.early) {
 
         el.early.textContent =
-            String(count.early);
+            String(
+                count.early
+            );
 
     }
 
@@ -2375,7 +2421,40 @@ function renderSummary() {
     if (el.absent) {
 
         el.absent.textContent =
-            String(count.absent);
+            String(
+                count.directAbsent +
+                count.timingAbsent
+            );
+
+    }
+
+
+    if (el.manualAbsent) {
+
+        el.manualAbsent.textContent =
+            String(
+                count.directAbsent
+            );
+
+    }
+
+
+    if (el.convertedAbsent) {
+
+        el.convertedAbsent.textContent =
+            String(
+                count.convertedAbsent
+            );
+
+    }
+
+
+    if (el.totalAbsent) {
+
+        el.totalAbsent.textContent =
+            String(
+                count.totalAbsent
+            );
 
     }
 
@@ -2383,7 +2462,9 @@ function renderSummary() {
     if (el.pending) {
 
         el.pending.textContent =
-            String(count.pending);
+            String(
+                count.pending
+            );
 
     }
 
