@@ -317,12 +317,12 @@ const el = {
 
     helpButton:
         document.getElementById(
-            "attendanceRuleHelpButton"
+            "attendanceRuleButton"
         ),
 
     helpPopup:
         document.getElementById(
-            "attendanceRuleHelpPopup"
+            "attendanceRulePopup"
         ),
 
 };
