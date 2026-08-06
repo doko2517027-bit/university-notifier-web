@@ -3112,13 +3112,20 @@ function calculateSubjectAttendance(
 
 
     const totalLectures =
-        sessions.length;
+        sessions.filter(
+            session =>
+                session.record ||
+                session.result
+        ).length;
 
 
     const totalAbsent =
         directAbsent +
         timingAbsent +
         convertedAbsent;
+
+    const displayTotalLectures =
+        sessions.length;
 
 
     const attendanceRate =
@@ -3138,6 +3145,13 @@ function calculateSubjectAttendance(
         sessions,
 
         present,
+
+        possibleAbsentCount:
+            calculatePossibleAbsentCount(
+                totalLectures,
+                attended,
+                subject.isPractical
+            ),
 
         late,
 
@@ -3159,7 +3173,10 @@ function calculateSubjectAttendance(
 
         attended,
 
-        totalLectures,
+        totalLectures: displayTotalLectures,
+
+        calculationTotalLectures:
+            totalLectures,
 
         attendanceRate,
 
@@ -3410,6 +3427,25 @@ function renderSubjectAttendanceCard(
 
                 <div
                     class="attendance-subject-name-block">
+
+                    ${
+                    stats.possibleAbsentCount !== null
+                    ?
+                    `
+
+                    <p class="attendance-subject-limit">
+
+                    あと
+                    ${stats.possibleAbsentCount}
+                    回欠席すると
+                    評価資格なし
+
+                    </p>
+
+                    `
+                    :
+                    ""
+                    }
 
                     <strong>
                         ${escapeHtml(
@@ -6105,5 +6141,71 @@ showToast(
 
 await refreshAttendance(true);
 
+
+}
+
+function calculatePossibleAbsentCount(
+    totalLectures,
+    attendedCount,
+    isPractical
+){
+
+    if(
+        !totalLectures ||
+        totalLectures <= 0
+    ){
+
+        return null;
+
+    }
+
+
+    const requiredRate =
+        isPractical
+            ? 0.8
+            : (2 / 3);
+
+
+    let possible = 0;
+
+
+    while(true){
+
+        const futureAttendance =
+            attendedCount - possible;
+
+
+        const rate =
+            futureAttendance /
+            totalLectures;
+
+
+        if(
+            rate < requiredRate
+        ){
+
+            break;
+
+        }
+
+
+        possible++;
+
+
+        if(
+            possible > totalLectures
+        ){
+
+            break;
+
+        }
+
+    }
+
+
+    return Math.max(
+        0,
+        possible - 1
+    );
 
 }
