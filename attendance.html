@@ -783,6 +783,184 @@ if (
 
 
 <!-- ========================================
+     出席記録 編集ポップアップ
+======================================== -->
+
+<div
+    id="attendanceEditOverlay"
+    class="attendance-edit-overlay"
+    hidden>
+
+    <div class="attendance-record-edit-card">
+
+        <button
+            id="attendanceEditCloseButton"
+            class="attendance-edit-close"
+            type="button"
+            aria-label="閉じる">
+
+            ×
+
+        </button>
+
+
+        <p class="attendance-edit-label">
+            出席記録の修正
+        </p>
+
+
+        <h2 id="attendanceEditSubject">
+            科目名
+        </h2>
+
+
+        <p
+            id="attendanceEditLectureInfo"
+            class="attendance-edit-lecture-info">
+
+            2026/00/00・0限
+
+        </p>
+
+
+        <div class="attendance-edit-current">
+
+            <small>
+                現在の判定
+            </small>
+
+            <strong id="attendanceEditCurrentStatus">
+                未打刻
+            </strong>
+
+        </div>
+
+
+        <fieldset class="attendance-edit-status-list">
+
+            <legend>
+                変更後の判定
+            </legend>
+
+
+            <label>
+
+                <input
+                    type="radio"
+                    name="attendanceEditStatus"
+                    value="present">
+
+                <span>
+                    ✅ 出席
+                </span>
+
+            </label>
+
+
+            <label>
+
+                <input
+                    type="radio"
+                    name="attendanceEditStatus"
+                    value="late">
+
+                <span>
+                    🟡 遅刻
+                </span>
+
+            </label>
+
+
+            <label>
+
+                <input
+                    type="radio"
+                    name="attendanceEditStatus"
+                    value="early_leave">
+
+                <span>
+                    🟠 早退
+                </span>
+
+            </label>
+
+
+            <label>
+
+                <input
+                    type="radio"
+                    name="attendanceEditStatus"
+                    value="absent">
+
+                <span>
+                    ❌ 欠席
+                </span>
+
+            </label>
+
+        </fieldset>
+
+
+        <label class="attendance-edit-reason">
+
+            <span>
+                編集理由
+            </span>
+
+            <textarea
+                id="attendanceEditReason"
+                rows="4"
+                maxlength="300"
+                placeholder="例：教員へ確認し、出席として修正">
+
+            </textarea>
+
+            <small>
+                修正理由はFirebaseへ保存されます。
+            </small>
+
+        </label>
+
+
+        <p
+            id="attendanceEditError"
+            class="attendance-edit-error"
+            hidden>
+
+            判定と編集理由を入力してください。
+
+        </p>
+
+
+        <div class="attendance-edit-actions">
+
+            <button
+                id="attendanceEditCancelButton"
+                class="btn btn-secondary"
+                type="button">
+
+                キャンセル
+
+            </button>
+
+
+            <button
+                id="attendanceEditSaveButton"
+                class="btn btn-primary"
+                type="button">
+
+                保存する
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================
      トースト
 ======================================== -->
 

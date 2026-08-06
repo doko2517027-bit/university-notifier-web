@@ -260,6 +260,51 @@ const el = {
             "attendanceLateEarlyConversionText"
         ),
 
+    editOverlay:
+        document.getElementById(
+            "attendanceEditOverlay"
+        ),
+
+    editClose:
+        document.getElementById(
+            "attendanceEditCloseButton"
+        ),
+
+    editCancel:
+        document.getElementById(
+            "attendanceEditCancelButton"
+        ),
+
+    editSave:
+        document.getElementById(
+            "attendanceEditSaveButton"
+        ),
+
+    editSubject:
+        document.getElementById(
+            "attendanceEditSubject"
+        ),
+
+    editLectureInfo:
+        document.getElementById(
+            "attendanceEditLectureInfo"
+        ),
+
+    editCurrentStatus:
+        document.getElementById(
+            "attendanceEditCurrentStatus"
+        ),
+
+    editReason:
+        document.getElementById(
+            "attendanceEditReason"
+        ),
+
+    editError:
+        document.getElementById(
+            "attendanceEditError"
+        ),
+
     toast:
         document.getElementById(
             "attendanceToast"
@@ -315,6 +360,9 @@ let loading =
     false;
 
 let toastTimer =
+    null;
+
+let pendingAttendanceEdit =
     null;
 
 
@@ -549,70 +597,96 @@ function setupEvents() {
         }
     );
 
+    if (el.editClose) {
+
+        el.editClose.onclick =
+            closeAttendanceEditDialog;
+
+    }
+
+
+    if (el.editCancel) {
+
+        el.editCancel.onclick =
+            closeAttendanceEditDialog;
+
+    }
+
+
+    if (el.editSave) {
+
+        el.editSave.onclick =
+            executeAttendanceEdit;
+
+    }
+
+
+    if (el.editOverlay) {
+
+        el.editOverlay.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    event.target ===
+                    el.editOverlay
+                ) {
+
+                    closeAttendanceEditDialog();
+
+                }
+
+            }
+        );
+
+    }
+
 }
 
 document.addEventListener(
-"click",
-event=>{
+    "click",
+    event => {
 
-const target =
-event.target.closest(
-"[data-edit-attendance]"
+        const target =
+            event.target.closest(
+                "[data-edit-attendance]"
+            );
+
+
+        if (!target) {
+
+            return;
+
+        }
+
+
+        openAttendanceEditDialog({
+
+            date:
+                target.dataset
+                    .editAttendance || "",
+
+            period:
+                target.dataset
+                    .period || "",
+
+            subject:
+                target.dataset
+                    .subject || "",
+
+            currentStatus:
+                target.dataset
+                    .currentStatus ||
+                "未打刻",
+
+            recordId:
+                target.dataset
+                    .recordId || ""
+
+        });
+
+    }
 );
-
-
-if(!target){
-
-return;
-
-}
-
-
-const status =
-prompt(
-"変更後の状態を入力してください\n\n出席\n遅刻\n早退\n欠席"
-);
-
-
-if(!status){
-
-return;
-
-}
-
-
-const reason =
-prompt(
-"編集理由を入力してください"
-);
-
-
-if(!reason){
-
-return;
-
-}
-
-
-saveAttendanceEdit({
-
-date:
-target.dataset.editAttendance,
-
-period:
-target.dataset.period,
-
-subject:
-target.dataset.subject,
-
-status,
-
-reason
-
-});
-
-
-});
 
 
 /* ========================================
@@ -2755,9 +2829,6 @@ function renderSubjectAttendanceList() {
     }
 
 
-    injectSubjectAttendanceStyles();
-
-
     if (el.subjectTermLabel) {
 
         const gradeText =
@@ -3469,7 +3540,7 @@ function renderSubjectAttendanceCard(
                     }">
 
                     <strong>
-                        ${stats.attended} / ${stats.totalLectures}
+                        ${stats.attended} / ${stats.calculationTotalLectures}
                     </strong>
 
                     <span>
@@ -3656,19 +3727,32 @@ function renderSubjectSessionRow(
 
             </div>
 
-            <span
-            class="attendance-date-status ${display.className}"
-            data-edit-attendance="${session.date}"
-            data-period="${session.period || ""}"
-            data-subject="${escapeHtml(
-                session.lecture?.subject || ""
-            )}">
+            <button
+                type="button"
+                class="attendance-date-status ${display.className}"
+                data-edit-attendance="${escapeHtml(
+                    session.date
+                )}"
+                data-period="${escapeHtml(
+                    session.period || ""
+                )}"
+                data-subject="${escapeHtml(
+                    session.lecture?.subject ||
+                    session.record?.subject ||
+                    ""
+                )}"
+                data-current-status="${escapeHtml(
+                    display.label
+                )}"
+                data-record-id="${escapeHtml(
+                    session.record?.id || ""
+                )}">
 
-            ${escapeHtml(
-            display.label
-            )}
+                ${escapeHtml(
+                    display.label
+                )}
 
-            </span>
+            </button>
 
         </div>
     `;
@@ -4127,292 +4211,6 @@ function formatRate(
 
 
 /* ========================================
-   科目別表示用CSS
-======================================== */
-
-function injectSubjectAttendanceStyles() {
-
-    if (
-        document.getElementById(
-            "attendanceSubjectDynamicStyles"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    const style =
-        document.createElement(
-            "style"
-        );
-
-
-    style.id =
-        "attendanceSubjectDynamicStyles";
-
-
-    style.textContent = `
-        .attendance-subject-list,
-        #attendanceSubjectList,
-        #attendanceSubjectRateList {
-            display:grid;
-            gap:12px;
-        }
-
-        .attendance-subject-card {
-            overflow:hidden;
-        }
-
-        .attendance-subject-card summary {
-            list-style:none;
-        }
-
-        .attendance-subject-card summary::-webkit-details-marker {
-            display:none;
-        }
-
-        .attendance-subject-summary {
-            display:grid;
-            grid-template-columns:minmax(0,1fr) auto;
-            align-items:center;
-            gap:14px;
-            cursor:pointer;
-            user-select:none;
-        }
-
-        .attendance-subject-summary::after {
-            content:"＋";
-            grid-column:1 / -1;
-            justify-self:end;
-            margin-top:-24px;
-            font-size:18px;
-            font-weight:900;
-            color:var(--subtext);
-        }
-
-        .attendance-subject-card[open]
-        .attendance-subject-summary::after {
-            content:"－";
-        }
-
-        .attendance-subject-name-block {
-            display:grid;
-            gap:5px;
-            min-width:0;
-        }
-
-        .attendance-subject-name-block strong {
-            overflow-wrap:anywhere;
-            font-size:16px;
-        }
-
-        .attendance-subject-name-block span {
-            color:var(--subtext);
-            font-size:12px;
-        }
-
-        .attendance-subject-rate-block {
-            display:grid;
-            justify-items:end;
-            gap:3px;
-            padding-right:26px;
-            white-space:nowrap;
-        }
-
-        .attendance-subject-rate-block strong {
-            font-size:17px;
-        }
-
-        .attendance-subject-rate-block span {
-            font-size:14px;
-            font-weight:900;
-            color:#15803d;
-        }
-
-        .attendance-subject-rate-block.is-warning span {
-            color:#b91c1c;
-        }
-
-        .attendance-subject-detail {
-            margin-top:15px;
-            padding-top:15px;
-            border-top:
-                1px solid
-                var(
-                    --border,
-                    rgba(148,163,184,.3)
-                );
-        }
-
-        .attendance-subject-counts {
-            display:grid;
-            grid-template-columns:
-                repeat(
-                    4,
-                    minmax(0,1fr)
-                );
-            gap:8px;
-        }
-
-        .attendance-subject-counts > span {
-            display:grid;
-            gap:4px;
-            min-width:0;
-            padding:9px 7px;
-            border-radius:10px;
-            background:var(--bg);
-            text-align:center;
-        }
-
-        .attendance-subject-counts small {
-            font-size:11px;
-            line-height:1.35;
-            color:var(--subtext);
-        }
-
-        .attendance-subject-counts b {
-            font-size:15px;
-        }
-
-        .attendance-subject-counts .is-danger b {
-            color:#b91c1c;
-        }
-
-        .attendance-subject-conversion,
-        .attendance-subject-warning {
-            margin:12px 0 0;
-            padding:10px 12px;
-            border-radius:10px;
-            font-size:13px;
-            line-height:1.6;
-        }
-
-        .attendance-subject-conversion {
-            background:rgba(245,158,11,.12);
-            color:#92400e;
-        }
-
-        .dark .attendance-subject-conversion {
-            color:#fde68a;
-        }
-
-        .attendance-subject-warning {
-            background:rgba(239,68,68,.12);
-            color:#b91c1c;
-            font-weight:800;
-        }
-
-        .dark .attendance-subject-warning {
-            color:#fecaca;
-        }
-
-        .attendance-date-list {
-            display:grid;
-            gap:7px;
-            margin-top:14px;
-        }
-
-        .attendance-date-row {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-            padding:10px 11px;
-            border-radius:10px;
-            background:var(--bg);
-        }
-
-        .attendance-date-row > div {
-            display:flex;
-            align-items:center;
-            gap:8px;
-            min-width:0;
-        }
-
-        .attendance-date-row time {
-            font-size:13px;
-            font-weight:800;
-        }
-
-        .attendance-date-row small {
-            color:var(--subtext);
-            font-size:11px;
-        }
-
-        .attendance-date-status {
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            min-width:78px;
-            padding:5px 9px;
-            border-radius:999px;
-            font-size:12px;
-            font-weight:900;
-            text-align:center;
-        }
-
-        .attendance-date-status.is-present {
-            background:#dcfce7;
-            color:#166534;
-        }
-
-        .attendance-date-status.is-late {
-            background:#fef3c7;
-            color:#92400e;
-        }
-
-        .attendance-date-status.is-early,
-        .attendance-date-status.is-late-early {
-            background:#ffedd5;
-            color:#9a3412;
-        }
-
-        .attendance-date-status.is-absent {
-            background:#fee2e2;
-            color:#991b1b;
-        }
-
-        .attendance-date-status.is-pending {
-            background:#e2e8f0;
-            color:#334155;
-        }
-
-        @media (max-width:560px) {
-
-            .attendance-subject-counts {
-                grid-template-columns:
-                    repeat(
-                        2,
-                        minmax(0,1fr)
-                    );
-            }
-
-            .attendance-subject-summary {
-                gap:10px;
-            }
-
-            .attendance-subject-rate-block {
-                padding-right:22px;
-            }
-
-            .attendance-date-row {
-                align-items:flex-start;
-            }
-
-        }
-    `;
-
-
-    document.head.appendChild(
-        style
-    );
-
-}
-
-
-/* ========================================
    判定表示
 ======================================== */
 
@@ -4435,6 +4233,24 @@ function resolveResult(
                 false
 
         };
+
+    }
+
+
+    /*
+     手動編集された判定を最優先する。
+     未打刻へは戻せないため、
+     manualEditedがtrueなら必ず編集結果を使用する。
+    */
+
+    if (
+        record.manualEdited === true &&
+        record.editedStatus
+    ) {
+
+        return getManualAttendanceResult(
+            record.editedStatus
+        );
 
     }
 
@@ -4469,6 +4285,116 @@ function resolveResult(
                     .statusFinalized === true
 
         };
+
+    }
+
+}
+
+
+function getManualAttendanceResult(
+    status
+) {
+
+    switch (status) {
+
+        case "present":
+
+            return {
+
+                status:
+                    ATTENDANCE_STATUS
+                        .PRESENT,
+
+                label:
+                    "出席",
+
+                finalized:
+                    true,
+
+                manuallyEdited:
+                    true
+
+            };
+
+
+        case "late":
+
+            return {
+
+                status:
+                    ATTENDANCE_STATUS
+                        .LATE,
+
+                label:
+                    "遅刻",
+
+                finalized:
+                    true,
+
+                manuallyEdited:
+                    true
+
+            };
+
+
+        case "early_leave":
+
+            return {
+
+                status:
+                    ATTENDANCE_STATUS
+                        .EARLY_LEAVE,
+
+                label:
+                    "早退",
+
+                finalized:
+                    true,
+
+                manuallyEdited:
+                    true
+
+            };
+
+
+        case "absent":
+
+            return {
+
+                status:
+                    ATTENDANCE_STATUS
+                        .ABSENT,
+
+                label:
+                    "欠席",
+
+                finalized:
+                    true,
+
+                manuallyEdited:
+                    true
+
+            };
+
+
+        default:
+
+            return {
+
+                status:
+                    ATTENDANCE_STATUS
+                        .PENDING,
+
+                label:
+                    "判定待ち",
+
+                finalized:
+                    false,
+
+                manuallyEdited:
+                    true
+
+            };
 
     }
 
@@ -6089,58 +6015,522 @@ function escapeHtml(
 
 }
 
-async function saveAttendanceEdit(data){
+function openAttendanceEditDialog(
+    data
+) {
 
-const id =
-createAttendanceRecordId({
+    if (!el.editOverlay) {
 
-date:data.date,
+        showToast(
+            "編集画面を開けませんでした。"
+        );
 
-period:data.period,
+        return;
 
-subject:data.subject
-
-});
+    }
 
 
-await setDoc(
+    pendingAttendanceEdit = {
 
-doc(
-db,
-"users",
-studentNumber,
-"attendanceRecords",
-id
-),
+        date:
+            normalizeDate(
+                data.date
+            ),
 
-{
+        period:
+            normalizePeriod(
+                data.period
+            ),
 
-manualEdited:true,
+        subject:
+            normalizeText(
+                data.subject
+            ),
 
-editedStatus:data.status,
+        currentStatus:
+            normalizeText(
+                data.currentStatus
+            ) ||
+            "未打刻",
 
-editReason:data.reason,
+        recordId:
+            normalizeText(
+                data.recordId
+            )
 
-editedAt:new Date()
+    };
 
-},
 
-{
+    if (el.editSubject) {
 
-merge:true
+        el.editSubject.textContent =
+            pendingAttendanceEdit
+                .subject ||
+            "科目名なし";
+
+    }
+
+
+    if (el.editLectureInfo) {
+
+        const periodText =
+            pendingAttendanceEdit.period
+                ? `${pendingAttendanceEdit.period}限`
+                : "時限不明";
+
+
+        el.editLectureInfo.textContent =
+
+            `${formatAttendanceDate(
+                pendingAttendanceEdit.date
+            )}・${periodText}`;
+
+    }
+
+
+    if (el.editCurrentStatus) {
+
+        el.editCurrentStatus.textContent =
+            pendingAttendanceEdit
+                .currentStatus;
+
+    }
+
+
+    if (el.editReason) {
+
+        el.editReason.value =
+            "";
+
+    }
+
+
+    if (el.editError) {
+
+        el.editError.hidden =
+            true;
+
+        el.editError.textContent =
+            "";
+
+    }
+
+
+    document
+        .querySelectorAll(
+            'input[name="attendanceEditStatus"]'
+        )
+        .forEach(
+            input => {
+
+                input.checked =
+                    false;
+
+            }
+        );
+
+
+    el.editOverlay.hidden =
+        false;
+
+
+    document.body.style.overflow =
+        "hidden";
 
 }
 
-);
+function closeAttendanceEditDialog() {
+
+    if (el.editOverlay) {
+
+        el.editOverlay.hidden =
+            true;
+
+    }
 
 
-showToast(
-"出席記録を修正しました。"
-);
+    document.body.style.overflow =
+        "";
 
 
-await refreshAttendance(true);
+    pendingAttendanceEdit =
+        null;
 
+
+    if (el.editReason) {
+
+        el.editReason.value =
+            "";
+
+    }
+
+
+    if (el.editError) {
+
+        el.editError.hidden =
+            true;
+
+        el.editError.textContent =
+            "";
+
+    }
+
+
+    document
+        .querySelectorAll(
+            'input[name="attendanceEditStatus"]'
+        )
+        .forEach(
+            input => {
+
+                input.checked =
+                    false;
+
+            }
+        );
+
+}
+
+async function executeAttendanceEdit() {
+
+    if (
+        !pendingAttendanceEdit ||
+        !el.editSave
+    ) {
+
+        return;
+
+    }
+
+
+    const selected =
+        document.querySelector(
+            'input[name="attendanceEditStatus"]:checked'
+        );
+
+
+    const status =
+        selected?.value || "";
+
+
+    const reason =
+        normalizeText(
+            el.editReason?.value
+        );
+
+
+    if (
+        !status ||
+        !reason
+    ) {
+
+        if (el.editError) {
+
+            el.editError.textContent =
+                "変更後の判定と編集理由を入力してください。";
+
+            el.editError.hidden =
+                false;
+
+        }
+
+
+        return;
+
+    }
+
+
+    const originalText =
+        el.editSave.textContent;
+
+
+    el.editSave.disabled =
+        true;
+
+    el.editSave.textContent =
+        "保存中...";
+
+
+    try {
+
+        await saveAttendanceEdit({
+
+            ...pendingAttendanceEdit,
+
+            status,
+
+            reason
+
+        });
+
+
+        closeAttendanceEditDialog();
+
+
+        showToast(
+            "出席記録を修正しました。"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "出席記録編集エラー:",
+            error
+        );
+
+
+        if (el.editError) {
+
+            el.editError.textContent =
+                "出席記録を保存できませんでした。";
+
+            el.editError.hidden =
+                false;
+
+        }
+
+    } finally {
+
+        el.editSave.disabled =
+            false;
+
+        el.editSave.textContent =
+            originalText ||
+            "保存する";
+
+    }
+
+}
+
+async function saveAttendanceEdit(
+    data
+) {
+
+    const generatedId =
+        createAttendanceRecordId({
+
+            date:
+                data.date,
+
+            period:
+                data.period,
+
+            subject:
+                data.subject
+
+        });
+
+
+    const recordId =
+        data.recordId ||
+        generatedId;
+
+
+    const recordRef =
+        doc(
+            db,
+            "users",
+            studentNumber,
+            "attendanceRecords",
+            recordId
+        );
+
+
+    /*
+     既存の記録と編集履歴を取得する。
+    */
+
+    const currentSnap =
+        await getDoc(
+            recordRef
+        );
+
+
+    const currentData =
+        currentSnap.exists()
+            ? currentSnap.data()
+            : {};
+
+
+    const currentResult =
+        resolveResult(
+            currentSnap.exists()
+                ? currentData
+                : null
+        );
+
+
+    const oldHistory =
+        Array.isArray(
+            currentData.editHistory
+        )
+            ? currentData.editHistory
+            : [];
+
+
+    const editedAt =
+        new Date();
+
+
+    const editHistory = [
+
+        ...oldHistory,
+
+        {
+
+            previousStatus:
+                currentData.editedStatus ||
+                statusToEditValue(
+                    currentResult.status
+                ) ||
+                "unmarked",
+
+            previousLabel:
+                currentResult.label ||
+                "未打刻",
+
+            newStatus:
+                data.status,
+
+            newLabel:
+                getManualAttendanceResult(
+                    data.status
+                ).label,
+
+            reason:
+                data.reason,
+
+            editedAt
+
+        }
+
+    ];
+
+
+    await setDoc(
+        recordRef,
+        {
+
+            /*
+             講義を特定するための基本情報。
+             未打刻から新規作成した場合にも必要。
+            */
+
+            date:
+                data.date,
+
+            period:
+                Number(
+                    data.period || 0
+                ),
+
+            subject:
+                data.subject,
+
+
+            /*
+             手動編集判定
+            */
+
+            manualEdited:
+                true,
+
+            editedStatus:
+                data.status,
+
+            status:
+                data.status,
+
+            statusLabel:
+                getManualAttendanceResult(
+                    data.status
+                ).label,
+
+            statusFinalized:
+                true,
+
+
+            /*
+             欠席操作として集計するための値。
+             出席・遅刻・早退へ変更した場合はfalseに戻す。
+            */
+
+            absenceTapped:
+                data.status ===
+                "absent",
+
+
+            /*
+             最新の編集情報
+            */
+
+            editReason:
+                data.reason,
+
+            editedAt,
+
+            editedBy:
+                studentNumber,
+
+
+            /*
+             過去の編集履歴。
+             現在は画面表示しないがFirebaseには残す。
+            */
+
+            editHistory
+
+        },
+        {
+
+            merge:
+                true
+
+        }
+    );
+
+
+    await refreshAttendance(
+        true
+    );
+
+}
+
+function statusToEditValue(
+    status
+) {
+
+    switch (status) {
+
+        case ATTENDANCE_STATUS
+            .PRESENT:
+
+            return "present";
+
+
+        case ATTENDANCE_STATUS
+            .LATE:
+
+            return "late";
+
+
+        case ATTENDANCE_STATUS
+            .EARLY_LEAVE:
+
+            return "early_leave";
+
+
+        case ATTENDANCE_STATUS
+            .ABSENT:
+
+            return "absent";
+
+
+        default:
+
+            return "";
+
+    }
 
 }
 
