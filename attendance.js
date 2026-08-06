@@ -21,9 +21,7 @@ import {
     doc,
     getDoc,
     collection,
-    getDocs,
-    query,
-    where
+    getDocs
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -225,6 +223,42 @@ const el = {
             "attendanceResultHome"
         ),
 
+    subjectTermLabel:
+        document.getElementById(
+            "attendanceTermLabel"
+        ) ||
+        document.getElementById(
+            "attendanceAcademicLabel"
+        ),
+
+    subjectList:
+        document.getElementById(
+            "attendanceSubjectList"
+        ) ||
+        document.getElementById(
+            "attendanceSubjectRateList"
+        ),
+
+    subjectEmpty:
+        document.getElementById(
+            "attendanceSubjectEmpty"
+        ),
+
+    convertedAbsent:
+        document.getElementById(
+            "attendanceSummaryConvertedAbsent"
+        ),
+
+    totalAbsent:
+        document.getElementById(
+            "attendanceSummaryTotalAbsent"
+        ),
+
+    conversionText:
+        document.getElementById(
+            "attendanceLateEarlyConversionText"
+        ),
+
     toast:
         document.getElementById(
             "attendanceToast"
@@ -245,6 +279,30 @@ let userData = {};
 let lectures = [];
 
 let records =
+    new Map();
+
+let allRecords = [];
+
+let enrolledSubjects = [];
+
+let termLectures = [];
+
+let academicTerm = {
+
+    academicYear:
+        new Date().getFullYear(),
+
+    semester:
+        "前期",
+
+    grade:
+        ""
+
+};
+
+let scheduleData = null;
+
+let enrolledAliases =
     new Map();
 
 let missingClasses = [];
@@ -310,124 +368,169 @@ if (
 
 function setupEvents() {
 
-    el.back.onclick = () => {
+    if (el.back) {
 
-        if (
-            history.length > 1
-        ) {
-
-            history.back();
-
-        } else {
-
-            location.href =
-                "index.html";
-
-        }
-
-    };
-
-
-    el.profile.onclick = () => {
-
-        location.href =
-            "profile.html";
-
-    };
-
-
-    el.version.textContent =
-        `Version ${VERSION}`;
-
-
-    el.refresh.onclick = () => {
-
-        refreshAttendance();
-
-    };
-
-
-    el.enableNotifications.onclick =
-        enableNotifications;
-
-
-    el.cancelButton.onclick =
-        closeConfirmation;
-
-
-    el.confirmButton.onclick =
-        executeAction;
-
-
-    el.resultClose.onclick = () => {
-
-        closeOverlay(
-            el.resultOverlay
-        );
-
-    };
-
-
-    el.resultHome.onclick = () => {
-
-        location.href =
-            "index.html";
-
-    };
-
-
-    el.todayList.addEventListener(
-        "click",
-        event => {
-
-            const button =
-                event.target.closest(
-                    "[data-attendance-action]"
-                );
-
-            if (!button) {
-                return;
-            }
-
-
-            const action =
-                button.dataset
-                    .attendanceAction || "";
-
+        el.back.onclick = () => {
 
             if (
-                action === "open_home"
+                history.length > 1
             ) {
+
+                history.back();
+
+            } else {
 
                 location.href =
                     "index.html";
 
-                return;
-
             }
 
+        };
 
-            const lecture =
-                lectures[
-                    Number(
-                        button.dataset
-                            .lectureIndex
-                    )
-                ];
+    }
 
 
-            if (!lecture) {
-                return;
-            }
+    if (el.profile) {
+
+        el.profile.onclick = () => {
+
+            location.href =
+                "profile.html";
+
+        };
+
+    }
 
 
-            openConfirmation(
-                action,
-                lecture
+    if (el.version) {
+
+        el.version.textContent =
+            `Version ${VERSION}`;
+
+    }
+
+
+    if (el.refresh) {
+
+        el.refresh.onclick = () => {
+
+            refreshAttendance();
+
+        };
+
+    }
+
+
+    if (el.enableNotifications) {
+
+        el.enableNotifications.onclick =
+            enableNotifications;
+
+    }
+
+
+    if (el.cancelButton) {
+
+        el.cancelButton.onclick =
+            closeConfirmation;
+
+    }
+
+
+    if (el.confirmButton) {
+
+        el.confirmButton.onclick =
+            executeAction;
+
+    }
+
+
+    if (el.resultClose) {
+
+        el.resultClose.onclick = () => {
+
+            closeOverlay(
+                el.resultOverlay
             );
 
-        }
-    );
+        };
+
+    }
+
+
+    if (el.resultHome) {
+
+        el.resultHome.onclick = () => {
+
+            location.href =
+                "index.html";
+
+        };
+
+    }
+
+
+    if (el.todayList) {
+
+        el.todayList.addEventListener(
+            "click",
+            event => {
+
+                const button =
+                    event.target.closest(
+                        "[data-attendance-action]"
+                    );
+
+
+                if (!button) {
+
+                    return;
+
+                }
+
+
+                const action =
+                    button.dataset
+                        .attendanceAction || "";
+
+
+                if (
+                    action === "open_home"
+                ) {
+
+                    location.href =
+                        "index.html";
+
+                    return;
+
+                }
+
+
+                const lecture =
+                    lectures[
+                        Number(
+                            button.dataset
+                                .lectureIndex
+                        )
+                    ];
+
+
+                if (!lecture) {
+
+                    return;
+
+                }
+
+
+                openConfirmation(
+                    action,
+                    lecture
+                );
+
+            }
+        );
+
+    }
 
 
     document.addEventListener(
@@ -480,7 +583,9 @@ async function refreshAttendance(
 ) {
 
     if (loading) {
+
         return;
+
     }
 
 
@@ -540,7 +645,8 @@ async function loadAttendanceData() {
 
         const [
             userSnap,
-            personalTimetable
+            personalTimetable,
+            enrollmentSnap
         ] = await Promise.all([
 
             getDoc(
@@ -551,7 +657,16 @@ async function loadAttendanceData() {
                 )
             ),
 
-            loadPersonalTimetableData()
+            loadPersonalTimetableData(),
+
+            getDocs(
+                collection(
+                    db,
+                    "users",
+                    studentNumber,
+                    "enrolledSubjects"
+                )
+            )
 
         ]);
 
@@ -565,6 +680,19 @@ async function loadAttendanceData() {
         effectiveDate =
             resolveEffectiveDate(
                 userData
+            );
+
+
+        academicTerm =
+            resolveAcademicTerm(
+                effectiveDate,
+                userData
+            );
+
+
+        enrolledSubjects =
+            normalizeEnrolledSubjects(
+                enrollmentSnap
             );
 
 
@@ -593,16 +721,22 @@ async function loadAttendanceData() {
             );
 
 
-        const aliases =
+        scheduleData =
+            scheduleSnap.exists()
+                ? scheduleSnap.data()
+                : null;
+
+
+        enrolledAliases =
             personalTimetable
                 ?.aliasToCourse ||
             new Map();
 
 
         const rawLectures =
-            scheduleSnap.exists()
+            scheduleData
                 ? extractLectures(
-                    scheduleSnap.data(),
+                    scheduleData,
                     effectiveDate,
                     scheduleId
                 )
@@ -614,7 +748,7 @@ async function loadAttendanceData() {
                 item =>
                     isEnrolledScheduleItem(
                         item,
-                        aliases
+                        enrolledAliases
                     )
             );
 
@@ -640,6 +774,25 @@ async function loadAttendanceData() {
 
         missingClasses =
             classResult.missing;
+
+
+        termLectures =
+            scheduleData
+                ? buildTermLectures(
+
+                    scheduleData,
+
+                    scheduleId,
+
+                    enrolledAliases,
+
+                    academicTerm,
+
+                    userData
+                        .classSelections || {}
+
+                )
+                : [];
 
 
         await loadRecords();
@@ -1231,7 +1384,9 @@ function extractClassGroups(
 ) {
 
     if (!value) {
+
         return [];
+
     }
 
 
@@ -1345,43 +1500,48 @@ async function loadRecords() {
 
     const snap =
         await getDocs(
-            query(
-
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "attendanceRecords"
-                ),
-
-                where(
-                    "date",
-                    "==",
-                    effectiveDate
-                )
-
+            collection(
+                db,
+                "users",
+                studentNumber,
+                "attendanceRecords"
             )
+        );
+
+
+    allRecords =
+        snap.docs.map(
+            item => ({
+
+                id:
+                    item.id,
+
+                ...item.data()
+
+            })
         );
 
 
     records =
         new Map(
-            snap.docs.map(
-                item => [
+            allRecords
 
-                    item.id,
+                .filter(
+                    item =>
+                        normalizeDate(
+                            item.date
+                        ) === effectiveDate
+                )
 
-                    {
+                .map(
+                    item => [
 
-                        id:
-                            item.id,
+                        item.id,
 
-                        ...item.data()
+                        item
 
-                    }
-
-                ]
-            )
+                    ]
+                )
         );
 
 }
@@ -1401,12 +1561,21 @@ function renderAll() {
 
     renderRecordList();
 
+    renderSubjectAttendanceList();
+
     updateCurrentLectureStatus();
 
 }
 
 
 function renderDate() {
+
+    if (!el.date) {
+
+        return;
+
+    }
+
 
     const date =
         createDate(
@@ -1465,6 +1634,13 @@ function renderDate() {
 
 function renderLectureCards() {
 
+    if (!el.todayList) {
+
+        return;
+
+    }
+
+
     if (
         !lectures.length
     ) {
@@ -1475,8 +1651,12 @@ function renderLectureCards() {
                 : "";
 
 
-        el.empty.hidden =
-            missingClasses.length > 0;
+        if (el.empty) {
+
+            el.empty.hidden =
+                missingClasses.length > 0;
+
+        }
 
 
         return;
@@ -1484,8 +1664,12 @@ function renderLectureCards() {
     }
 
 
-    el.empty.hidden =
-        true;
+    if (el.empty) {
+
+        el.empty.hidden =
+            true;
+
+    }
 
 
     const cards =
@@ -1919,7 +2103,7 @@ function renderMissingClassCard() {
 
 
 /* ========================================
-   集計
+   今日の集計
 ======================================== */
 
 function renderSummary() {
@@ -2026,33 +2210,60 @@ function renderSummary() {
     }
 
 
-    el.present.textContent =
-        count.present;
+    if (el.present) {
+
+        el.present.textContent =
+            String(count.present);
+
+    }
 
 
-    el.late.textContent =
-        count.late;
+    if (el.late) {
+
+        el.late.textContent =
+            String(count.late);
+
+    }
 
 
-    el.early.textContent =
-        count.early;
+    if (el.early) {
+
+        el.early.textContent =
+            String(count.early);
+
+    }
 
 
-    el.absent.textContent =
-        count.absent;
+    if (el.absent) {
+
+        el.absent.textContent =
+            String(count.absent);
+
+    }
 
 
-    el.pending.textContent =
-        count.pending;
+    if (el.pending) {
+
+        el.pending.textContent =
+            String(count.pending);
+
+    }
 
 }
 
 
 /* ========================================
-   記録一覧
+   今日の記録一覧
 ======================================== */
 
 function renderRecordList() {
+
+    if (!el.recordList) {
+
+        return;
+
+    }
+
 
     const rows =
         [...records.values()]
@@ -2161,6 +2372,1937 @@ function renderRecordList() {
 
             }
         ).join("");
+
+}
+
+
+/* ========================================
+   科目別出席状況
+======================================== */
+
+function resolveAcademicTerm(
+    dateKey,
+    data = {}
+) {
+
+    const date =
+        createDate(
+            dateKey
+        );
+
+
+    const year =
+        date.getFullYear();
+
+
+    const month =
+        date.getMonth() + 1;
+
+
+    const academicYear =
+        month >= 4
+            ? year
+            : year - 1;
+
+
+    const semester =
+        month >= 4 &&
+        month <= 9
+            ? "前期"
+            : "後期";
+
+
+    return {
+
+        academicYear,
+
+        semester,
+
+        grade:
+            normalizeGrade(
+                data.grade ||
+                localStorage.getItem(
+                    "grade"
+                )
+            )
+
+    };
+
+}
+
+
+function normalizeEnrolledSubjects(
+    snapshot
+) {
+
+    const rows =
+        snapshot.docs.map(
+            item => ({
+
+                id:
+                    item.id,
+
+                ...item.data()
+
+            })
+        );
+
+
+    const exact =
+        rows.filter(
+            item => {
+
+                if (
+                    normalizeText(
+                        item.status
+                    ) &&
+                    normalizeText(
+                        item.status
+                    ) !== "enrolled"
+                ) {
+
+                    return false;
+
+                }
+
+
+                const year =
+                    Number(
+                        item.academicYear ||
+                        0
+                    );
+
+
+                const semester =
+                    normalizeSemester(
+                        item.semester ||
+                        item.registeredSemester
+                    );
+
+
+                const grade =
+                    normalizeGrade(
+                        item.grade
+                    );
+
+
+                const yearMatches =
+                    !year ||
+
+                    year ===
+                        academicTerm
+                            .academicYear;
+
+
+                const semesterMatches =
+                    !semester ||
+
+                    semester === "通年" ||
+
+                    semester ===
+                        academicTerm
+                            .semester;
+
+
+                const gradeMatches =
+                    !grade ||
+
+                    !academicTerm.grade ||
+
+                    grade ===
+                        academicTerm.grade;
+
+
+                return (
+                    yearMatches &&
+                    semesterMatches &&
+                    gradeMatches
+                );
+
+            }
+        );
+
+
+    return exact
+
+        .map(
+            item => ({
+
+                ...item,
+
+                name:
+                    normalizeText(
+                        item.name ||
+                        item.subject ||
+                        item.subjectKey ||
+                        item.id
+                    ),
+
+                subjectId:
+                    normalizeText(
+                        item.subjectId ||
+                        item.id
+                    ),
+
+                subjectKey:
+                    normalizeText(
+                        item.subjectKey ||
+                        item.name ||
+                        item.id
+                    ),
+
+                lectureCount:
+                    Math.max(
+                        0,
+                        Number(
+                            item.lectureCount ||
+                            0
+                        )
+                    ),
+
+                isPractical:
+                    item.isPractical === true
+
+            })
+        )
+
+        .sort(
+            (left, right) =>
+                left.name.localeCompare(
+                    right.name,
+                    "ja"
+                )
+        );
+
+}
+
+
+function buildTermLectures(
+    data,
+    scheduleId,
+    aliases,
+    term,
+    selections
+) {
+
+    const days =
+        Array.isArray(data.allDays) &&
+        data.allDays.length
+            ? data.allDays
+            : data.days;
+
+
+    if (!Array.isArray(days)) {
+
+        return [];
+
+    }
+
+
+    const result = [];
+
+
+    for (
+        const day of days
+    ) {
+
+        const date =
+            normalizeDate(
+                day.date
+            );
+
+
+        if (
+            !date ||
+            !isDateInAcademicTerm(
+                date,
+                term
+            ) ||
+            date > effectiveDate
+        ) {
+
+            continue;
+
+        }
+
+
+        const source =
+            Array.isArray(
+                day.schedules
+            )
+                ? day.schedules
+
+                    .map(
+                        item => ({
+
+                            ...item,
+
+                            date,
+
+                            scheduleDocumentId:
+                                scheduleId
+
+                        })
+                    )
+
+                    .filter(
+                        item =>
+                            isEnrolledScheduleItem(
+                                item,
+                                aliases
+                            )
+                    )
+
+                : [];
+
+
+        const classResult =
+            buildStudentLectures(
+
+                source,
+
+                selections,
+
+                date,
+
+                scheduleId
+
+            );
+
+
+        result.push(
+            ...classResult.lectures
+        );
+
+    }
+
+
+    return result;
+
+}
+
+
+function renderSubjectAttendanceList() {
+
+    if (!el.subjectList) {
+
+        return;
+
+    }
+
+
+    injectSubjectAttendanceStyles();
+
+
+    if (el.subjectTermLabel) {
+
+        const gradeText =
+            academicTerm.grade
+                ? `${academicTerm.grade}学年 `
+                : "";
+
+
+        el.subjectTermLabel.textContent =
+
+            `${academicTerm.academicYear}年度 ` +
+
+            `${gradeText}` +
+
+            `${academicTerm.semester}`;
+
+    }
+
+
+    const termRecords =
+        allRecords.filter(
+            item =>
+                isDateInAcademicTerm(
+                    normalizeDate(
+                        item.date
+                    ),
+                    academicTerm
+                )
+        );
+
+
+    const subjects =
+        enrolledSubjects.length
+            ? enrolledSubjects
+            : createSubjectsFromRecords(
+                termRecords
+            );
+
+
+    if (!subjects.length) {
+
+        el.subjectList.innerHTML =
+            "";
+
+
+        if (el.subjectEmpty) {
+
+            el.subjectEmpty.hidden =
+                false;
+
+        } else {
+
+            el.subjectList.innerHTML = `
+                <div class="card setting-card">
+                    表示できる履修科目がありません。
+                </div>
+            `;
+
+        }
+
+
+        updateTermAbsenceSummary(
+            []
+        );
+
+
+        return;
+
+    }
+
+
+    if (el.subjectEmpty) {
+
+        el.subjectEmpty.hidden =
+            true;
+
+    }
+
+
+    const statistics =
+        subjects.map(
+            subject =>
+                calculateSubjectAttendance(
+                    subject,
+                    termRecords
+                )
+        );
+
+
+    el.subjectList.innerHTML =
+        statistics.map(
+            renderSubjectAttendanceCard
+        ).join("");
+
+
+    updateTermAbsenceSummary(
+        statistics
+    );
+
+}
+
+
+function createSubjectsFromRecords(
+    rows
+) {
+
+    const subjects =
+        new Map();
+
+
+    for (
+        const row of rows
+    ) {
+
+        const name =
+            normalizeText(
+                row.subject ||
+                row.subjectKey ||
+                row.subjectId
+            );
+
+
+        if (!name) {
+
+            continue;
+
+        }
+
+
+        const key =
+            normalizeSubjectIdentity(
+                name
+            );
+
+
+        if (!subjects.has(key)) {
+
+            subjects.set(
+                key,
+                {
+
+                    id:
+                        row.subjectId ||
+                        key,
+
+                    subjectId:
+                        row.subjectId ||
+                        "",
+
+                    subjectKey:
+                        row.subjectKey ||
+                        name,
+
+                    name,
+
+                    lectureCount:
+                        0,
+
+                    isPractical:
+                        false
+
+                }
+            );
+
+        }
+
+    }
+
+
+    return [...subjects.values()]
+        .sort(
+            (left, right) =>
+                left.name.localeCompare(
+                    right.name,
+                    "ja"
+                )
+        );
+
+}
+
+
+function calculateSubjectAttendance(
+    subject,
+    termRecords
+) {
+
+    const subjectRecords =
+        termRecords.filter(
+            record =>
+                doesRecordMatchSubject(
+                    record,
+                    subject
+                )
+        );
+
+
+    const plannedLectures =
+        termLectures.filter(
+            lecture =>
+                doesLectureMatchSubject(
+                    lecture,
+                    subject
+                )
+        );
+
+
+    const sessions =
+        createSubjectSessionRows(
+            subjectRecords,
+            plannedLectures
+        );
+
+
+    let present = 0;
+
+    let late = 0;
+
+    let early = 0;
+
+    let directAbsent = 0;
+
+    let timingAbsent = 0;
+
+    let pending = 0;
+
+
+    for (
+        const session of sessions
+    ) {
+
+        if (!session.record) {
+
+            pending++;
+
+            continue;
+
+        }
+
+
+        const result =
+            session.result;
+
+
+        if (
+            result.status ===
+            ATTENDANCE_STATUS.PRESENT
+        ) {
+
+            present++;
+
+            continue;
+
+        }
+
+
+        if (
+            result.status ===
+            ATTENDANCE_STATUS.LATE
+        ) {
+
+            late++;
+
+            continue;
+
+        }
+
+
+        if (
+            result.status ===
+            ATTENDANCE_STATUS
+                .EARLY_LEAVE
+        ) {
+
+            early++;
+
+            continue;
+
+        }
+
+
+        if (
+            result.status ===
+            ATTENDANCE_STATUS
+                .LATE_AND_EARLY_LEAVE
+        ) {
+
+            late++;
+
+            early++;
+
+            continue;
+
+        }
+
+
+        if (
+            result.status ===
+            ATTENDANCE_STATUS.ABSENT
+        ) {
+
+            if (
+                session.record
+                    .absenceTapped === true
+            ) {
+
+                directAbsent++;
+
+            } else {
+
+                timingAbsent++;
+
+            }
+
+
+            continue;
+
+        }
+
+
+        pending++;
+
+    }
+
+
+    const lateEarlyTotal =
+        late + early;
+
+
+    const convertedAbsent =
+        Math.floor(
+            lateEarlyTotal / 3
+        );
+
+
+    const conversionRemainder =
+        lateEarlyTotal % 3;
+
+
+    const attendedBeforeConversion =
+        present +
+        countAttendedIrregularSessions(
+            sessions
+        );
+
+
+    const attended =
+        Math.max(
+            0,
+            attendedBeforeConversion -
+            convertedAbsent
+        );
+
+
+    const totalLectures =
+        sessions.length;
+
+
+    const totalAbsent =
+        directAbsent +
+        timingAbsent +
+        convertedAbsent;
+
+
+    const attendanceRate =
+        totalLectures > 0
+            ? Math.round(
+                attended /
+                totalLectures *
+                1000
+            ) / 10
+            : null;
+
+
+    return {
+
+        subject,
+
+        sessions,
+
+        present,
+
+        late,
+
+        early,
+
+        directAbsent,
+
+        timingAbsent,
+
+        convertedAbsent,
+
+        conversionRemainder,
+
+        lateEarlyTotal,
+
+        totalAbsent,
+
+        pending,
+
+        attended,
+
+        totalLectures,
+
+        attendanceRate,
+
+        requiredRate:
+            subject.isPractical
+                ? 80
+                : 66.7
+
+    };
+
+}
+
+
+function countAttendedIrregularSessions(
+    sessions
+) {
+
+    return sessions.filter(
+        session => {
+
+            const status =
+                session.result
+                    ?.status;
+
+
+            return (
+
+                status ===
+                    ATTENDANCE_STATUS.LATE ||
+
+                status ===
+                    ATTENDANCE_STATUS
+                        .EARLY_LEAVE ||
+
+                status ===
+                    ATTENDANCE_STATUS
+                        .LATE_AND_EARLY_LEAVE
+
+            );
+
+        }
+    ).length;
+
+}
+
+
+function createSubjectSessionRows(
+    subjectRecords,
+    plannedLectures
+) {
+
+    const sessions =
+        new Map();
+
+
+    for (
+        const lecture of plannedLectures
+    ) {
+
+        const date =
+            normalizeDate(
+                lecture.date
+            );
+
+
+        if (!date) {
+
+            continue;
+
+        }
+
+
+        const period =
+            normalizePeriod(
+                lecture.period
+            );
+
+
+        const key =
+            createSessionKey(
+                date,
+                period
+            );
+
+
+        sessions.set(
+            key,
+            {
+
+                date,
+
+                period,
+
+                lecture,
+
+                record:
+                    null,
+
+                result:
+                    null
+
+            }
+        );
+
+    }
+
+
+    for (
+        const record of subjectRecords
+    ) {
+
+        const date =
+            normalizeDate(
+                record.date
+            );
+
+
+        if (!date) {
+
+            continue;
+
+        }
+
+
+        const period =
+            normalizePeriod(
+                record.period
+            );
+
+
+        let key =
+            createSessionKey(
+                date,
+                period
+            );
+
+
+        if (
+            !sessions.has(key) &&
+            !period
+        ) {
+
+            const dateKey =
+                [...sessions.keys()]
+                    .find(
+                        item =>
+                            item.startsWith(
+                                `${date}|`
+                            )
+                    );
+
+
+            if (dateKey) {
+
+                key = dateKey;
+
+            }
+
+        }
+
+
+        const existing =
+            sessions.get(key) ||
+            {
+
+                date,
+
+                period,
+
+                lecture:
+                    null
+
+            };
+
+
+        sessions.set(
+            key,
+            {
+
+                ...existing,
+
+                record,
+
+                result:
+                    resolveResult(
+                        record
+                    )
+
+            }
+        );
+
+    }
+
+
+    return [...sessions.values()]
+        .sort(
+            (left, right) =>
+
+                right.date.localeCompare(
+                    left.date
+                ) ||
+
+                Number(right.period || 0) -
+                Number(left.period || 0)
+        );
+
+}
+
+
+function renderSubjectAttendanceCard(
+    stats
+) {
+
+    const rateText =
+        stats.attendanceRate === null
+            ? "--%"
+            : `${formatRate(
+                stats.attendanceRate
+            )}%`;
+
+
+    const thresholdWarning =
+        stats.attendanceRate !== null &&
+
+        stats.attendanceRate <
+            stats.requiredRate;
+
+
+    const conversionText =
+        stats.conversionRemainder === 0
+
+            ? stats.lateEarlyTotal > 0
+                ? "次の換算欠席まであと3回"
+                : "遅刻・早退は3回で欠席1回分"
+
+            : `次の換算欠席まであと${
+                3 -
+                stats.conversionRemainder
+            }回`;
+
+
+    return `
+        <details
+            class="card setting-card attendance-subject-card">
+
+            <summary
+                class="attendance-subject-summary">
+
+                <div
+                    class="attendance-subject-name-block">
+
+                    <strong>
+                        ${escapeHtml(
+                            stats.subject.name
+                        )}
+                    </strong>
+
+                    <span>
+                        遅刻 ${stats.late}回・
+                        早退 ${stats.early}回
+                    </span>
+
+                </div>
+
+
+                <div
+                    class="attendance-subject-rate-block ${
+                        thresholdWarning
+                            ? "is-warning"
+                            : ""
+                    }">
+
+                    <strong>
+                        ${stats.attended} / ${stats.totalLectures}
+                    </strong>
+
+                    <span>
+                        ${rateText}
+                    </span>
+
+                </div>
+
+            </summary>
+
+
+            <div
+                class="attendance-subject-detail">
+
+                <div
+                    class="attendance-subject-counts">
+
+                    ${renderSubjectCount(
+                        "出席",
+                        stats.attended
+                    )}
+
+                    ${renderSubjectCount(
+                        "遅刻",
+                        stats.late
+                    )}
+
+                    ${renderSubjectCount(
+                        "早退",
+                        stats.early
+                    )}
+
+                    ${renderSubjectCount(
+                        "欠席操作",
+                        stats.directAbsent
+                    )}
+
+                    ${renderSubjectCount(
+                        "打刻判定欠席",
+                        stats.timingAbsent
+                    )}
+
+                    ${renderSubjectCount(
+                        "換算欠席",
+                        stats.convertedAbsent
+                    )}
+
+                    ${renderSubjectCount(
+                        "欠席合計",
+                        stats.totalAbsent,
+                        "is-danger"
+                    )}
+
+                    ${renderSubjectCount(
+                        "未打刻・判定待ち",
+                        stats.pending
+                    )}
+
+                </div>
+
+
+                <p
+                    class="attendance-subject-conversion">
+
+                    遅刻・早退合計
+                    ${stats.lateEarlyTotal}回
+
+                    ／
+
+                    換算欠席
+                    ${stats.convertedAbsent}回
+
+                    <br>
+
+                    ${escapeHtml(
+                        conversionText
+                    )}
+
+                </p>
+
+
+                ${
+                    thresholdWarning
+                        ? `
+                            <p
+                                class="attendance-subject-warning">
+
+                                現在の出席率が、${
+                                    stats.subject.isPractical
+                                        ? "実習科目の目安80%"
+                                        : "通常科目の目安66.7%"
+                                }を下回っています。
+
+                            </p>
+                        `
+                        : ""
+                }
+
+
+                <div
+                    class="attendance-date-list">
+
+                    ${
+                        stats.sessions.length
+                            ? stats.sessions
+                                .map(
+                                    renderSubjectSessionRow
+                                )
+                                .join("")
+
+                            : `
+                                <p class="empty-text">
+                                    受講日の記録はまだありません。
+                                </p>
+                            `
+                    }
+
+                </div>
+
+            </div>
+
+        </details>
+    `;
+
+}
+
+
+function renderSubjectCount(
+    label,
+    value,
+    className = ""
+) {
+
+    return `
+        <span class="${className}">
+
+            <small>
+                ${escapeHtml(label)}
+            </small>
+
+            <b>
+                ${Number(value || 0)}回
+            </b>
+
+        </span>
+    `;
+
+}
+
+
+function renderSubjectSessionRow(
+    session
+) {
+
+    const display =
+        getSubjectSessionDisplay(
+            session
+        );
+
+
+    return `
+        <div
+            class="attendance-date-row">
+
+            <div>
+
+                <time>
+                    ${escapeHtml(
+                        formatAttendanceDate(
+                            session.date
+                        )
+                    )}
+                </time>
+
+                ${
+                    session.period
+                        ? `
+                            <small>
+                                ${session.period}限
+                            </small>
+                        `
+                        : ""
+                }
+
+            </div>
+
+            <span
+                class="attendance-date-status ${display.className}">
+
+                ${escapeHtml(
+                    display.label
+                )}
+
+            </span>
+
+        </div>
+    `;
+
+}
+
+
+function getSubjectSessionDisplay(
+    session
+) {
+
+    if (!session.record) {
+
+        return {
+
+            label:
+                "未打刻",
+
+            className:
+                "is-pending"
+
+        };
+
+    }
+
+
+    const status =
+        session.result
+            ?.status;
+
+
+    if (
+        status ===
+        ATTENDANCE_STATUS.PRESENT
+    ) {
+
+        return {
+
+            label:
+                "出席",
+
+            className:
+                "is-present"
+
+        };
+
+    }
+
+
+    if (
+        status ===
+        ATTENDANCE_STATUS.LATE
+    ) {
+
+        return {
+
+            label:
+                "遅刻",
+
+            className:
+                "is-late"
+
+        };
+
+    }
+
+
+    if (
+        status ===
+        ATTENDANCE_STATUS
+            .EARLY_LEAVE
+    ) {
+
+        return {
+
+            label:
+                "早退",
+
+            className:
+                "is-early"
+
+        };
+
+    }
+
+
+    if (
+        status ===
+        ATTENDANCE_STATUS
+            .LATE_AND_EARLY_LEAVE
+    ) {
+
+        return {
+
+            label:
+                "遅刻・早退",
+
+            className:
+                "is-late-early"
+
+        };
+
+    }
+
+
+    if (
+        status ===
+        ATTENDANCE_STATUS.ABSENT
+    ) {
+
+        return {
+
+            label:
+                session.record
+                    .absenceTapped === true
+                        ? "欠席（欠席操作）"
+                        : "欠席（打刻判定）",
+
+            className:
+                "is-absent"
+
+        };
+
+    }
+
+
+    return {
+
+        label:
+            session.result
+                ?.label ||
+            "判定待ち",
+
+        className:
+            "is-pending"
+
+    };
+
+}
+
+
+function updateTermAbsenceSummary(
+    statistics
+) {
+
+    const converted =
+        statistics.reduce(
+            (total, item) =>
+                total +
+                item.convertedAbsent,
+            0
+        );
+
+
+    const directAndTiming =
+        statistics.reduce(
+            (total, item) =>
+                total +
+                item.directAbsent +
+                item.timingAbsent,
+            0
+        );
+
+
+    if (el.convertedAbsent) {
+
+        el.convertedAbsent.textContent =
+            String(converted);
+
+    }
+
+
+    if (el.totalAbsent) {
+
+        el.totalAbsent.textContent =
+            String(
+                converted +
+                directAndTiming
+            );
+
+    }
+
+
+    if (el.conversionText) {
+
+        el.conversionText.textContent =
+            "遅刻・早退は科目ごとに3回で欠席1回分として換算します。";
+
+    }
+
+}
+
+
+function doesRecordMatchSubject(
+    record,
+    subject
+) {
+
+    const recordKeys =
+        createSubjectKeys([
+
+            record.subjectId,
+
+            record.subjectKey,
+
+            record.subject,
+
+            record.name,
+
+            record.title
+
+        ]);
+
+
+    const subjectKeys =
+        createSubjectKeys([
+
+            subject.id,
+
+            subject.subjectId,
+
+            subject.subjectKey,
+
+            subject.name
+
+        ]);
+
+
+    return [...recordKeys]
+        .some(
+            key =>
+                subjectKeys.has(key)
+        );
+
+}
+
+
+function doesLectureMatchSubject(
+    lecture,
+    subject
+) {
+
+    return doesRecordMatchSubject(
+        lecture,
+        subject
+    );
+
+}
+
+
+function createSubjectKeys(
+    values
+) {
+
+    return new Set(
+        values
+
+            .map(
+                normalizeSubjectIdentity
+            )
+
+            .filter(Boolean)
+    );
+
+}
+
+
+function normalizeSubjectIdentity(
+    value
+) {
+
+    return normalizeText(
+        value
+    )
+        .normalize("NFKC")
+        .toLowerCase()
+        .replace(
+            /[\s　・･()（）【】\[\]「」『』]/g,
+            ""
+        );
+
+}
+
+
+function createSessionKey(
+    date,
+    period
+) {
+
+    return (
+        `${date}|` +
+        `${Number(period || 0)}`
+    );
+
+}
+
+
+function normalizeSemester(
+    value
+) {
+
+    const text =
+        normalizeText(
+            value
+        );
+
+
+    if (
+        [
+            "前期",
+            "1学期",
+            "第一学期",
+            "first",
+            "spring"
+        ].includes(text)
+    ) {
+
+        return "前期";
+
+    }
+
+
+    if (
+        [
+            "後期",
+            "2学期",
+            "第二学期",
+            "second",
+            "fall",
+            "autumn"
+        ].includes(text)
+    ) {
+
+        return "後期";
+
+    }
+
+
+    if (
+        [
+            "通年",
+            "年間",
+            "year"
+        ].includes(text)
+    ) {
+
+        return "通年";
+
+    }
+
+
+    return text;
+
+}
+
+
+function normalizeGrade(
+    value
+) {
+
+    return normalizeText(
+        value
+    )
+        .replace(
+            "年",
+            ""
+        );
+
+}
+
+
+function isDateInAcademicTerm(
+    dateKey,
+    term
+) {
+
+    if (!dateKey) {
+
+        return false;
+
+    }
+
+
+    const start =
+        term.semester === "前期"
+            ? `${term.academicYear}-04-01`
+            : `${term.academicYear}-10-01`;
+
+
+    const end =
+        term.semester === "前期"
+            ? `${term.academicYear}-09-30`
+            : `${term.academicYear + 1}-03-31`;
+
+
+    return (
+        dateKey >= start &&
+        dateKey <= end
+    );
+
+}
+
+
+function formatAttendanceDate(
+    dateKey
+) {
+
+    if (!dateKey) {
+
+        return "日付不明";
+
+    }
+
+
+    const date =
+        createDate(
+            dateKey
+        );
+
+
+    const weekday =
+        "日月火水木金土"[
+            date.getDay()
+        ];
+
+
+    return (
+
+        `${date.getFullYear()}/` +
+
+        `${String(
+            date.getMonth() + 1
+        ).padStart(2, "0")}/` +
+
+        `${String(
+            date.getDate()
+        ).padStart(2, "0")}` +
+
+        `（${weekday}）`
+
+    );
+
+}
+
+
+function formatRate(
+    value
+) {
+
+    return Number.isInteger(value)
+        ? String(value)
+        : Number(value)
+            .toFixed(1);
+
+}
+
+
+/* ========================================
+   科目別表示用CSS
+======================================== */
+
+function injectSubjectAttendanceStyles() {
+
+    if (
+        document.getElementById(
+            "attendanceSubjectDynamicStyles"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+
+    style.id =
+        "attendanceSubjectDynamicStyles";
+
+
+    style.textContent = `
+        .attendance-subject-list,
+        #attendanceSubjectList,
+        #attendanceSubjectRateList {
+            display:grid;
+            gap:12px;
+        }
+
+        .attendance-subject-card {
+            overflow:hidden;
+        }
+
+        .attendance-subject-card summary {
+            list-style:none;
+        }
+
+        .attendance-subject-card summary::-webkit-details-marker {
+            display:none;
+        }
+
+        .attendance-subject-summary {
+            display:grid;
+            grid-template-columns:minmax(0,1fr) auto;
+            align-items:center;
+            gap:14px;
+            cursor:pointer;
+            user-select:none;
+        }
+
+        .attendance-subject-summary::after {
+            content:"＋";
+            grid-column:1 / -1;
+            justify-self:end;
+            margin-top:-24px;
+            font-size:18px;
+            font-weight:900;
+            color:var(--subtext);
+        }
+
+        .attendance-subject-card[open]
+        .attendance-subject-summary::after {
+            content:"－";
+        }
+
+        .attendance-subject-name-block {
+            display:grid;
+            gap:5px;
+            min-width:0;
+        }
+
+        .attendance-subject-name-block strong {
+            overflow-wrap:anywhere;
+            font-size:16px;
+        }
+
+        .attendance-subject-name-block span {
+            color:var(--subtext);
+            font-size:12px;
+        }
+
+        .attendance-subject-rate-block {
+            display:grid;
+            justify-items:end;
+            gap:3px;
+            padding-right:26px;
+            white-space:nowrap;
+        }
+
+        .attendance-subject-rate-block strong {
+            font-size:17px;
+        }
+
+        .attendance-subject-rate-block span {
+            font-size:14px;
+            font-weight:900;
+            color:#15803d;
+        }
+
+        .attendance-subject-rate-block.is-warning span {
+            color:#b91c1c;
+        }
+
+        .attendance-subject-detail {
+            margin-top:15px;
+            padding-top:15px;
+            border-top:
+                1px solid
+                var(
+                    --border,
+                    rgba(148,163,184,.3)
+                );
+        }
+
+        .attendance-subject-counts {
+            display:grid;
+            grid-template-columns:
+                repeat(
+                    4,
+                    minmax(0,1fr)
+                );
+            gap:8px;
+        }
+
+        .attendance-subject-counts > span {
+            display:grid;
+            gap:4px;
+            min-width:0;
+            padding:9px 7px;
+            border-radius:10px;
+            background:var(--bg);
+            text-align:center;
+        }
+
+        .attendance-subject-counts small {
+            font-size:11px;
+            line-height:1.35;
+            color:var(--subtext);
+        }
+
+        .attendance-subject-counts b {
+            font-size:15px;
+        }
+
+        .attendance-subject-counts .is-danger b {
+            color:#b91c1c;
+        }
+
+        .attendance-subject-conversion,
+        .attendance-subject-warning {
+            margin:12px 0 0;
+            padding:10px 12px;
+            border-radius:10px;
+            font-size:13px;
+            line-height:1.6;
+        }
+
+        .attendance-subject-conversion {
+            background:rgba(245,158,11,.12);
+            color:#92400e;
+        }
+
+        .dark .attendance-subject-conversion {
+            color:#fde68a;
+        }
+
+        .attendance-subject-warning {
+            background:rgba(239,68,68,.12);
+            color:#b91c1c;
+            font-weight:800;
+        }
+
+        .dark .attendance-subject-warning {
+            color:#fecaca;
+        }
+
+        .attendance-date-list {
+            display:grid;
+            gap:7px;
+            margin-top:14px;
+        }
+
+        .attendance-date-row {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            padding:10px 11px;
+            border-radius:10px;
+            background:var(--bg);
+        }
+
+        .attendance-date-row > div {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-width:0;
+        }
+
+        .attendance-date-row time {
+            font-size:13px;
+            font-weight:800;
+        }
+
+        .attendance-date-row small {
+            color:var(--subtext);
+            font-size:11px;
+        }
+
+        .attendance-date-status {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:78px;
+            padding:5px 9px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:900;
+            text-align:center;
+        }
+
+        .attendance-date-status.is-present {
+            background:#dcfce7;
+            color:#166534;
+        }
+
+        .attendance-date-status.is-late {
+            background:#fef3c7;
+            color:#92400e;
+        }
+
+        .attendance-date-status.is-early,
+        .attendance-date-status.is-late-early {
+            background:#ffedd5;
+            color:#9a3412;
+        }
+
+        .attendance-date-status.is-absent {
+            background:#fee2e2;
+            color:#991b1b;
+        }
+
+        .attendance-date-status.is-pending {
+            background:#e2e8f0;
+            color:#334155;
+        }
+
+        @media (max-width:560px) {
+
+            .attendance-subject-counts {
+                grid-template-columns:
+                    repeat(
+                        2,
+                        minmax(0,1fr)
+                    );
+            }
+
+            .attendance-subject-summary {
+                gap:10px;
+            }
+
+            .attendance-subject-rate-block {
+                padding-right:22px;
+            }
+
+            .attendance-date-row {
+                align-items:flex-start;
+            }
+
+        }
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
 
 }
 
@@ -2547,6 +4689,13 @@ function guidance(
 
 function updateCurrentLectureStatus() {
 
+    if (!el.currentStatus) {
+
+        return;
+
+    }
+
+
     if (
         !lectures.length
     ) {
@@ -2697,7 +4846,9 @@ function openConfirmation(
 
 
     if (!content) {
+
         return;
+
     }
 
 
@@ -2710,25 +4861,45 @@ function openConfirmation(
     };
 
 
-    el.confirmIcon.textContent =
-        content.icon;
+    if (el.confirmIcon) {
+
+        el.confirmIcon.textContent =
+            content.icon;
+
+    }
 
 
-    el.confirmTitle.textContent =
-        content.title;
+    if (el.confirmTitle) {
+
+        el.confirmTitle.textContent =
+            content.title;
+
+    }
 
 
-    el.confirmSubject.textContent =
-        `${normalized.period}限 ` +
-        `${normalized.subject}`;
+    if (el.confirmSubject) {
+
+        el.confirmSubject.textContent =
+            `${normalized.period}限 ` +
+            `${normalized.subject}`;
+
+    }
 
 
-    el.confirmDetail.textContent =
-        content.detail;
+    if (el.confirmDetail) {
+
+        el.confirmDetail.textContent =
+            content.detail;
+
+    }
 
 
-    el.confirmButton.textContent =
-        content.button;
+    if (el.confirmButton) {
+
+        el.confirmButton.textContent =
+            content.button;
+
+    }
 
 
     openOverlay(
@@ -2856,8 +5027,13 @@ function confirmationContent(
 
 async function executeAction() {
 
-    if (!pendingAction) {
+    if (
+        !pendingAction ||
+        !el.confirmButton
+    ) {
+
         return;
+
     }
 
 
@@ -3048,31 +5224,51 @@ function showResult(
         "";
 
 
-    el.resultIcon.textContent =
-        success
-            ? "✅"
-            : "⚠️";
+    if (el.resultIcon) {
+
+        el.resultIcon.textContent =
+            success
+                ? "✅"
+                : "⚠️";
+
+    }
 
 
-    el.resultLabel.textContent =
-        success
-            ? "打刻結果"
-            : "打刻できませんでした";
+    if (el.resultLabel) {
+
+        el.resultLabel.textContent =
+            success
+                ? "打刻結果"
+                : "打刻できませんでした";
+
+    }
 
 
-    el.resultTitle.textContent =
-        success
-            ? "記録しました"
-            : "操作を確認してください";
+    if (el.resultTitle) {
+
+        el.resultTitle.textContent =
+            success
+                ? "記録しました"
+                : "操作を確認してください";
+
+    }
 
 
-    el.resultStatus.textContent =
-        label;
+    if (el.resultStatus) {
+
+        el.resultStatus.textContent =
+            label;
+
+    }
 
 
-    el.resultMessage.textContent =
-        result?.message ||
-        "処理を完了できませんでした。";
+    if (el.resultMessage) {
+
+        el.resultMessage.textContent =
+            result?.message ||
+            "処理を完了できませんでした。";
+
+    }
 
 
     openOverlay(
@@ -3087,6 +5283,16 @@ function showResult(
 ======================================== */
 
 function updateNotificationState() {
+
+    if (
+        !el.notificationState ||
+        !el.enableNotifications
+    ) {
+
+        return;
+
+    }
+
 
     if (
         !(
@@ -3156,6 +5362,13 @@ function updateNotificationState() {
 
 async function enableNotifications() {
 
+    if (!el.enableNotifications) {
+
+        return;
+
+    }
+
+
     const original =
         el.enableNotifications
             .textContent;
@@ -3219,6 +5432,13 @@ async function enableNotifications() {
 ======================================== */
 
 function startClock() {
+
+    if (!el.time) {
+
+        return;
+
+    }
+
 
     const update = () => {
 
@@ -3336,7 +5556,9 @@ function normalizeDate(
 ) {
 
     if (!value) {
+
         return "";
+
     }
 
 
@@ -3486,15 +5708,45 @@ function formatTimestamp(
     value
 ) {
 
-    return (
+    if (
         value &&
         typeof value.toDate ===
         "function"
-    )
-        ? formatTime(
+    ) {
+
+        return formatTime(
             value.toDate()
-        )
-        : "未打刻";
+        );
+
+    }
+
+
+    if (
+        value instanceof Date ||
+        typeof value === "string" ||
+        typeof value === "number"
+    ) {
+
+        const date =
+            new Date(value);
+
+
+        if (
+            !Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return formatTime(
+                date
+            );
+
+        }
+
+    }
+
+
+    return "未打刻";
 
 }
 
@@ -3543,6 +5795,13 @@ function openOverlay(
     overlay
 ) {
 
+    if (!overlay) {
+
+        return;
+
+    }
+
+
     overlay.hidden =
         false;
 
@@ -3562,6 +5821,13 @@ function closeOverlay(
     overlay
 ) {
 
+    if (!overlay) {
+
+        return;
+
+    }
+
+
     overlay.classList.remove(
         "show"
     );
@@ -3576,6 +5842,13 @@ function closeOverlay(
 function setRefreshState(
     refreshing
 ) {
+
+    if (!el.refresh) {
+
+        return;
+
+    }
+
 
     el.refresh.disabled =
         refreshing;
@@ -3592,6 +5865,13 @@ function setRefreshState(
 function showToast(
     message
 ) {
+
+    if (!el.toast) {
+
+        return;
+
+    }
+
 
     el.toast.textContent =
         message;
