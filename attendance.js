@@ -313,7 +313,17 @@ const el = {
     toast:
         document.getElementById(
             "attendanceToast"
-        )
+        ),
+
+    helpButton:
+        document.getElementById(
+            "attendanceRuleHelpButton"
+        ),
+
+    helpPopup:
+        document.getElementById(
+            "attendanceRuleHelpPopup"
+        ),
 
 };
 
@@ -643,6 +653,23 @@ function setupEvents() {
 
             }
         );
+
+    }
+
+    if (
+        el.helpButton &&
+        el.helpPopup
+    ) {
+
+        el.helpButton.onclick =
+            event => {
+
+                event.stopPropagation();
+
+                el.helpPopup.hidden =
+                    !el.helpPopup.hidden;
+
+            };
 
     }
 
@@ -6680,3 +6707,65 @@ function calculatePossibleAbsentCount(
     );
 
 }
+
+document.addEventListener(
+    "click",
+    event => {
+
+        if (
+            !el.helpPopup ||
+            !el.helpButton
+        ) {
+
+            return;
+
+        }
+
+        if (
+            el.helpPopup.hidden
+        ) {
+
+            return;
+
+        }
+
+        if (
+            el.helpPopup.contains(
+                event.target
+            )
+        ) {
+
+            return;
+
+        }
+
+        if (
+            el.helpButton.contains(
+                event.target
+            )
+        ) {
+
+            return;
+
+        }
+
+        el.helpPopup.hidden = true;
+
+    }
+);
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "Escape" &&
+            el.helpPopup
+        ) {
+
+            el.helpPopup.hidden = true;
+
+        }
+
+    }
+);
