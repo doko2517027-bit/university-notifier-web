@@ -3637,6 +3637,13 @@ function renderSubjectAttendanceCard(
                         早退 ${stats.early}回
                     </span>
 
+                    <span>
+                        全${
+                            stats.subject.lectureCount ||
+                            stats.totalLectures
+                        }回の講義
+                    </span>
+
                 </div>
 
 
