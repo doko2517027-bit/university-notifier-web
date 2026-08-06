@@ -1090,6 +1090,41 @@ function isSelectedClassSchedule(
 
 }
 
+function extractClassGroups(value){
+
+    if(!value){
+        return [];
+    }
+
+
+    const text =
+        String(value)
+        .toUpperCase()
+        .replaceAll("クラス","")
+        .replaceAll("組","")
+        .trim();
+
+
+    const alphabetGroups =
+        text.match(/[A-Z]/g);
+
+
+    if(alphabetGroups){
+
+        return [
+            ...new Set(alphabetGroups)
+        ];
+
+    }
+
+
+    return text
+        .split(/[\/・,、\s]+/)
+        .map(v => v.trim())
+        .filter(Boolean);
+
+}
+
 function renderCurrentLectureSchedule(grade) {
 
     if (
