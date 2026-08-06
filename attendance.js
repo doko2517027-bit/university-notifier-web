@@ -2721,8 +2721,8 @@ function normalizeEnrolledSubjects(
 
                 const semester =
                     normalizeSemester(
-                        item.semester ||
-                        item.registeredSemester
+                        item.registeredSemester ||
+                        item.semester
                     );
 
 
