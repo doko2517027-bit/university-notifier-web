@@ -1390,65 +1390,166 @@ function extractClassGroups(value){
 
 }
 
-function renderCurrentLectureSchedule(grade) {
+function renderCurrentLectureSchedule(
+    grade
+) {
 
     if (
         !lectureScheduleLabel ||
         !lectureScheduleList ||
         lectureSchedules.length === 0
     ) {
+
         return;
+
     }
+
 
     const current =
-        lectureSchedules[lectureScheduleIndex];
+        lectureSchedules[
+            lectureScheduleIndex
+        ];
 
-    lectureScheduleLabel.textContent =
-        splitLectureScheduleLabel(current).dateText;
 
-    const labelParts = splitLectureScheduleLabel(current);
+    if (!current) {
 
-    if (lectureScheduleDetail) {
-        lectureScheduleDetail.textContent = labelParts.detailText;
-        lectureScheduleDetail.hidden = !labelParts.detailText;
+        return;
+
     }
 
+
+    const labelParts =
+        splitLectureScheduleLabel(
+            current
+        );
+
+
+    lectureScheduleLabel.textContent =
+        labelParts.dateText;
+
+
+    if (lectureScheduleDetail) {
+
+        lectureScheduleDetail.textContent =
+            labelParts.detailText;
+
+        lectureScheduleDetail.hidden =
+            !labelParts.detailText;
+
+    }
+
+
     if (lectureDatePickerButton) {
+
         lectureDatePickerButton.setAttribute(
+
             "aria-label",
+
             labelParts.detailText
                 ? `${labelParts.dateText} ${labelParts.detailText}の時間割を選択`
                 : `${labelParts.dateText}の時間割を選択`
+
         );
+
     }
 
+
     const attendanceTestDate =
-        localStorage.getItem("careMateAttendanceTestDate") || "";
-    lectureScheduleList.innerHTML = `
-        <div class="schedule-day-badge">
-            ${current.date === attendanceTestDate ? "今日（表示テスト）" : current.title}
-        </div>
-    `;
+        localStorage.getItem(
+            "careMateAttendanceTestDate"
+        ) || "";
+
+
+    const todayString =
+        new Date()
+            .toLocaleDateString(
+                "sv-SE"
+            );
+
+
+    const hasValidDate =
+        /^\d{4}-\d{2}-\d{2}$/.test(
+            current.date || ""
+        );
+
+
+    const isPastDate =
+        hasValidDate &&
+        current.date < todayString;
+
+
+    let badgeText =
+        "";
+
+
+    if (
+        current.date ===
+        attendanceTestDate
+    ) {
+
+        badgeText =
+            "今日（表示テスト）";
+
+    } else if (!isPastDate) {
+
+        /*
+         今日または未来の日付だけ、
+         「今日」「次回講義日」「講義予定」
+         などの表示を出す。
+        */
+
+        badgeText =
+            current.title ||
+            "講義予定";
+
+    }
+
+
+    /*
+     過去日では上部の
+     「次回講義日」表示を作らない。
+    */
+
+    lectureScheduleList.innerHTML =
+        badgeText
+            ? `
+                <div class="schedule-day-badge">
+                    ${badgeText}
+                </div>
+            `
+            : "";
+
 
     renderSchedule(
+
         "lectureScheduleList",
-        current.schedules,
+
+        current.schedules || [],
+
         grade,
+
         true
+
     );
+
+
+    /*
+     前後の日付は必要に応じて作成できるため、
+     配列の先頭・末尾でも矢印を無効化しない。
+    */
 
     if (lecturePrev) {
 
         lecturePrev.disabled =
-            lectureScheduleIndex === 0;
+            false;
 
     }
+
 
     if (lectureNext) {
 
         lectureNext.disabled =
-            lectureScheduleIndex ===
-            lectureSchedules.length - 1;
+            false;
 
     }
 
