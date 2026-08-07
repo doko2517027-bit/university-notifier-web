@@ -2973,16 +2973,61 @@ if (lecturePrev) {
 
     lecturePrev.onclick = () => {
 
-        if (lectureScheduleIndex <= 0) {
+        const current =
+            lectureSchedules[
+                lectureScheduleIndex
+            ];
+
+        if (!current) {
             return;
         }
 
-        lectureScheduleIndex--;
+        const date =
+            new Date(
+                `${current.date}T00:00:00`
+            );
 
-        const grade =
-            localStorage.getItem("grade");
+        date.setDate(
+            date.getDate() - 1
+        );
 
-        renderCurrentLectureSchedule(grade);
+        if (date.getDay() === 0) {
+            date.setDate(
+                date.getDate() - 1
+            );
+        }
+
+        const dateString =
+            date.toLocaleDateString(
+                "sv-SE"
+            );
+
+        const index =
+            ensureLectureScheduleDate(
+                dateString
+            );
+
+        if (index < 0) {
+            return;
+        }
+
+        lectureScheduleIndex =
+            index;
+
+        localStorage.setItem(
+            "careMateSelectedScheduleDate",
+            dateString
+        );
+
+        lectureCalendarYear =
+            date.getFullYear();
+
+        lectureCalendarMonthIndex =
+            date.getMonth();
+
+        renderCurrentLectureSchedule(
+            localStorage.getItem("grade")
+        );
 
     };
 
@@ -2992,19 +3037,61 @@ if (lectureNext) {
 
     lectureNext.onclick = () => {
 
-        if (
-            lectureScheduleIndex >=
-            lectureSchedules.length - 1
-        ) {
+        const current =
+            lectureSchedules[
+                lectureScheduleIndex
+            ];
+
+        if (!current) {
             return;
         }
 
-        lectureScheduleIndex++;
+        const date =
+            new Date(
+                `${current.date}T00:00:00`
+            );
 
-        const grade =
-            localStorage.getItem("grade");
+        date.setDate(
+            date.getDate() + 1
+        );
 
-        renderCurrentLectureSchedule(grade);
+        if (date.getDay() === 0) {
+            date.setDate(
+                date.getDate() + 1
+            );
+        }
+
+        const dateString =
+            date.toLocaleDateString(
+                "sv-SE"
+            );
+
+        const index =
+            ensureLectureScheduleDate(
+                dateString
+            );
+
+        if (index < 0) {
+            return;
+        }
+
+        lectureScheduleIndex =
+            index;
+
+        localStorage.setItem(
+            "careMateSelectedScheduleDate",
+            dateString
+        );
+
+        lectureCalendarYear =
+            date.getFullYear();
+
+        lectureCalendarMonthIndex =
+            date.getMonth();
+
+        renderCurrentLectureSchedule(
+            localStorage.getItem("grade")
+        );
 
     };
 
