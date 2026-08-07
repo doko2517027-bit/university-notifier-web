@@ -581,7 +581,7 @@ function createAttendanceTargetUrl(
     ) {
 
         url.pathname =
-            "/university-notifier-web/attendance.html";
+            "/attendance.html";
 
     }
 
