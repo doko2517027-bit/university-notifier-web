@@ -253,6 +253,12 @@ console.log("studentNumber =", studentNumber);
 
         user = userSnap.data();
 
+
+        applyManabaFeatureVisibility(
+            user
+        );
+
+
         if (user.activeMailResetRequired === true) {
             location.href = "activemail_setup.html";
             return;
@@ -308,6 +314,86 @@ console.log("studentNumber =", studentNumber);
     loadAttendancePopup();
 
     setupAdminTab();
+
+}
+
+function applyManabaFeatureVisibility(
+    user
+) {
+
+    const available =
+        user?.manabaVerified === true;
+
+
+    /*
+     出席管理カード
+    */
+
+    if (attendanceCard) {
+
+        attendanceCard.hidden =
+            !available;
+
+        attendanceCard.setAttribute(
+            "aria-hidden",
+            available
+                ? "false"
+                : "true"
+        );
+
+    }
+
+
+    /*
+     履修登録の案内バナー
+    */
+
+    if (courseRegistrationBanner) {
+
+        if (!available) {
+
+            courseRegistrationBanner.hidden =
+                true;
+
+        }
+
+    }
+
+
+    /*
+     履修登録の便利カードを含むスライド
+    */
+
+    if (courseRegistrationSlide) {
+
+        if (!available) {
+
+            courseRegistrationSlide.hidden =
+                true;
+
+        }
+
+    }
+
+
+    /*
+     念のためカード自体も無効化
+    */
+
+    if (
+        courseRegistrationCard &&
+        !available
+    ) {
+
+        courseRegistrationCard.onclick =
+            null;
+
+        courseRegistrationCard
+            .removeAttribute(
+                "tabindex"
+            );
+
+    }
 
 }
 

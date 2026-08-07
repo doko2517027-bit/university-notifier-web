@@ -847,6 +847,25 @@ async function loadAttendanceData() {
                 : {};
 
 
+        if (
+            userData.manabaVerified !==
+            true
+        ) {
+
+            alert(
+                "出席管理はManabaログイン確認が完了している学生のみ利用できます。"
+            );
+
+            location.href =
+                "index.html";
+
+            throw new Error(
+                "Manabaログイン確認が完了していません。"
+            );
+
+        }
+
+
         effectiveDate =
             resolveEffectiveDate(
                 userData
