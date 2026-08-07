@@ -38,7 +38,308 @@ function renderHistory(){
 
 function renderSubjectBars(rows,emptyMessage){const max=Math.max(1,...rows.map(r=>Number(r.point||0)));return rows.length?rows.map(r=>`<div class="point-chart-row"><div><b>${escapeHtml(r.subjectName||"名称未設定")}</b><span>${Number(r.point||0)}pt</span></div><i style="width:${Number(r.point||0)/max*100}%"></i></div>`).join(""):`<p>${emptyMessage}</p>`}
 
-function listenRanking(){const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);const yesterdayKey=localDateKey(yesterday);document.getElementById("rankingTargetDate").textContent=`${yesterday.getFullYear()}年${yesterday.getMonth()+1}月${yesterday.getDate()}日 23:59確定`;onSnapshot(doc(db,"dailyRanking",localDateKey(),"users",studentNumber),snap=>{dailyPoint.textContent=Number(snap.data()?.point||0)});return new Promise(resolve=>{onSnapshot(collection(db,"dailyRanking",yesterdayKey,"users"),snap=>{const ranking=snap.docs.map(d=>({id:d.id,point:Number(d.data().point||0)})).sort((a,b)=>b.point-a.point);const mine=ranking.findIndex(r=>r.id===studentNumber);dailyRank.textContent=mine<0?"-":mine+1;list.innerHTML=ranking.length?ranking.slice(0,50).map((r,i)=>`<div class="point-ranking-row ${r.id===studentNumber?"is-me":""}"><b>${i<3?["🥇","🥈","🥉"][i]:i+1}</b><span>${getRankMark(r.point)} ${escapeHtml(getAnonymousRankingName(r.id))}</span><strong>${r.point}pt</strong></div>`).join(""):"<p>昨日のランキングデータはありません。</p>";resolve()},()=>resolve())})}
+function listenRanking() {
+
+    const yesterday =
+        new Date();
+
+    yesterday.setDate(
+        yesterday.getDate() - 1
+    );
+
+
+    const yesterdayKey =
+        localDateKey(
+            yesterday
+        );
+
+
+    document
+        .getElementById(
+            "rankingTargetDate"
+        )
+        .textContent =
+
+        `${yesterday.getFullYear()}年` +
+        `${yesterday.getMonth() + 1}月` +
+        `${yesterday.getDate()}日 23:59確定`;
+
+
+    /*
+     自分の今日の獲得ポイント
+    */
+
+    onSnapshot(
+
+        doc(
+            db,
+            "dailyRanking",
+            localDateKey(),
+            "users",
+            studentNumber
+        ),
+
+        snap => {
+
+            dailyPoint.textContent =
+                Number(
+                    snap.data()?.point || 0
+                );
+
+        }
+
+    );
+
+
+    /*
+     昨日のランキング
+    */
+
+    return new Promise(
+        resolve => {
+
+            onSnapshot(
+
+                collection(
+                    db,
+                    "dailyRanking",
+                    yesterdayKey,
+                    "users"
+                ),
+
+                async snapshot => {
+
+                    try {
+
+                        /*
+                         順位と右側のポイントは
+                         昨日の獲得ポイントを使用
+                        */
+
+                        const ranking =
+                            snapshot.docs
+                                .map(
+                                    rankingDoc => ({
+
+                                        id:
+                                            rankingDoc.id,
+
+                                        point:
+                                            Number(
+                                                rankingDoc
+                                                    .data()
+                                                    .point || 0
+                                            )
+
+                                    })
+                                )
+                                .sort(
+                                    (left, right) =>
+                                        right.point -
+                                        left.point
+                                );
+
+
+                        const myIndex =
+                            ranking.findIndex(
+                                item =>
+                                    item.id ===
+                                    studentNumber
+                            );
+
+
+                        dailyRank.textContent =
+                            myIndex < 0
+                                ? "-"
+                                : String(
+                                    myIndex + 1
+                                );
+
+
+                        /*
+                         表示対象の上位50人について、
+                         totalRankingから累計ポイントを取得
+                        */
+
+                        const visibleRanking =
+                            ranking.slice(
+                                0,
+                                50
+                            );
+
+
+                        const rankingWithTotal =
+                            await Promise.all(
+
+                                visibleRanking.map(
+                                    async item => {
+
+                                        try {
+
+                                            const totalSnapshot =
+                                                await getDoc(
+
+                                                    doc(
+                                                        db,
+                                                        "totalRanking",
+                                                        item.id
+                                                    )
+
+                                                );
+
+
+                                            return {
+
+                                                ...item,
+
+                                                totalPoint:
+                                                    Number(
+                                                        totalSnapshot
+                                                            .data()
+                                                            ?.point || 0
+                                                    )
+
+                                            };
+
+                                        } catch (error) {
+
+                                            console.error(
+                                                "累計ポイント取得エラー:",
+                                                item.id,
+                                                error
+                                            );
+
+
+                                            return {
+
+                                                ...item,
+
+                                                totalPoint:
+                                                    0
+
+                                            };
+
+                                        }
+
+                                    }
+                                )
+
+                            );
+
+
+                        list.innerHTML =
+                            rankingWithTotal.length
+
+                                ? rankingWithTotal
+                                    .map(
+                                        (
+                                            item,
+                                            index
+                                        ) => `
+
+                                            <div class="
+                                                point-ranking-row
+                                                ${
+                                                    item.id === studentNumber
+                                                        ? "is-me"
+                                                        : ""
+                                                }
+                                            ">
+
+                                                <b>
+                                                    ${
+                                                        index < 3
+                                                            ? [
+                                                                "🥇",
+                                                                "🥈",
+                                                                "🥉"
+                                                            ][index]
+                                                            : index + 1
+                                                    }
+                                                </b>
+
+                                                <span>
+
+                                                    ${
+                                                        getRankMark(
+                                                            item.totalPoint
+                                                        )
+                                                    }
+
+                                                    ${escapeHtml(
+                                                        getAnonymousRankingName(
+                                                            item.id
+                                                        )
+                                                    )}
+
+                                                </span>
+
+                                                <strong>
+                                                    ${item.point}pt
+                                                </strong>
+
+                                            </div>
+
+                                        `
+                                    )
+                                    .join("")
+
+                                : `
+                                    <p>
+                                        昨日のランキングデータはありません。
+                                    </p>
+                                `;
+
+
+                        resolve();
+
+                    } catch (error) {
+
+                        console.error(
+                            "ランキング表示エラー:",
+                            error
+                        );
+
+
+                        list.innerHTML = `
+                            <p class="point-load-error">
+                                ⚠️ ランキングを取得できませんでした。
+                            </p>
+                        `;
+
+
+                        resolve();
+
+                    }
+
+                },
+
+                error => {
+
+                    console.error(
+                        "ランキング取得エラー:",
+                        error
+                    );
+
+
+                    list.innerHTML = `
+                        <p class="point-load-error">
+                            ⚠️ ランキングを取得できませんでした。
+                        </p>
+                    `;
+
+
+                    resolve();
+
+                }
+
+            );
+
+        }
+
+    );
+
+}
 
 function formatDate(day){const [year,month,date]=day.split("-");return `${year}年${Number(month)}月${Number(date)}日`}
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
