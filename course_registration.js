@@ -3955,7 +3955,9 @@ function canToggleSubject(
 ) {
 
     if (
-        isAlreadyEarned(subject)
+        isAlreadyEarned(
+            subject
+        )
     ) {
 
         return false;
@@ -3974,15 +3976,29 @@ function canToggleSubject(
         getEffectivePhase();
 
 
-    if (phase === "registration") {
+    /*
+     通常の履修登録期間は、
+     対象科目を自由に選択・解除できる。
+    */
+
+    if (
+        phase ===
+        "registration"
+    ) {
 
         return true;
 
     }
 
 
+    /*
+     履修修正期間で
+     追加・削除の両方が許可されている場合。
+    */
+
     if (
-        phase === "correction" &&
+        phase ===
+            "correction" &&
         config.correctionMode ===
             "add_delete"
     ) {
@@ -3992,16 +4008,26 @@ function canToggleSubject(
     }
 
 
+    /*
+     履修取消期間、
+     または削除のみの履修修正期間では、
+     期間開始前から履修していた科目だけ操作できる。
+
+     selectedIdsではなく
+     originalSelectedIdsを判定に使うことで、
+     保存前ならチェックを外した後でも
+     再びチェックを入れられる。
+    */
+
     if (
-        phase === "correction" ||
-        phase === "cancellation"
+        phase ===
+            "cancellation" ||
+        phase ===
+            "correction"
     ) {
 
-        return (
-            currentlySelected &&
-            originalSelectedIds.has(
-                subject.id
-            )
+        return originalSelectedIds.has(
+            subject.id
         );
 
     }
