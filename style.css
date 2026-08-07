@@ -14829,3 +14829,1265 @@ body:has(#universityNews) .bottom-nav a.active {
     }
 
 }
+
+/* ==================================================
+   設定タブ
+   ホーム画面デザイン統一
+================================================== */
+
+body:has(#studentNumberText) {
+    --settings-soft:
+        rgba(15, 157, 138, 0.075);
+
+    --settings-border:
+        color-mix(
+            in srgb,
+            var(--primary) 17%,
+            var(--border)
+        );
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(15, 157, 138, 0.05),
+            var(--bg) 350px
+        );
+}
+
+
+/* ==================================================
+   上部ユーザー情報
+================================================== */
+
+body:has(#studentNumberText)
+.top-user-info {
+    border-color:
+        var(--settings-border);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 97%,
+            var(--primary)
+        );
+}
+
+body:has(#studentNumberText)
+.circle-button {
+    border:
+        1px solid
+        var(--settings-border);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 97%,
+            var(--primary)
+        );
+
+    color:
+        var(--text);
+}
+
+
+/* ==================================================
+   設定ページヘッダー
+================================================== */
+
+body:has(#studentNumberText)
+.header {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--primary) 25%,
+            var(--border)
+        );
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(15, 157, 138, 0.13),
+            rgba(20, 184, 166, 0.04),
+            var(--card)
+        );
+
+    box-shadow:
+        var(--shadow);
+}
+
+body:has(#studentNumberText)
+.header .logo {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    width:
+        46px;
+
+    height:
+        46px;
+
+    border-radius:
+        15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accent),
+            rgba(20, 184, 166, 0.15)
+        );
+
+    font-size:
+        25px;
+}
+
+body:has(#studentNumberText)
+.header h1 {
+    color:
+        var(--text);
+}
+
+body:has(#studentNumberText)
+.header p {
+    color:
+        var(--subtext);
+}
+
+
+/* ==================================================
+   各セクションタイトル
+================================================== */
+
+body:has(#studentNumberText)
+> h2 {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    margin:
+        26px 4px 10px;
+
+    color:
+        var(--text);
+
+    font-size:
+        17px;
+
+    font-weight:
+        850;
+
+    line-height:
+        1.4;
+}
+
+body:has(#studentNumberText)
+> h2::before {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    width:
+        30px;
+
+    height:
+        30px;
+
+    flex:
+        0 0 auto;
+
+    border-radius:
+        10px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 70%,
+            var(--card)
+        );
+
+    color:
+        var(--primary);
+
+    font-size:
+        15px;
+}
+
+
+/* 登録情報 */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(1)::before {
+    content:
+        "👤";
+}
+
+
+/* パスワード */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(2)::before {
+    content:
+        "🔐";
+}
+
+
+/* お問い合わせ */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(3)::before {
+    content:
+        "✉️";
+}
+
+
+/* アプリ情報 */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(4)::before {
+    content:
+        "ℹ️";
+}
+
+
+/* 通知 */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(5)::before {
+    content:
+        "🔔";
+}
+
+
+/* アカウント */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(6)::before {
+    content:
+        "🚪";
+}
+
+
+/* 危険な操作 */
+
+body:has(#studentNumberText)
+> h2:nth-of-type(7)::before {
+    content:
+        "⚠️";
+}
+
+
+/* ==================================================
+   共通設定カード
+================================================== */
+
+body:has(#studentNumberText)
+> .setting-card {
+    margin-bottom:
+        22px;
+
+    padding:
+        20px;
+
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        var(--settings-border);
+
+    border-radius:
+        20px;
+
+    background:
+        linear-gradient(
+            145deg,
+            var(--settings-soft),
+            var(--card) 48%
+        );
+
+    box-shadow:
+        0 7px 20px
+        rgba(15, 23, 42, 0.075);
+}
+
+
+/* ==================================================
+   登録情報
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card:has(#studentNumberText) {
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(100px, 0.65fr)
+        minmax(0, 1fr);
+
+    gap:
+        0;
+
+    padding:
+        8px 18px;
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#studentNumberText)
+> p {
+    min-width:
+        0;
+
+    margin:
+        0;
+
+    padding:
+        13px 4px;
+
+    border-bottom:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--primary) 10%,
+            var(--border)
+        );
+
+    line-height:
+        1.45;
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#studentNumberText)
+> p:nth-child(odd) {
+    color:
+        var(--subtext);
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#studentNumberText)
+> p:nth-child(even) {
+    overflow:
+        hidden;
+
+    color:
+        var(--text);
+
+    font-size:
+        14px;
+
+    font-weight:
+        800;
+
+    text-align:
+        right;
+
+    overflow-wrap:
+        anywhere;
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#studentNumberText)
+> p:nth-last-child(-n + 2) {
+    border-bottom:
+        none;
+}
+
+
+/* ==================================================
+   フォーム共通
+================================================== */
+
+body:has(#studentNumberText)
+.settings-form-stack {
+    display:
+        grid;
+
+    gap:
+        15px;
+}
+
+body:has(#studentNumberText)
+.settings-form-stack label {
+    display:
+        grid;
+
+    gap:
+        7px;
+
+    color:
+        var(--text);
+
+    font-size:
+        12px;
+
+    font-weight:
+        750;
+}
+
+body:has(#studentNumberText)
+.settings-form-stack input,
+
+body:has(#studentNumberText)
+.settings-form-stack select,
+
+body:has(#studentNumberText)
+.settings-form-stack textarea {
+    width:
+        100%;
+
+    box-sizing:
+        border-box;
+
+    padding:
+        13px 14px;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--primary) 15%,
+            var(--border)
+        );
+
+    border-radius:
+        13px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--bg) 77%,
+            var(--card)
+        );
+
+    color:
+        var(--text);
+
+    font-family:
+        inherit;
+
+    font-size:
+        15px;
+
+    line-height:
+        1.5;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+body:has(#studentNumberText)
+.settings-form-stack textarea {
+    min-height:
+        130px;
+
+    resize:
+        vertical;
+}
+
+body:has(#studentNumberText)
+.settings-form-stack input:focus,
+
+body:has(#studentNumberText)
+.settings-form-stack select:focus,
+
+body:has(#studentNumberText)
+.settings-form-stack textarea:focus {
+    outline:
+        none;
+
+    border-color:
+        var(--primary);
+
+    background:
+        var(--card);
+
+    box-shadow:
+        0 0 0 4px
+        rgba(20, 184, 166, 0.14);
+}
+
+body:has(#studentNumberText)
+.settings-form-stack input::placeholder,
+
+body:has(#studentNumberText)
+.settings-form-stack textarea::placeholder {
+    color:
+        color-mix(
+            in srgb,
+            var(--subtext) 68%,
+            transparent
+        );
+}
+
+
+/* ==================================================
+   ボタン
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card .btn {
+    min-height:
+        47px;
+
+    border-radius:
+        13px;
+
+    font-size:
+        14px;
+
+    font-weight:
+        850;
+
+    box-shadow:
+        0 7px 17px
+        rgba(15, 23, 42, 0.09);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+}
+
+body:has(#studentNumberText)
+.setting-card .btn:hover {
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 10px 23px
+        rgba(15, 23, 42, 0.14);
+}
+
+body:has(#studentNumberText)
+.setting-card .btn:active {
+    transform:
+        scale(0.98);
+}
+
+body:has(#studentNumberText)
+.setting-card .btn-primary {
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-light)
+        );
+
+    color:
+        #ffffff;
+}
+
+body:has(#studentNumberText)
+.setting-card .btn-secondary {
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--primary) 25%,
+            var(--border)
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 58%,
+            var(--card)
+        );
+
+    color:
+        var(--primary);
+}
+
+
+/* ==================================================
+   お問い合わせ管理リンク
+================================================== */
+
+body:has(#studentNumberText)
+#contactInboxLink {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    min-height:
+        43px;
+
+    padding:
+        0 15px;
+
+    box-sizing:
+        border-box;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--primary) 23%,
+            var(--border)
+        );
+
+    border-radius:
+        13px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 48%,
+            var(--card)
+        );
+
+    color:
+        var(--primary);
+
+    font-size:
+        13px;
+
+    font-weight:
+        800;
+}
+
+body:has(#studentNumberText)
+#contactInboxLink[hidden] {
+    display:
+        none;
+}
+
+
+/* ==================================================
+   アプリ情報
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card:has(#versionText) {
+    padding:
+        16px 20px;
+
+    text-align:
+        center;
+}
+
+body:has(#studentNumberText)
+#versionText {
+    margin:
+        0;
+
+    color:
+        var(--subtext);
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+}
+
+
+/* ==================================================
+   通知設定
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card:has(#enablePushButton) {
+    padding:
+        14px;
+}
+
+body:has(#studentNumberText)
+#enablePushButton {
+    margin-bottom:
+        4px;
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#enablePushButton)
+> br {
+    display:
+        none;
+}
+
+body:has(#studentNumberText)
+.setting-row {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        15px;
+
+    min-height:
+        58px;
+
+    margin-top:
+        8px;
+
+    padding:
+        13px 14px;
+
+    box-sizing:
+        border-box;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--primary) 11%,
+            var(--border)
+        );
+
+    border-radius:
+        14px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--bg) 68%,
+            var(--card)
+        );
+
+    cursor:
+        pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+body:has(#studentNumberText)
+.setting-row:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--primary) 28%,
+            var(--border)
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 32%,
+            var(--card)
+        );
+}
+
+body:has(#studentNumberText)
+.setting-row:active {
+    transform:
+        scale(0.99);
+}
+
+body:has(#studentNumberText)
+.setting-row > span {
+    display:
+        block;
+
+    min-width:
+        0;
+}
+
+body:has(#studentNumberText)
+.setting-row b {
+    color:
+        var(--text);
+
+    font-size:
+        14px;
+
+    font-weight:
+        800;
+}
+
+body:has(#studentNumberText)
+.setting-row small {
+    display:
+        inline-block;
+
+    margin-top:
+        3px;
+
+    color:
+        var(--subtext);
+
+    font-size:
+        11px;
+
+    line-height:
+        1.5;
+}
+
+
+/* ==================================================
+   通知スイッチ
+================================================== */
+
+body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"] {
+    position:
+        relative;
+
+    width:
+        47px;
+
+    height:
+        27px;
+
+    flex:
+        0 0 47px;
+
+    margin:
+        0;
+
+    padding:
+        0;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--subtext) 30%,
+            var(--border)
+        );
+
+    border-radius:
+        999px;
+
+    appearance:
+        none;
+
+    -webkit-appearance:
+        none;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--subtext) 18%,
+            var(--card)
+        );
+
+    cursor:
+        pointer;
+
+    transition:
+        background 0.22s ease,
+        border-color 0.22s ease;
+}
+
+body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"]::after {
+    content:
+        "";
+
+    position:
+        absolute;
+
+    top:
+        3px;
+
+    left:
+        3px;
+
+    width:
+        19px;
+
+    height:
+        19px;
+
+    border-radius:
+        50%;
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 2px 7px
+        rgba(15, 23, 42, 0.25);
+
+    transition:
+        transform 0.22s ease;
+}
+
+body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"]:checked {
+    border-color:
+        var(--primary);
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-light)
+        );
+}
+
+body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"]:checked::after {
+    transform:
+        translateX(20px);
+}
+
+body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"]:focus-visible {
+    outline:
+        3px solid
+        rgba(20, 184, 166, 0.22);
+
+    outline-offset:
+        2px;
+}
+
+
+/* ==================================================
+   アカウント
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card:has(#logout)
+p {
+    margin:
+        0 0 15px;
+
+    color:
+        var(--subtext);
+
+    font-size:
+        13px;
+
+    text-align:
+        center;
+}
+
+body:has(#studentNumberText)
+#logout {
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-light)
+        );
+}
+
+
+/* ==================================================
+   危険な操作
+================================================== */
+
+body:has(#studentNumberText)
+.setting-card:has(#unregister) {
+    border-color:
+        rgba(239, 68, 68, 0.25);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(239, 68, 68, 0.075),
+            var(--card) 58%
+        );
+}
+
+body:has(#studentNumberText)
+.setting-card:has(#unregister)
+p {
+    margin:
+        0 0 15px;
+
+    color:
+        var(--subtext);
+
+    font-size:
+        13px;
+
+    text-align:
+        center;
+}
+
+body:has(#studentNumberText)
+#unregister {
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 7px 18px
+        rgba(239, 68, 68, 0.21);
+}
+
+
+/* ==================================================
+   下部ナビゲーション
+================================================== */
+
+body:has(#studentNumberText)
+.bottom-nav {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--primary) 14%,
+            var(--border)
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--card) 97%,
+            var(--primary)
+        );
+}
+
+body:has(#studentNumberText)
+.bottom-nav a {
+    color:
+        var(--subtext);
+}
+
+body:has(#studentNumberText)
+.bottom-nav a.active {
+    background:
+        linear-gradient(
+            145deg,
+            var(--primary),
+            var(--primary-light)
+        );
+
+    color:
+        #ffffff;
+}
+
+
+/* ==================================================
+   ダークモード
+================================================== */
+
+.dark body:has(#studentNumberText) {
+    --settings-soft:
+        rgba(20, 184, 166, 0.075);
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(15, 157, 138, 0.065),
+            var(--bg) 360px
+        );
+}
+
+.dark body:has(#studentNumberText)
+.header {
+    border-color:
+        rgba(45, 212, 191, 0.20);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(15, 157, 138, 0.15),
+            rgba(20, 184, 166, 0.04),
+            var(--card)
+        );
+}
+
+.dark body:has(#studentNumberText)
+> .setting-card {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 184, 166, 0.055),
+            var(--card) 52%
+        );
+
+    box-shadow:
+        0 7px 21px
+        rgba(0, 0, 0, 0.24);
+}
+
+.dark body:has(#studentNumberText)
+.settings-form-stack input,
+
+.dark body:has(#studentNumberText)
+.settings-form-stack select,
+
+.dark body:has(#studentNumberText)
+.settings-form-stack textarea {
+    background:
+        color-mix(
+            in srgb,
+            var(--bg) 75%,
+            var(--card)
+        );
+
+    color:
+        var(--text);
+
+    color-scheme:
+        dark;
+}
+
+.dark body:has(#studentNumberText)
+.setting-row {
+    background:
+        color-mix(
+            in srgb,
+            var(--bg) 72%,
+            var(--card)
+        );
+}
+
+.dark body:has(#studentNumberText)
+.setting-card .btn-secondary,
+
+.dark body:has(#studentNumberText)
+#contactInboxLink {
+    color:
+        var(--text);
+}
+
+.dark body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"] {
+    background:
+        color-mix(
+            in srgb,
+            var(--subtext) 25%,
+            var(--card)
+        );
+}
+
+.dark body:has(#studentNumberText)
+.setting-row
+input[type="checkbox"]:checked {
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-light)
+        );
+}
+
+.dark body:has(#studentNumberText)
+.setting-card:has(#unregister) {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(239, 68, 68, 0.10),
+            var(--card) 62%
+        );
+}
+
+
+/* ==================================================
+   スマートフォン
+================================================== */
+
+@media (max-width: 480px) {
+
+    body:has(#studentNumberText)
+    > h2 {
+        margin-top:
+            23px;
+
+        font-size:
+            16px;
+    }
+
+    body:has(#studentNumberText)
+    > .setting-card {
+        padding:
+            16px;
+
+        border-radius:
+            18px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-card:has(#studentNumberText) {
+        grid-template-columns:
+            minmax(88px, 0.58fr)
+            minmax(0, 1fr);
+
+        padding:
+            7px 14px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-card:has(#studentNumberText)
+    > p {
+        padding:
+            12px 3px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-card:has(#studentNumberText)
+    > p:nth-child(odd) {
+        font-size:
+            11px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-card:has(#studentNumberText)
+    > p:nth-child(even) {
+        font-size:
+            13px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-row {
+        padding:
+            12px;
+
+        gap:
+            10px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-row b {
+        font-size:
+            13px;
+    }
+
+    body:has(#studentNumberText)
+    .setting-row small {
+        font-size:
+            10px;
+    }
+
+}
