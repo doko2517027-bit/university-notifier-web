@@ -1064,44 +1064,223 @@ async function loadTodaySchedule() {
         showAttendanceClassSelector(availableClassGroups);
     }
 
-    const actualToday = new Date().toLocaleDateString("sv-SE");
-    let initialDate = userTestDateActive ? userTestClock.date
-        : notificationTestActive ? notificationTest.date : "";
-    if (!initialDate) {
-        const exactToday = lectureSchedules.find(item => item.date === actualToday);
-        const nextDay = lectureSchedules.find(item => item.date >= actualToday);
-        initialDate = exactToday?.date || nextDay?.date || lectureSchedules.at(-1)?.date || "";
-    }
-    lectureScheduleIndex = Math.max(0, lectureSchedules.findIndex(item => item.date === initialDate));
+    const today =
+        new Date();
 
-    // 日付選択は端末内に保持する。attendanceTestDate は表示だけを変える
-    // 明示的なテスト用指定で、実際の端末・サーバー時刻には触れない。
-    const requestedTestDate = scheduleParams.get("attendanceTestDate");
-    if (/^\d{4}-\d{2}-\d{2}$/.test(requestedTestDate || "")) {
-        localStorage.setItem("careMateSelectedScheduleDate", requestedTestDate);
-        localStorage.setItem("careMateAttendanceTestDate", requestedTestDate);
-    }
+
+    const actualToday =
+        today.toLocaleDateString(
+            "sv-SE"
+        );
+
+
+    const requestedTestDate =
+        scheduleParams.get(
+            "attendanceTestDate"
+        );
+
+
+    let initialDate =
+        "";
+
+
+    /*
+    明示的な出席テスト中は、
+    テスト日を最優先する。
+    */
+
     if (userTestDateActive) {
-        localStorage.setItem("careMateSelectedScheduleDate", userTestClock.date);
-        localStorage.setItem("careMateAttendanceTestDate", userTestClock.date);
+
+        initialDate =
+            userTestClock.date;
+
+    } else if (
+        notificationTestActive
+    ) {
+
+        initialDate =
+            notificationTest.date;
+
+    } else if (
+        /^\d{4}-\d{2}-\d{2}$/.test(
+            requestedTestDate || ""
+        )
+    ) {
+
+        initialDate =
+            requestedTestDate;
+
+    } else if (
+        today.getDay() !== 0
+    ) {
+
+        /*
+        通常時は保存された古い日付ではなく、
+        必ず今日を初期表示する。
+
+        月曜日～土曜日なら、
+        講義予定がなくても今日を作成する。
+        */
+
+        initialDate =
+            actualToday;
+
+    } else {
+
+        /*
+        日曜日は従来どおり、
+        時間割に存在する次の講義日を使う。
+        */
+
+        const exactToday =
+            lectureSchedules.find(
+                item =>
+                    item.date === actualToday
+            );
+
+
+        const nextDay =
+            lectureSchedules.find(
+                item =>
+                    item.date > actualToday
+            );
+
+
+        initialDate =
+
+            exactToday?.date ||
+
+            nextDay?.date ||
+
+            lectureSchedules.at(-1)
+                ?.date ||
+
+            "";
+
     }
-    const savedScheduleDate = userTestDateActive
-        ? userTestClock.date
-        : localStorage.getItem("careMateSelectedScheduleDate") || "";
-    const savedScheduleIndex = lectureSchedules.findIndex(
-        item => item.date === savedScheduleDate
-    );
-    if (savedScheduleIndex >= 0) {
-        lectureScheduleIndex = savedScheduleIndex;
+
+
+    /*
+    テスト指定を保存
+    */
+
+    if (
+        /^\d{4}-\d{2}-\d{2}$/.test(
+            requestedTestDate || ""
+        )
+    ) {
+
+        localStorage.setItem(
+
+            "careMateSelectedScheduleDate",
+
+            requestedTestDate
+
+        );
+
+
+        localStorage.setItem(
+
+            "careMateAttendanceTestDate",
+
+            requestedTestDate
+
+        );
+
     }
+
+
+    if (userTestDateActive) {
+
+        localStorage.setItem(
+
+            "careMateSelectedScheduleDate",
+
+            userTestClock.date
+
+        );
+
+
+        localStorage.setItem(
+
+            "careMateAttendanceTestDate",
+
+            userTestClock.date
+
+        );
+
+    }
+
+
+    /*
+    通常起動では8/1などの古い選択日を
+    初期表示に使わない。
+    */
+
+    if (
+        !userTestDateActive &&
+        !notificationTestActive &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+            requestedTestDate || ""
+        )
+    ) {
+
+        localStorage.setItem(
+
+            "careMateSelectedScheduleDate",
+
+            initialDate
+
+        );
+
+    }
+
+
+    let initialIndex =
+        ensureLectureScheduleDate(
+            initialDate
+        );
+
+
+    if (initialIndex < 0) {
+
+        initialIndex =
+            lectureSchedules.findIndex(
+                item =>
+                    item.date ===
+                    initialDate
+            );
+
+    }
+
+
+    lectureScheduleIndex =
+        Math.max(
+            0,
+            initialIndex
+        );
+
+
+    const initialScheduleDate =
+
+        lectureSchedules[
+            lectureScheduleIndex
+        ]?.date ||
+
+        actualToday;
+
 
     const firstLectureDate =
-        lectureSchedules[lectureScheduleIndex]?.date
-            ? new Date(`${lectureSchedules[lectureScheduleIndex].date}T00:00:00`)
-            : new Date();
+        new Date(
+
+            `${initialScheduleDate}T00:00:00`
+
+        );
+
 
     lectureCalendarYear =
         firstLectureDate.getFullYear();
+
 
     lectureCalendarMonthIndex =
         firstLectureDate.getMonth();
@@ -2164,163 +2343,491 @@ function renderCurrentExamSchedule() {
     }
 }
 
-function renderLectureCalendar() {
+function createEmptyLectureSchedule(
+    dateString
+) {
 
-    if (!lectureCalendarDays) {
-        return;
+    const date =
+        new Date(
+            `${dateString}T00:00:00`
+        );
+
+
+    const todayString =
+        new Date()
+            .toLocaleDateString(
+                "sv-SE"
+            );
+
+
+    return {
+
+        date:
+            dateString,
+
+        title:
+            dateString === todayString
+                ? "今日"
+                : "講義予定",
+
+        label:
+            "",
+
+        schedules:
+            []
+
+    };
+
+}
+
+
+function ensureLectureScheduleDate(
+    dateString
+) {
+
+    let index =
+        lectureSchedules.findIndex(
+            item =>
+                item.date === dateString
+        );
+
+
+    if (index >= 0) {
+
+        return index;
+
     }
 
-    lectureCalendarDays.innerHTML = "";
+
+    const date =
+        new Date(
+            `${dateString}T00:00:00`
+        );
+
+
+    /*
+     日曜日は今までどおり追加・選択しない。
+    */
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        ) ||
+        date.getDay() === 0
+    ) {
+
+        return -1;
+
+    }
+
+
+    lectureSchedules.push(
+        createEmptyLectureSchedule(
+            dateString
+        )
+    );
+
+
+    lectureSchedules.sort(
+        (left, right) =>
+            String(
+                left.date || ""
+            ).localeCompare(
+                String(
+                    right.date || ""
+                )
+            )
+    );
+
+
+    index =
+        lectureSchedules.findIndex(
+            item =>
+                item.date === dateString
+        );
+
+
+    return index;
+
+}
+
+function renderLectureCalendar() {
+
+    if (
+        !lectureCalendarDays ||
+        !lectureCalendarMonth
+    ) {
+
+        return;
+
+    }
+
+
+    lectureCalendarDays.innerHTML =
+        "";
+
 
     lectureCalendarMonth.textContent =
-        `${lectureCalendarYear}年${lectureCalendarMonthIndex + 1}月`;
+
+        `${lectureCalendarYear}年` +
+
+        `${lectureCalendarMonthIndex + 1}月`;
+
 
     const firstDay =
         new Date(
+
             lectureCalendarYear,
+
             lectureCalendarMonthIndex,
+
             1
+
         );
+
 
     const lastDay =
         new Date(
+
             lectureCalendarYear,
+
             lectureCalendarMonthIndex + 1,
+
             0
+
         );
+
 
     const startWeek =
         firstDay.getDay();
 
+
     const totalDays =
         lastDay.getDate();
 
-    // 月初まで空マス
-    for (let i = 0; i < startWeek; i++) {
 
-        const empty = document.createElement("div");
-        empty.className = "lecture-calendar-empty";
-        lectureCalendarDays.appendChild(empty);
+    /*
+     月初より前の空白
+    */
+
+    for (
+        let index = 0;
+        index < startWeek;
+        index++
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+
+        empty.className =
+            "lecture-calendar-empty";
+
+
+        lectureCalendarDays.appendChild(
+            empty
+        );
 
     }
 
-    // 日付
-    for (let day = 1; day <= totalDays; day++) {
+
+    const todayString =
+        new Date()
+            .toLocaleDateString(
+                "sv-SE"
+            );
+
+
+    const selectedDate =
+
+        lectureSchedules[
+            lectureScheduleIndex
+        ]?.date || "";
+
+
+    const grade =
+        localStorage.getItem(
+            "grade"
+        );
+
+
+    /*
+     当月の日付
+    */
+
+    for (
+        let day = 1;
+        day <= totalDays;
+        day++
+    ) {
 
         const date =
             new Date(
+
                 lectureCalendarYear,
+
                 lectureCalendarMonthIndex,
+
                 day
+
             );
 
-        const yyyy = date.getFullYear();
 
-        const mm = String(date.getMonth() + 1)
-            .padStart(2, "0");
+        const yyyy =
+            date.getFullYear();
 
-        const dd = String(day)
-            .padStart(2, "0");
+
+        const mm =
+            String(
+                date.getMonth() + 1
+            )
+            .padStart(
+                2,
+                "0"
+            );
+
+
+        const dd =
+            String(
+                day
+            )
+            .padStart(
+                2,
+                "0"
+            );
+
 
         const dateString =
             `${yyyy}-${mm}-${dd}`;
 
+
+        const isSunday =
+            date.getDay() === 0;
+
+
         const dayData =
             lectureSchedules.find(
-                item => item.date === dateString
+                item =>
+                    item.date ===
+                    dateString
             );
-        
-        const grade =
-            localStorage.getItem("grade");
+
 
         const hasLecture =
+
             dayData &&
-            Array.isArray(dayData.schedules) &&
+
+            Array.isArray(
+                dayData.schedules
+            ) &&
+
             dayData.schedules.some(
-                schedule => schedule.grade === grade
+                schedule =>
+                    !grade ||
+                    String(
+                        schedule.grade || ""
+                    ) ===
+                    String(
+                        grade
+                    )
             );
 
-        const button =
-            document.createElement("button");
 
-        button.type = "button";
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.type =
+            "button";
+
+
         button.className =
             "lecture-calendar-day";
+
+
         button.setAttribute(
+
             "aria-label",
-            `${yyyy}年${date.getMonth() + 1}月${day}日`
+
+            `${yyyy}年` +
+
+            `${date.getMonth() + 1}月` +
+
+            `${day}日`
+
         );
 
-        const dayNumber = document.createElement("span");
-        dayNumber.className = "lecture-calendar-day-number";
-        dayNumber.textContent = day;
-        button.appendChild(dayNumber);
 
-        const today = new Date();
+        const dayNumber =
+            document.createElement(
+                "span"
+            );
 
-        const todayString =
-            `${today.getFullYear()}-` +
-            `${String(today.getMonth() + 1).padStart(2, "0")}-` +
-            `${String(today.getDate()).padStart(2, "0")}`;
 
-        const selectedDate =
-            lectureSchedules[lectureScheduleIndex]?.date || "";
+        dayNumber.className =
+            "lecture-calendar-day-number";
 
-        if (dateString === todayString) {
-            button.classList.add("is-today");
+
+        dayNumber.textContent =
+            String(
+                day
+            );
+
+
+        button.appendChild(
+            dayNumber
+        );
+
+
+        if (
+            dateString === todayString
+        ) {
+
+            button.classList.add(
+                "is-today"
+            );
+
         }
 
-        if (dateString === selectedDate) {
-            button.classList.add("is-selected");
+
+        if (
+            dateString === selectedDate
+        ) {
+
+            button.classList.add(
+                "is-selected"
+            );
+
         }
 
-        /* 授業がある日だけ点を付ける */
+
+        /*
+         実際に履修講義がある日だけ点を付ける。
+        */
+
         if (hasLecture) {
 
-            button.classList.add("has-lecture");
+            button.classList.add(
+                "has-lecture"
+            );
 
         }
 
-        /* days に存在する日は、授業がなくても押せる */
-        if (dayData) {
 
-            button.classList.add("has-schedule-date");
+        /*
+         日曜日は従来どおり選択不可。
+        */
 
-            button.onclick = () => {
+        if (isSunday) {
 
-                lectureScheduleIndex =
-                    lectureSchedules.findIndex(
-                        item => item.date === dateString
-                    );
-                localStorage.setItem(
-                    "careMateSelectedScheduleDate",
+            button.disabled =
+                true;
+
+
+            button.classList.add(
+                "is-sunday"
+            );
+
+
+            lectureCalendarDays
+                .appendChild(
+                    button
+                );
+
+
+            continue;
+
+        }
+
+
+        /*
+         月曜日～土曜日は、
+         予定データがなくても選択可能。
+        */
+
+        button.classList.add(
+            "has-schedule-date"
+        );
+
+
+        button.onclick = () => {
+
+            const newIndex =
+                ensureLectureScheduleDate(
                     dateString
                 );
-                
-                lectureCalendarYear = yyyy;
-                lectureCalendarMonthIndex = date.getMonth();
 
-                lectureCalendarPopup.hidden = true;
 
-                lectureDatePickerButton.setAttribute(
-                    "aria-expanded",
-                    "false"
+            if (newIndex < 0) {
+
+                return;
+
+            }
+
+
+            lectureScheduleIndex =
+                newIndex;
+
+
+            localStorage.setItem(
+
+                "careMateSelectedScheduleDate",
+
+                dateString
+
+            );
+
+
+            lectureCalendarYear =
+                yyyy;
+
+
+            lectureCalendarMonthIndex =
+                date.getMonth();
+
+
+            if (lectureCalendarPopup) {
+
+                lectureCalendarPopup.hidden =
+                    true;
+
+            }
+
+
+            if (lectureDatePickerButton) {
+
+                lectureDatePickerButton
+                    .setAttribute(
+
+                        "aria-expanded",
+
+                        "false"
+
+                    );
+
+            }
+
+
+            const currentGrade =
+                localStorage.getItem(
+                    "grade"
                 );
 
-                const grade =
-                    localStorage.getItem("grade");
 
-                renderCurrentLectureSchedule(grade);
+            renderCurrentLectureSchedule(
+                currentGrade
+            );
 
-            };
+        };
 
-        } else {
 
-            button.disabled = true;
-
-        }
-
-        lectureCalendarDays.appendChild(button);
+        lectureCalendarDays.appendChild(
+            button
+        );
 
     }
 
