@@ -371,6 +371,44 @@ if (localStorage.getItem("theme") === "dark") {
 
 </div>
 
+<h2>🔑 CareMateログインパスワード</h2>
+
+<div class="card setting-card">
+
+    <p>
+        現在のパスワード確認なしで、
+        新しいCareMateログインパスワードに変更します。
+    </p>
+
+    <label for="careMatePassword">
+        <b>新しいパスワード</b>
+    </label>
+
+    <input
+        id="careMatePassword"
+        type="password"
+        autocomplete="new-password"
+        placeholder="変更する場合のみ入力">
+
+    <br><br>
+
+    <label for="careMatePasswordConfirm">
+        <b>新しいパスワードを再入力</b>
+    </label>
+
+    <input
+        id="careMatePasswordConfirm"
+        type="password"
+        autocomplete="new-password"
+        placeholder="同じパスワードを入力">
+
+    <p class="admin-input-help">
+        6文字以上で設定してください。
+        空欄のまま保存した場合、現在のパスワードは変更されません。
+    </p>
+
+</div>
+
 
 <h2>🔔 通知設定</h2>
 

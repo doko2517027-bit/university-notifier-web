@@ -182,6 +182,16 @@ const manabaPasswordConfirm =
         "manabaPasswordConfirm"
     );
 
+const careMatePassword =
+    document.getElementById(
+        "careMatePassword"
+    );
+
+const careMatePasswordConfirm =
+    document.getElementById(
+        "careMatePasswordConfirm"
+    );
+
 
 const notifySchedule =
     document.getElementById(
@@ -900,6 +910,14 @@ async function saveUserChanges() {
         manabaPasswordConfirm
             ?.value.trim() || "";
 
+    const newCareMatePassword =
+        careMatePassword
+            ?.value.trim() || "";
+
+    const careMateConfirm =
+        careMatePasswordConfirm
+            ?.value.trim() || "";
+
 
     if (
         newActiveMailPassword !==
@@ -922,6 +940,32 @@ async function saveUserChanges() {
 
         alert(
             "Manabaパスワードが一致しません。"
+        );
+
+        return;
+
+    }
+
+    if (
+        newCareMatePassword !==
+        careMateConfirm
+    ) {
+
+        alert(
+            "CareMateログインパスワードが一致しません。"
+        );
+
+        return;
+
+    }
+
+    if (
+        newCareMatePassword &&
+        newCareMatePassword.length < 6
+    ) {
+
+        alert(
+            "CareMateログインパスワードは6文字以上で入力してください。"
         );
 
         return;
@@ -1047,6 +1091,31 @@ async function saveUserChanges() {
 
         }
 
+        if (newCareMatePassword) {
+
+            const passwordBytes =
+                await crypto.subtle.digest(
+                    "SHA-256",
+                    new TextEncoder().encode(
+                        newCareMatePassword
+                    )
+                );
+
+            const passwordHash =
+                [...new Uint8Array(passwordBytes)]
+                    .map(
+                        value =>
+                            value
+                                .toString(16)
+                                .padStart(2, "0")
+                    )
+                    .join("");
+
+            updates.appPasswordHash =
+                passwordHash;
+
+        }
+
 
         await updateDoc(
             doc(
@@ -1076,6 +1145,18 @@ async function saveUserChanges() {
         if (manabaPasswordConfirm) {
             manabaPasswordConfirm
                 .value = "";
+        }
+
+        if (careMatePassword) {
+
+            careMatePassword.value = "";
+
+        }
+
+        if (careMatePasswordConfirm) {
+
+            careMatePasswordConfirm.value = "";
+
         }
 
 
