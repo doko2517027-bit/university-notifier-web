@@ -645,11 +645,26 @@ export async function stampAttendanceStart({
             );
 
 
+        /*
+        通知テストであっても、
+        出席判定そのものは実際に押した時刻で行う。
+
+        attendanceTestClockは
+        通知・表示テスト用であり、
+        出席判定時刻には使用しない。
+        */
+        const judgementNow =
+            normalized
+                .attendanceNotificationTest === true
+                ? new Date()
+                : new Date(now);
+
+
         const result =
             classifyStartStamp({
 
                 stampAt:
-                    now,
+                    judgementNow,
 
                 lecture:
                     normalized
@@ -790,7 +805,7 @@ export async function stampAttendanceStart({
 
                         startClientAt:
                             Timestamp.fromDate(
-                                new Date(now)
+                                judgementNow
                             ),
 
                         startKind:
@@ -930,11 +945,22 @@ export async function stampAttendanceEnd({
             );
 
 
+        /*
+        通知テストでも
+        終了判定は実際に押した時刻を使う。
+        */
+        const judgementNow =
+            normalized
+                .attendanceNotificationTest === true
+                ? new Date()
+                : new Date(now);
+
+
         const result =
             classifyEndStamp({
 
                 stampAt:
-                    now,
+                    judgementNow,
 
                 lecture:
                     normalized
@@ -1082,7 +1108,7 @@ export async function stampAttendanceEnd({
 
                         endClientAt:
                             Timestamp.fromDate(
-                                new Date(now)
+                                judgementNow
                             ),
 
                         endKind:
@@ -1605,19 +1631,24 @@ export function recalculateAttendanceStatus(
 
 
     /*
-    通常講義：
-    Firestoreのサーバー時刻を使って
-    改ざんされにくい判定をする。
+    通常講義・通知テストともに、
+    Firestoreのサーバー保存時刻を
+    最終判定の正として使用する。
 
-    通知テスト：
-    attendanceTestClockで渡した
-    クライアント側テスト時刻を使う。
+    サーバー時刻がまだ取得できない
+    直後のローカル状態だけ、
+    clientAtをフォールバックとして使う。
+
+    これにより、
+
+    画面表示時刻
+    ↓
+    実際の打刻時刻
+    ↓
+    出席判定
+
+    が一致する。
     */
-
-    const isNotificationTest =
-        record.attendanceNotificationTest ===
-        true;
-
 
     const serverStartAt =
         firestoreTimestampToDate(
@@ -1644,27 +1675,13 @@ export function recalculateAttendanceStatus(
 
 
     const resolvedStartAt =
-
-        isNotificationTest
-
-            ? (
-                clientStartAt ||
-                serverStartAt
-            )
-
-            : serverStartAt;
+        serverStartAt ||
+        clientStartAt;
 
 
     const resolvedEndAt =
-
-        isNotificationTest
-
-            ? (
-                clientEndAt ||
-                serverEndAt
-            )
-
-            : serverEndAt;
+        serverEndAt ||
+        clientEndAt;
 
 
     if (resolvedStartAt) {
