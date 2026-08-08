@@ -78,6 +78,482 @@ function timeMinutes(value) {
     return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : -1;
 }
 
+const CLASS_SELECTION_NONE =
+    "__NONE__";
+
+
+function normalizePeriodNumber(value) {
+
+    const match =
+        String(value || "")
+            .match(/\d+/);
+
+    return match
+        ? Number(match[0])
+        : 0;
+
+}
+
+
+function toHalfWidthAlphabet(value) {
+
+    return String(value || "")
+        .replace(
+            /[Ａ-Ｚａ-ｚ]/g,
+            character =>
+                String.fromCharCode(
+                    character.charCodeAt(0) -
+                    0xFEE0
+                )
+        );
+
+}
+
+
+function extractClassGroups(value) {
+
+    if (!value) {
+        return [];
+    }
+
+
+    const original =
+        toHalfWidthAlphabet(
+            String(value)
+        )
+        .toUpperCase()
+        .trim();
+
+
+    if (
+        /^(全員|共通|合同|指定なし|なし|ALL)$/i
+            .test(original)
+    ) {
+
+        return [];
+
+    }
+
+
+    const text =
+        original
+            .replaceAll("クラス", "")
+            .replaceAll("組", "")
+            .replaceAll("班", "")
+            .trim();
+
+
+    if (!text) {
+        return [];
+    }
+
+
+    const groups =
+        [];
+
+
+    /*
+    A-D
+    A〜D
+    A～D
+    */
+
+    for (
+        const match of
+        text.matchAll(
+            /([A-Z])\s*[-–—〜～]\s*([A-Z])/g
+        )
+    ) {
+
+        const start =
+            match[1].charCodeAt(0);
+
+        const end =
+            match[2].charCodeAt(0);
+
+
+        if (start <= end) {
+
+            for (
+                let code = start;
+                code <= end;
+                code++
+            ) {
+
+                groups.push(
+                    String.fromCharCode(
+                        code
+                    )
+                );
+
+            }
+
+        }
+
+    }
+
+
+    /*
+    Aクラス
+    A/B
+    A・B
+    A,B
+    */
+
+    groups.push(
+        ...(
+            text.match(/[A-Z]/g) ||
+            []
+        )
+    );
+
+
+    return [
+        ...new Set(groups)
+    ].sort();
+
+}
+
+
+function createClassSelectionKey(
+    subject,
+    date,
+    period
+) {
+
+    return (
+        `${String(subject || "").trim()}_` +
+        `${date}_` +
+        `${normalizePeriodNumber(period)}`
+    );
+
+}
+
+
+function normalizeClassSelection(value) {
+
+    if (
+        value &&
+        typeof value === "object"
+    ) {
+
+        return normalizeClassSelection(
+
+            value.classGroup ||
+            value.class ||
+            value.value
+
+        );
+
+    }
+
+
+    const raw =
+        String(value || "")
+            .trim();
+
+
+    if (
+        raw ===
+        CLASS_SELECTION_NONE
+    ) {
+
+        return CLASS_SELECTION_NONE;
+
+    }
+
+
+    return (
+        extractClassGroups(raw)[0] ||
+        ""
+    );
+
+}
+
+
+function resolveClassSelection(
+    selections,
+    subject,
+    date,
+    period
+) {
+
+    const periodNumber =
+        normalizePeriodNumber(
+            period
+        );
+
+
+    /*
+    新形式を最優先。
+    下は過去データ互換。
+    */
+
+    const keys = [
+
+        createClassSelectionKey(
+            subject,
+            date,
+            periodNumber
+        ),
+
+        `${subject}_${date}_${periodNumber}限`,
+
+        `${date}_${subject}_${periodNumber}`
+
+    ];
+
+
+    for (const key of keys) {
+
+        if (
+            !Object.prototype
+                .hasOwnProperty.call(
+                    selections || {},
+                    key
+                )
+        ) {
+
+            continue;
+
+        }
+
+
+        const selected =
+            normalizeClassSelection(
+                selections[key]
+            );
+
+
+        if (selected) {
+
+            return selected;
+
+        }
+
+    }
+
+
+    return "";
+
+}
+
+
+function mergeScheduleRows(
+    rows,
+    preferred
+) {
+
+    if (!rows.length) {
+        return null;
+    }
+
+
+    const merged = {
+
+        ...rows[0],
+
+        ...(preferred || {})
+
+    };
+
+
+    const fields = [
+
+        "subjectId",
+        "subjectKey",
+        "startTime",
+        "endTime",
+        "teacher",
+        "building",
+        "room",
+        "testId"
+
+    ];
+
+
+    for (const field of fields) {
+
+        if (
+            String(
+                merged[field] || ""
+            ).trim()
+        ) {
+
+            continue;
+
+        }
+
+
+        const row =
+            rows.find(
+                item =>
+                    String(
+                        item[field] || ""
+                    ).trim()
+            );
+
+
+        if (row) {
+
+            merged[field] =
+                row[field];
+
+        }
+
+    }
+
+
+    return merged;
+
+}
+
+async function sendClassSelectionNotification(
+    userDoc,
+    {
+        date,
+        subject,
+        period,
+        options
+    }
+) {
+
+    const normalizedSubject =
+        normalizeCourseName(
+            subject
+        );
+
+
+    const dispatchId =
+
+        `${userDoc.id}_` +
+
+        `${date}_` +
+
+        `${period}_` +
+
+        `${encodeURIComponent(
+            normalizedSubject ||
+            subject
+        )}_class_selection`;
+
+
+    const dispatchRef =
+        db.collection(
+            "classSelectionNotificationDispatches"
+        )
+        .doc(
+            dispatchId
+        );
+
+
+    let claimed =
+        false;
+
+
+    await db.runTransaction(
+        async transaction => {
+
+            const existing =
+                await transaction.get(
+                    dispatchRef
+                );
+
+
+            /*
+            同じ日・科目・時限について
+            1回だけ通知
+            */
+
+            if (existing.exists) {
+                return;
+            }
+
+
+            transaction.create(
+                dispatchRef,
+                {
+                    userId:
+                        userDoc.id,
+
+                    date,
+
+                    subject,
+
+                    period,
+
+                    options,
+
+                    createdAt:
+                        new Date()
+                }
+            );
+
+
+            claimed =
+                true;
+
+        }
+    );
+
+
+    if (!claimed) {
+        return;
+    }
+
+
+    const optionText =
+        options
+            .map(
+                value =>
+                    `${value}クラス`
+            )
+            .join("・");
+
+
+    const query =
+        new URLSearchParams({
+            classSelection: "1",
+            date,
+            subject,
+            period:
+                String(period)
+        }).toString();
+
+
+    const payload = {
+
+        title:
+            "🏫 クラス選択が必要です",
+
+        body:
+            `${subject}（${period}限）でクラス分けがあります。` +
+            `${optionText}・クラスなし から選択してください。`,
+
+        url:
+            `${SITE_URL}/index.html?${query}`,
+
+        tag:
+            `class-selection-${date}-${period}-${encodeURIComponent(subject)}`
+
+    };
+
+
+    const results =
+        await sendToUserDevices(
+            userDoc.id,
+            payload
+        );
+
+
+    await dispatchRef.update({
+        results,
+        sentAt:
+            new Date()
+    });
+
+}
+
 // 個人時間割（公式PDF×履修科目）からだけ出席・退席通知を生成する。
 async function processAttendanceNotifications() {
     webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",
@@ -142,61 +618,711 @@ async function processAttendanceNotifications() {
             }
         }
 
-        const grade = String(user.grade || "").replace("年", "").trim();
-        for (const item of schedules) {
-            if (!enrolled.has(normalizeCourseName(item.subject))) continue;
-            if (grade && String(item.grade || "").replace("年", "").trim() !== grade) continue;
+        const grade =
+            String(
+                user.grade || ""
+            )
+            .replace(
+                "年",
+                ""
+            )
+            .trim();
 
-            const periodNumber = Number.parseInt(item.period, 10);
-            const recordScheduleId = item.attendanceNotificationTest
-                ? `${scheduleId}_test_${item.testId}` : scheduleId;
-            const recordId = slotId(recordScheduleId, clock.date, periodNumber, item.subject);
-            const override = attendanceOverrides[recordId] || {};
-            const defaults = PERIOD_TIMES[periodNumber] || {};
-            const startTime = override.startTime || item.startTime || defaults.startTime;
-            const endTime = override.endTime || item.endTime || defaults.endTime;
-            const preference = user.attendancePreferences?.[encodeURIComponent(item.subject)] || {};
-            const selectedGroup = user.attendanceClassGroup || preference.classGroup || "";
-            if (selectedGroup && item.classGroup && selectedGroup !== item.classGroup) continue;
 
-            const group = item.classGroup || "";
-            const notificationType = clock.minutes === timeMinutes(startTime) - 10 ? "arrival"
-                : clock.minutes === timeMinutes(endTime) - 5 ? "departure" : "";
-            if (!notificationType) continue;
+        const classSelections =
 
-            const record = await db.collection("attendance").doc(userDoc.id)
-                .collection("subjects").doc(encodeURIComponent(item.subject))
-                .collection("records").doc(recordId).get();
-            if (record.exists && (notificationType === "arrival" || record.data().checkOutAt)) continue;
-            const dispatchId = `${userDoc.id}_${recordId}_${notificationType}_${encodeURIComponent(group || "all")}`;
-            const dispatchRef = db.collection("attendanceNotificationDispatches").doc(dispatchId);
-            let claimed = false;
-            await db.runTransaction(async transaction => {
-                const existing = await transaction.get(dispatchRef);
-                if (existing.exists) return;
-                transaction.create(dispatchRef, { userId: userDoc.id, recordId, notificationType, group,
-                    testClock: clock.test === true, evaluatedDate: clock.date,
-                    evaluatedMinutes: clock.minutes, createdAt: new Date() });
-                claimed = true;
-            });
-            if (!claimed) continue;
+            user.classSelections &&
+            typeof user.classSelections ===
+                "object"
 
-            const query = new URLSearchParams({ action: notificationType, recordId, scheduleId: recordScheduleId,
-                date: clock.date, period: String(periodNumber), subject: item.subject,
-                classGroup: group, startTime, endTime,
-                notificationTest: item.attendanceNotificationTest ? "1" : "" }).toString();
-            const label = group ? `（${group}）` : "";
-            const payload = notificationType === "arrival"
-                ? { title: `📚 出席確認 ${label}`, body: `${item.subject}：出席または欠席を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `attendance-${recordId}-${encodeURIComponent(group || "all")}` }
-                : { title: `🚪 退席確認 ${label}`, body: `${item.subject}：退席または早退を選択してください`, url: `${SITE_URL}/attendance_check.html?${query}`, tag: `departure-${recordId}` };
-            const results = await sendToUserDevices(userDoc.id, payload);
-            await dispatchRef.update({ results, sentAt: new Date() });
-            if (item.attendanceNotificationTest) {
-                await userDoc.ref.update({
-                    "attendanceNotificationTest.lastSentAt": new Date(),
-                    "attendanceNotificationTest.lastResults": results
-                });
+                ? user.classSelections
+
+                : {};
+
+
+        /*
+        まず
+
+        ・履修済み
+        ・本人の学年
+
+        だけにする。
+        */
+
+        const eligibleSchedules =
+            schedules.filter(
+                item => {
+
+                    if (
+                        !enrolled.has(
+                            normalizeCourseName(
+                                item.subject
+                            )
+                        )
+                    ) {
+
+                        return false;
+
+                    }
+
+
+                    const itemGrade =
+                        String(
+                            item.grade || ""
+                        )
+                        .replace(
+                            "年",
+                            ""
+                        )
+                        .trim();
+
+
+                    if (
+                        grade &&
+                        itemGrade &&
+                        itemGrade !== grade
+                    ) {
+
+                        return false;
+
+                    }
+
+
+                    return true;
+
+                }
+            );
+
+
+        /*
+        日付 × 科目 × 時限
+        で講義をまとめる。
+
+        同じ科目・同じ時限の
+        A/B/Cクラスを1つの選択単位にする。
+        */
+
+        const lectureGroups =
+            new Map();
+
+
+        for (
+            const rawItem of
+            eligibleSchedules
+        ) {
+
+            const subject =
+                String(
+                    rawItem.subject || ""
+                ).trim();
+
+
+            const periodNumber =
+                normalizePeriodNumber(
+                    rawItem.period
+                );
+
+
+            if (
+                !subject ||
+                !periodNumber
+            ) {
+
+                continue;
+
             }
+
+
+            const lectureKey =
+                `${clock.date}|${subject}|${periodNumber}`;
+
+
+            if (
+                !lectureGroups.has(
+                    lectureKey
+                )
+            ) {
+
+                lectureGroups.set(
+                    lectureKey,
+                    {
+                        date:
+                            clock.date,
+
+                        subject,
+
+                        period:
+                            periodNumber,
+
+                        rows:
+                            [],
+
+                        options:
+                            new Set()
+                    }
+                );
+
+            }
+
+
+            const lectureGroup =
+                lectureGroups.get(
+                    lectureKey
+                );
+
+
+            lectureGroup.rows.push(
+                rawItem
+            );
+
+
+            extractClassGroups(
+                rawItem.classGroup
+            ).forEach(
+                value =>
+                    lectureGroup
+                        .options
+                        .add(
+                            value
+                        )
+            );
+
+        }
+
+
+        /*
+        各「日付 × 科目 × 時限」を判定
+        */
+
+        for (
+            const lectureGroup of
+            lectureGroups.values()
+        ) {
+
+            const options =
+                [
+                    ...lectureGroup.options
+                ].sort();
+
+
+            const selectedClass =
+                resolveClassSelection(
+
+                    classSelections,
+
+                    lectureGroup.subject,
+
+                    lectureGroup.date,
+
+                    lectureGroup.period
+
+                );
+
+
+            /*
+            classGroupが書かれている講義。
+
+            候補がAだけでも
+            クラス選択必須。
+            */
+
+            if (
+                options.length > 0 &&
+                !selectedClass
+            ) {
+
+                /*
+                出席・退席通知はまだ送らない。
+
+                先に
+                「クラスを選んでください」
+                Pushを送る。
+                */
+
+                await sendClassSelectionNotification(
+                    userDoc,
+                    {
+                        date:
+                            lectureGroup.date,
+
+                        subject:
+                            lectureGroup.subject,
+
+                        period:
+                            lectureGroup.period,
+
+                        options
+                    }
+                );
+
+
+                continue;
+
+            }
+
+
+            /*
+            「クラスなし」
+
+            → 本人は今日この講義を受けない。
+
+            出席通知も退席通知も送らない。
+            */
+
+            if (
+                selectedClass ===
+                CLASS_SELECTION_NONE
+            ) {
+
+                continue;
+
+            }
+
+
+            let matchingRows =
+                lectureGroup.rows;
+
+
+            /*
+            クラス分けされている場合は
+            選択されたクラスだけ残す。
+            */
+
+            if (
+                options.length > 0
+            ) {
+
+                matchingRows =
+                    lectureGroup.rows.filter(
+                        row => {
+
+                            const rowGroups =
+                                extractClassGroups(
+                                    row.classGroup
+                                );
+
+
+                            /*
+                            classGroupなしの補助情報行
+                            */
+
+                            if (
+                                rowGroups.length === 0
+                            ) {
+
+                                return true;
+
+                            }
+
+
+                            return (
+                                rowGroups.includes(
+                                    selectedClass
+                                )
+                            );
+
+                        }
+                    );
+
+            }
+
+
+            if (
+                !matchingRows.length
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+            選択クラスの行を優先
+            */
+
+            const preferred =
+
+                matchingRows.find(
+                    row =>
+                        extractClassGroups(
+                            row.classGroup
+                        ).includes(
+                            selectedClass
+                        )
+                ) ||
+
+                matchingRows[0];
+
+
+            const item =
+                mergeScheduleRows(
+                    matchingRows,
+                    preferred
+                );
+
+
+            if (!item) {
+                continue;
+            }
+
+
+            const periodNumber =
+                lectureGroup.period;
+
+
+            /*
+            通知テストの場合は
+            テスト専用scheduleIdを使う。
+            */
+
+            const recordScheduleId =
+
+                item.attendanceNotificationTest
+
+                    ? `${scheduleId}_test_${item.testId}`
+
+                    : scheduleId;
+
+
+            const recordId =
+                slotId(
+                    recordScheduleId,
+                    clock.date,
+                    periodNumber,
+                    lectureGroup.subject
+                );
+
+
+            const override =
+                attendanceOverrides[
+                    recordId
+                ] || {};
+
+
+            const defaults =
+                PERIOD_TIMES[
+                    periodNumber
+                ] || {};
+
+
+            const startTime =
+
+                override.startTime ||
+
+                item.startTime ||
+
+                defaults.startTime;
+
+
+            const endTime =
+
+                override.endTime ||
+
+                item.endTime ||
+
+                defaults.endTime;
+
+
+            if (
+                !startTime ||
+                !endTime
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+            選択済みクラスを通知・打刻側へ渡す。
+
+            クラス指定なしなら空欄。
+            */
+
+            const group =
+
+                options.length > 0
+
+                    ? selectedClass
+
+                    : "";
+
+
+            const notificationType =
+
+                clock.minutes ===
+                timeMinutes(
+                    startTime
+                ) - 10
+
+                    ? "arrival"
+
+                    : clock.minutes ===
+                    timeMinutes(
+                        endTime
+                    ) - 5
+
+                        ? "departure"
+
+                        : "";
+
+
+            if (
+                !notificationType
+            ) {
+
+                continue;
+
+            }
+
+
+            const record =
+                await db
+                    .collection(
+                        "attendance"
+                    )
+                    .doc(
+                        userDoc.id
+                    )
+                    .collection(
+                        "subjects"
+                    )
+                    .doc(
+                        encodeURIComponent(
+                            lectureGroup.subject
+                        )
+                    )
+                    .collection(
+                        "records"
+                    )
+                    .doc(
+                        recordId
+                    )
+                    .get();
+
+
+            if (
+                record.exists &&
+                (
+                    notificationType ===
+                        "arrival" ||
+
+                    record.data()
+                        .checkOutAt
+                )
+            ) {
+
+                continue;
+
+            }
+
+
+            const dispatchId =
+
+                `${userDoc.id}_` +
+
+                `${recordId}_` +
+
+                `${notificationType}_` +
+
+                `${encodeURIComponent(
+                    group || "all"
+                )}`;
+
+
+            const dispatchRef =
+                db.collection(
+                    "attendanceNotificationDispatches"
+                )
+                .doc(
+                    dispatchId
+                );
+
+
+            let claimed =
+                false;
+
+
+            await db.runTransaction(
+                async transaction => {
+
+                    const existing =
+                        await transaction.get(
+                            dispatchRef
+                        );
+
+
+                    if (
+                        existing.exists
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    transaction.create(
+                        dispatchRef,
+                        {
+                            userId:
+                                userDoc.id,
+
+                            recordId,
+
+                            notificationType,
+
+                            group,
+
+                            testClock:
+                                clock.test ===
+                                true,
+
+                            evaluatedDate:
+                                clock.date,
+
+                            evaluatedMinutes:
+                                clock.minutes,
+
+                            createdAt:
+                                new Date()
+                        }
+                    );
+
+
+                    claimed =
+                        true;
+
+                }
+            );
+
+
+            if (
+                !claimed
+            ) {
+
+                continue;
+
+            }
+
+
+            const query =
+                new URLSearchParams({
+
+                    action:
+                        notificationType,
+
+                    recordId,
+
+                    scheduleId:
+                        recordScheduleId,
+
+                    date:
+                        clock.date,
+
+                    period:
+                        String(
+                            periodNumber
+                        ),
+
+                    subject:
+                        lectureGroup.subject,
+
+                    classGroup:
+                        group,
+
+                    startTime,
+
+                    endTime,
+
+                    notificationTest:
+                        item.attendanceNotificationTest
+                            ? "1"
+                            : ""
+
+                }).toString();
+
+
+            const label =
+                group
+                    ? `（${group}クラス）`
+                    : "";
+
+
+            const payload =
+
+                notificationType ===
+                "arrival"
+
+                    ? {
+
+                        title:
+                            `📚 出席確認 ${label}`,
+
+                        body:
+                            `${lectureGroup.subject}：出席または欠席を選択してください`,
+
+                        url:
+                            `${SITE_URL}/attendance_check.html?${query}`,
+
+                        tag:
+                            `attendance-${recordId}-${encodeURIComponent(
+                                group || "all"
+                            )}`
+
+                    }
+
+                    : {
+
+                        title:
+                            `🚪 退席確認 ${label}`,
+
+                        body:
+                            `${lectureGroup.subject}：退席または早退を選択してください`,
+
+                        url:
+                            `${SITE_URL}/attendance_check.html?${query}`,
+
+                        tag:
+                            `departure-${recordId}`
+
+                    };
+
+
+            const results =
+                await sendToUserDevices(
+                    userDoc.id,
+                    payload
+                );
+
+
+            await dispatchRef.update({
+                results,
+                sentAt:
+                    new Date()
+            });
+
+
+            /*
+            テスト通知の場合は
+            結果をユーザーdocへ保存
+            */
+
+            if (
+                item.attendanceNotificationTest
+            ) {
+
+                await userDoc.ref.update({
+
+                    "attendanceNotificationTest.lastSentAt":
+                        new Date(),
+
+                    "attendanceNotificationTest.lastResults":
+                        results
+
+                });
+
+            }
+
         }
     }
 }

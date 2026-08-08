@@ -26,7 +26,8 @@ from "./personal_timetable_data.js";
 import {
     setupClassSelection,
     checkClassSelectionRequired,
-    setClassSelectionSchedule
+    setClassSelectionSchedule,
+    applyClassSelections
 } from "./class_selection.js";
 
 import {
@@ -931,29 +932,38 @@ async function loadTodaySchedule() {
 
         lectureSchedules =
             scheduleDays.map(day => ({
-                date: day.date || "",
-                title: day.title || "次回講義日",
-                label: day.label || "",
-                schedules: Array.isArray(day.schedules)
-                    ? day.schedules.filter(item => {
 
-                        if(
-                            !isEnrolledScheduleItem(
-                                item,
-                                enrolledAliases
+                date:
+                    day.date || "",
+
+                title:
+                    day.title ||
+                    "次回講義日",
+
+                label:
+                    day.label || "",
+
+                schedules:
+                    Array.isArray(
+                        day.schedules
+                    )
+                        ? day.schedules
+                            .filter(
+                                item =>
+                                    isEnrolledScheduleItem(
+                                        item,
+                                        enrolledAliases
+                                    )
                             )
-                        ){
-                            return false;
-                        }
+                            .map(
+                                item => ({
+                                    ...item,
+                                    date:
+                                        day.date || ""
+                                })
+                            )
+                        : []
 
-
-                        return isSelectedClassSchedule(
-                            item,
-                            day.date
-                        );
-
-                    })
-                    : []
             }));
 
     } else {
@@ -975,16 +985,6 @@ async function loadTodaySchedule() {
         ];
 
     }
-
-    // クラス選択用に時間割を渡す
-    setClassSelectionSchedule(
-        lectureSchedules.flatMap(day =>
-            (day.schedules || []).map(item => ({
-                ...item,
-                date: day.date
-            }))
-        )
-    );
 
     const scheduleParams = new URLSearchParams(location.search);
     if (scheduleParams.get("clearAttendanceTestDate") === "1") {
@@ -1042,27 +1042,97 @@ async function loadTodaySchedule() {
         }
     }
 
-    const selectedAttendanceClass = userSnapshot?.data()?.attendanceClassGroup || "";
-    if (selectedAttendanceClass) {
-        lectureSchedules = lectureSchedules.map(day => ({
-            ...day,
-            schedules: (day.schedules || []).filter(item =>
-                !item.classGroup || item.classGroup === selectedAttendanceClass
-            )
-        }));
-    }
+    /*
+クラス選択用には、
+履修済みの生時間割をそのまま渡す。
 
-    let availableClassGroups = [...new Set(
-        lectureSchedules.flatMap(day => day.schedules || [])
-            .filter(item => !grade || String(item.grade || "") === String(grade))
-            .map(item => String(item.classGroup || "").trim())
-            .filter(Boolean)
-    )];
-    const standardClassGroups = availableClassGroups.filter(group => /^[A-DＡ-Ｄ]クラス$/.test(group));
-    if (standardClassGroups.length > 1) availableClassGroups = standardClassGroups;
-    if (!userSnapshot?.data()?.attendanceClassGroup && availableClassGroups.length > 1) {
-        showAttendanceClassSelector(availableClassGroups);
-    }
+classGroupありの講義は、
+この後classSelectionsを使って
+ホーム表示対象を決める。
+*/
+
+setClassSelectionSchedule(
+
+    lectureSchedules.flatMap(
+        day =>
+
+            (day.schedules || [])
+                .map(
+                    item => ({
+                        ...item,
+
+                        date:
+                            day.date || ""
+                    })
+                )
+    )
+
+);
+
+
+/*
+Firestoreに保存済みの
+日付 × 科目 × 時限ごとの
+クラス選択を取得。
+*/
+
+const classSelections =
+
+    userSnapshot?.data()
+        ?.classSelections &&
+    typeof userSnapshot.data()
+        .classSelections ===
+        "object"
+
+        ? userSnapshot.data()
+            .classSelections
+
+        : {};
+
+
+/*
+ホーム時間割へクラス選択を反映。
+
+・classGroupなし
+  → そのまま表示
+
+・classGroupあり、未選択
+  → 表示しない
+     後で選択ポップアップ
+
+・選択クラス一致
+  → 表示
+
+・クラスなし
+  → 表示しない
+*/
+
+lectureSchedules =
+
+    lectureSchedules.map(
+        day => ({
+
+            ...day,
+
+            schedules:
+                applyClassSelections(
+
+                    (day.schedules || [])
+                        .map(
+                            item => ({
+                                ...item,
+
+                                date:
+                                    day.date || ""
+                            })
+                        ),
+
+                    classSelections
+
+                )
+
+        })
+    );
 
     const today =
         new Date();
@@ -1289,107 +1359,6 @@ async function loadTodaySchedule() {
 
 }
 
-function isSelectedClassSchedule(
-    item,
-    date
-){
-
-    const classGroup =
-        item.classGroup;
-
-
-    // クラス指定なし
-    if(!classGroup){
-
-        return true;
-
-    }
-
-
-
-    const groups =
-        extractClassGroups(
-            classGroup
-        );
-
-
-    // A/Bなど複数クラスではない
-    if(groups.length <= 1){
-
-        return true;
-
-    }
-
-
-
-    const key =
-        `${item.subject}_${date}_${item.period}`;
-
-
-
-    const selections =
-        JSON.parse(
-            localStorage.getItem(
-                "classSelections"
-            ) || "{}"
-        );
-
-
-
-    const selected =
-        selections[key];
-
-
-
-    // 未選択なら一旦表示
-    // popup側で選択を促す
-    if(!selected){
-
-        return true;
-
-    }
-
-
-
-    return selected === item.class;
-
-}
-
-function extractClassGroups(value){
-
-    if(!value){
-        return [];
-    }
-
-
-    const text =
-        String(value)
-        .toUpperCase()
-        .replaceAll("クラス","")
-        .replaceAll("組","")
-        .trim();
-
-
-    const alphabetGroups =
-        text.match(/[A-Z]/g);
-
-
-    if(alphabetGroups){
-
-        return [
-            ...new Set(alphabetGroups)
-        ];
-
-    }
-
-
-    return text
-        .split(/[\/・,、\s]+/)
-        .map(v => v.trim())
-        .filter(Boolean);
-
-}
-
 function renderCurrentLectureSchedule(
     grade
 ) {
@@ -1553,45 +1522,6 @@ function renderCurrentLectureSchedule(
 
     }
 
-}
-
-function showAttendanceClassSelector(groups) {
-    if (document.getElementById("attendanceClassSelector")) return;
-    const overlay = document.createElement("div");
-    overlay.id = "attendanceClassSelector";
-    overlay.className = "exam-popup-overlay show attendance-class-selector";
-    const card = document.createElement("div");
-    card.className = "exam-popup-card";
-    const title = document.createElement("h2");
-    title.textContent = "所属クラスを選択";
-    const description = document.createElement("p");
-    description.textContent = "時間割がクラス別に分かれています。選択すると、そのクラスの出席通知だけが届きます。";
-    const choices = document.createElement("div");
-    choices.className = "attendance-class-options";
-    for (const group of groups) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "main-button";
-        button.textContent = group;
-        button.onclick = async () => {
-            button.disabled = true;
-            await updateDoc(doc(db, "users", studentNumber), {
-                attendanceClassGroup: group,
-                attendanceClassGroupSelectedAt: new Date().toISOString()
-            });
-            overlay.remove();
-            location.reload();
-        };
-        choices.appendChild(button);
-    }
-    const later = document.createElement("button");
-    later.type = "button";
-    later.className = "btn attendance-class-later";
-    later.textContent = "あとで選ぶ（全クラス通知）";
-    later.onclick = () => overlay.remove();
-    card.append(title, description, choices, later);
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
 }
 
 function splitLectureScheduleLabel(schedule) {

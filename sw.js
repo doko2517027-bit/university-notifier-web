@@ -539,20 +539,48 @@ function createAttendanceTargetUrl(
     notificationType
 ) {
 
+    /*
+     * GitHub Pagesでは
+     *
+     * https://...github.io/university-notifier-web/
+     *
+     * がService Workerのscopeになる。
+     *
+     * origin直下 "/" を使うと
+     * /university-notifier-web/ が消えるため、
+     * 必ずregistration.scopeを基準にする。
+     */
+
+    const fallbackUrl =
+        new URL(
+            "index.html",
+            self.registration.scope
+        );
+
+
     let url;
 
 
     try {
 
+        /*
+         * Firebase Functions側から渡されたURLを
+         * 最優先でそのまま使う。
+         *
+         * 出席通知
+         * → attendance_check.html
+         *
+         * クラス選択通知
+         * → index.html
+         */
+
         url =
-            new URL(
-
-                data.url ||
-                "/attendance.html",
-
-                self.location.origin
-
-            );
+            data.url
+                ? new URL(
+                    data.url,
+                    self.registration.scope
+                )
+                : fallbackUrl;
 
     } catch (error) {
 
@@ -564,27 +592,29 @@ function createAttendanceTargetUrl(
 
         url =
             new URL(
-                "/attendance.html",
-                self.location.origin
+                fallbackUrl.href
             );
 
     }
 
 
     /*
-     * 出席通知は必ず
-     * attendance.htmlへ移動させる。
+     * Functions側のURLにすでに
+     *
+     * subject
+     * period
+     * date
+     * action
+     * recordId
+     * scheduleId
+     * classGroup
+     * startTime
+     * endTime
+     *
+     * が入っている。
+     *
+     * ここでは消さずに補助情報だけ追加する。
      */
-    if (
-        notificationType === "start" ||
-        notificationType === "end"
-    ) {
-
-        url.pathname =
-            "/attendance.html";
-
-    }
-
 
     const subject =
         normalizeText(
@@ -600,15 +630,17 @@ function createAttendanceTargetUrl(
 
     const date =
         normalizeDate(
-
             data.date ||
-
             data.attendanceDate
-
         );
 
 
-    if (subject) {
+    if (
+        subject &&
+        !url.searchParams.has(
+            "subject"
+        )
+    ) {
 
         url.searchParams.set(
             "subject",
@@ -618,7 +650,12 @@ function createAttendanceTargetUrl(
     }
 
 
-    if (period) {
+    if (
+        period &&
+        !url.searchParams.has(
+            "period"
+        )
+    ) {
 
         url.searchParams.set(
             "period",
@@ -628,7 +665,12 @@ function createAttendanceTargetUrl(
     }
 
 
-    if (date) {
+    if (
+        date &&
+        !url.searchParams.has(
+            "date"
+        )
+    ) {
 
         url.searchParams.set(
             "date",
@@ -638,40 +680,43 @@ function createAttendanceTargetUrl(
     }
 
 
+    /*
+     * actionはFunctions側の
+     * arrival / departure を優先する。
+     *
+     * URLにactionがない古い通知だけ補完。
+     */
+
     if (
-        notificationType ===
-        "start"
+        !url.searchParams.has(
+            "action"
+        )
     ) {
 
-        url.searchParams.set(
-            "action",
+        if (
+            notificationType ===
             "start"
-        );
+        ) {
+
+            url.searchParams.set(
+                "action",
+                "arrival"
+            );
+
+        }
 
 
-        url.searchParams.set(
-            "source",
-            "start_notification"
-        );
-
-    }
-
-
-    if (
-        notificationType ===
-        "end"
-    ) {
-
-        url.searchParams.set(
-            "action",
+        if (
+            notificationType ===
             "end"
-        );
+        ) {
 
+            url.searchParams.set(
+                "action",
+                "departure"
+            );
 
-        url.searchParams.set(
-            "source",
-            "end_notification"
-        );
+        }
 
     }
 
@@ -867,84 +912,135 @@ function createClickTargetUrl(
     clickedAction
 ) {
 
+    const fallbackUrl =
+        new URL(
+            "index.html",
+            self.registration.scope
+        );
+
+
     let url;
 
 
     try {
 
         url =
-            new URL(
-
-                notificationData.url ||
-
-                "/attendance.html",
-
-                self.location.origin
-
-            );
+            notificationData.url
+                ? new URL(
+                    notificationData.url,
+                    self.registration.scope
+                )
+                : fallbackUrl;
 
     } catch {
 
         url =
             new URL(
-                "/attendance.html",
-                self.location.origin
+                fallbackUrl.href
             );
 
     }
 
 
-    const notificationType =
+    /*
+     * 通知内ボタンが押された場合だけ
+     * actionを書き換える。
+     *
+     * 通知本体タップの場合は、
+     * Functionsから渡された
+     * arrival/departureをそのまま使う。
+     */
+
+    const clicked =
         normalizeText(
-            notificationData
-                .notificationType
-        );
+            clickedAction
+        ).toLowerCase();
 
 
-    const action =
-        normalizeClickedAction(
+    if (clicked) {
 
-            clickedAction ||
+        if (
+            [
+                "start",
+                "arrival",
+                "attendance",
+                "present"
+            ].includes(
+                clicked
+            )
+        ) {
 
-            notificationData
-                .defaultAction ||
-
-            notificationType
-
-        );
-
-
-    if (action) {
-
-        url.searchParams.set(
-            "action",
-            action
-        );
-
-    }
+            url.searchParams.set(
+                "action",
+                "arrival"
+            );
 
 
-    if (
-        action === "start" ||
-        action === "absent"
-    ) {
-
-        url.searchParams.set(
-            "source",
-            "start_notification"
-        );
-
-    }
+            url.searchParams.set(
+                "choice",
+                "arrival"
+            );
 
 
-    if (
-        action === "end"
-    ) {
+            url.searchParams.set(
+                "source",
+                "start_notification"
+            );
 
-        url.searchParams.set(
-            "source",
-            "end_notification"
-        );
+        } else if (
+            [
+                "absent",
+                "absence"
+            ].includes(
+                clicked
+            )
+        ) {
+
+            url.searchParams.set(
+                "action",
+                "arrival"
+            );
+
+
+            url.searchParams.set(
+                "choice",
+                "absence"
+            );
+
+
+            url.searchParams.set(
+                "source",
+                "start_notification"
+            );
+
+        } else if (
+            [
+                "end",
+                "finish",
+                "departure"
+            ].includes(
+                clicked
+            )
+        ) {
+
+            url.searchParams.set(
+                "action",
+                "departure"
+            );
+
+
+            url.searchParams.set(
+                "choice",
+                "departure"
+            );
+
+
+            url.searchParams.set(
+                "source",
+                "end_notification"
+            );
+
+        }
 
     }
 
@@ -967,7 +1063,12 @@ function createClickTargetUrl(
         );
 
 
-    if (subject) {
+    if (
+        subject &&
+        !url.searchParams.has(
+            "subject"
+        )
+    ) {
 
         url.searchParams.set(
             "subject",
@@ -977,7 +1078,12 @@ function createClickTargetUrl(
     }
 
 
-    if (period) {
+    if (
+        period &&
+        !url.searchParams.has(
+            "period"
+        )
+    ) {
 
         url.searchParams.set(
             "period",
@@ -987,7 +1093,12 @@ function createClickTargetUrl(
     }
 
 
-    if (date) {
+    if (
+        date &&
+        !url.searchParams.has(
+            "date"
+        )
+    ) {
 
         url.searchParams.set(
             "date",

@@ -303,6 +303,9 @@ export function normalizeAttendanceLecture(
                 lecture.scheduleDocId
             ),
 
+        attendanceNotificationTest:
+            lecture.attendanceNotificationTest === true,
+
         startTime:
             lectureWindow.startTime,
 
@@ -506,6 +509,10 @@ function createBaseRecord(
         scheduleDocumentId:
             normalized
                 .scheduleDocumentId,
+
+        attendanceNotificationTest:
+            normalized
+                .attendanceNotificationTest === true,
 
         startTime:
             normalized.startTime,
@@ -1597,22 +1604,69 @@ export function recalculateAttendanceStatus(
             : null;
 
 
-    const resolvedStartAt =
+    /*
+    通常講義：
+    Firestoreのサーバー時刻を使って
+    改ざんされにくい判定をする。
+
+    通知テスト：
+    attendanceTestClockで渡した
+    クライアント側テスト時刻を使う。
+    */
+
+    const isNotificationTest =
+        record.attendanceNotificationTest ===
+        true;
+
+
+    const serverStartAt =
         firestoreTimestampToDate(
             record.startStampedAt
         );
 
 
-    const resolvedEndAt =
+    const serverEndAt =
         firestoreTimestampToDate(
             record.endStampedAt
         );
 
 
-    /*
-     * Firestoreのサーバー時刻が取れている場合は、
-     * クライアント判定よりサーバー時刻を優先する。
-     */
+    const clientStartAt =
+        firestoreTimestampToDate(
+            record.startClientAt
+        );
+
+
+    const clientEndAt =
+        firestoreTimestampToDate(
+            record.endClientAt
+        );
+
+
+    const resolvedStartAt =
+
+        isNotificationTest
+
+            ? (
+                clientStartAt ||
+                serverStartAt
+            )
+
+            : serverStartAt;
+
+
+    const resolvedEndAt =
+
+        isNotificationTest
+
+            ? (
+                clientEndAt ||
+                serverEndAt
+            )
+
+            : serverEndAt;
+
+
     if (resolvedStartAt) {
 
         startResult =

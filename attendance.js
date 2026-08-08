@@ -380,6 +380,9 @@ let toastTimer =
 let pendingAttendanceEdit =
     null;
 
+const CLASS_SELECTION_NONE =
+    "__NONE__";
+
 
 /* ========================================
    初期化
@@ -932,7 +935,11 @@ async function loadAttendanceData() {
                 : [];
 
 
-        const enrolled =
+        /*
+        履修登録済み講義だけ取得
+        */
+
+        let enrolled =
             rawLectures.filter(
                 item =>
                     isEnrolledScheduleItem(
@@ -941,6 +948,155 @@ async function loadAttendanceData() {
                     )
             );
 
+
+        /*
+        出席通知テスト講義を
+        出席管理画面にも追加する。
+
+        これで、
+
+        通知テスト
+        ↓
+        出席管理にテスト科目表示
+        ↓
+        開始・終了打刻
+
+        まで同じ講義として扱える。
+        */
+
+        const notificationTest =
+            userData
+                ?.attendanceNotificationTest ||
+            {};
+
+
+        const notificationTestActive =
+
+            notificationTest.enabled === true &&
+
+            normalizeDate(
+                notificationTest.date
+            ) === effectiveDate &&
+
+            Date.parse(
+                notificationTest.expiresAt || ""
+            ) > Date.now();
+
+
+        if (notificationTestActive) {
+
+            const testLectures =
+                Array.isArray(
+                    notificationTest.lectures
+                )
+                    ? notificationTest.lectures
+                    : [notificationTest];
+
+
+            for (const test of testLectures) {
+
+                const subject =
+                    normalizeText(
+                        test.subject
+                    );
+
+
+                if (!subject) {
+
+                    continue;
+
+                }
+
+
+                /*
+                履修登録しているテスト科目だけ対象
+                */
+
+                if (
+                    !isEnrolledScheduleItem(
+                        {
+                            subject
+                        },
+                        enrolledAliases
+                    )
+                ) {
+
+                    continue;
+
+                }
+
+
+                const period =
+                    normalizePeriod(
+                        test.period || 1
+                    );
+
+
+                const testId =
+                    `${notificationTest.testId || "today"}_` +
+                    `${period}_` +
+                    `${test.classGroup || "all"}`;
+
+
+                /*
+                Firebase Functions側の
+                テスト通知recordIdと合わせる。
+                */
+
+                const testScheduleId =
+                    `${scheduleId}_test_${testId}`;
+
+
+                enrolled.push({
+
+                    subject,
+
+                    grade:
+                        userData.grade ||
+                        localStorage.getItem(
+                            "grade"
+                        ) ||
+                        "",
+
+                    period,
+
+                    classGroup:
+                        test.classGroup || "",
+
+                    startTime:
+                        test.startTime || "",
+
+                    endTime:
+                        test.endTime || "",
+
+                    building:
+                        "CareMate",
+
+                    room:
+                        "クラス通知テスト",
+
+                    date:
+                        effectiveDate,
+
+                    scheduleDocumentId:
+                        testScheduleId,
+
+                    attendanceNotificationTest:
+                        true,
+
+                    testId
+
+                });
+
+            }
+
+        }
+
+
+        /*
+        日付 × 科目 × 時限ごとの
+        クラス選択を反映
+        */
 
         const classResult =
             buildStudentLectures(
@@ -1141,9 +1297,12 @@ function buildStudentLectures(
         new Map();
 
 
-    for (
-        const item of source
-    ) {
+    /*
+    日付 × 科目 × 時限
+    でまとめる
+    */
+
+    for (const item of source) {
 
         const subject =
             normalizeText(
@@ -1173,25 +1332,19 @@ function buildStudentLectures(
             `${date}|${subject}|${period}`;
 
 
-        if (
-            !groups.has(key)
-        ) {
+        if (!groups.has(key)) {
 
             groups.set(
                 key,
                 {
-
                     date,
-
                     subject,
-
                     period,
 
                     rows: [],
 
                     options:
                         new Set()
-
                 }
             );
 
@@ -1212,7 +1365,12 @@ function buildStudentLectures(
 
             period,
 
+            /*
+            テスト講義には専用scheduleIdが
+            入っているので上書きしない
+            */
             scheduleDocumentId:
+                item.scheduleDocumentId ||
                 scheduleId
 
         };
@@ -1222,6 +1380,11 @@ function buildStudentLectures(
             row
         );
 
+
+        /*
+        classGroupが書かれている場合だけ
+        クラス候補として取得する。
+        */
 
         extractClassGroups(
             row.classGroup
@@ -1264,10 +1427,67 @@ function buildStudentLectures(
             );
 
 
-        if (
-            options.length > 1 &&
-            !selected
-        ) {
+        /*
+        classGroup記載なし
+
+        → クラス選択不要
+        */
+
+        if (options.length === 0) {
+
+            const preferred =
+                group.rows[0];
+
+
+            result.push({
+
+                ...mergeRows(
+                    group.rows,
+                    preferred
+                ),
+
+                date:
+                    group.date,
+
+                subject:
+                    group.subject,
+
+                period:
+                    group.period,
+
+                selectedClassGroup:
+                    "",
+
+                classOptions:
+                    [],
+
+                scheduleDocumentId:
+                    preferred
+                        ?.scheduleDocumentId ||
+                    scheduleId
+
+            });
+
+
+            continue;
+
+        }
+
+
+        /*
+        classGroupが1つでも書かれていれば
+        必ず選択が必要。
+
+        例：
+        成人看護学（Aクラス）
+
+        → Aクラス
+        → クラスなし
+
+        のどちらかを選択する。
+        */
+
+        if (!selected) {
 
             missing.push({
 
@@ -1285,10 +1505,39 @@ function buildStudentLectures(
             });
 
 
+            /*
+            未選択の講義は
+            打刻対象にしない
+            */
+
             continue;
 
         }
 
+
+        /*
+        「クラスなし」
+
+        → 今日この講義を受けない
+
+        ・出席管理に表示しない
+        ・打刻対象にしない
+        */
+
+        if (
+            selected ===
+            CLASS_SELECTION_NONE
+        ) {
+
+            continue;
+
+        }
+
+
+        /*
+        選択したクラスに対応する
+        講義だけ取得
+        */
 
         const matchingRows =
             group.rows.filter(
@@ -1300,8 +1549,12 @@ function buildStudentLectures(
                         );
 
 
+                    /*
+                    クラス表記なしの補助行が
+                    同じ講義に含まれている場合は残す
+                    */
+
                     if (
-                        options.length <= 1 ||
                         rowGroups.length === 0
                     ) {
 
@@ -1318,6 +1571,12 @@ function buildStudentLectures(
             );
 
 
+        /*
+        選択したクラスの講義がない
+
+        → 対象外
+        */
+
         if (
             !matchingRows.length
         ) {
@@ -1328,6 +1587,7 @@ function buildStudentLectures(
 
 
         const preferred =
+
             matchingRows.find(
                 row =>
                     extractClassGroups(
@@ -1336,6 +1596,7 @@ function buildStudentLectures(
                         selected
                     )
             ) ||
+
             matchingRows[0];
 
 
@@ -1356,14 +1617,14 @@ function buildStudentLectures(
                 group.period,
 
             selectedClassGroup:
-                selected ||
-                options[0] ||
-                "",
+                selected,
 
             classOptions:
                 options,
 
             scheduleDocumentId:
+                preferred
+                    ?.scheduleDocumentId ||
                 scheduleId
 
         });
@@ -1374,8 +1635,13 @@ function buildStudentLectures(
     result.sort(
         (left, right) =>
 
-            Number(left.period) -
-            Number(right.period) ||
+            Number(
+                left.period
+            ) -
+
+            Number(
+                right.period
+            ) ||
 
             String(
                 left.startTime || ""
@@ -1558,9 +1824,29 @@ function normalizeSelection(
     }
 
 
+    const raw =
+        normalizeText(
+            value
+        );
+
+
+    /*
+    クラスなし
+    */
+
+    if (
+        raw ===
+        CLASS_SELECTION_NONE
+    ) {
+
+        return CLASS_SELECTION_NONE;
+
+    }
+
+
     return (
         extractClassGroups(
-            value
+            raw
         )[0] ||
         ""
     );
