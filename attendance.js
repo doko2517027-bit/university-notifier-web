@@ -689,9 +689,19 @@ document.addEventListener(
 
 
         if (!target) {
-
             return;
+        }
 
+
+        /*
+        未来の講義・判定待ちは
+        編集画面を開かない。
+        */
+        if (
+            target.dataset.editLocked ===
+            "true"
+        ) {
+            return;
         }
 
 
@@ -4121,6 +4131,13 @@ function renderSubjectSessionRow(
         );
 
 
+    const editLocked =
+        !isAttendanceSessionEditable(
+            session,
+            display
+        );
+
+
     return `
         <div
             class="attendance-date-row">
@@ -4166,7 +4183,12 @@ function renderSubjectSessionRow(
                 )}"
                 data-record-id="${escapeHtml(
                     session.record?.id || ""
-                )}">
+                )}"
+                data-edit-locked="${
+                    editLocked
+                        ? "true"
+                        : "false"
+                }">
 
                 ${escapeHtml(
                     display.label
@@ -4176,6 +4198,119 @@ function renderSubjectSessionRow(
 
         </div>
     `;
+
+}
+
+
+function isAttendanceSessionEditable(
+    session,
+    display
+) {
+
+    /*
+    未打刻・判定待ちは編集不可。
+    */
+    if (
+        display?.className ===
+        "is-pending"
+    ) {
+        return false;
+    }
+
+
+    const sessionDate =
+        normalizeDate(
+            session?.date
+        );
+
+
+    if (!sessionDate) {
+        return false;
+    }
+
+
+    const now =
+        new Date();
+
+
+    const today =
+        localDateKey(
+            now
+        );
+
+
+    /*
+    明日以降の講義は編集不可。
+    */
+    if (
+        sessionDate >
+        today
+    ) {
+        return false;
+    }
+
+
+    /*
+    過去の講義で、
+    判定済みなら編集可能。
+    */
+    if (
+        sessionDate <
+        today
+    ) {
+        return true;
+    }
+
+
+    /*
+    今日の講義。
+
+    まだ講義開始前なら
+    編集不可。
+    */
+    if (session?.lecture) {
+
+        try {
+
+            const lecture =
+                normalizeAttendanceLecture({
+                    ...session.lecture,
+
+                    date:
+                        sessionDate,
+
+                    period:
+                        session.period ||
+                        session.lecture
+                            .period
+                });
+
+
+            if (
+                now <
+                lecture
+                    .lectureWindow
+                    .lectureStart
+            ) {
+                return false;
+            }
+
+
+        } catch (error) {
+
+            console.warn(
+                "編集可否判定エラー:",
+                error
+            );
+
+            return false;
+
+        }
+
+    }
+
+
+    return true;
 
 }
 
