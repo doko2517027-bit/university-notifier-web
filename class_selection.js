@@ -10,26 +10,33 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
-/* ========================================
-   定数
-======================================== */
-
 export const CLASS_SELECTION_NONE =
     "__NONE__";
 
 
-let todayScheduleData = [];
+let classSelectionSchedule = [];
 
 
 /* ========================================
-   app.js から時間割を受け取る
+   初期化
+======================================== */
+
+export function setupClassSelection() {
+
+    injectClassSelectionStyles();
+
+}
+
+
+/* ========================================
+   app.jsから時間割を受け取る
 ======================================== */
 
 export function setClassSelectionSchedule(
     schedule
 ) {
 
-    todayScheduleData =
+    classSelectionSchedule =
         Array.isArray(schedule)
             ? schedule
             : [];
@@ -50,7 +57,10 @@ export async function checkClassSelectionRequired() {
 
     try {
 
-        const userSnap =
+        injectClassSelectionStyles();
+
+
+        const userSnapshot =
             await getDoc(
                 doc(
                     db,
@@ -60,53 +70,92 @@ export async function checkClassSelectionRequired() {
             );
 
 
-        if (!userSnap.exists()) {
+        if (!userSnapshot.exists()) {
             return;
         }
 
 
-        const user =
-            userSnap.data() || {};
+        const userData =
+            userSnapshot.data() || {};
 
 
-        const selected =
-            user.classSelections &&
-            typeof user.classSelections === "object"
-                ? user.classSelections
-                : {};
+        const selections =
+            userData.classSelections || {};
+
+
+        /*
+        通常起動なら今日だけ。
+
+        クラス選択Pushなどから
+        ?date=YYYY-MM-DD
+        が付いている場合はその日。
+        */
+        const targetDate =
+            resolveTargetDate();
+
+
+        /*
+        重要：
+        classSelectionScheduleには
+        app.jsから複数日分が来る可能性がある。
+
+        ここで対象日のみに限定する。
+        */
+        const targetSchedule =
+            classSelectionSchedule.filter(
+                item =>
+                    normalizeDate(
+                        item.date
+                    ) === targetDate
+            );
+
+
+        if (!targetSchedule.length) {
+
+            closeClassSelectionPopup();
+
+            return;
+
+        }
 
 
         const targets =
             buildClassSelectionTargets(
-                todayScheduleData
+                targetSchedule
             );
 
 
         /*
-         すでに選択済みの
-         日付 × 科目 × 時限は除外
-        */
+        すでに選択済みの科目は
+        ポップアップに出さない。
 
+        過去の保存済み選択も出ない。
+        */
         const unresolved =
             targets.filter(
                 target =>
                     !Object.prototype
                         .hasOwnProperty.call(
-                            selected,
+                            selections,
                             target.key
                         )
             );
 
 
         if (!unresolved.length) {
+
+            closeClassSelectionPopup();
+
             return;
+
         }
 
 
         showClassSelectionPopup(
             unresolved,
-            selected
+            selections
         );
+
 
     } catch (error) {
 
@@ -121,64 +170,52 @@ export async function checkClassSelectionRequired() {
 
 
 /* ========================================
-   選択対象生成
+   選択対象作成
 ======================================== */
 
 export function buildClassSelectionTargets(
     schedule
 ) {
 
-    const map =
+    const groups =
         new Map();
 
 
-    for (
-        const rawItem of
-        Array.isArray(schedule)
-            ? schedule
-            : []
-    ) {
+    for (const item of schedule || []) {
 
-        const item = {
-            ...rawItem,
-
-            subject:
-                normalizeText(
-                    rawItem.subject ||
-                    rawItem.name ||
-                    rawItem.title
-                ),
-
-            date:
-                normalizeDate(
-                    rawItem.date
-                ),
-
-            period:
-                normalizePeriod(
-                    rawItem.period
-                )
-        };
+        const subject =
+            normalizeText(
+                item.subject ||
+                item.name ||
+                item.title
+            );
 
 
-        /*
-         科目名・日付・時限がないものは対象外
-        */
+        const date =
+            normalizeDate(
+                item.date
+            );
+
+
+        const period =
+            normalizePeriod(
+                item.period
+            );
+
 
         if (
-            !item.subject ||
-            !item.date ||
-            !item.period
+            !subject ||
+            !date ||
+            !period
         ) {
             continue;
         }
 
 
         /*
-         classGroup自体がない講義は
-         クラス選択不要
+        classGroup表記なし
+        → クラス選択不要
         */
-
         const classGroups =
             extractClassGroups(
                 item.classGroup
@@ -191,83 +228,429 @@ export function buildClassSelectionTargets(
 
 
         const key =
-            createClassSelectionKey(
-                item
-            );
+            createClassSelectionKey({
+                subject,
+                date,
+                period
+            });
 
 
-        if (!map.has(key)) {
+        if (!groups.has(key)) {
 
-            map.set(
+            groups.set(
                 key,
                 {
                     key,
-
-                    subject:
-                        item.subject,
-
-                    date:
-                        item.date,
-
-                    period:
-                        item.period,
-
+                    subject,
+                    date,
+                    period,
                     options:
-                        new Set(),
-
-                    rows:
-                        []
+                        new Set()
                 }
             );
 
         }
 
 
-        const target =
-            map.get(key);
+        const group =
+            groups.get(key);
 
 
-        target.rows.push(
-            item
-        );
+        for (const classGroup of classGroups) {
 
+            group.options.add(
+                classGroup
+            );
 
-        classGroups.forEach(
-            classGroup => {
-
-                target.options.add(
-                    classGroup
-                );
-
-            }
-        );
+        }
 
     }
 
 
-    return [
-        ...map.values()
-    ].map(
-        target => ({
-            ...target,
+    return [...groups.values()]
+        .map(
+            item => ({
+                ...item,
 
-            options:
-                [...target.options]
-                    .sort(
-                        (a, b) =>
-                            a.localeCompare(
-                                b,
-                                "ja"
-                            )
-                    )
-        })
-    );
+                options:
+                    [...item.options]
+                        .sort(
+                            (left, right) =>
+                                left.localeCompare(
+                                    right,
+                                    "ja"
+                                )
+                        )
+            })
+        )
+        .sort(
+            (left, right) =>
+                left.date.localeCompare(
+                    right.date
+                ) ||
+                Number(left.period) -
+                    Number(right.period) ||
+                left.subject.localeCompare(
+                    right.subject,
+                    "ja"
+                )
+        );
 
 }
 
 
 /* ========================================
-   選択結果を時間割へ反映
+   ポップアップ
+======================================== */
+
+function showClassSelectionPopup(
+    targets,
+    existingSelections
+) {
+
+    const overlay =
+        document.getElementById(
+            "classSelectionOverlay"
+        );
+
+
+    const list =
+        document.getElementById(
+            "classSelectionList"
+        );
+
+
+    const saveButton =
+        document.getElementById(
+            "saveClassSelection"
+        );
+
+
+    if (
+        !overlay ||
+        !list ||
+        !saveButton
+    ) {
+        return;
+    }
+
+
+    list.innerHTML = "";
+
+
+    for (const target of targets) {
+
+        const box =
+            document.createElement(
+                "div"
+            );
+
+
+        box.className =
+            "class-select-box";
+
+
+        const buttons = [
+
+            ...target.options.map(
+                value => ({
+                    value,
+                    label:
+                        formatClassLabel(
+                            value
+                        )
+                })
+            ),
+
+            {
+                value:
+                    CLASS_SELECTION_NONE,
+
+                label:
+                    "クラスなし"
+            }
+
+        ];
+
+
+        box.innerHTML = `
+
+            <div class="class-select-heading">
+
+                <strong>
+                    ${escapeHtml(
+                        target.subject
+                    )}
+                </strong>
+
+                <span>
+                    ${escapeHtml(
+                        `${target.period}限`
+                    )}
+                </span>
+
+            </div>
+
+
+            <p class="class-select-message">
+
+                ${escapeHtml(
+                    target.subject
+                )}でクラス分けがあります。<br>
+
+                クラスを選択してください。
+
+            </p>
+
+
+            <div class="class-buttons">
+
+                ${
+                    buttons.map(
+                        option => `
+
+                            <button
+                                type="button"
+                                class="main-button class-choice"
+                                data-key="${escapeAttribute(
+                                    target.key
+                                )}"
+                                data-value="${escapeAttribute(
+                                    option.value
+                                )}">
+
+                                ${escapeHtml(
+                                    option.label
+                                )}
+
+                            </button>
+
+                        `
+                    ).join("")
+                }
+
+            </div>
+
+        `;
+
+
+        list.appendChild(
+            box
+        );
+
+    }
+
+
+    list.querySelectorAll(
+        ".class-choice"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const box =
+                        button.closest(
+                            ".class-select-box"
+                        );
+
+
+                    if (!box) {
+                        return;
+                    }
+
+
+                    box.querySelectorAll(
+                        ".class-choice"
+                    )
+                    .forEach(
+                        item =>
+                            item.classList
+                                .remove(
+                                    "selected"
+                                )
+                    );
+
+
+                    button.classList.add(
+                        "selected"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    saveButton.onclick =
+        async () => {
+
+            const selectedButtons =
+                list.querySelectorAll(
+                    ".class-choice.selected"
+                );
+
+
+            /*
+            全科目を選ばないと保存不可。
+            */
+            if (
+                selectedButtons.length !==
+                targets.length
+            ) {
+
+                alert(
+                    "すべての科目でクラスを選択してください。"
+                );
+
+                return;
+
+            }
+
+
+            const newSelections = {};
+
+
+            selectedButtons.forEach(
+                button => {
+
+                    newSelections[
+                        button.dataset.key
+                    ] =
+                        button.dataset.value;
+
+                }
+            );
+
+
+            /*
+            既存データを残す。
+
+            過去日・他時限の選択を
+            消してはいけない。
+            */
+            const mergedSelections = {
+
+                ...existingSelections,
+
+                ...newSelections
+
+            };
+
+
+            saveButton.disabled =
+                true;
+
+
+            try {
+
+                await updateDoc(
+                    doc(
+                        db,
+                        "users",
+                        studentNumber
+                    ),
+                    {
+                        classSelections:
+                            mergedSelections,
+
+                        classSelectionUpdatedAt:
+                            new Date()
+                                .toISOString()
+                    }
+                );
+
+
+                localStorage.setItem(
+                    "classSelections",
+                    JSON.stringify(
+                        mergedSelections
+                    )
+                );
+
+
+                closeClassSelectionPopup();
+
+
+                /*
+                時間割を選択結果で再描画させるため
+                現状はreload。
+                */
+                location.reload();
+
+
+            } catch (error) {
+
+                console.error(
+                    "クラス選択保存エラー:",
+                    error
+                );
+
+
+                alert(
+                    "クラス選択を保存できませんでした。"
+                );
+
+
+                saveButton.disabled =
+                    false;
+
+            }
+
+        };
+
+
+    overlay.hidden =
+        false;
+
+
+    overlay.classList.add(
+        "show"
+    );
+
+
+    /*
+    開いた瞬間はリスト先頭。
+    */
+    list.scrollTop =
+        0;
+
+}
+
+
+/* ========================================
+   閉じる
+======================================== */
+
+function closeClassSelectionPopup() {
+
+    const overlay =
+        document.getElementById(
+            "classSelectionOverlay"
+        );
+
+
+    if (!overlay) {
+        return;
+    }
+
+
+    overlay.classList.remove(
+        "show"
+    );
+
+
+    overlay.hidden =
+        true;
+
+}
+
+
+/* ========================================
+   選択反映
 ======================================== */
 
 export function applyClassSelections(
@@ -275,28 +658,21 @@ export function applyClassSelections(
     selections = {}
 ) {
 
-    return (
-        Array.isArray(schedule)
-            ? schedule
-            : []
-    ).filter(
+    return (schedule || []).filter(
         item => {
 
-            /*
-             クラス表記なし
-             → 普通の講義なので表示
-            */
-
-            const itemGroups =
+            const groups =
                 extractClassGroups(
                     item.classGroup
                 );
 
 
-            if (!itemGroups.length) {
-
+            /*
+            クラス表記なし
+            → 必ず対象。
+            */
+            if (!groups.length) {
                 return true;
-
             }
 
 
@@ -307,10 +683,9 @@ export function applyClassSelections(
 
 
             /*
-             まだ選択していない
-             → クラス確定前なので表示しない
+            クラス未選択
+            → 表示・出席対象にしない。
             */
-
             if (
                 !Object.prototype
                     .hasOwnProperty.call(
@@ -318,38 +693,30 @@ export function applyClassSelections(
                         key
                     )
             ) {
-
                 return false;
-
             }
 
 
             const selected =
-                normalizeSelectedValue(
+                normalizeSelection(
                     selections[key]
                 );
 
 
             /*
-             「クラスなし」
-             → この講義は本人の講義ではない
+            クラスなし
+            → この時間枠の
+              クラス講義には参加しない。
             */
-
             if (
                 selected ===
                 CLASS_SELECTION_NONE
             ) {
-
                 return false;
-
             }
 
 
-            /*
-             選択したクラスと一致した講義だけ表示
-            */
-
-            return itemGroups.includes(
+            return groups.includes(
                 selected
             );
 
@@ -360,7 +727,7 @@ export function applyClassSelections(
 
 
 /* ========================================
-   選択済みか確認
+   選択取得
 ======================================== */
 
 export function getSelectedClassForLecture(
@@ -381,13 +748,11 @@ export function getSelectedClassForLecture(
                 key
             )
     ) {
-
         return "";
-
     }
 
 
-    return normalizeSelectedValue(
+    return normalizeSelection(
         selections[key]
     );
 
@@ -430,343 +795,6 @@ export function createClassSelectionKey(
 
 
 /* ========================================
-   ポップアップ
-======================================== */
-
-function showClassSelectionPopup(
-    targets,
-    existingSelections
-) {
-
-    const overlay =
-        document.getElementById(
-            "classSelectionOverlay"
-        );
-
-
-    const list =
-        document.getElementById(
-            "classSelectionList"
-        );
-
-
-    const save =
-        document.getElementById(
-            "saveClassSelection"
-        );
-
-
-    if (
-        !overlay ||
-        !list ||
-        !save
-    ) {
-
-        return;
-
-    }
-
-
-    list.innerHTML = "";
-
-
-    targets.forEach(
-        target => {
-
-            const box =
-                document.createElement(
-                    "div"
-                );
-
-
-            box.className =
-                "class-select-box";
-
-
-            const optionButtons =
-
-                target.options
-                    .map(
-                        classGroup => `
-
-                            <button
-                                type="button"
-                                class="main-button class-choice"
-                                data-key="${escapeHtml(target.key)}"
-                                data-value="${escapeHtml(classGroup)}">
-
-                                ${escapeHtml(classGroup)}クラス
-
-                            </button>
-
-                        `
-                    )
-                    .join("");
-
-
-            box.innerHTML = `
-
-                <h3>
-                    ${escapeHtml(target.subject)}
-                </h3>
-
-                <p>
-                    ${escapeHtml(target.subject)}でクラス分けがあります。<br>
-                    クラスを選択してください。
-                </p>
-
-                <small>
-                    ${escapeHtml(target.date)}
-                    ・
-                    ${escapeHtml(formatPeriod(target.period))}
-                </small>
-
-                <div class="class-buttons">
-
-                    ${optionButtons}
-
-                    <button
-                        type="button"
-                        class="main-button class-choice"
-                        data-key="${escapeHtml(target.key)}"
-                        data-value="${CLASS_SELECTION_NONE}">
-
-                        クラスなし
-
-                    </button>
-
-                </div>
-
-            `;
-
-
-            list.appendChild(
-                box
-            );
-
-        }
-    );
-
-
-    list
-        .querySelectorAll(
-            ".class-choice"
-        )
-        .forEach(
-            button => {
-
-                button.onclick =
-                    () => {
-
-                        const parent =
-                            button.closest(
-                                ".class-buttons"
-                            );
-
-
-                        if (!parent) {
-                            return;
-                        }
-
-
-                        parent
-                            .querySelectorAll(
-                                ".class-choice"
-                            )
-                            .forEach(
-                                otherButton => {
-
-                                    otherButton
-                                        .classList
-                                        .remove(
-                                            "selected"
-                                        );
-
-                                }
-                            );
-
-
-                        button
-                            .classList
-                            .add(
-                                "selected"
-                            );
-
-                    };
-
-            }
-        );
-
-
-    overlay.hidden =
-        false;
-
-
-    overlay.classList.add(
-        "show"
-    );
-
-
-    save.onclick =
-        async () => {
-
-            const newSelections =
-                {};
-
-
-            const boxes =
-                list.querySelectorAll(
-                    ".class-select-box"
-                );
-
-
-            for (
-                const box of boxes
-            ) {
-
-                const selectedButton =
-                    box.querySelector(
-                        ".class-choice.selected"
-                    );
-
-
-                /*
-                 全科目について選択必須
-                */
-
-                if (!selectedButton) {
-
-                    alert(
-                        "すべての科目についてクラスを選択してください。"
-                    );
-
-                    return;
-
-                }
-
-
-                const key =
-                    selectedButton
-                        .dataset
-                        .key;
-
-
-                const value =
-                    selectedButton
-                        .dataset
-                        .value;
-
-
-                if (
-                    !key ||
-                    !value
-                ) {
-
-                    continue;
-
-                }
-
-
-                newSelections[key] =
-                    value;
-
-            }
-
-
-            /*
-             ここ重要。
-
-             既存選択を消さず、
-             今回新しく選択したものだけ追加する。
-            */
-
-            const mergedSelections = {
-                ...existingSelections,
-                ...newSelections
-            };
-
-
-            try {
-
-                save.disabled =
-                    true;
-
-
-                save.textContent =
-                    "保存中...";
-
-
-                await updateDoc(
-                    doc(
-                        db,
-                        "users",
-                        studentNumber
-                    ),
-                    {
-                        classSelections:
-                            mergedSelections,
-
-                        classSelectionUpdatedAt:
-                            new Date()
-                                .toISOString()
-                    }
-                );
-
-
-                /*
-                 app.jsとの互換用。
-                 Firestoreを正として、
-                 localStorageにも同じ内容を保存。
-                */
-
-                localStorage.setItem(
-                    "classSelections",
-                    JSON.stringify(
-                        mergedSelections
-                    )
-                );
-
-
-                overlay.classList.remove(
-                    "show"
-                );
-
-
-                overlay.hidden =
-                    true;
-
-
-                location.reload();
-
-            } catch (error) {
-
-                console.error(
-                    "クラス選択保存エラー:",
-                    error
-                );
-
-
-                alert(
-                    "クラス選択を保存できませんでした。"
-                );
-
-            } finally {
-
-                save.disabled =
-                    false;
-
-
-                save.textContent =
-                    "保存";
-
-            }
-
-        };
-
-}
-
-
-/* ========================================
    クラス抽出
 ======================================== */
 
@@ -779,168 +807,349 @@ export function extractClassGroups(
     }
 
 
-    const original =
-        toHalfWidthAlphabet(
-            String(value)
+    let text =
+        normalizeText(
+            value
         )
         .toUpperCase();
 
 
-    const text =
-        original
-            .replaceAll(
-                "クラス",
-                ""
-            )
-            .replaceAll(
-                "組",
-                ""
-            )
-            .replaceAll(
-                "班",
-                ""
-            )
-            .trim();
-
-
-    if (!text) {
-        return [];
-    }
-
-
-    const groups =
-        [];
+    text =
+        toHalfWidthAlphabet(
+            text
+        );
 
 
     /*
-     A〜D
-     A-D
-     A～D
+    Aクラス / Bクラス
+    A・B
+    A/B
+    A〜D
+    などを処理
     */
+    const rangeMatch =
+        text.match(
+            /([A-Z])\s*[〜～\-ー]\s*([A-Z])/
+        );
 
-    for (
-        const match of
-        text.matchAll(
-            /([A-Z])\s*[-〜～]\s*([A-Z])/g
-        )
-    ) {
+
+    const results =
+        new Set();
+
+
+    if (rangeMatch) {
 
         const start =
-            match[1]
+            rangeMatch[1]
                 .charCodeAt(0);
 
 
         const end =
-            match[2]
+            rangeMatch[2]
                 .charCodeAt(0);
 
 
-        if (start <= end) {
+        for (
+            let code =
+                Math.min(start, end);
 
-            for (
-                let code = start;
-                code <= end;
-                code++
-            ) {
+            code <=
+                Math.max(start, end);
 
-                groups.push(
-                    String.fromCharCode(
-                        code
-                    )
-                );
+            code++
+        ) {
 
-            }
+            results.add(
+                String.fromCharCode(
+                    code
+                )
+            );
 
         }
 
     }
 
 
-    /*
-     A/B/C
-     A・B
-     A,B
-     Aクラス単独
-    */
+    const matches =
+        text.match(
+            /([A-Z])(?:\s*クラス|\s*組)?/g
+        ) || [];
 
-    groups.push(
-        ...(
-            text.match(
-                /[A-Z]/g
-            ) || []
-        )
-    );
+
+    for (const match of matches) {
+
+        const letter =
+            match.match(/[A-Z]/)?.[0];
+
+
+        if (letter) {
+
+            results.add(
+                letter
+            );
+
+        }
+
+    }
 
 
     return [
-        ...new Set(groups)
+        ...results
     ];
 
 }
 
 
 /* ========================================
-   値正規化
+   UI CSS
 ======================================== */
 
-function normalizeSelectedValue(
-    value
-) {
+function injectClassSelectionStyles() {
 
     if (
-        value ===
-        CLASS_SELECTION_NONE
+        document.getElementById(
+            "classSelectionDynamicStyle"
+        )
     ) {
-
-        return CLASS_SELECTION_NONE;
-
+        return;
     }
 
 
-    const raw =
-
-        typeof value === "string"
-
-            ? value
-
-            : value?.classGroup ||
-              value?.class ||
-              value?.value ||
-              "";
-
-
-    if (
-        raw ===
-        CLASS_SELECTION_NONE
-    ) {
-
-        return CLASS_SELECTION_NONE;
-
-    }
-
-
-    const groups =
-        extractClassGroups(
-            raw
+    const style =
+        document.createElement(
+            "style"
         );
 
 
-    return groups[0] || "";
+    style.id =
+        "classSelectionDynamicStyle";
+
+
+    style.textContent = `
+
+        /*
+        ポップアップ全体を
+        画面内に収める
+        */
+        #classSelectionOverlay
+        .exam-popup-card {
+
+            display:flex;
+            flex-direction:column;
+
+            width:
+                min(
+                    calc(100vw - 32px),
+                    520px
+                );
+
+            max-height:
+                calc(100dvh - 40px);
+
+            overflow:hidden;
+
+        }
+
+
+        /*
+        クラス一覧だけスクロール
+        */
+        #classSelectionList {
+
+            min-height:0;
+
+            max-height:
+                60dvh;
+
+            overflow-y:auto;
+            overflow-x:hidden;
+
+            overscroll-behavior:
+                contain;
+
+            -webkit-overflow-scrolling:
+                touch;
+
+            padding:
+                4px 4px 12px;
+
+        }
+
+
+        #classSelectionList
+        .class-select-box {
+
+            padding:
+                14px 0;
+
+            border-bottom:
+                1px solid
+                var(
+                    --border,
+                    rgba(
+                        148,
+                        163,
+                        184,
+                        .3
+                    )
+                );
+
+        }
+
+
+        #classSelectionList
+        .class-select-box:last-child {
+
+            border-bottom:none;
+
+        }
+
+
+        .class-select-heading {
+
+            display:flex;
+            align-items:center;
+            justify-content:
+                space-between;
+
+            gap:12px;
+
+        }
+
+
+        .class-select-heading span {
+
+            white-space:nowrap;
+
+            color:
+                var(--subtext);
+
+            font-size:13px;
+
+        }
+
+
+        .class-select-message {
+
+            margin:
+                8px 0 12px;
+
+            line-height:1.6;
+
+            font-size:14px;
+
+        }
+
+
+        #classSelectionList
+        .class-buttons {
+
+            display:grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0,1fr)
+                );
+
+            gap:8px;
+
+        }
+
+
+        #classSelectionList
+        .class-choice {
+
+            width:100%;
+
+            min-width:0;
+
+        }
+
+
+        #classSelectionList
+        .class-choice.selected {
+
+            outline:
+                3px solid
+                var(
+                    --primary,
+                    #2563eb
+                );
+
+            outline-offset:
+                -3px;
+
+        }
+
+
+        #saveClassSelection {
+
+            flex:
+                0 0 auto;
+
+            width:100%;
+
+            margin-top:
+                14px;
+
+        }
+
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
 
 }
 
 
 /* ========================================
-   補助
+   日付
 ======================================== */
 
-function normalizeText(
-    value
-) {
+function resolveTargetDate() {
 
-    return String(
-        value || ""
-    ).trim();
+    const params =
+        new URLSearchParams(
+            location.search
+        );
+
+
+    const requested =
+        normalizeDate(
+            params.get("date")
+        );
+
+
+    if (requested) {
+        return requested;
+    }
+
+
+    const now =
+        new Date();
+
+
+    return [
+        now.getFullYear(),
+
+        String(
+            now.getMonth() + 1
+        ).padStart(
+            2,
+            "0"
+        ),
+
+        String(
+            now.getDate()
+        ).padStart(
+            2,
+            "0"
+        )
+
+    ].join("-");
 
 }
 
@@ -949,24 +1158,55 @@ function normalizeDate(
     value
 ) {
 
-    const text =
-        normalizeText(
-            value
-        );
-
-
-    if (
-        /^\d{4}-\d{2}-\d{2}$/.test(
-            text
-        )
-    ) {
-
-        return text;
-
+    if (!value) {
+        return "";
     }
 
 
-    return text;
+    const text =
+        String(value)
+            .trim()
+            .replace(
+                /年|\/|\./g,
+                "-"
+            )
+            .replace(
+                /月/g,
+                "-"
+            )
+            .replace(
+                /日/g,
+                ""
+            );
+
+
+    const match =
+        text.match(
+            /^(\d{4})-(\d{1,2})-(\d{1,2})/
+        );
+
+
+    if (!match) {
+        return "";
+    }
+
+
+    return [
+        match[1],
+
+        match[2]
+            .padStart(
+                2,
+                "0"
+            ),
+
+        match[3]
+            .padStart(
+                2,
+                "0"
+            )
+
+    ].join("-");
 
 }
 
@@ -975,38 +1215,81 @@ function normalizePeriod(
     value
 ) {
 
-    const text =
+    const match =
+        String(value ?? "")
+            .match(
+                /\d+/
+            );
+
+
+    return match
+        ? Number(
+            match[0]
+        )
+        : "";
+
+}
+
+
+/* ========================================
+   その他
+======================================== */
+
+function normalizeSelection(
+    value
+) {
+
+    if (
+        value &&
+        typeof value ===
+            "object"
+    ) {
+
+        return normalizeSelection(
+            value.classGroup ||
+            value.class ||
+            value.value
+        );
+
+    }
+
+
+    const raw =
         normalizeText(
             value
         );
 
 
-    const match =
-        text.match(
-            /\d+/
-        );
+    if (
+        raw ===
+        CLASS_SELECTION_NONE
+    ) {
+        return CLASS_SELECTION_NONE;
+    }
 
 
-    return match
-        ? match[0]
-        : text;
+    return (
+        extractClassGroups(
+            raw
+        )[0] ||
+        ""
+    );
 
 }
 
 
-function formatPeriod(
+function normalizeText(
     value
 ) {
 
-    const period =
-        normalizePeriod(
-            value
-        );
-
-
-    return period
-        ? `${period}限`
-        : "";
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /\s+/g,
+        " "
+    )
+    .trim();
 
 }
 
@@ -1015,16 +1298,32 @@ function toHalfWidthAlphabet(
     value
 ) {
 
-    return String(
-        value || ""
-    ).replace(
-        /[Ａ-Ｚａ-ｚ]/g,
-        character =>
-            String.fromCharCode(
-                character.charCodeAt(0) -
-                0xFEE0
-            )
-    );
+    return String(value)
+        .replace(
+            /[Ａ-Ｚａ-ｚ]/g,
+            character =>
+                String.fromCharCode(
+                    character.charCodeAt(0) -
+                    0xFEE0
+                )
+        );
+
+}
+
+
+function formatClassLabel(
+    value
+) {
+
+    const normalized =
+        normalizeText(
+            value
+        );
+
+
+    return normalized
+        ? `${normalized}クラス`
+        : "";
 
 }
 
@@ -1036,41 +1335,36 @@ function escapeHtml(
     return String(
         value ?? ""
     )
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
+    .replaceAll(
+        "&",
+        "&amp;"
+    )
+    .replaceAll(
+        "<",
+        "&lt;"
+    )
+    .replaceAll(
+        ">",
+        "&gt;"
+    )
+    .replaceAll(
+        '"',
+        "&quot;"
+    )
+    .replaceAll(
+        "'",
+        "&#039;"
+    );
 
 }
 
 
-/* ========================================
-   初期化
-======================================== */
+function escapeAttribute(
+    value
+) {
 
-export function setupClassSelection() {
-
-    /*
-     現状はHTMLイベントを
-     checkClassSelectionRequired()
-     呼び出し時に設定するため、
-     初期化処理は不要。
-    */
+    return escapeHtml(
+        value
+    );
 
 }
