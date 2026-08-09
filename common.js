@@ -31,6 +31,17 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
+    getAuth,
+    signInWithCustomToken,
+    getIdTokenResult
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+import {
+    getFunctions,
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+
+import {
     registerDevicePushSubscription
 } from "./push_subscription.js";
 
@@ -55,9 +66,32 @@ if (!getApps().length) {
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
+export const auth = getAuth(app);
+const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber =
     localStorage.getItem("studentNumber");
+
+export async function signInCareMateAuth(studentNumber, password) {
+    const authenticateCareMate = httpsCallable(
+        functions,
+        "authenticateCareMate"
+    );
+
+    const result = await authenticateCareMate({
+        studentNumber: String(studentNumber || "").trim(),
+        password: String(password || "")
+    });
+
+    await signInWithCustomToken(auth, result.data.token);
+}
+
+export async function refreshAdminClaim() {
+    if (!auth.currentUser) return false;
+
+    const token = await getIdTokenResult(auth.currentUser);
+    return token.claims.admin === true;
+}
 
 // ======================
 // 学籍番号から学生情報を取得

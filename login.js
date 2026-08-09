@@ -1,7 +1,9 @@
 import {
     db,
     initializePage,
-    setupOfflineAlert
+    setupOfflineAlert,
+    signInCareMateAuth,
+    refreshAdminClaim
 } from "./common.js";
 
 import {
@@ -50,6 +52,15 @@ loginButton.addEventListener("click", async () => {
 
     if (inputHash !== user.appPasswordHash) {
         alert("学籍番号またはパスワードが違います。");
+        return;
+    }
+
+    try {
+        await signInCareMateAuth(value, appPassword.value);
+        await refreshAdminClaim();
+    } catch (error) {
+        console.error("Firebase認証エラー:", error);
+        alert("安全なログインを完了できませんでした。時間をおいて再度お試しください。");
         return;
     }
 

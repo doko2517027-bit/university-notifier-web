@@ -3,6 +3,8 @@ import {
     initializePage,
     updateAccentColor,
     encryptData,
+    signInCareMateAuth,
+    refreshAdminClaim
 } from "./common.js";
 
 import {
@@ -439,6 +441,13 @@ try {
                 "register"
             );
 
+            await signInCareMateAuth(
+                studentNumber.value,
+                appPassword.value
+            );
+
+            await refreshAdminClaim();
+
             localStorage.setItem("registered", "true");
             localStorage.setItem("department", selectedDepartment);
             localStorage.setItem("major", selectedMajor);
@@ -509,6 +518,13 @@ try {
         subscription,
         "register"
     );
+
+    await signInCareMateAuth(
+        studentNumber.value,
+        appPassword.value
+    );
+
+    await refreshAdminClaim();
 
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);

@@ -3,6 +3,11 @@ const {
 } = require("firebase-functions/v2/https");
 
 const {
+    onCall,
+    HttpsError
+} = require("firebase-functions/v2/https");
+
+const {
     onDocumentCreated
 } = require("firebase-functions/v2/firestore");
 
@@ -21,11 +26,18 @@ const {
 } = require("firebase-admin/app");
 
 const {
+    getAuth
+} = require("firebase-admin/auth");
+
+const {
     getFirestore
 } = require("firebase-admin/firestore");
 
 const webpush =
     require("web-push");
+
+const crypto =
+    require("node:crypto");
 
 const chromium =
     require("@sparticuz/chromium");
@@ -46,6 +58,9 @@ initializeApp();
 const db =
     getFirestore();
 
+const adminAuth =
+    getAuth();
+
 const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
 const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
@@ -62,6 +77,51 @@ const REGISTRATION_TEST_STUDENT_PAGE_PASSWORD =
     defineSecret("REGISTRATION_TEST_STUDENT_PAGE_PASSWORD");
 
 const SITE_ORIGIN = "https://doko2517027-bit.github.io";
+
+// =====================
+// CareMate ログイン
+// =====================
+// ブラウザが管理者権限を自己申告できないよう、アプリ用パスワードの
+// 照合とFirebaseのカスタムトークン発行は必ずサーバー側で行う。
+exports.authenticateCareMate = onCall(
+    { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+    async (request) => {
+        const studentNumber = String(request.data?.studentNumber || "").trim();
+        const password = String(request.data?.password || "");
+
+        if (!/^\d{7}$/.test(studentNumber) || !password) {
+            throw new HttpsError("invalid-argument", "ログイン情報が不足しています。");
+        }
+
+        const userSnap = await db.collection("users").doc(studentNumber).get();
+        const storedHash = String(userSnap.data()?.appPasswordHash || "");
+        const suppliedHash = crypto
+            .createHash("sha256")
+            .update(password, "utf8")
+            .digest("hex");
+
+        if (
+            !userSnap.exists ||
+            storedHash.length !== suppliedHash.length ||
+            !crypto.timingSafeEqual(
+                Buffer.from(storedHash, "utf8"),
+                Buffer.from(suppliedHash, "utf8")
+            )
+        ) {
+            throw new HttpsError("unauthenticated", "学籍番号またはパスワードが違います。");
+        }
+
+        const adminSnap = await db.collection("admins").doc(studentNumber).get();
+        const admin = adminSnap.exists && adminSnap.data().enabled === true;
+
+        const token = await adminAuth.createCustomToken(`caremate-${studentNumber}`, {
+            admin,
+            studentNumber
+        });
+
+        return { token, admin };
+    }
+);
 
 
 // ======================
