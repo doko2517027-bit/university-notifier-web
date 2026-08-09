@@ -135,11 +135,6 @@ updateAccentColor(
 await initializePage();
 
 function updateState() {
-
-    if (registered === "true") {
-        return;
-    }
-
     const selectedDepartment =
         department.value !== "";
 

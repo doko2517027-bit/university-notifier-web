@@ -51,6 +51,16 @@ const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = defineSecret("WEB_PUSH_PRIVATE_KEY");
 
+/*
+ * 登録テスト専用の照合値。
+ * 値そのものはコード・Firestore・ブラウザへ保存しない。
+ */
+const REGISTRATION_TEST_STUDENT_PAGE_ID =
+    defineSecret("REGISTRATION_TEST_STUDENT_PAGE_ID");
+
+const REGISTRATION_TEST_STUDENT_PAGE_PASSWORD =
+    defineSecret("REGISTRATION_TEST_STUDENT_PAGE_PASSWORD");
+
 const SITE_ORIGIN = "https://doko2517027-bit.github.io";
 
 
@@ -64,7 +74,11 @@ onRequest(
         region: "asia-northeast1",
         timeoutSeconds: 60,
         memory: "1GiB",
-        cors: [SITE_ORIGIN]
+        cors: [SITE_ORIGIN],
+        secrets: [
+            REGISTRATION_TEST_STUDENT_PAGE_ID,
+            REGISTRATION_TEST_STUDENT_PAGE_PASSWORD
+        ]
     },
 
     async (request, response) => {
@@ -95,6 +109,30 @@ onRequest(
             response.status(400).json({
                 verified: false,
                 message: "学生ページIDとパスワードを入力してください。"
+            });
+
+            return;
+
+        }
+
+        /*
+         * テスト用の値が秘密管理に設定されている場合は、
+         * その値と一致したときだけ登録を許可する。
+         * 秘密値はレスポンスやログへ一切出さない。
+         */
+        const testId =
+            REGISTRATION_TEST_STUDENT_PAGE_ID.value();
+
+        const testPassword =
+            REGISTRATION_TEST_STUDENT_PAGE_PASSWORD.value();
+
+        if (testId && testPassword) {
+
+            response.json({
+                verified:
+                    studentPageId === testId &&
+                    studentPagePassword === testPassword,
+                mode: "test"
             });
 
             return;
