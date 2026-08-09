@@ -14,13 +14,13 @@
     <div class="top-right"><button id="themeButton" class="circle-button">🌙</button></div>
   </div>
   <main class="attendance-admin-page">
-    <section class="card setting-card">
+    <section class="card setting-card attendance-admin-section">
       <h3>確認待ちの出席記録</h3>
       <p class="attendance-admin-help">早すぎる終了打刻など、確認が必要な記録です。内容を確認して出席扱い・早退・欠席を確定できます。</p>
       <div id="pendingReviewList"><p>読み込み中...</p></div>
     </section>
 
-    <section class="card setting-card">
+    <section class="card setting-card attendance-admin-section">
       <h3>学生別の出席記録</h3>
       <p class="attendance-admin-help">学籍番号を指定して、学生画面と同じ出席・遅刻・早退・欠席の結果を確認・修正できます。</p>
       <label>学籍番号<input id="recordStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
@@ -28,7 +28,7 @@
       <div id="studentAttendanceList"></div>
     </section>
 
-    <section class="card setting-card">
+    <section class="card setting-card attendance-admin-section attendance-test-card">
       <h3>出席通知テスト</h3>
       <p class="attendance-admin-help">指定した学生の履修済み科目だけを使い、通常と同じ打刻ルールでテスト通知を送ります。</p>
       <label>学籍番号<input id="testStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
@@ -43,7 +43,7 @@
         <label>終了時刻<input id="testEndTime" type="time"></label>
       </div>
       <p id="testScheduleExplanation" class="attendance-admin-help"></p>
-      <button id="sendTestNotification" class="main-button" type="button" disabled>テスト通知を予約する</button>
+      <button id="sendTestNotification" class="btn btn-primary attendance-test-submit" type="button" disabled>テスト通知を予約する</button>
       <p id="testNotificationResult" class="attendance-admin-help" aria-live="polite"></p>
     </section>
   </main>
