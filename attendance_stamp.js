@@ -306,6 +306,18 @@ export function normalizeAttendanceLecture(
         attendanceNotificationTest:
             lecture.attendanceNotificationTest === true,
 
+        /*
+         * 通知テストを通常講義と区別するID。
+         * 同じ日・時限・科目でテストを繰り返しても、
+         * 過去のテスト記録と衝突させない。
+         */
+        testId:
+            normalizeText(
+                lecture.testId ||
+                lecture.attendanceTestId ||
+                lecture.attendanceNotificationTestId
+            ),
+
         startTime:
             lectureWindow.startTime,
 
@@ -368,8 +380,8 @@ function createShortHash(
 
 
 /**
- * 同じ日・同じ時限・同じ科目は
- * 同一の出席記録にする。
+ * 通常講義は同じ日・同じ時限・同じ科目を同一記録にする。
+ * 通知テストはtestIdも含め、テストごとに記録を分離する。
  */
 export function createAttendanceRecordId(
     lecture
@@ -387,7 +399,11 @@ export function createAttendanceRecordId(
 
         normalized.period,
 
-        normalized.subjectKey
+        normalized.subjectKey,
+
+        normalized.attendanceNotificationTest === true
+            ? normalized.testId
+            : ""
 
     ].join("|");
 
@@ -397,11 +413,28 @@ export function createAttendanceRecordId(
             .replaceAll("-", "");
 
 
-    return [
+    const parts = [
         datePart,
         `${normalized.period}p`,
         createShortHash(identity)
-    ].join("_");
+    ];
+
+
+    if (
+        normalized.attendanceNotificationTest === true &&
+        normalized.testId
+    ) {
+
+        parts.push(
+            createShortHash(
+                normalized.testId
+            )
+        );
+
+    }
+
+
+    return parts.join("_");
 
 }
 
@@ -513,6 +546,9 @@ function createBaseRecord(
         attendanceNotificationTest:
             normalized
                 .attendanceNotificationTest === true,
+
+        testId:
+            normalized.testId,
 
         startTime:
             normalized.startTime,
@@ -1072,7 +1108,25 @@ export async function stampAttendanceEnd({
                             : null;
 
 
-                    const finalResult =
+                    const normalizedAction =
+                        action ===
+                        "early_leave"
+                            ? "early_leave"
+                            : "end";
+
+
+                    /*
+                     * 「終了打刻」を予定終了5分前より前に押した場合は、
+                     * 早退ではなく一旦欠席として管理者確認へ回す。
+                     * 早退ボタンは従来どおり時間ルールに従って判定する。
+                     */
+                    const earlyEndReviewRequired =
+                        normalizedAction === "end" &&
+                        result.kind !==
+                        "normal";
+
+
+                    const calculatedFinalResult =
                         determineAttendanceStatus({
 
                             startResult,
@@ -1088,11 +1142,20 @@ export async function stampAttendanceEnd({
                         });
 
 
-                    const normalizedAction =
-                        action ===
-                        "early_leave"
-                            ? "early_leave"
-                            : "end";
+                    const finalResult =
+                        earlyEndReviewRequired
+                            ? {
+                                status:
+                                    ATTENDANCE_STATUS
+                                        .ABSENT,
+
+                                label:
+                                    "欠席",
+
+                                finalized:
+                                    true
+                            }
+                            : calculatedFinalResult;
 
 
                     const payload = {
@@ -1144,6 +1207,26 @@ export async function stampAttendanceEnd({
                             serverTimestamp()
 
                     };
+
+
+                    if (earlyEndReviewRequired) {
+
+                        payload.earlyEndReviewRequired =
+                            true;
+
+                        payload.earlyEndReviewStatus =
+                            "pending";
+
+                        payload.earlyEndReviewRequestedAt =
+                            serverTimestamp();
+
+                        payload.earlyEndOriginalKind =
+                            result.kind;
+
+                        payload.earlyEndOriginalLabel =
+                            result.label;
+
+                    }
 
 
                     if (!snapshot.exists()) {
