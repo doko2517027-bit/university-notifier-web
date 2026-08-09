@@ -1,1 +1,44 @@
-<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>出席通知時刻管理 | CareMate</title><link rel="stylesheet" href="style.css"><script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script></head><body class="page-loading"><div class="top-buttons"><button id="backButton" class="circle-button">←</button><h2>出席通知時刻管理</h2><div></div></div><main><div class="card setting-card"><label>学科時間割<select id="scheduleDocument"><option value="ns_yamate">看護学科</option><option value="pt">理学療法学専攻</option><option value="ot">作業療法学専攻</option></select></label><label>授業<select id="lectureSelect"><option>読み込み中...</option></select></label><div class="attendance-time-grid"><label>開始<input id="startTime" type="time"></label><label>終了<input id="endTime" type="time"></label></div><p id="defaultTime"></p><button id="saveOverride" class="main-button">この授業の時刻を保存</button><button id="deleteOverride" class="btn">標準時刻に戻す</button></div></main><script type="module" src="attendance_admin.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>出席管理 | CareMate</title>
+  <link rel="stylesheet" href="style.css">
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
+</head>
+<body class="page-loading">
+  <div class="top-buttons">
+    <button id="backButton" class="circle-button" aria-label="戻る">←</button>
+    <h2>出席管理 <span id="pendingReviewBadge" class="admin-card-badge" hidden>0</span></h2>
+    <div class="top-right"><button id="themeButton" class="circle-button">🌙</button></div>
+  </div>
+  <main class="attendance-admin-page">
+    <section class="card setting-card">
+      <h3>確認待ちの出席記録</h3>
+      <p class="attendance-admin-help">早すぎる終了打刻など、確認が必要な記録です。内容を確認して出席扱い・早退・欠席を確定できます。</p>
+      <div id="pendingReviewList"><p>読み込み中...</p></div>
+    </section>
+
+    <section class="card setting-card">
+      <h3>出席通知テスト</h3>
+      <p class="attendance-admin-help">指定した学生の履修済み科目だけを使い、通常と同じ打刻ルールでテスト通知を送ります。</p>
+      <label>学籍番号<input id="testStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
+      <button id="loadEnrolledSubjects" class="btn" type="button">履修科目を読み込む</button>
+      <label>科目<select id="testSubject" disabled><option>学籍番号を入力してください</option></select></label>
+      <div class="attendance-time-grid">
+        <label>開始時刻<input id="testStartTime" type="time"></label>
+        <label>終了時刻<input id="testEndTime" type="time"></label>
+      </div>
+      <label>クラス（任意）<input id="testClassGroup" placeholder="例：Aクラス"></label>
+      <p id="testScheduleExplanation" class="attendance-admin-help"></p>
+      <button id="sendTestNotification" class="main-button" type="button" disabled>テスト通知を予約する</button>
+      <p id="testNotificationResult" class="attendance-admin-help" aria-live="polite"></p>
+    </section>
+  </main>
+  <nav class="bottom-nav">
+    <a href="index.html">🏠<br><span>ホーム</span></a><a href="assignments.html">📚<br><span>課題</span></a><a href="share.html">🤝<br><span>共有</span></a><a href="news.html">📢<br><span>お知らせ</span></a><a id="settingsTab" href="admin.html" class="active">👑<br><span>管理</span></a>
+  </nav>
+  <script type="module" src="attendance_admin.js"></script>
+</body>
+</html>

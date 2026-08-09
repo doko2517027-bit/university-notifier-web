@@ -6,6 +6,10 @@ const {
     onDocumentCreated
 } = require("firebase-functions/v2/firestore");
 
+const {
+    onDocumentUpdated
+} = require("firebase-functions/v2/firestore");
+
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 const {
@@ -1445,6 +1449,77 @@ onRequest(
 
         }
 
+    }
+);
+
+
+// ======================
+// 出席確認待ちを管理者へ通知
+// ======================
+
+exports.notifyAttendanceReviewRequired =
+onDocumentUpdated(
+    {
+        document:
+            "users/{studentNumber}/attendanceRecords/{recordId}",
+
+        region:
+            "asia-northeast1",
+
+        secrets: [
+            WEB_PUSH_PUBLIC_KEY,
+            WEB_PUSH_PRIVATE_KEY
+        ]
+    },
+
+    async event => {
+
+        const before =
+            event.data.before.data() || {};
+
+        const after =
+            event.data.after.data() || {};
+
+        if (
+            after.earlyEndReviewRequired !== true ||
+            after.earlyEndReviewStatus !== "pending" ||
+            before.earlyEndReviewStatus === "pending"
+        ) {
+
+            return;
+
+        }
+
+        webpush.setVapidDetails(
+            "mailto:kidokohei.shonaniryo2517027@gmail.com",
+            WEB_PUSH_PUBLIC_KEY.value(),
+            WEB_PUSH_PRIVATE_KEY.value()
+        );
+
+        const payload = {
+            title:
+                "⚠️ 出席確認待ち",
+
+            body:
+                `${after.studentNumber || event.params.studentNumber}：` +
+                `${after.subject || "科目未設定"} の確認が必要です`,
+
+            url:
+                `${SITE_URL}/attendance_admin.html`
+        };
+
+        const admins =
+            await db.collection("admins").get();
+
+        await Promise.all(
+            admins.docs.map(
+                admin =>
+                    sendToUserDevices(
+                        admin.id,
+                        payload
+                    )
+            )
+        );
     }
 );
 
