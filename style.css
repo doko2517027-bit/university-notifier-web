@@ -58,11 +58,11 @@ body:has(.report-tabs) textarea {
     border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
 }
 
-body:has(.admin-detail-grid) .btn:not(.btn-danger),
-body:has(.system-news-admin-page) .btn:not(.btn-danger),
-body.curriculum-admin-body .btn:not(.btn-danger),
-body:has(#examEnabled) .btn:not(.btn-danger),
-body:has(.report-tabs) .btn:not(.btn-danger) {
+body:has(.admin-detail-grid) .btn:not(.btn-primary):not(.btn-danger),
+body:has(.system-news-admin-page) .btn:not(.btn-primary):not(.btn-danger),
+body.curriculum-admin-body .btn:not(.btn-primary):not(.btn-danger),
+body:has(#examEnabled) .btn:not(.btn-primary):not(.btn-danger),
+body:has(.report-tabs) .btn:not(.btn-primary):not(.btn-danger) {
     border-color: color-mix(in srgb, var(--primary) 48%, var(--border));
     color: var(--primary);
 }
