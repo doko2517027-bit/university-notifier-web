@@ -1005,6 +1005,46 @@ export async function stampAttendanceEnd({
             });
 
 
+        /*
+         早退は学生便覧どおり終了30分前〜終了時刻だけ。
+         終了5分前以降でも「早退」を選んだ場合は、
+         定時前の退席として早退扱いを明示する。
+        */
+        if (
+            action === "early_leave" &&
+            (
+                judgementNow.getTime() <
+                    normalized.lectureWindow.earlyLeaveStartsAt.getTime() ||
+                judgementNow.getTime() >=
+                    normalized.lectureWindow.lectureEnd.getTime()
+            )
+        ) {
+
+            return createFailureResult({
+
+                code:
+                    "early_leave_not_open",
+
+                message:
+                    "早退打刻は終了30分前から終了時刻まで可能です。"
+
+            });
+
+        }
+
+
+        if (
+            action === "early_leave" &&
+            result.kind === "normal"
+        ) {
+
+            result.kind = "early_leave";
+            result.label = "早退";
+            result.message = "早退として終了打刻を記録しました。";
+
+        }
+
+
         if (!result.recordable) {
 
             return createFailureResult({
@@ -1798,6 +1838,39 @@ export function recalculateAttendanceStatus(
 
             });
 
+    }
+
+
+    /*
+     * 打刻期限を過ぎても開始・終了が未打刻なら、
+     * 画面の再表示時点で欠席として確定する。
+     * 定時前終了の確認待ちは endResult があるため対象外。
+     */
+    const now = new Date();
+
+    if (
+        !startResult &&
+        now.getTime() >
+            lecture.lectureWindow.startStampExpiresAt.getTime()
+    ) {
+        return {
+            status: ATTENDANCE_STATUS.ABSENT,
+            label: "欠席",
+            finalized: true
+        };
+    }
+
+    if (
+        startResult &&
+        !endResult &&
+        now.getTime() >
+            lecture.lectureWindow.endStampExpiresAt.getTime()
+    ) {
+        return {
+            status: ATTENDANCE_STATUS.ABSENT,
+            label: "欠席",
+            finalized: true
+        };
     }
 
 

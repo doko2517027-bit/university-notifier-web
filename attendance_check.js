@@ -110,6 +110,13 @@ const notificationTest =
     ) === "1";
 
 
+const testId =
+    String(
+        params.get("testId") ||
+        ""
+    ).trim();
+
+
 /* ========================================
    DOM
 ======================================== */
@@ -284,7 +291,9 @@ function createLecture() {
             scheduleId,
 
         attendanceNotificationTest:
-            notificationTest
+            notificationTest,
+
+        testId
 
     };
 

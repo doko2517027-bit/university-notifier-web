@@ -21,16 +21,27 @@
     </section>
 
     <section class="card setting-card">
+      <h3>学生別の出席記録</h3>
+      <p class="attendance-admin-help">学籍番号を指定して、学生画面と同じ出席・遅刻・早退・欠席の結果を確認・修正できます。</p>
+      <label>学籍番号<input id="recordStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
+      <button id="loadStudentAttendance" class="btn" type="button">出席記録を表示</button>
+      <div id="studentAttendanceList"></div>
+    </section>
+
+    <section class="card setting-card">
       <h3>出席通知テスト</h3>
       <p class="attendance-admin-help">指定した学生の履修済み科目だけを使い、通常と同じ打刻ルールでテスト通知を送ります。</p>
       <label>学籍番号<input id="testStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
       <button id="loadEnrolledSubjects" class="btn" type="button">履修科目を読み込む</button>
-      <label>科目<select id="testSubject" disabled><option>学籍番号を入力してください</option></select></label>
+      <label>テスト対象科目<select id="testSubject" disabled><option>学籍番号を入力してください</option></select></label>
+      <div class="attendance-time-grid">
+        <label>クラス分け<select id="testClassCount"><option value="0">なし</option><option value="2">2クラス（A・B）</option><option value="3">3クラス（A・B・C）</option><option value="4">4クラス（A〜D）</option></select></label>
+        <label>対象クラス<select id="testClassGroup" disabled><option value="">クラスなし</option></select></label>
+      </div>
       <div class="attendance-time-grid">
         <label>開始時刻<input id="testStartTime" type="time"></label>
         <label>終了時刻<input id="testEndTime" type="time"></label>
       </div>
-      <label>クラス（任意）<input id="testClassGroup" placeholder="例：Aクラス"></label>
       <p id="testScheduleExplanation" class="attendance-admin-help"></p>
       <button id="sendTestNotification" class="main-button" type="button" disabled>テスト通知を予約する</button>
       <p id="testNotificationResult" class="attendance-admin-help" aria-live="polite"></p>

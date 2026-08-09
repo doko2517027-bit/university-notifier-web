@@ -2032,6 +2032,31 @@ async function loadRecords() {
 }
 
 
+/*
+ * 過去の通知テストには testId がない記録があるため、
+ * 当日の科目・時限でもフォールバックして集計する。
+ */
+function getRecordForLecture(lecture) {
+
+    const direct =
+        records.get(
+            createAttendanceRecordId(lecture)
+        );
+
+    if (direct) return direct;
+
+    if (!lecture.attendanceNotificationTest) return null;
+
+    return allRecords.find(item =>
+        normalizeDate(item.date) === effectiveDate &&
+        Number(item.period) === Number(lecture.period) &&
+        item.subject === lecture.subject &&
+        item.attendanceNotificationTest === true &&
+        (!item.testId || item.testId === lecture.testId)
+    ) || null;
+}
+
+
 /* ========================================
    描画
 ======================================== */
@@ -2613,6 +2638,44 @@ function renderSummary() {
 
     };
 
+    const countedRecordIds = new Set();
+
+    const addResultToCount = (result, record) => {
+
+        switch (result.status) {
+
+            case ATTENDANCE_STATUS.PRESENT:
+                count.present++;
+                break;
+
+            case ATTENDANCE_STATUS.LATE:
+                count.late++;
+                break;
+
+            case ATTENDANCE_STATUS.EARLY_LEAVE:
+                count.early++;
+                break;
+
+            case ATTENDANCE_STATUS.LATE_AND_EARLY_LEAVE:
+                count.late++;
+                count.early++;
+                break;
+
+            case ATTENDANCE_STATUS.ABSENT:
+                if (record?.absenceTapped === true || record?.manualEdited === true) {
+                    count.directAbsent++;
+                } else {
+                    count.timingAbsent++;
+                }
+                break;
+
+            default:
+                count.pending++;
+
+        }
+
+    };
+
 
     for (
         const lecture of lectures
@@ -2623,13 +2686,7 @@ function renderSummary() {
 
         try {
 
-            record =
-                records.get(
-                    createAttendanceRecordId(
-                        lecture
-                    )
-                ) ||
-                null;
+            record = getRecordForLecture(lecture);
 
         } catch {
 
@@ -2646,69 +2703,26 @@ function renderSummary() {
             );
 
 
-        switch (
-            result.status
-        ) {
+        addResultToCount(result, record);
 
-            case ATTENDANCE_STATUS
-                .PRESENT:
+        if (record?.id) countedRecordIds.add(record.id);
 
-                count.present++;
-
-                break;
+    }
 
 
-            case ATTENDANCE_STATUS
-                .LATE:
+    /*
+     * テスト終了後にテスト講義が画面の予定から外れても、
+     * 当日分のテスト記録は「今日の打刻状況」に残す。
+     */
+    for (const record of allRecords) {
 
-                count.late++;
+        if (
+            normalizeDate(record.date) !== effectiveDate ||
+            record.attendanceNotificationTest !== true ||
+            countedRecordIds.has(record.id)
+        ) continue;
 
-                break;
-
-
-            case ATTENDANCE_STATUS
-                .EARLY_LEAVE:
-
-                count.early++;
-
-                break;
-
-
-            case ATTENDANCE_STATUS
-                .LATE_AND_EARLY_LEAVE:
-
-                count.late++;
-
-                count.early++;
-
-                break;
-
-
-            case ATTENDANCE_STATUS
-                .ABSENT:
-
-                if (
-                    record?.absenceTapped === true ||
-                    record?.manualEdited === true
-                ) {
-
-                    count.directAbsent++;
-
-                } else {
-
-                    count.timingAbsent++;
-
-                }
-
-                break;
-
-
-            default:
-
-                count.pending++;
-
-        }
-
+        addResultToCount(resolveResult(record), record);
     }
 
 

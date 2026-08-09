@@ -27,6 +27,13 @@ const {
 const webpush =
     require("web-push");
 
+const chromium =
+    require("@sparticuz/chromium");
+
+const {
+    chromium: playwrightChromium
+} = require("playwright-core");
+
 const {
     PERIOD_TIMES,
     normalizeCourseName,
@@ -43,6 +50,146 @@ const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
 const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = defineSecret("WEB_PUSH_PRIVATE_KEY");
+
+const SITE_ORIGIN = "https://doko2517027-bit.github.io";
+
+
+// ======================
+// 学生ページ認証
+// ======================
+
+exports.verifyStudentPageCredentials =
+onRequest(
+    {
+        region: "asia-northeast1",
+        timeoutSeconds: 60,
+        memory: "1GiB",
+        cors: [SITE_ORIGIN]
+    },
+
+    async (request, response) => {
+
+        if (request.method !== "POST") {
+
+            response.status(405).json({
+                verified: false,
+                message: "POSTで送信してください。"
+            });
+
+            return;
+
+        }
+
+        const studentPageId =
+            String(
+                request.body?.studentPageId || ""
+            ).trim();
+
+        const studentPagePassword =
+            String(
+                request.body?.studentPagePassword || ""
+            );
+
+        if (!studentPageId || !studentPagePassword) {
+
+            response.status(400).json({
+                verified: false,
+                message: "学生ページIDとパスワードを入力してください。"
+            });
+
+            return;
+
+        }
+
+        let browser;
+
+        try {
+
+            browser =
+                await playwrightChromium.launch({
+                    args: chromium.args,
+                    executablePath:
+                        await chromium.executablePath(),
+                    headless: true
+                });
+
+            const context =
+                await browser.newContext();
+
+            const page =
+                await context.newPage();
+
+            await page.goto(
+                "https://sums.ac.jp/",
+                {
+                    waitUntil: "domcontentloaded",
+                    timeout: 45_000
+                }
+            );
+
+            const popupPromise =
+                context.waitForEvent("page");
+
+            await page.locator("#cn_01")
+                .getByRole(
+                    "link",
+                    { name: "在学生の皆様へ" }
+                )
+                .click();
+
+            const studentPage =
+                await popupPromise;
+
+            await studentPage.waitForLoadState(
+                "domcontentloaded"
+            );
+
+            await studentPage.getByRole(
+                "textbox",
+                { name: "ログインＩＤを入力" }
+            ).fill(studentPageId);
+
+            await studentPage.getByRole(
+                "textbox",
+                { name: "パスワードを入力" }
+            ).fill(studentPagePassword);
+
+            await studentPage.getByRole(
+                "button",
+                { name: "Submit" }
+            ).click();
+
+            await studentPage.waitForLoadState(
+                "networkidle",
+                { timeout: 30_000 }
+            );
+
+            const verified =
+                await studentPage.getByRole(
+                    "link",
+                    { name: "授業について。" }
+                ).count() > 0;
+
+            response.json({ verified });
+
+        } catch (error) {
+
+            console.warn(
+                "学生ページ認証失敗:",
+                error?.message || "unknown"
+            );
+
+            response.json({ verified: false });
+
+        } finally {
+
+            if (browser) {
+                await browser.close();
+            }
+
+        }
+    }
+);
 
 function scheduleDocumentId(user) {
     if (String(user.department || "").trim() === "看護学科") return "ns_yamate";
@@ -67,6 +214,49 @@ async function sendToUserDevices(userId, payload) {
         }
     }
     return results;
+}
+
+function attendanceDeadline(date, time, extraMinutes) {
+    const base = new Date(`${date}T${time}:00+09:00`);
+    if (Number.isNaN(base.getTime())) return null;
+    return new Date(base.getTime() + extraMinutes * 60 * 1000);
+}
+
+/*
+ * 開始・終了いずれかの打刻期限を過ぎた未打刻記録を、
+ * サーバー側でも欠席として確定する。画面を開かなくても
+ * 今日の集計と管理画面が同じ状態になるようにする。
+ */
+async function finalizeExpiredAttendanceRecords(userDoc, date, now = new Date()) {
+    const snapshot = await userDoc.ref.collection("attendanceRecords")
+        .where("date", "==", date)
+        .get();
+    const updates = [];
+
+    for (const recordDoc of snapshot.docs) {
+        const record = recordDoc.data() || {};
+        if (record.absenceTapped || record.manualEdited || record.endStampedAt || record.endKind) continue;
+
+        const startDeadline = attendanceDeadline(record.date, record.startTime, 30);
+        const endDeadline = attendanceDeadline(record.date, record.endTime, 10);
+        const hasStart = Boolean(record.startStampedAt || record.startClientAt || record.startKind);
+        const expired = !hasStart
+            ? startDeadline && now > startDeadline
+            : endDeadline && now > endDeadline;
+
+        if (!expired) continue;
+
+        updates.push(recordDoc.ref.update({
+            status: "absent",
+            finalLabel: "欠席",
+            finalized: true,
+            autoFinalizedReason: hasStart ? "end_stamp_expired" : "start_stamp_expired",
+            autoFinalizedAt: now,
+            updatedAt: now
+        }));
+    }
+
+    await Promise.all(updates);
 }
 
 function tokyoParts(now = new Date()) {
@@ -570,6 +760,7 @@ async function processAttendanceNotifications() {
 
     for (const userDoc of users.docs) {
         const user = userDoc.data() || {};
+        await finalizeExpiredAttendanceRecords(userDoc, realClock.date);
         const testClock = user.attendanceTestClock || {};
         const testClockActive = userDoc.id === "2510044" && testClock.enabled === true &&
             /^\d{4}-\d{2}-\d{2}$/.test(testClock.date || "") &&
@@ -1080,39 +1271,61 @@ async function processAttendanceNotifications() {
             }
 
 
-            const record =
-                await db
+            /*
+             学生画面が保存する attendanceRecords を確認する。
+             定時前に終了打刻済みなら、終了5分前通知は送らない。
+            */
+            const recordSnapshots =
+                await userDoc.ref
                     .collection(
-                        "attendance"
+                        "attendanceRecords"
                     )
-                    .doc(
-                        userDoc.id
-                    )
-                    .collection(
-                        "subjects"
-                    )
-                    .doc(
-                        encodeURIComponent(
-                            lectureGroup.subject
-                        )
-                    )
-                    .collection(
-                        "records"
-                    )
-                    .doc(
-                        recordId
+                    .where(
+                        "date",
+                        "==",
+                        clock.date
                     )
                     .get();
 
 
+            const record =
+                recordSnapshots.docs.find(
+                    snapshot => {
+
+                        const data =
+                            snapshot.data() || {};
+
+                        return (
+                            Number(data.period) ===
+                                periodNumber &&
+                            data.subject ===
+                                lectureGroup.subject &&
+                            Boolean(
+                                data.attendanceNotificationTest
+                            ) === Boolean(
+                                item.attendanceNotificationTest
+                            ) &&
+                            (
+                                !item.attendanceNotificationTest ||
+                                data.testId ===
+                                    item.testId
+                            )
+                        );
+                    }
+                );
+
+
             if (
-                record.exists &&
+                record &&
                 (
                     notificationType ===
                         "arrival" ||
 
                     record.data()
-                        .checkOutAt
+                        .endStampedAt
+                    ||
+                    record.data()
+                        .endKind
                 )
             ) {
 
@@ -1237,6 +1450,14 @@ async function processAttendanceNotifications() {
                     startTime,
 
                     endTime,
+
+                    /*
+                     テストの開始・終了打刻を同じ記録へ保存するため、
+                     通知URLにもテストIDを渡す。
+                    */
+                    testId:
+                        item.testId ||
+                        "",
 
                     notificationTest:
                         item.attendanceNotificationTest

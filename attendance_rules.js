@@ -409,8 +409,10 @@ export function createLectureWindow({
          * 開始通知からの打刻期限
          */
         startStampExpiresAt:
-            new Date(
-                lectureEnd.getTime()
+            addMinutes(
+                lectureStart,
+                ATTENDANCE_RULES
+                    .lateUntilMinutes
             ),
 
 
@@ -1155,7 +1157,8 @@ export function getAttendanceActionState({
          */
         canTapEarlyLeave:
             current.getTime() >=
-                lectureStart.getTime() &&
+                lecture.earlyLeaveStartsAt
+                    .getTime() &&
             current.getTime() <
                 lectureEnd.getTime(),
 
@@ -1165,7 +1168,7 @@ export function getAttendanceActionState({
          */
         canEndStamp:
             current.getTime() >=
-                endOpen.getTime() &&
+                lectureStart.getTime() &&
             current.getTime() <=
                 endExpires.getTime(),
 

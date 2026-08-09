@@ -338,6 +338,64 @@ button.addEventListener("click", async () => {
         hashPassword(appPassword.value)
     ]);
 
+
+    /*
+     学生ページへ実際にログインできた場合だけ、
+     CareMateの登録を続行する。
+    */
+    button.disabled = true;
+
+    try {
+
+        const verificationResponse =
+            await fetch(
+                "https://asia-northeast1-universitynotifier-67517.cloudfunctions.net/verifyStudentPageCredentials",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        studentPageId:
+                            studentPageId.value.trim(),
+                        studentPagePassword:
+                            studentPagePassword.value
+                    })
+                }
+            );
+
+        const verification =
+            await verificationResponse.json();
+
+        if (!verificationResponse.ok || !verification.verified) {
+
+            alert(
+                "学生ページIDまたはパスワードを確認できませんでした。"
+            );
+
+            button.disabled = false;
+
+            return;
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "学生ページ認証エラー:",
+            error
+        );
+
+        alert(
+            "学生ページの認証に失敗しました。時間をおいて再度お試しください。"
+        );
+
+        button.disabled = false;
+
+        return;
+
+    }
+
 try {
 
     const userRef = doc(
@@ -355,6 +413,11 @@ try {
                 {
                     subscription: JSON.parse(JSON.stringify(subscription)),
 
+                    studentPageId:
+                        studentPageId.value.trim(),
+
+                    studentPagePasswordEncrypted,
+
                     manabaPasswordEncrypted,
                     activeMailPasswordEncrypted,
 
@@ -368,7 +431,9 @@ try {
                     activeMailResetRequired: false,
 
                     manabaVerified: false,
-                    manabaVerifiedAt: null
+                    manabaVerifiedAt: null,
+                    studentPageVerified: true,
+                    studentPageVerifiedAt: new Date().toISOString()
                 }
             );
 
@@ -427,6 +492,9 @@ try {
 
             manabaVerified: false,
             manabaVerifiedAt: null,
+
+            studentPageVerified: true,
+            studentPageVerifiedAt: new Date().toISOString(),
             activeMailSetupSkipped:
                 activeMailPassword.value.trim() === "",
 
