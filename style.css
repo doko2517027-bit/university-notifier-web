@@ -171,6 +171,30 @@ body:has(#departmentGrade) .btn-primary {
     border-color: var(--primary);
 }
 
+/* 学生詳細・お知らせ編集：追従ボタンの文字と高さを安定させる */
+body:has(.admin-detail-grid) #saveUserButton,
+#saveSystemNewsEdit {
+    display: inline-flex;
+    min-height: 48px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+body:has(.admin-detail-grid) .admin-save-card {
+    min-height: 72px;
+    box-sizing: border-box;
+}
+
+.system-news-edit-modal .admin-modal-actions .btn {
+    min-height: 48px;
+    box-sizing: border-box;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
 .dark{
     --bg:#181818;
     --card:#2b2b2b;
