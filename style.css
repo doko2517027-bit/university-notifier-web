@@ -139,6 +139,38 @@ body.maintenance-page {
     white-space: pre-wrap;
 }
 
+/* ログイン・初回登録：色合いのみを共通テーマへ統一 */
+body:has(#loginButton),
+body:has(#departmentGrade) {
+    background:
+        radial-gradient(circle at top right, rgba(20, 184, 166, .12), transparent 34%),
+        var(--bg);
+}
+
+body:has(#loginButton) .header,
+body:has(#departmentGrade) .header {
+    border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+    background: color-mix(in srgb, var(--card) 94%, var(--accent));
+}
+
+body:has(#loginButton) .card,
+body:has(#departmentGrade) .card {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+    box-shadow: var(--shadow);
+}
+
+body:has(#loginButton) input,
+body:has(#departmentGrade) input,
+body:has(#departmentGrade) select {
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+body:has(#loginButton) .btn-primary,
+body:has(#departmentGrade) .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
 .dark{
     --bg:#181818;
     --card:#2b2b2b;
