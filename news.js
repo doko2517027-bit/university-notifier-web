@@ -450,7 +450,11 @@ async function loadNews() {
 
         return `
             <div
-                class="card news-card news-readable-card"
+                class="card news-card news-readable-card${
+                    notice.important === true
+                        ? " is-important"
+                        : ""
+                }"
                 data-news-type="university"
                 data-news-id="${notice.id}">
 
@@ -969,6 +973,11 @@ async function loadSystemNews() {
 
                 <div class="news-title">
                     💙 ${notice.title || ""}
+                    ${
+                        notice.important === true
+                            ? `<span class="news-important-badge">📌 重要</span>`
+                            : ""
+                    }
                 </div>
 
                 <div class="news-body">

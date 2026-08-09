@@ -19,6 +19,126 @@
     --info:#2196F3;
 }
 
+/* ==================================================
+   管理画面の配色統一（配置・操作は変更しない）
+================================================== */
+body:has(.admin-detail-grid),
+body:has(.system-news-admin-page),
+body.curriculum-admin-body,
+body:has(#examEnabled),
+body:has(.report-tabs) {
+    background:
+        radial-gradient(circle at top right, rgba(20, 184, 166, .10), transparent 32%),
+        var(--bg);
+}
+
+body:has(.admin-detail-grid) .card,
+body:has(.system-news-admin-page) .card,
+body.curriculum-admin-body .card,
+body:has(#examEnabled) .card,
+body:has(.report-tabs) .card {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+    box-shadow: var(--shadow);
+}
+
+body:has(.admin-detail-grid) input,
+body:has(.admin-detail-grid) select,
+body:has(.system-news-admin-page) input,
+body:has(.system-news-admin-page) select,
+body:has(.system-news-admin-page) textarea,
+body.curriculum-admin-body input,
+body.curriculum-admin-body select,
+body.curriculum-admin-body textarea,
+body:has(#examEnabled) input,
+body:has(#examEnabled) select,
+body:has(#examEnabled) textarea,
+body:has(.report-tabs) input,
+body:has(.report-tabs) select,
+body:has(.report-tabs) textarea {
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+body:has(.admin-detail-grid) .btn:not(.btn-danger),
+body:has(.system-news-admin-page) .btn:not(.btn-danger),
+body.curriculum-admin-body .btn:not(.btn-danger),
+body:has(#examEnabled) .btn:not(.btn-danger),
+body:has(.report-tabs) .btn:not(.btn-danger) {
+    border-color: color-mix(in srgb, var(--primary) 48%, var(--border));
+    color: var(--primary);
+}
+
+body:has(.admin-detail-grid) .btn-primary,
+body:has(.system-news-admin-page) .btn-primary,
+body.curriculum-admin-body .btn-primary,
+body:has(#examEnabled) .btn-primary,
+body:has(.report-tabs) .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+/* メンテナンス画面は単独で、通常画面と同じ配色に整える */
+body.maintenance-page {
+    display: grid;
+    min-height: 100vh;
+    box-sizing: border-box;
+    place-items: center;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(20, 184, 166, .20), transparent 43%),
+        var(--bg);
+}
+
+.maintenance-shell {
+    width: min(100%, 460px);
+    text-align: center;
+}
+
+.maintenance-mark {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto -18px;
+    place-items: center;
+    position: relative;
+    z-index: 1;
+    border: 5px solid var(--bg);
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: var(--shadow);
+    font-size: 28px;
+}
+
+.maintenance-card {
+    padding: 45px 26px 28px;
+    border-color: color-mix(in srgb, var(--primary) 23%, var(--border));
+    box-shadow: var(--shadow);
+}
+
+.maintenance-eyebrow {
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .08em;
+}
+
+.maintenance-card h1 {
+    margin: 12px 0 8px;
+    font-size: 23px;
+}
+
+.maintenance-lead,
+.maintenance-message {
+    margin: 0;
+    color: var(--subtext);
+}
+
+.maintenance-message {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    white-space: pre-wrap;
+}
+
 .dark{
     --bg:#181818;
     --card:#2b2b2b;
@@ -3881,6 +4001,35 @@ input[type="checkbox"] {
 
 .dark .system-news-notification-status {
     background: rgba(255, 255, 255, 0.07);
+}
+
+/* 学生側のお知らせ：管理画面の「重要」を反映 */
+.news-card.is-important {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, .10), var(--card) 44%);
+}
+
+.news-important-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 7px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 11px;
+    font-weight: 800;
+    vertical-align: middle;
+}
+
+.dark .news-card.is-important {
+    border-color: #b7791f;
+    background: linear-gradient(135deg, rgba(245, 158, 11, .14), var(--card) 44%);
+}
+
+.dark .news-important-badge {
+    background: #493718;
+    color: #fde68a;
 }
 
 
