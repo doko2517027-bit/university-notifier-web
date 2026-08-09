@@ -14025,7 +14025,6 @@ body:has(#assignmentList)
 
 }
 
-
 /* ==================================================
    出席管理：ホームと同じカード・操作感に統一
 ================================================== */
@@ -17833,4 +17832,81 @@ body:has(#profileImage)
             17px;
     }
 
+}
+
+
+/* ==================================================
+   アプリ全体のテーマ色統一（配置・サイズは変更しない）
+================================================== */
+
+/* 通常操作・移動操作はホームと同じ青緑系の面と枠線にそろえる。 */
+:where(
+    .btn:not(.btn-primary):not(.btn-danger),
+    .main-button:not(.btn-danger):not(#attendanceNo),
+    .circle-button,
+    .schedule-switch-button,
+    .attendance-rule-button,
+    .course-mobile-summary-button,
+    .exam-filter-button,
+    .exam-text-button,
+    .news-read-all-button,
+    .floating-button,
+    .lecture-calendar-nav,
+    .profile-tabs button,
+    .news-tabs button
+) {
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+    background-color: color-mix(in srgb, var(--card) 94%, var(--accent));
+    color: var(--primary);
+}
+
+:where(
+    .btn:not(.btn-primary):not(.btn-danger),
+    .main-button:not(.btn-danger):not(#attendanceNo),
+    .circle-button,
+    .schedule-switch-button,
+    .attendance-rule-button,
+    .course-mobile-summary-button,
+    .exam-filter-button,
+    .exam-text-button,
+    .news-read-all-button,
+    .floating-button,
+    .lecture-calendar-nav,
+    .profile-tabs button,
+    .news-tabs button
+):hover {
+    border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
+    background-color: color-mix(in srgb, var(--card) 75%, var(--accent));
+    color: var(--primary);
+}
+
+/* 主操作・選択中のタブ・現在地はホームと同じグラデーションにする。 */
+:where(
+    .btn-primary,
+    .main-button:not(.btn-danger):not(#attendanceNo),
+    .attendance-rule-button.is-active,
+    .schedule-switch-button.is-active,
+    .exam-filter-button.is-active,
+    .profile-tabs button.active,
+    .news-tabs button.active,
+    .bottom-nav a.active
+) {
+    background: linear-gradient(145deg, var(--primary), var(--primary-light));
+    border-color: transparent;
+    color: #ffffff;
+}
+
+/* すべての下部タブ／移動タブの基調色を統一する。 */
+:where(.bottom-nav, .profile-tabs, .news-tabs) {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+    background-color: color-mix(in srgb, var(--card) 96%, var(--accent));
+}
+
+:where(.bottom-nav a, .top-buttons a) {
+    color: var(--subtext);
+}
+
+/* 赤は削除・欠席など、操作の意味が変わるものだけに残す。 */
+:where(.btn-danger, .delete-button, #attendanceNo, #resetPhoto) {
+    color: #ffffff;
 }
