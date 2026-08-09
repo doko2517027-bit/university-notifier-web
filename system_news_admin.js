@@ -718,38 +718,29 @@ function renderSystemNews() {
         );
 
 
-    if (
-        systemNewsSort?.value ===
-        "oldest"
-    ) {
+    const oldestFirst =
+        systemNewsSort?.value === "oldest";
 
-        filteredItems =
-            [...filteredItems]
-                .sort(
-                    (newsA, newsB) =>
-                        getTimestampMilliseconds(
-                            newsA.createdAt
-                        ) -
-                        getTimestampMilliseconds(
-                            newsB.createdAt
-                        )
-                );
+    filteredItems =
+        [...filteredItems]
+            .sort((newsA, newsB) => {
+                // 重要なお知らせは日付順より優先して先頭へ固定する。
+                const importantDifference =
+                    Number(newsB.important === true) -
+                    Number(newsA.important === true);
 
-    } else {
+                if (importantDifference !== 0) {
+                    return importantDifference;
+                }
 
-        filteredItems =
-            [...filteredItems]
-                .sort(
-                    (newsA, newsB) =>
-                        getTimestampMilliseconds(
-                            newsB.createdAt
-                        ) -
-                        getTimestampMilliseconds(
-                            newsA.createdAt
-                        )
-                );
+                const timeDifference =
+                    getTimestampMilliseconds(newsA.createdAt) -
+                    getTimestampMilliseconds(newsB.createdAt);
 
-    }
+                return oldestFirst
+                    ? timeDifference
+                    : -timeDifference;
+            });
 
 
     if (systemNewsFilteredCount) {

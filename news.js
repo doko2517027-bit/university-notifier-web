@@ -939,12 +939,25 @@ async function loadSystemNews() {
 
     let unreadCount = 0;
 
-    const html = snapshot.docs.map(newsDoc => {
-
-        const notice = {
+    const notices = snapshot.docs
+        .map(newsDoc => ({
             id: newsDoc.id,
             ...newsDoc.data()
-        };
+        }))
+        .sort((noticeA, noticeB) => {
+            const importantDifference =
+                Number(noticeB.important === true) -
+                Number(noticeA.important === true);
+
+            if (importantDifference !== 0) {
+                return importantDifference;
+            }
+
+            return getTimestampMilliseconds(noticeB.createdAt) -
+                getTimestampMilliseconds(noticeA.createdAt);
+        });
+
+    const html = notices.map(notice => {
 
         const created =
             notice.createdAt?.toDate?.() || null;
@@ -961,7 +974,11 @@ async function loadSystemNews() {
 
         return `
             <div
-                class="card news-card news-readable-card"
+                class="card news-card news-readable-card${
+                    notice.important === true
+                        ? " is-important"
+                        : ""
+                }"
                 data-news-type="system"
                 data-news-id="${notice.id}">
 
