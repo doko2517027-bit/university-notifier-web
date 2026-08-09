@@ -1,5 +1,5 @@
 import {db,studentNumber,isAdmin,setupTheme,setupAdminTab,showPage,showToast} from "./common.js";
-import {collection,collectionGroup,doc,getDocs,limit,onSnapshot,orderBy,query,serverTimestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import {collection,doc,getDocs,serverTimestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const pendingList=document.getElementById("pendingReviewList");
 const badge=document.getElementById("pendingReviewBadge");
@@ -88,12 +88,15 @@ function reviewCard(item){
   return `<article class="attendance-review-card" data-path="${escapeHtml(item.ref.path)}"><div><b>${escapeHtml(data.subject||"科目未設定")}</b> <span class="report-status is-open">確認待ち</span></div><p>学生：${escapeHtml(data.studentNumber||item.ref.parent.parent?.id||"-")}<br>日時：${escapeHtml(data.date||"-")} ${escapeHtml(data.period||"-")}限<br>打刻：${escapeHtml(data.endLabel||"-")}（${formatDate(data.endClientAt)}）</p><div class="report-actions"><button class="btn btn-primary review-approve" data-status="PRESENT">出席として確定</button><button class="btn review-approve" data-status="EARLY_LEAVE">早退として確定</button><button class="btn btn-danger review-approve" data-status="ABSENT">欠席として確定</button></div></article>`;
 }
 
-function watchPendingReviews(){
-  onSnapshot(query(collectionGroup(db,"attendanceRecords"),orderBy("updatedAt","desc"),limit(100)),snapshot=>{
-    const pending=snapshot.docs.filter(item=>item.data().earlyEndReviewRequired===true&&item.data().earlyEndReviewStatus==="pending");
+async function watchPendingReviews(){
+  try{
+    const users=await getDocs(collection(db,"users"));
+    const snapshots=await Promise.all(users.docs.map(user=>getDocs(collection(user.ref,"attendanceRecords"))));
+    const pending=snapshots.flatMap(snapshot=>snapshot.docs).filter(item=>item.data().earlyEndReviewRequired===true&&item.data().earlyEndReviewStatus==="pending");
+    pending.sort((left,right)=>((right.data().updatedAt?.toMillis?.()||0)-(left.data().updatedAt?.toMillis?.()||0)));
     badge.hidden=!pending.length;badge.textContent=pending.length;
     pendingList.innerHTML=pending.map(reviewCard).join("")||"<p>確認待ちの記録はありません。</p>";
-  },error=>{console.error(error);pendingList.innerHTML="<p>確認待ちの記録を読み込めません。Firebaseルールを確認してください。</p>"});
+  }catch(error){console.error(error);pendingList.innerHTML="<p>確認待ちの記録を読み込めません。</p>"}
 }
 
 async function handleReviewAction(event){
@@ -109,5 +112,6 @@ async function handleReviewAction(event){
   try{
     await updateDoc(doc(db,"users",student,"attendanceRecords",recordId),{earlyEndReviewStatus:"resolved",earlyEndReviewResolvedAt:serverTimestamp(),earlyEndReviewResolvedBy:studentNumber||"",earlyEndReviewResolution:status,status,statusLabel:labels[status],statusFinalized:true,updatedAt:serverTimestamp()});
     showToast(`${labels[status]}として確定しました`);
+    await watchPendingReviews();
   }catch(error){console.error(error);showToast("確定に失敗しました。Firebaseルールを確認してください");button.disabled=false}
 }

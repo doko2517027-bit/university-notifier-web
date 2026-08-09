@@ -1,0 +1,556 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+
+    /* ========================================
+       ユーザー情報
+    ======================================== */
+
+    match /users/{userId} {
+
+      allow create, read, delete: if true;
+
+      /*
+       attendanceNotificationTest はこのユーザードキュメント内に保存する。
+       指定学生の履修済み科目だけを用いるテスト通知設定として使う。
+      */
+      allow update: if true;
+
+
+      /* 解答済み問題 */
+
+      match /solvedQuestions/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /* Push通知購読情報 */
+
+      match /pushSubscriptions/{id} {
+
+        allow read, create, update, delete: if true;
+
+      }
+
+
+      /* 履修登録科目 */
+
+      match /enrolledSubjects/{id} {
+
+        allow read, create, update, delete: if true;
+
+      }
+
+
+      /* 履修登録履歴 */
+
+      match /enrollmentHistory/{id} {
+
+        allow read, create: if true;
+        allow update, delete: if false;
+
+      }
+
+
+      /* 試験問題進捗 */
+
+      match /examProgress/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /* 科目別ポイント */
+
+      match /subjectPoints/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /* 科目別ポイントの日別履歴 */
+
+      match /subjectPointHistory/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /* 学生ごとの取得単位記録 */
+
+      match /creditRecords/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /*
+       CareMate内の個人用出席記録。
+       大学の公式出席記録ではない。
+      */
+
+      match /attendanceRecords/{recordId} {
+
+        /*
+         出席・欠席・遅刻・早退と、管理者確認待ちの記録。
+         管理画面はこのルールで確認待ち一覧を読み取り、
+         確定結果を書き戻す。
+        */
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /*
+       A・Bクラスなどの通知対象クラスを
+       科目名とは別に保存する。
+      */
+
+      match /attendancePreferences/{subjectId} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+
+      /* お知らせ既読情報 */
+
+      match /readNews/{readId} {
+
+        allow read: if true;
+
+        allow create: if
+          request.resource.data.keys().hasOnly([
+            'type',
+            'newsId',
+            'readAt',
+            'studentNumber'
+          ])
+          && request.resource.data.studentNumber == userId
+          && request.resource.data.type in [
+            'university',
+            'course',
+            'system'
+          ]
+          && request.resource.data.newsId is string
+          && request.resource.data.readAt is timestamp;
+
+        allow update, delete: if false;
+
+      }
+
+    }
+
+
+    /* ========================================
+       開発者・管理者
+    ======================================== */
+
+    match /developers/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    match /admins/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       公開ユーザー情報
+    ======================================== */
+
+    match /publicUsers/{id} {
+
+      allow read, create, delete: if true;
+
+      allow update: if
+        request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'photo'
+          ]);
+
+    }
+
+
+    /* ========================================
+       今日の問題
+    ======================================== */
+
+    match /today/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       課題
+    ======================================== */
+
+    match /assignments/{id} {
+
+      allow read, delete: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       Manabaコースリンク
+    ======================================== */
+
+    match /courseLinks/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       大学お知らせ
+    ======================================== */
+
+    match /news/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       コースお知らせ
+    ======================================== */
+
+    match /courseNews/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    match /courseNews/{studentNumber}/news/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    /* ========================================
+       共有投稿
+    ======================================== */
+
+    match /posts/{id} {
+
+      allow read, create, update, delete: if true;
+
+
+      match /likes/{studentNumber} {
+
+        allow read, create, delete: if true;
+
+      }
+
+
+      match /comments/{commentId} {
+
+        allow read, create, update, delete: if true;
+
+      }
+
+    }
+
+
+    /* ========================================
+       講義予定
+    ======================================== */
+
+    match /schedule/{id} {
+
+      allow read: if true;
+      allow write: if false;
+
+    }
+
+
+    match /scheduleOverrides/{id} {
+
+      allow read, create, update, delete: if true;
+
+    }
+
+
+    /* ========================================
+       出席通知
+    ======================================== */
+
+    /*
+     通知の重複防止台帳は
+     Cloud Functionsのみが操作する。
+    */
+
+    match /attendanceNotificationDispatches/{id} {
+
+      allow read, write: if false;
+
+    }
+
+
+    match /attendance/{studentNumber}/subjects/{subject}/records/{recordId} {
+
+      allow read, create, update: if true;
+      allow delete: if false;
+
+    }
+
+
+    /* ========================================
+       システム設定
+    ======================================== */
+
+    match /system/app {
+
+      allow read, write: if true;
+
+    }
+
+
+    match /system/exam {
+
+      allow read, write: if true;
+
+    }
+
+
+    match /system/courseRegistration {
+
+      allow read, write: if true;
+
+    }
+
+
+    match /system/courseRegistrationDraft {
+
+      allow read, write: if true;
+
+    }
+
+
+    /*
+     上で個別に許可していない
+     systemドキュメントは拒否する。
+    */
+
+    match /system/{id} {
+
+      allow read, write: if false;
+
+    }
+
+
+    /* ========================================
+       試験科目・教材・AI問題
+    ======================================== */
+
+    match /examSubjects/{subjectId} {
+
+      allow read, write: if true;
+
+
+      match /units/{unitId} {
+
+        allow read, write: if true;
+
+
+        match /materials/{id} {
+
+          allow read, write: if true;
+
+        }
+
+
+        match /ai/{id} {
+
+          allow read, write: if true;
+
+        }
+
+
+        match /publishedQuestions/{id} {
+
+          allow read, write: if true;
+
+        }
+
+
+        match /features/{id} {
+
+          allow read, write: if true;
+
+        }
+
+      }
+
+    }
+
+
+    /* ========================================
+       問題報告
+    ======================================== */
+
+    match /reports/{id} {
+
+      allow read, create, update, delete: if true;
+
+    }
+
+
+    /* ========================================
+       デイリーランキング
+    ======================================== */
+
+    match /dailyRanking/{date} {
+
+      allow read: if true;
+
+
+      match /users/{id} {
+
+        allow read, create, update: if true;
+        allow delete: if false;
+
+      }
+
+    }
+
+
+    /* ========================================
+       ランキング
+    ======================================== */
+
+    match /ranking/{id} {
+
+      allow read, create, update: if true;
+      allow delete: if false;
+
+    }
+
+
+    match /totalRanking/{id} {
+
+      allow read, create, update: if true;
+      allow delete: if false;
+
+    }
+
+
+    /* ========================================
+       システムお知らせ
+    ======================================== */
+
+    match /systemNews/{id} {
+
+      allow read, create, delete: if true;
+      allow update: if false;
+
+    }
+
+
+    /* ========================================
+       履修科目マスター
+    ======================================== */
+
+    match /subjects/{id} {
+
+      allow read, create, update, delete: if true;
+
+    }
+    
+    /* ========================================
+       開講授業
+    ======================================== */
+
+    match /courseOfferings/{id} {
+
+      allow read, create, update, delete: if true;
+
+    }
+    
+    /* ========================================
+       日別クラス分け
+    ======================================== */
+
+    match /classAssignments/{id} {
+
+      allow read, create, update, delete: if true;
+
+    }
+
+
+    /* ========================================
+       カリキュラム・卒業要件
+    ======================================== */
+
+    match /curricula/{curriculumId} {
+
+      allow read, create, update, delete: if true;
+
+    }
+
+
+    /* ========================================
+       トップレベルの科目ポイント履歴
+    ======================================== */
+
+    match /subjectPointHistory/{id} {
+
+      allow read, create, update: if true;
+      allow delete: if false;
+
+    }
+
+
+    /* ========================================
+       問い合わせ
+    ======================================== */
+
+    match /contacts/{id} {
+
+      allow create, read, update: if true;
+      allow delete: if false;
+
+    }
+
+  }
+
+}
