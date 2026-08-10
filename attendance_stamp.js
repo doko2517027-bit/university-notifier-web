@@ -306,6 +306,10 @@ export function normalizeAttendanceLecture(
         attendanceNotificationTest:
             lecture.attendanceNotificationTest === true,
 
+        attendanceNotificationTestClock:
+            lecture.attendanceNotificationTestClock ||
+            null,
+
         /*
          * 通知テストを通常講義と区別するID。
          * 同じ日・時限・科目でテストを繰り返しても、

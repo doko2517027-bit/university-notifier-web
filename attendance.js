@@ -383,6 +383,43 @@ let pendingAttendanceEdit =
 const CLASS_SELECTION_NONE =
     "__NONE__";
 
+/* ========================================
+   出席判定用現在時刻
+======================================== */
+
+function getAttendanceNow(
+    lecture = null
+) {
+
+    if (
+        lecture &&
+        lecture.attendanceNotificationTest === true &&
+        lecture.attendanceNotificationTestClock
+    ) {
+
+        const testDate =
+            new Date(
+                lecture.attendanceNotificationTestClock
+            );
+
+
+        if (
+            !Number.isNaN(
+                testDate.getTime()
+            )
+        ) {
+
+            return testDate;
+
+        }
+
+    }
+
+
+    return new Date();
+
+}
+
 
 /* ========================================
    初期化
@@ -2276,7 +2313,9 @@ function renderLectureCard(
         getAttendanceActionState({
 
             now:
-                new Date(),
+                getAttendanceNow(
+                    normalized
+                ),
 
             lecture:
                 normalized
@@ -4244,7 +4283,9 @@ function isAttendanceSessionEditable(
 
 
     const now =
-        new Date();
+        getAttendanceNow(
+            normalizedLecture
+        );
 
 
     const today =
@@ -5317,7 +5358,9 @@ function updateCurrentLectureStatus() {
 
 
     const now =
-        new Date();
+        getAttendanceNow(
+            normalizedLecture
+        );
 
 
     const active =

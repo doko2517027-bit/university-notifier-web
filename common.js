@@ -64,6 +64,38 @@ if (!getApps().length) {
     app = getApp();
 }
 
+function getAttendanceNow(
+    normalized
+) {
+
+    if (
+        normalized?.attendanceNotificationTest === true &&
+        normalized?.attendanceNotificationTestClock
+    ) {
+
+        const testDate =
+            new Date(
+                normalized.attendanceNotificationTestClock
+            );
+
+
+        if (
+            !Number.isNaN(
+                testDate.getTime()
+            )
+        ) {
+
+            return testDate;
+
+        }
+
+    }
+
+
+    return new Date();
+
+}
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
