@@ -14,7 +14,8 @@ import {
 
 import {
     loadPersonalTimetableData,
-    isEnrolledScheduleItem
+    isEnrolledScheduleItem,
+    normalizeCourseName
 } from "./personal_timetable_data.js";
 
 import {
@@ -1035,13 +1036,17 @@ async function loadAttendanceData() {
         */
 
         let enrolled =
-            rawLectures.filter(
-                item =>
-                    isEnrolledScheduleItem(
-                        item,
-                        enrolledAliases
-                    )
-            );
+            rawLectures
+
+                .map(
+                    item =>
+                        attachEnrolledSubjectData(
+                            item,
+                            enrolledAliases
+                        )
+                )
+
+                .filter(Boolean);
 
 
         /*
@@ -1358,6 +1363,77 @@ function resolveScheduleId(
 
 
     return "";
+
+}
+
+
+function attachEnrolledSubjectData(
+    item,
+    aliases
+) {
+
+    const scheduleSubject =
+        normalizeText(
+            item?.subject ||
+            item?.name ||
+            item?.title
+        );
+
+
+    const course =
+        aliases?.get(
+            normalizeCourseName(
+                scheduleSubject
+            )
+        );
+
+
+    if (!course) {
+
+        return null;
+
+    }
+
+
+    return {
+
+        ...item,
+
+        subject:
+            scheduleSubject,
+
+        subjectId:
+            normalizeText(
+                course.subjectId ||
+                course.id ||
+                item.subjectId
+            ),
+
+        subjectKey:
+            normalizeText(
+                course.subjectKey ||
+                course.name ||
+                course.id ||
+                item.subjectKey
+            ),
+
+        enrolledSubjectName:
+            normalizeText(
+                course.name ||
+                scheduleSubject
+            ),
+
+        isPractical:
+            course.isPractical === true,
+
+        lectureCount:
+            Number(
+                course.lectureCount ||
+                item.lectureCount ||
+                0
+            )
+
+    };
 
 }
 
@@ -3794,25 +3870,37 @@ function buildTermLectures(
                 ? day.schedules
 
                     .map(
-                        item => ({
+                        item => {
 
-                            ...item,
+                            const enrolledItem =
+                                attachEnrolledSubjectData(
+                                    item,
+                                    aliases
+                                );
 
-                            date,
 
-                            scheduleDocumentId:
-                                scheduleId
+                            if (!enrolledItem) {
 
-                        })
+                                return null;
+
+                            }
+
+
+                            return {
+
+                                ...enrolledItem,
+
+                                date,
+
+                                scheduleDocumentId:
+                                    scheduleId
+
+                            };
+
+                        }
                     )
 
-                    .filter(
-                        item =>
-                            isEnrolledScheduleItem(
-                                item,
-                                aliases
-                            )
-                    )
+                    .filter(Boolean)
 
                 : [];
 
