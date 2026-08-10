@@ -20,6 +20,13 @@
 if(localStorage.getItem("theme")==="dark"){
     document.documentElement.classList.add("dark");
 }
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js")
+            .catch(error => console.warn("Service Worker の登録に失敗しました。", error));
+    });
+}
 </script>
 
 </head>

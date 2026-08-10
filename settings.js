@@ -72,62 +72,12 @@ const notifySharePost = document.getElementById("notifySharePost");
 const notifyLike = document.getElementById("notifyLike");
 const notifyComment = document.getElementById("notifyComment");
 const enablePushButton = document.getElementById("enablePushButton");
-const installAppButton = document.getElementById("installAppButton");
-const installAppHint = document.getElementById("installAppHint");
-
-let deferredInstallPrompt = null;
-
-function getServiceWorkerPath() {
-    const basePath = new URL("./", window.location.href).pathname;
-    return `${basePath}sw.js`;
-}
-
-async function setupAppInstall() {
-    if (!("serviceWorker" in navigator)) {
-        return;
-    }
-
-    try {
-        await navigator.serviceWorker.register(getServiceWorkerPath());
-    }
-    catch (error) {
-        console.warn("Service Worker の登録に失敗しました。", error);
-    }
-
-    window.addEventListener("beforeinstallprompt", event => {
-        event.preventDefault();
-        deferredInstallPrompt = event;
-        installAppButton.hidden = false;
-        installAppHint.hidden = false;
-        installAppHint.textContent = "Androidのホーム画面にCareMateを追加できます。";
-    });
-
-    window.addEventListener("appinstalled", () => {
-        deferredInstallPrompt = null;
-        installAppButton.hidden = true;
-        installAppHint.hidden = false;
-        installAppHint.textContent = "ホーム画面に追加済みです。";
-    });
-
-    installAppButton?.addEventListener("click", async () => {
-        if (!deferredInstallPrompt) {
-            return;
-        }
-
-        deferredInstallPrompt.prompt();
-        await deferredInstallPrompt.userChoice;
-        deferredInstallPrompt = null;
-        installAppButton.hidden = true;
-    });
-}
 
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
 
 setupTheme(themeButton);
-
-setupAppInstall();
 
 await initializePage([
 
