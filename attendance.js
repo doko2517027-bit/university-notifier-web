@@ -1131,6 +1131,37 @@ async function loadAttendanceData() {
                     attendanceNotificationTest:
                         true,
 
+                    attendanceNotificationTestClock:
+                        (
+                            userData
+                                ?.attendanceTestClock
+                                ?.enabled === true &&
+
+                            normalizeDate(
+                                userData
+                                    .attendanceTestClock
+                                    .date
+                            ) === effectiveDate &&
+
+                            /^\d{2}:\d{2}$/.test(
+                                userData
+                                    .attendanceTestClock
+                                    .time || ""
+                            ) &&
+
+                            Date.parse(
+                                userData
+                                    .attendanceTestClock
+                                    .expiresAt || ""
+                            ) > Date.now()
+                        )
+                            ? `${effectiveDate}T${
+                                userData
+                                    .attendanceTestClock
+                                    .time
+                            }:00`
+                            : null,
+
                     testId
 
                 });
@@ -5285,7 +5316,9 @@ function guidance(
         return classifyStartStamp({
 
             stampAt:
-                new Date(),
+                getAttendanceNow(
+                    normalized
+                ),
 
             lecture:
                 normalized
@@ -5297,13 +5330,14 @@ function guidance(
 
 
     if (
-        Date.now() <
+        getAttendanceNow(
+            normalized
+        ).getTime() <
         normalized
             .lectureWindow
             .startNotificationAt
             .getTime()
     ) {
-
         return (
             `開始打刻は` +
             `${formatTime(
@@ -5330,15 +5364,11 @@ function guidance(
 function updateCurrentLectureStatus() {
 
     if (!el.currentStatus) {
-
         return;
-
     }
 
 
-    if (
-        !lectures.length
-    ) {
+    if (!lectures.length) {
 
         el.currentStatus.textContent =
             missingClasses.length
@@ -5350,14 +5380,9 @@ function updateCurrentLectureStatus() {
                     "今日の履修済み講義はありません。"
                 );
 
-
         return;
 
     }
-
-
-    const now =
-        new Date();
 
 
     const active =
@@ -5379,7 +5404,6 @@ function updateCurrentLectureStatus() {
 
 
                     return (
-
                         now >=
                         normalizedLecture
                             .lectureWindow
@@ -5389,7 +5413,6 @@ function updateCurrentLectureStatus() {
                         normalizedLecture
                             .lectureWindow
                             .endStampExpiresAt
-
                     );
 
                 } catch {
@@ -5409,10 +5432,41 @@ function updateCurrentLectureStatus() {
             `${active.period}限 ` +
             `${active.subject}`;
 
-
         return;
 
     }
+
+
+    const next =
+        lectures.find(
+            lecture => {
+
+                try {
+
+                    const normalizedLecture =
+                        normalizeAttendanceLecture(
+                            lecture
+                        );
+
+
+                    return (
+                        getAttendanceNow(
+                            normalizedLecture
+                        ) <
+                        normalizedLecture
+                            .lectureWindow
+                            .startNotificationAt
+                    );
+
+                } catch {
+
+                    return false;
+
+                }
+
+            }
+        );
+
 
     el.currentStatus.textContent =
         next
@@ -5542,7 +5596,9 @@ function confirmationContent(
             classifyStartStamp({
 
                 stampAt:
-                    new Date(),
+                    getAttendanceNow(
+                        normalized
+                    ),
 
                 lecture:
                     normalized
