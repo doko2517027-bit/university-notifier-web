@@ -690,10 +690,10 @@ export async function stampAttendanceStart({
         出席判定時刻には使用しない。
         */
         const judgementNow =
-            normalized
-                .attendanceNotificationTest === true
-                ? new Date()
-                : new Date(now);
+            resolveAttendanceNow(
+                normalized,
+                now
+            );
 
 
         const result =
@@ -986,10 +986,10 @@ export async function stampAttendanceEnd({
         終了判定は実際に押した時刻を使う。
         */
         const judgementNow =
-            normalized
-                .attendanceNotificationTest === true
-                ? new Date()
-                : new Date(now);
+            resolveAttendanceNow(
+                normalized,
+                now
+            );
 
 
         const result =
@@ -1998,5 +1998,48 @@ function createFailureResult({
         error
 
     };
+
+}
+
+function resolveAttendanceNow(
+    normalized,
+    fallbackNow = new Date()
+) {
+
+    /*
+        通知テスト時
+
+        attendanceNotificationTestClock:
+            テスト用の仮想時刻
+
+        が存在する場合のみ使用。
+
+        本番時は必ず実時間。
+    */
+
+    if (
+        normalized?.attendanceNotificationTest === true &&
+        normalized?.attendanceNotificationTestClock
+    ) {
+
+        const testDate =
+            new Date(
+                normalized.attendanceNotificationTestClock
+            );
+
+
+        if (
+            !Number.isNaN(
+                testDate.getTime()
+            )
+        ) {
+            return testDate;
+        }
+    }
+
+
+    return new Date(
+        fallbackNow
+    );
 
 }
