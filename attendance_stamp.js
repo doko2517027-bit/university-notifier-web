@@ -1401,15 +1401,18 @@ export async function markAttendanceAbsent({
             );
 
 
+        const judgementNow =
+            resolveAttendanceNow(
+                normalized,
+                now
+            );
+
+
         const actionState =
             getAttendanceActionState({
-
-                now,
-
+                now: judgementNow,
                 lecture:
-                    normalized
-                        .lectureWindow
-
+                    normalized.lectureWindow
             });
 
 
@@ -1418,7 +1421,7 @@ export async function markAttendanceAbsent({
         ) {
 
             const beforeStart =
-                new Date(now).getTime() <
+                judgementNow.getTime() <
                 normalized
                     .lectureWindow
                     .startNotificationAt
@@ -1567,7 +1570,7 @@ export async function markAttendanceAbsent({
 
                         absenceClientAt:
                             Timestamp.fromDate(
-                                new Date(now)
+                                judgementNow
                             ),
 
                         absenceSource:
