@@ -5998,16 +5998,20 @@ function isDateInAcademicTerm(
     }
 
 
+    /*
+     * 学期の日付を
+     * 4/1・10/1で固定しない。
+     *
+     * 表示対象の学期は
+     * 履修登録データ側で判定するため、
+     * ここでは同一年度内かだけ確認する。
+     */
     const start =
-        term.semester === "前期"
-            ? `${term.academicYear}-04-01`
-            : `${term.academicYear}-10-01`;
+        `${term.academicYear}-04-01`;
 
 
     const end =
-        term.semester === "前期"
-            ? `${term.academicYear}-09-30`
-            : `${term.academicYear + 1}-03-31`;
+        `${term.academicYear + 1}-03-31`;
 
 
     return (
