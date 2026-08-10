@@ -7922,6 +7922,12 @@ function normalizePeriod(
         Number(
             String(value ?? "")
 
+                /*
+                 * 大学PDFは「１限」のように全角数字で
+                 * 保存される場合がある。
+                 */
+                .normalize("NFKC")
+
                 .replace(
                     "限",
                     ""
@@ -8159,6 +8165,8 @@ function normalizeText(
     return String(
         value ?? ""
     )
+        /* 全角の学年・時限・英数字も同じ値として照合する */
+        .normalize("NFKC")
         .replace(
             /\s+/g,
             " "
