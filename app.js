@@ -133,6 +133,7 @@ if(newsList){
 const lectureScheduleLabel = document.getElementById("lectureScheduleLabel");
 const lectureScheduleDetail = document.getElementById("lectureScheduleDetail");
 const lectureScheduleList = document.getElementById("lectureScheduleList");
+const lectureSchedulePdfLink = document.getElementById("lectureSchedulePdfLink");
 const lecturePrev = document.getElementById("lecturePrev");
 const lectureNext = document.getElementById("lectureNext");
 const lectureDatePickerButton = document.getElementById("lectureDatePickerButton");
@@ -1104,7 +1105,10 @@ async function loadTodaySchedule() {
         localStorage.getItem("major");
 
     const grade =
-        localStorage.getItem("grade");
+        String(localStorage.getItem("grade") || "")
+            .normalize("NFKC")
+            .replace("年", "")
+            .trim();
 
     let docId = "";
 
@@ -1139,6 +1143,13 @@ async function loadTodaySchedule() {
     }
 
     const data = snap.data();
+
+    if (
+        lectureSchedulePdfLink &&
+        /^https:\/\//.test(String(data.sourcePdfUrl || ""))
+    ) {
+        lectureSchedulePdfLink.href = data.sourcePdfUrl;
+    }
 
     const scheduleDays =
         Array.isArray(data.allDays) && data.allDays.length > 0
@@ -1550,6 +1561,28 @@ lectureSchedules =
             initialIndex
         );
 
+    /*
+    今日に履修済み講義がない場合は、次に履修済み講義がある日を表示する。
+    明示した日付・通知テスト中はその日付を優先する。
+    */
+    if (
+        !userTestDateActive &&
+        !notificationTestActive &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(requestedTestDate || "") &&
+        !(lectureSchedules[lectureScheduleIndex]?.schedules || []).length
+    ) {
+        const nextIndex = lectureSchedules.findIndex(
+            item => item.date > actualToday && (item.schedules || []).length > 0
+        );
+        if (nextIndex >= 0) {
+            lectureScheduleIndex = nextIndex;
+            localStorage.setItem(
+                "careMateSelectedScheduleDate",
+                lectureSchedules[nextIndex].date
+            );
+        }
+    }
+
 
     const initialScheduleDate =
 
@@ -1781,7 +1814,12 @@ function renderSchedule(
 ) {
 
     const list = schedules
-        .filter(item => item.grade === grade)
+        .filter(item =>
+            String(item.grade || "")
+                .normalize("NFKC")
+                .replace("年", "")
+                .trim() === grade
+        )
         .sort((a, b) =>
             parseInt(a.period) - parseInt(b.period)
         );
@@ -2877,12 +2915,10 @@ function renderLectureCalendar() {
             dayData.schedules.some(
                 schedule =>
                     !grade ||
-                    String(
-                        schedule.grade || ""
-                    ) ===
-                    String(
-                        grade
-                    )
+                    String(schedule.grade || "")
+                        .normalize("NFKC")
+                        .replace("年", "")
+                        .trim() === String(grade || "")
             );
 
 

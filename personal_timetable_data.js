@@ -45,12 +45,12 @@ export async function loadPersonalTimetableData(){
         {date:"",title:data.todayTitle||"今日",label:data.todayLabel||"",schedules:data.today||[]},
         {date:"",title:data.nextTitle||"次回",label:data.nextLabel||"",schedules:data.next||[]}
     ];
-    const grade=String(user.grade||localStorage.getItem("grade")||"").replace("年","").trim();
+    const grade=String(user.grade||localStorage.getItem("grade")||"").normalize("NFKC").replace("年","").trim();
     const entries=[];
     for(const day of days){
         for(const item of Array.isArray(day.schedules)?day.schedules:[]){
             if(selectedClassGroup&&item.classGroup&&String(item.classGroup).trim()!==selectedClassGroup)continue;
-            if(grade&&String(item.grade||"").replace("年","").trim()!==grade) continue;
+            if(grade&&String(item.grade||"").normalize("NFKC").replace("年","").trim()!==grade) continue;
             const course=aliasToCourse.get(normalizeCourseName(item.subject));
             if(!course) continue;
             entries.push({
