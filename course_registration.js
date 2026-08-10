@@ -877,7 +877,7 @@ async function loadRegistrationData() {
         }
 
 
-        subjects =
+        const allSubjects =
             subjectSnapshot.docs
                 .map(subjectDocument =>
                     normalizeSubject(
@@ -885,13 +885,16 @@ async function loadRegistrationData() {
                         subjectDocument.data()
                     )
                 )
-                .filter(
-                    subject =>
-                        subject.active
-                )
                 .sort(
                     compareSubjects
                 );
+
+
+        subjects =
+            allSubjects.filter(
+                subject =>
+                    subject.active
+            );
 
 
         enrolledDocs =
@@ -1047,22 +1050,40 @@ async function loadRegistrationData() {
             ...creditRecords,
             ...earnedEnrollmentRecords
         ]
+        .map(
+            record =>
+                enrichCreditRecord(
+                    record,
+                    allSubjects
+                )
+        )
         .forEach(
             record => {
 
                 const key =
-                    String(
-                        record.subjectId ||
-                        record.subjectKey ||
-                        record.id ||
-                        ""
-                    );
+                    record.subjectId
+                        ? `subject:${record.subjectId}`
+                        : record.subjectKey
+                            ? `key:${record.subjectKey}`
+                            : record.id
+                                ? `record:${record.id}`
+                                : "";
 
 
                 if (!key) {
                     return;
                 }
 
+
+                /*
+                同じ科目が
+
+                creditRecords
+                enrolledSubjects
+
+                の両方に存在しても、
+                1科目として扱う。
+                */
 
                 combinedCreditRecordMap.set(
                     key,
@@ -2218,6 +2239,202 @@ function mergeCreditRecords(
 
 
     return [...recordMap.values()];
+
+}
+
+
+function findSubjectForCreditRecord(
+    record,
+    subjectCatalog
+) {
+
+    const subjectId =
+        String(
+            record.subjectId ||
+            ""
+        ).trim();
+
+
+    if (subjectId) {
+
+        const subjectById =
+            subjectCatalog.find(
+                subject =>
+                    subject.id ===
+                    subjectId
+            );
+
+
+        if (subjectById) {
+            return subjectById;
+        }
+
+    }
+
+
+    const subjectKey =
+        String(
+            record.subjectKey ||
+            record.name ||
+            record.subject ||
+            ""
+        ).trim();
+
+
+    if (!subjectKey) {
+        return null;
+    }
+
+
+    const subjectByKey =
+        subjectCatalog.find(
+            subject =>
+                subject.subjectKey ===
+                subjectKey
+        );
+
+
+    if (subjectByKey) {
+        return subjectByKey;
+    }
+
+
+    return (
+        subjectCatalog.find(
+            subject =>
+                subject.name ===
+                subjectKey
+        ) ||
+        null
+    );
+
+}
+
+
+function enrichCreditRecord(
+    record,
+    subjectCatalog
+) {
+
+    const subject =
+        findSubjectForCreditRecord(
+            record,
+            subjectCatalog
+        );
+
+
+    const storedRequirementType =
+        String(
+            record.requirementType ||
+            ""
+        ).trim();
+
+
+    let requirementType = "";
+
+
+    if (
+        storedRequirementType ===
+            "required" ||
+        storedRequirementType ===
+            "elective"
+    ) {
+
+        requirementType =
+            storedRequirementType;
+
+    } else if (
+        subject?.requirementType
+    ) {
+
+        requirementType =
+            subject.requirementType;
+
+    } else {
+
+        requirementType =
+            record.required === true
+                ? "required"
+                : "elective";
+
+    }
+
+
+    const storedRequirementTags =
+        Array.isArray(
+            record.requirementTags
+        )
+            ? normalizeStringArray(
+                record.requirementTags
+            )
+            : splitTags(
+                record.requirementTags ||
+                record.requirementTag ||
+                ""
+            );
+
+
+    const requirementTags =
+        storedRequirementTags.length > 0
+            ? storedRequirementTags
+            : (
+                subject?.requirementTags ||
+                []
+            );
+
+
+    return {
+
+        ...record,
+
+        subjectId:
+            String(
+                record.subjectId ||
+                subject?.id ||
+                ""
+            ).trim(),
+
+        subjectKey:
+            String(
+                record.subjectKey ||
+                subject?.subjectKey ||
+                subject?.name ||
+                record.name ||
+                record.subject ||
+                ""
+            ).trim(),
+
+        name:
+            String(
+                record.name ||
+                record.subject ||
+                subject?.name ||
+                record.subjectKey ||
+                ""
+            ).trim(),
+
+        credits:
+            toNonNegativeNumber(
+                record.credits ||
+                subject?.credits
+            ),
+
+        requirementType,
+
+        required:
+            requirementType ===
+            "required",
+
+        category:
+            String(
+                record.category ||
+                subject?.category ||
+                ""
+            ).trim(),
+
+        requirementTags
+
+    };
 
 }
 
@@ -4739,11 +4956,374 @@ function updateCategoryProgress(
             .categoryRequirements;
 
 
+    /*
+     ========================================
+     卒業要件全体
+     ========================================
+    */
+
+    const selectedRequired =
+        sumSubjectCredits(
+            summary.selectedSubjects.filter(
+                subject =>
+                    subject.requirementType ===
+                    "required"
+            )
+        );
+
+
+    const selectedElective =
+        sumSubjectCredits(
+            summary.selectedSubjects.filter(
+                subject =>
+                    subject.requirementType ===
+                    "elective"
+            )
+        );
+
+
+    const earnedRequired =
+        toNonNegativeNumber(
+            progress.earnedRequiredCredits
+        );
+
+
+    const earnedElective =
+        toNonNegativeNumber(
+            progress.earnedElectiveCredits
+        );
+
+
+    const projectedRequired =
+        earnedRequired +
+        selectedRequired;
+
+
+    const projectedElective =
+        earnedElective +
+        selectedElective;
+
+
+    const requiredTarget =
+        toNonNegativeNumber(
+            currentCurriculum.requiredCredits
+        );
+
+
+    const electiveTarget =
+        toNonNegativeNumber(
+            currentCurriculum
+                .electiveCreditsMinimum
+        );
+
+
+    const requiredRemaining =
+        Math.max(
+            0,
+            requiredTarget -
+            projectedRequired
+        );
+
+
+    const electiveRemaining =
+        Math.max(
+            0,
+            electiveTarget -
+            projectedElective
+        );
+
+
+    const requiredComplete =
+        requiredTarget <= 0 ||
+        projectedRequired >=
+            requiredTarget;
+
+
+    const electiveComplete =
+        electiveTarget <= 0 ||
+        projectedElective >=
+            electiveTarget;
+
+
+    const requiredPercentage =
+        requiredTarget > 0
+            ? Math.min(
+                100,
+                projectedRequired /
+                requiredTarget *
+                100
+            )
+            : 100;
+
+
+    const electivePercentage =
+        electiveTarget > 0
+            ? Math.min(
+                100,
+                projectedElective /
+                electiveTarget *
+                100
+            )
+            : 100;
+
+
+    const overallRequirementHtml = `
+
+        <h3 class="special-requirement-heading">
+
+            🎓 卒業要件の内訳
+
+        </h3>
+
+
+        <article
+            class="
+                category-progress-item
+                ${
+                    requiredComplete
+                        ? "is-complete"
+                        : ""
+                }
+            ">
+
+            <div class="category-progress-heading">
+
+                <div>
+
+                    <h3>
+                        必修科目
+                    </h3>
+
+                    <small>
+
+                        ${
+                            requiredComplete
+                                ? "✅ 必修単位の要件を満たす見込みです"
+                                : `あと${formatCredit(
+                                    requiredRemaining
+                                )}単位必要です`
+                        }
+
+                    </small>
+
+                </div>
+
+
+                <strong>
+
+                    ${formatCredit(
+                        projectedRequired
+                    )}
+
+                    /
+
+                    ${formatCredit(
+                        requiredTarget
+                    )}
+
+                    単位
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-progress-track">
+
+                <div
+                    class="category-progress-bar"
+                    style="width:${requiredPercentage}%">
+                </div>
+
+            </div>
+
+
+            <div class="category-progress-breakdown">
+
+                <span>
+
+                    取得済み
+                    <b>
+                        ${formatCredit(
+                            earnedRequired
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    今回選択
+                    <b>
+                        ${formatCredit(
+                            selectedRequired
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    履修後見込み
+                    <b>
+                        ${formatCredit(
+                            projectedRequired
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    残り
+                    <b>
+                        ${formatCredit(
+                            requiredRemaining
+                        )}
+                    </b>
+
+                </span>
+
+            </div>
+
+        </article>
+
+
+        <article
+            class="
+                category-progress-item
+                ${
+                    electiveComplete
+                        ? "is-complete"
+                        : ""
+                }
+            ">
+
+            <div class="category-progress-heading">
+
+                <div>
+
+                    <h3>
+                        選択科目
+                    </h3>
+
+                    <small>
+
+                        ${
+                            electiveComplete
+                                ? "✅ 選択単位の要件を満たす見込みです"
+                                : `あと${formatCredit(
+                                    electiveRemaining
+                                )}単位必要です`
+                        }
+
+                    </small>
+
+                </div>
+
+
+                <strong>
+
+                    ${formatCredit(
+                        projectedElective
+                    )}
+
+                    /
+
+                    ${formatCredit(
+                        electiveTarget
+                    )}
+
+                    単位以上
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-progress-track">
+
+                <div
+                    class="category-progress-bar"
+                    style="width:${electivePercentage}%">
+                </div>
+
+            </div>
+
+
+            <div class="category-progress-breakdown">
+
+                <span>
+
+                    取得済み
+                    <b>
+                        ${formatCredit(
+                            earnedElective
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    今回選択
+                    <b>
+                        ${formatCredit(
+                            selectedElective
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    履修後見込み
+                    <b>
+                        ${formatCredit(
+                            projectedElective
+                        )}
+                    </b>
+
+                </span>
+
+
+                <span>
+
+                    残り
+                    <b>
+                        ${formatCredit(
+                            electiveRemaining
+                        )}
+                    </b>
+
+                </span>
+
+            </div>
+
+        </article>
+
+    `;
+
+
+    /*
+     ========================================
+     区分別要件
+     ========================================
+    */
+
+    let categoryRequirementHtml = "";
+
+
     if (
         requirements.length === 0
     ) {
 
-        elements.categoryProgressList.innerHTML = `
+        categoryRequirementHtml = `
 
             <div class="course-progress-empty">
 
@@ -4753,250 +5333,300 @@ function updateCategoryProgress(
 
         `;
 
-        return;
+    } else {
+
+        categoryRequirementHtml = `
+
+            <h3 class="special-requirement-heading">
+
+                📚 科目区分別の卒業要件
+
+            </h3>
+
+            ${
+                requirements.map(
+                    requirement => {
+
+                        const selectedCategorySubjects =
+                            summary.selectedSubjects.filter(
+                                subject =>
+                                    subject.category ===
+                                    requirement.category
+                            );
+
+
+                        const selectedTotal =
+                            sumSubjectCredits(
+                                selectedCategorySubjects
+                            );
+
+
+                        const selectedRequired =
+                            sumSubjectCredits(
+                                selectedCategorySubjects.filter(
+                                    subject =>
+                                        subject.requirementType ===
+                                        "required"
+                                )
+                            );
+
+
+                        const selectedElective =
+                            sumSubjectCredits(
+                                selectedCategorySubjects.filter(
+                                    subject =>
+                                        subject.requirementType ===
+                                        "elective"
+                                )
+                            );
+
+
+                        const earnedTotal =
+                            getObjectNumber(
+                                progress.categoryCredits,
+                                requirement.category
+                            );
+
+
+                        const earnedRequired =
+                            getObjectNumber(
+                                progress.categoryRequiredCredits,
+                                requirement.category
+                            );
+
+
+                        const earnedElective =
+                            getObjectNumber(
+                                progress.categoryElectiveCredits,
+                                requirement.category
+                            );
+
+
+                        const projectedTotal =
+                            earnedTotal +
+                            selectedTotal;
+
+
+                        const projectedRequired =
+                            earnedRequired +
+                            selectedRequired;
+
+
+                        const projectedElective =
+                            earnedElective +
+                            selectedElective;
+
+
+                        const totalTarget =
+                            requirement.totalCreditsMinimum;
+
+
+                        const totalPercentage =
+                            totalTarget > 0
+                                ? Math.min(
+                                    100,
+                                    projectedTotal /
+                                    totalTarget *
+                                    100
+                                )
+                                : 100;
+
+
+                        const requiredComplete =
+                            projectedRequired >=
+                            requirement.requiredCredits;
+
+
+                        const electiveComplete =
+                            projectedElective >=
+                            requirement.electiveCreditsMinimum;
+
+
+                        const totalComplete =
+                            projectedTotal >=
+                            requirement.totalCreditsMinimum;
+
+
+                        const complete =
+                            totalComplete &&
+                            requiredComplete &&
+                            electiveComplete;
+
+
+                        return `
+
+                            <article
+                                class="
+                                    category-progress-item
+                                    ${
+                                        complete
+                                            ? "is-complete"
+                                            : ""
+                                    }
+                                ">
+
+                                <div class="category-progress-heading">
+
+                                    <div>
+
+                                        <h3>
+
+                                            ${escapeHtml(
+                                                requirement.category
+                                            )}
+
+                                        </h3>
+
+                                        <small>
+
+                                            ${
+                                                complete
+                                                    ? "✅ この区分の要件を満たす見込みです"
+                                                    : "まだ必要な単位があります"
+                                            }
+
+                                        </small>
+
+                                    </div>
+
+
+                                    <strong>
+
+                                        ${formatCredit(
+                                            projectedTotal
+                                        )}
+
+                                        /
+
+                                        ${formatCredit(
+                                            totalTarget
+                                        )}
+
+                                        単位
+
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="category-progress-track">
+
+                                    <div
+                                        class="category-progress-bar"
+                                        style="width:${totalPercentage}%">
+                                    </div>
+
+                                </div>
+
+
+                                <div class="category-progress-breakdown">
+
+                                    <span>
+
+                                        取得済み
+                                        <b>
+                                            ${formatCredit(
+                                                earnedTotal
+                                            )}
+                                        </b>
+
+                                    </span>
+
+
+                                    <span>
+
+                                        今回選択
+                                        <b>
+                                            ${formatCredit(
+                                                selectedTotal
+                                            )}
+                                        </b>
+
+                                    </span>
+
+
+                                    <span>
+
+                                        必修
+                                        <b>
+
+                                            ${
+                                                requiredComplete
+                                                    ? "✅ "
+                                                    : ""
+                                            }
+
+                                            ${formatCredit(
+                                                projectedRequired
+                                            )}
+
+                                            /
+
+                                            ${formatCredit(
+                                                requirement
+                                                    .requiredCredits
+                                            )}
+
+                                        </b>
+
+                                    </span>
+
+
+                                    <span>
+
+                                        選択
+                                        <b>
+
+                                            ${
+                                                electiveComplete
+                                                    ? "✅ "
+                                                    : ""
+                                            }
+
+                                            ${formatCredit(
+                                                projectedElective
+                                            )}
+
+                                            /
+
+                                            ${formatCredit(
+                                                requirement
+                                                    .electiveCreditsMinimum
+                                            )}
+
+                                        </b>
+
+                                    </span>
+
+                                </div>
+
+                            </article>
+
+                        `;
+
+                    }
+                )
+                .join("")
+            }
+
+        `;
 
     }
 
 
-    elements.categoryProgressList.innerHTML =
-        requirements.map(
-            requirement => {
+    elements.categoryProgressList.innerHTML = `
 
-                const selectedCategorySubjects =
-                    summary.selectedSubjects.filter(
-                        subject =>
-                            subject.category ===
-                            requirement.category
-                    );
+        ${overallRequirementHtml}
 
+        ${categoryRequirementHtml}
 
-                const selectedTotal =
-                    sumSubjectCredits(
-                        selectedCategorySubjects
-                    );
+    `;
 
 
-                const selectedRequired =
-                    sumSubjectCredits(
-                        selectedCategorySubjects.filter(
-                            subject =>
-                                subject.requirementType ===
-                                "required"
-                        )
-                    );
-
-
-                const selectedElective =
-                    sumSubjectCredits(
-                        selectedCategorySubjects.filter(
-                            subject =>
-                                subject.requirementType ===
-                                "elective"
-                        )
-                    );
-
-
-                const earnedTotal =
-                    getObjectNumber(
-                        progress.categoryCredits,
-                        requirement.category
-                    );
-
-
-                const earnedRequired =
-                    getObjectNumber(
-                        progress.categoryRequiredCredits,
-                        requirement.category
-                    );
-
-
-                const earnedElective =
-                    getObjectNumber(
-                        progress.categoryElectiveCredits,
-                        requirement.category
-                    );
-
-
-                const projectedTotal =
-                    earnedTotal +
-                    selectedTotal;
-
-
-                const projectedRequired =
-                    earnedRequired +
-                    selectedRequired;
-
-
-                const projectedElective =
-                    earnedElective +
-                    selectedElective;
-
-
-                const totalTarget =
-                    requirement.totalCreditsMinimum;
-
-
-                const percentage =
-                    totalTarget > 0
-                        ? Math.min(
-                            100,
-                            projectedTotal /
-                            totalTarget *
-                            100
-                        )
-                        : 100;
-
-
-                const complete =
-                    projectedTotal >=
-                        requirement.totalCreditsMinimum &&
-                    projectedRequired >=
-                        requirement.requiredCredits &&
-                    projectedElective >=
-                        requirement.electiveCreditsMinimum;
-
-
-                return `
-
-                    <article
-                        class="
-                            category-progress-item
-                            ${
-                                complete
-                                    ? "is-complete"
-                                    : ""
-                            }
-                        ">
-
-
-                        <div class="category-progress-heading">
-
-                            <div>
-
-                                <h3>
-
-                                    ${escapeHtml(
-                                        requirement.category
-                                    )}
-
-                                </h3>
-
-                                <small>
-
-                                    ${
-                                        complete
-                                            ? "要件を満たす見込みです"
-                                            : "まだ必要な単位があります"
-                                    }
-
-                                </small>
-
-                            </div>
-
-
-                            <strong>
-
-                                ${formatCredit(
-                                    projectedTotal
-                                )}
-
-                                /
-
-                                ${formatCredit(
-                                    totalTarget
-                                )}
-
-                                単位
-
-                            </strong>
-
-                        </div>
-
-
-                        <div class="category-progress-track">
-
-                            <div
-                                class="category-progress-bar"
-                                style="width:${percentage}%">
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="category-progress-breakdown">
-
-                            <span>
-
-                                取得済み
-                                <b>
-                                    ${formatCredit(
-                                        earnedTotal
-                                    )}
-                                </b>
-
-                            </span>
-
-                            <span>
-
-                                今回選択
-                                <b>
-                                    ${formatCredit(
-                                        selectedTotal
-                                    )}
-                                </b>
-
-                            </span>
-
-                            <span>
-
-                                必修
-                                <b>
-
-                                    ${formatCredit(
-                                        projectedRequired
-                                    )}
-
-                                    /
-
-                                    ${formatCredit(
-                                        requirement.requiredCredits
-                                    )}
-
-                                </b>
-
-                            </span>
-
-                            <span>
-
-                                選択
-                                <b>
-
-                                    ${formatCredit(
-                                        projectedElective
-                                    )}
-
-                                    /
-
-                                    ${formatCredit(
-                                        requirement
-                                            .electiveCreditsMinimum
-                                    )}
-
-                                </b>
-
-                            </span>
-
-                        </div>
-
-                    </article>
-
-                `;
-
-            }
-        )
-        .join("");
-
+    /*
+     手入力された過去単位しか存在せず、
+     科目ごとの区分情報を持っていない場合。
+    */
 
     if (
         progressSource === "manual" &&
@@ -5006,19 +5636,22 @@ function updateCategoryProgress(
         ).length === 0
     ) {
 
-        elements.categoryProgressList.insertAdjacentHTML(
-            "afterbegin",
-            `
+        elements.categoryProgressList
+            .insertAdjacentHTML(
+                "beforeend",
+                `
 
-                <div class="course-category-data-note">
+                    <div class="course-category-data-note">
 
-                    ℹ️ 過去の取得単位は区分別の内訳が登録されていないため、
-                    区分別表示には今回選択した科目だけが反映されています。
+                        ℹ️ 過去の取得単位は総単位・必修・選択には反映されています。
+                        科目ごとの区分情報が登録されていないため、
+                        総合教育科目・専門基礎科目・専門科目の内訳には
+                        今回選択した科目だけが反映されています。
 
-                </div>
+                    </div>
 
-            `
-        );
+                `
+            );
 
     }
 
