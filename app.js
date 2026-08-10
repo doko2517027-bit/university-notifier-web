@@ -340,6 +340,12 @@ async function showAnnualTransitionIfRequired(user) {
 
     if (["graduated", "withdrawn"].includes(user?.academicStatus)) return;
 
+    const profileName = String(
+        user?.name || user?.userName || user?.displayName || ""
+    ).trim();
+
+    if (!profileName || profileName === "氏名未設定") return;
+
     const systemSnap = await getDoc(doc(db, "system", "app"));
     const transition = systemSnap.data()?.annualTransition;
 
