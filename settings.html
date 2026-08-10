@@ -9,6 +9,10 @@
 
 <title>設定</title>
 
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+
 <link rel="stylesheet" href="style.css">
 
 <script>
@@ -105,6 +109,12 @@ if(localStorage.getItem("theme")==="dark"){
 <div class="card setting-card">
 
     <p id="versionText"></p>
+
+    <button id="installAppButton" class="btn btn-secondary" type="button" hidden>
+        📲 ホーム画面に追加
+    </button>
+
+    <p id="installAppHint" class="settings-install-hint" hidden></p>
 
 </div>
 
