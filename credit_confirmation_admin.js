@@ -47,7 +47,7 @@ async function load() {
       const values = Object.values(answered ? answer.results || {} : {});
       const retakes = values.filter(value => value === "not_earned").length;
       const name = user.name || user.userName || user.displayName || "氏名未設定";
-      return `<article class="attendance-review-card"><b>${escapeHtml(name)}</b><p>${escapeHtml(user.id)} ／ ${escapeHtml(String(user.grade || "未設定"))}年<br>回答：${answered ? `済み（再履修 ${retakes}科目）` : "未回答"}</p></article>`;
+      return `<article class="attendance-review-card"><b>${escapeHtml(name)}</b><p>${escapeHtml(user.id)} ／ ${escapeHtml(String(user.grade || "未設定"))}年<br>回答：${answered ? `済み（再履修 ${retakes}科目）` : "未回答"}</p><div class="report-actions"><a class="btn" href="${withAdminScope(`credit_confirmation_edit.html?student=${encodeURIComponent(user.id)}&academicYear=${academicYear}&semester=${encodeURIComponent(semester)}`)}">単位取得結果を編集</a></div></article>`;
     }).join("") || "<p>対象学生はいません。</p>";
   } catch (error) { console.error("単位取得確認の取得エラー:", error); list.innerHTML = "<p>取得できませんでした。</p>"; }
 }
