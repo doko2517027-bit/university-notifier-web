@@ -409,6 +409,97 @@ const HANDBOOK_DEFAULT_CURRICULA = [
 
     {
         curriculumId:
+            "nursing_2026_plus",
+
+        name:
+            "看護学科 2026年度以降",
+
+        department:
+            "看護学科",
+
+        major:
+            "",
+
+        admissionYearFrom:
+            2026,
+
+        admissionYearTo:
+            null,
+
+        graduationCredits:
+            126,
+
+        requiredCredits:
+            106,
+
+        electiveCreditsMinimum:
+            20,
+
+        categoryRequirements: [
+
+            {
+                category:
+                    "総合教育科目",
+
+                requiredCredits:
+                    15,
+
+                electiveCreditsMinimum:
+                    16,
+
+                totalCreditsMinimum:
+                    31
+            },
+
+            {
+                category:
+                    "専門基礎科目",
+
+                requiredCredits:
+                    22,
+
+                electiveCreditsMinimum:
+                    2,
+
+                totalCreditsMinimum:
+                    24
+            },
+
+            {
+                category:
+                    "専門科目",
+
+                requiredCredits:
+                    69,
+
+                electiveCreditsMinimum:
+                    2,
+
+                totalCreditsMinimum:
+                    71
+            }
+
+        ],
+
+        specialRequirements:
+            [],
+
+        published:
+            false,
+
+        source:
+            "2026_nursing_syllabus",
+
+        sourceLabel:
+            "2026年度シラバス 保健医療学部看護学科",
+
+        sourceNote:
+            "看護学科 2026年度以降入学生"
+    },
+
+
+    {
+        curriculumId:
             "pt_2020_plus",
 
         name:
