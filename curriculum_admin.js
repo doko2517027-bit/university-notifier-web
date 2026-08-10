@@ -321,7 +321,7 @@ const HANDBOOK_DEFAULT_CURRICULA = [
             "nursing_2024_plus",
 
         name:
-            "看護学科 2024年度以降",
+            "看護学科 2024〜2025年度入学生",
 
         department:
             "看護学科",
@@ -333,7 +333,7 @@ const HANDBOOK_DEFAULT_CURRICULA = [
             2024,
 
         admissionYearTo:
-            null,
+            2025,
 
         graduationCredits:
             126,
@@ -397,13 +397,13 @@ const HANDBOOK_DEFAULT_CURRICULA = [
             false,
 
         source:
-            "2026_student_handbook",
+            "2026_nursing_syllabus",
 
         sourceLabel:
-            "2026年度学生便覧 保健医療学部",
+            "2026年度シラバス 保健医療学部看護学科",
 
         sourceNote:
-            "看護学科 2024年度以降入学生"
+            "看護学科 2024〜2025年度入学生"
     },
 
 
