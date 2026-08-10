@@ -551,6 +551,11 @@ function createBaseRecord(
             normalized
                 .attendanceNotificationTest === true,
 
+        attendanceNotificationTestClock:
+            normalized
+                .attendanceNotificationTestClock ||
+            null,
+
         testId:
             normalized.testId,
 
@@ -1117,8 +1122,32 @@ export async function stampAttendanceEnd({
 
 
                     /*
-                     * 終了打刻済み。
+                     * 開始打刻がない場合は
+                     * 終了・早退打刻を受け付けない。
                      */
+                    if (
+                        !current.startStampedAt &&
+                        !current.startKind
+                    ) {
+
+                        return createFailureResult({
+
+                            code:
+                                "start_not_stamped",
+
+                            message:
+                                "開始打刻が完了していません。",
+
+                            recordId
+
+                        });
+
+                    }
+
+
+                    /*
+                    * 終了打刻済み。
+                    */
                     if (
                         current.endStampedAt ||
                         current.endKind
@@ -1737,7 +1766,21 @@ export function recalculateAttendanceStatus(
                 record.startTime,
 
             endTime:
-                record.endTime
+                record.endTime,
+
+            attendanceNotificationTest:
+                record
+                    .attendanceNotificationTest ===
+                true,
+
+            attendanceNotificationTestClock:
+                record
+                    .attendanceNotificationTestClock ||
+                null,
+
+            testId:
+                record.testId ||
+                ""
 
         });
 
@@ -1867,12 +1910,35 @@ export function recalculateAttendanceStatus(
     }
 
 
-    /*
-     * 打刻期限を過ぎても開始・終了が未打刻なら、
-     * 画面の再表示時点で欠席として確定する。
-     * 定時前終了の確認待ちは endResult があるため対象外。
-     */
-    const now = new Date();
+    let now =
+        new Date();
+
+
+    if (
+        isNotificationTest &&
+        lecture
+            .attendanceNotificationTestClock
+    ) {
+
+        const testNow =
+            new Date(
+                lecture
+                    .attendanceNotificationTestClock
+            );
+
+
+        if (
+            !Number.isNaN(
+                testNow.getTime()
+            )
+        ) {
+
+            now =
+                testNow;
+
+        }
+
+    }
 
     if (
         !startResult &&

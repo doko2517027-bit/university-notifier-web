@@ -232,6 +232,16 @@ const el = {
             "attendanceAcademicLabel"
         ),
 
+    termSelect:
+        document.getElementById(
+            "attendanceTermSelect"
+        ),
+
+    enrollmentNotice:
+        document.getElementById(
+            "attendanceEnrollmentNotice"
+        ),
+
     subjectList:
         document.getElementById(
             "attendanceSubjectList"
@@ -364,6 +374,8 @@ let academicTerm = {
 let selectedAttendanceTerm = null;
 
 let availableAttendanceTerms = [];
+
+let notificationTestExpiryTimer = null;
 
 let scheduleData = null;
 
@@ -525,6 +537,14 @@ function setupEvents() {
             refreshAttendance();
 
         };
+
+    }
+
+
+    if (el.termSelect) {
+
+        el.termSelect.onchange =
+            handleAttendanceTermChange;
 
     }
 
@@ -870,7 +890,8 @@ async function loadAttendanceData() {
         const [
             userSnap,
             personalTimetable,
-            enrollmentSnap
+            enrollmentSnap,
+            systemSnap
         ] = await Promise.all([
 
             getDoc(
@@ -889,6 +910,14 @@ async function loadAttendanceData() {
                     "users",
                     studentNumber,
                     "enrolledSubjects"
+                )
+            ),
+
+            getDoc(
+                doc(
+                    db,
+                    "system",
+                    "app"
                 )
             )
 
@@ -926,30 +955,32 @@ async function loadAttendanceData() {
             );
 
         
-        academicTerm =
-            resolveStudentAttendanceTerm(
-                userData
-            );
+        const systemData =
+            systemSnap.exists()
+                ? systemSnap.data()
+                : {};
+
+
+        if (!selectedAttendanceTerm) {
+
+            selectedAttendanceTerm =
+                resolveStudentAttendanceTerm(
+                    userData,
+                    systemData
+                );
+
+        }
+
+
+        academicTerm = {
+            ...selectedAttendanceTerm
+        };
 
 
         enrolledSubjects =
             normalizeEnrolledSubjects(
                 enrollmentSnap
             );
-
-
-        if(
-            !hasAttendanceEnrollment(
-                academicTerm,
-                enrollmentSnap
-            )
-        ){
-
-            showToast(
-                "この学期は履修登録がありません。"
-            );
-
-        }
 
 
         const scheduleId =
@@ -1216,26 +1247,12 @@ async function loadAttendanceData() {
             classResult.missing;
 
 
-        termLectures =
-            scheduleData
-                ? buildTermLectures(
-
-                    scheduleData,
-
-                    scheduleId,
-
-                    enrolledAliases,
-
-                    academicTerm,
-
-                    userData
-                        .classSelections || {}
-
-                )
-                : [];
+        rebuildTermLectures();
 
 
         await loadRecords();
+
+        scheduleNotificationTestExpiryRefresh();
 
     } finally {
 
@@ -2100,6 +2117,147 @@ function extractClassGroups(
 }
 
 
+function isVisibleAttendanceRecord(
+    record
+) {
+
+    if (
+        record
+            ?.attendanceNotificationTest !==
+        true
+    ) {
+
+        return true;
+
+    }
+
+
+    const test =
+        userData
+            ?.attendanceNotificationTest ||
+        {};
+
+
+    const expiresAt =
+        Date.parse(
+            test.expiresAt ||
+            ""
+        );
+
+
+    if (
+        test.enabled !== true ||
+        !Number.isFinite(
+            expiresAt
+        ) ||
+        expiresAt <= Date.now()
+    ) {
+
+        return false;
+
+    }
+
+
+    const activeTestId =
+        normalizeText(
+            test.testId
+        );
+
+
+    const recordTestId =
+        normalizeText(
+            record.testId
+        );
+
+
+    if (
+        !activeTestId ||
+        !recordTestId
+    ) {
+
+        return true;
+
+    }
+
+
+    return (
+        recordTestId ===
+            activeTestId ||
+
+        recordTestId.startsWith(
+            `${activeTestId}_`
+        )
+    );
+
+}
+
+
+function scheduleNotificationTestExpiryRefresh() {
+
+    if (
+        notificationTestExpiryTimer
+    ) {
+
+        clearTimeout(
+            notificationTestExpiryTimer
+        );
+
+        notificationTestExpiryTimer =
+            null;
+
+    }
+
+
+    const test =
+        userData
+            ?.attendanceNotificationTest ||
+        {};
+
+
+    const expiresAt =
+        Date.parse(
+            test.expiresAt ||
+            ""
+        );
+
+
+    if (
+        test.enabled !== true ||
+        !Number.isFinite(
+            expiresAt
+        ) ||
+        expiresAt <= Date.now()
+    ) {
+
+        return;
+
+    }
+
+
+    const delay =
+        Math.max(
+            250,
+            expiresAt -
+            Date.now() +
+            250
+        );
+
+
+    notificationTestExpiryTimer =
+        setTimeout(
+            () => {
+
+                refreshAttendance(
+                    true
+                );
+
+            },
+            delay
+        );
+
+}
+
+
 /* ========================================
    出席記録取得
 ======================================== */
@@ -2141,6 +2299,10 @@ async function loadRecords() {
                         ) === effectiveDate
                 )
 
+                .filter(
+                    isVisibleAttendanceRecord
+                )
+
                 .map(
                     item => [
 
@@ -2171,11 +2333,29 @@ function getRecordForLecture(lecture) {
     if (!lecture.attendanceNotificationTest) return null;
 
     return allRecords.find(item =>
-        normalizeDate(item.date) === effectiveDate &&
-        Number(item.period) === Number(lecture.period) &&
-        item.subject === lecture.subject &&
-        item.attendanceNotificationTest === true &&
-        (!item.testId || item.testId === lecture.testId)
+
+        isVisibleAttendanceRecord(
+            item
+        ) &&
+
+        normalizeDate(item.date) ===
+            effectiveDate &&
+
+        Number(item.period) ===
+            Number(lecture.period) &&
+
+        item.subject ===
+            lecture.subject &&
+
+        item.attendanceNotificationTest ===
+            true &&
+
+        (
+            !item.testId ||
+            item.testId ===
+                lecture.testId
+        )
+
     ) || null;
 }
 
@@ -2193,6 +2373,8 @@ function renderAll() {
     renderSummary();
 
     renderRecordList();
+
+    renderAttendanceTermSelector();
 
     renderSubjectAttendanceList();
 
@@ -2836,22 +3018,6 @@ function renderSummary() {
     }
 
 
-    /*
-     * テスト終了後にテスト講義が画面の予定から外れても、
-     * 当日分のテスト記録は「今日の打刻状況」に残す。
-     */
-    for (const record of allRecords) {
-
-        if (
-            normalizeDate(record.date) !== effectiveDate ||
-            record.attendanceNotificationTest !== true ||
-            countedRecordIds.has(record.id)
-        ) continue;
-
-        addResultToCount(resolveResult(record), record);
-    }
-
-
     count.convertedAbsent =
         Math.floor(
             (
@@ -3133,46 +3299,39 @@ function resolveAcademicTerm(
 
 
 function resolveStudentAttendanceTerm(
-    data = {}
-){
+    data = {},
+    systemData = {}
+) {
 
-    const current =
-        data.systemAttendanceCurrentTerm;
-
-
-    if(
-        current &&
-        current.academicYear &&
-        current.semester
-    ){
-
-        return {
-
-            academicYear:
-                Number(
-                    current.academicYear
-                ),
-
-            semester:
-                current.semester,
-
-            grade:
-                normalizeGrade(
-                    data.grade ||
-                    localStorage.getItem(
-                        "grade"
-                    )
-                )
-
-        };
-
-    }
+    const fallback =
+        resolveAcademicTerm(
+            effectiveDate,
+            data
+        );
 
 
-    return resolveAcademicTerm(
-        localDateKey(),
-        data
-    );
+    const configuredSemester =
+        normalizeSemester(
+            systemData
+                .attendanceCurrentSemester
+        );
+
+
+    return {
+
+        ...fallback,
+
+        semester:
+            (
+                configuredSemester ===
+                    "前期" ||
+                configuredSemester ===
+                    "後期"
+            )
+                ? configuredSemester
+                : fallback.semester
+
+    };
 
 }
 
@@ -3182,221 +3341,399 @@ function normalizeEnrolledSubjects(
 ) {
 
     const rows =
-        snapshot.docs.map(
-            item => ({
+        snapshot.docs
 
-                id:
-                    item.id,
+            .map(
+                item => ({
 
-                ...item.data()
+                    id:
+                        item.id,
 
-            })
-        );
+                    ...item.data()
+
+                })
+            )
+
+            .filter(
+                item => {
+
+                    const status =
+                        normalizeText(
+                            item.status
+                        );
 
 
-    const exact =
-        rows.filter(
-            item => {
-
-                if (
-                    normalizeText(
-                        item.status
-                    ) &&
-                    normalizeText(
-                        item.status
-                    ) !== "enrolled"
-                ) {
-
-                    return false;
+                    return (
+                        !status ||
+                        status === "enrolled"
+                    );
 
                 }
+            )
 
+            .map(
+                item => {
 
-                const year =
-                    Number(
-                        item.academicYear ||
-                        0
-                    );
-
-
-                const semester =
-                    normalizeSemester(
-                        item.registeredSemester ||
-                        item.semester
-                    );
-
-
-                const grade =
-                    normalizeGrade(
-                        item.grade
-                    );
-
-
-                const yearMatches =
-                    !year ||
-
-                    year ===
-                        academicTerm
-                            .academicYear;
-
-
-                const semesterMatches =
-                    !semester ||
-
-                    semester === "通年" ||
-
-                    semester ===
-                        academicTerm
-                            .semester;
-
-
-                const gradeMatches =
-                    !grade ||
-
-                    !academicTerm.grade ||
-
-                    grade ===
-                        academicTerm.grade;
-
-
-                return (
-                    yearMatches &&
-                    semesterMatches &&
-                    gradeMatches
-                );
-
-            }
-        );
-
-
-    return exact
-
-        .map(
-            item => ({
-
-                ...item,
-
-                name:
-                    normalizeText(
-                        item.name ||
-                        item.subject ||
-                        item.subjectKey ||
-                        item.id
-                    ),
-
-                subjectId:
-                    normalizeText(
-                        item.subjectId ||
-                        item.id
-                    ),
-
-                subjectKey:
-                    normalizeText(
-                        item.subjectKey ||
-                        item.name ||
-                        item.id
-                    ),
-
-                lectureCount:
-                    Math.max(
-                        0,
+                    const academicYear =
                         Number(
-                            item.lectureCount ||
+                            item.academicYear ||
                             0
-                        )
-                    ),
+                        );
 
-                isPractical:
-                    item.isPractical === true
 
-            })
-        )
+                    const semester =
+                        normalizeSemester(
+                            item.registeredSemester ||
+                            item.semester
+                        );
 
-        .sort(
-            (left, right) =>
-                left.name.localeCompare(
-                    right.name,
-                    "ja"
-                )
+
+                    const grade =
+                        resolveEnrollmentGrade(
+                            item.grade,
+                            academicYear
+                        );
+
+
+                    return {
+
+                        ...item,
+
+                        academicYear,
+
+                        semester,
+
+                        registeredSemester:
+                            semester,
+
+                        grade,
+
+                        name:
+                            normalizeText(
+                                item.name ||
+                                item.subject ||
+                                item.subjectKey ||
+                                item.id
+                            ),
+
+                        subjectId:
+                            normalizeText(
+                                item.subjectId ||
+                                item.id
+                            ),
+
+                        subjectKey:
+                            normalizeText(
+                                item.subjectKey ||
+                                item.name ||
+                                item.id
+                            ),
+
+                        lectureCount:
+                            Math.max(
+                                0,
+                                Number(
+                                    item.lectureCount ||
+                                    0
+                                )
+                            ),
+
+                        isPractical:
+                            item.isPractical === true
+
+                    };
+
+                }
+            )
+
+            .filter(
+                item =>
+                    Boolean(
+                        item.name
+                    )
+            );
+
+
+    availableAttendanceTerms =
+        createAvailableAttendanceTerms(
+            rows
         );
 
 
-        availableAttendanceTerms =
-            createAvailableAttendanceTerms(
-                rows
-            );
+    return rows.sort(
+        (left, right) =>
+            left.name.localeCompare(
+                right.name,
+                "ja"
+            )
+    );
+
+}
+
+
+function resolveEnrollmentGrade(
+    value,
+    academicYear
+) {
+
+    const direct =
+        normalizeGrade(
+            value
+        );
+
+
+    if (direct) {
+        return direct;
+    }
+
+
+    const currentGrade =
+        Number(
+            normalizeGrade(
+                userData.grade ||
+                localStorage.getItem(
+                    "grade"
+                )
+            )
+        );
+
+
+    if (
+        !Number.isInteger(
+            currentGrade
+        ) ||
+        currentGrade <= 0
+    ) {
+
+        return "";
+
+    }
+
+
+    const currentAcademicYear =
+        resolveAcademicTerm(
+            effectiveDate,
+            userData
+        ).academicYear;
+
+
+    const targetYear =
+        Number(
+            academicYear ||
+            currentAcademicYear
+        );
+
+
+    const inferred =
+        currentGrade -
+        (
+            currentAcademicYear -
+            targetYear
+        );
+
+
+    return (
+        Number.isInteger(inferred) &&
+        inferred >= 1 &&
+        inferred <= 6
+    )
+        ? String(inferred)
+        : "";
 
 }
 
 
 function createAvailableAttendanceTerms(
     subjects
-){
+) {
 
     const map =
         new Map();
 
 
-    subjects.forEach(
-        item=>{
+    const addTerm = (
+        academicYear,
+        grade,
+        semester
+    ) => {
 
-            const year =
-                Number(
-                    item.academicYear ||
-                    0
-                );
+        if (
+            !academicYear ||
+            (
+                semester !== "前期" &&
+                semester !== "後期"
+            )
+        ) {
 
-
-            const semester =
-                normalizeSemester(
-                    item.semester ||
-                    item.registeredSemester
-                );
-
-
-            if(
-                !year ||
-                !semester
-            ){
-
-                return;
-
-            }
-
-
-            const key =
-                `${year}_${semester}`;
-
-
-            if(
-                !map.has(key)
-            ){
-
-                map.set(
-                    key,
-                    {
-
-                        academicYear:
-                            year,
-
-                        semester
-
-                    }
-                );
-
-            }
+            return;
 
         }
-    );
+
+
+        const key =
+            [
+                academicYear,
+                grade,
+                semester
+            ].join("|");
+
+
+        if (!map.has(key)) {
+
+            map.set(
+                key,
+                {
+                    academicYear,
+                    grade,
+                    semester
+                }
+            );
+
+        }
+
+    };
+
+
+    for (const item of subjects) {
+
+        const academicYear =
+            Number(
+                item.academicYear ||
+                0
+            );
+
+
+        const grade =
+            normalizeGrade(
+                item.grade
+            );
+
+
+        const semester =
+            normalizeSemester(
+                item.registeredSemester ||
+                item.semester
+            );
+
+
+        if (semester === "通年") {
+
+            addTerm(
+                academicYear,
+                grade,
+                "前期"
+            );
+
+            addTerm(
+                academicYear,
+                grade,
+                "後期"
+            );
+
+            continue;
+
+        }
+
+
+        addTerm(
+            academicYear,
+            grade,
+            semester
+        );
+
+    }
+
+
+    const order = {
+        前期: 0,
+        後期: 1
+    };
 
 
     return [
         ...map.values()
-    ]
-    .sort(
-        (a,b)=>
-            b.academicYear -
-            a.academicYear
+    ].sort(
+        (left, right) =>
+
+            left.academicYear -
+                right.academicYear ||
+
+            Number(
+                left.grade ||
+                0
+            ) -
+            Number(
+                right.grade ||
+                0
+            ) ||
+
+            order[left.semester] -
+                order[right.semester]
+    );
+
+}
+
+
+function doesSubjectMatchTerm(
+    subject,
+    term
+) {
+
+    const year =
+        Number(
+            subject.academicYear ||
+            0
+        );
+
+
+    const semester =
+        normalizeSemester(
+            subject.registeredSemester ||
+            subject.semester
+        );
+
+
+    const grade =
+        normalizeGrade(
+            subject.grade
+        );
+
+
+    const termGrade =
+        normalizeGrade(
+            term.grade
+        );
+
+
+    return (
+
+        (
+            !year ||
+            year ===
+                Number(
+                    term.academicYear
+                )
+        )
+
+        &&
+
+        (
+            !semester ||
+            semester === "通年" ||
+            semester ===
+                normalizeSemester(
+                    term.semester
+                )
+        )
+
+        &&
+
+        (
+            !grade ||
+            !termGrade ||
+            grade === termGrade
+        )
+
     );
 
 }
@@ -3502,7 +3839,282 @@ function buildTermLectures(
     }
 
 
-    return result;
+        return result;
+
+}
+
+
+function createAttendanceTermKey(
+    term
+) {
+
+    return [
+        Number(
+            term?.academicYear ||
+            0
+        ),
+        normalizeGrade(
+            term?.grade
+        ),
+        normalizeSemester(
+            term?.semester
+        )
+    ].join("|");
+
+}
+
+
+function isSameAttendanceTerm(
+    left,
+    right
+) {
+
+    if (
+        Number(
+            left?.academicYear ||
+            0
+        ) !==
+        Number(
+            right?.academicYear ||
+            0
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    if (
+        normalizeSemester(
+            left?.semester
+        ) !==
+        normalizeSemester(
+            right?.semester
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    const leftGrade =
+        normalizeGrade(
+            left?.grade
+        );
+
+
+    const rightGrade =
+        normalizeGrade(
+            right?.grade
+        );
+
+
+    return (
+        !leftGrade ||
+        !rightGrade ||
+        leftGrade === rightGrade
+    );
+
+}
+
+
+function attendanceTermOptionLabel(
+    term
+) {
+
+    const grade =
+        normalizeGrade(
+            term?.grade
+        );
+
+
+    const semester =
+        normalizeSemester(
+            term?.semester
+        );
+
+
+    if (grade) {
+
+        return (
+            `${grade}年` +
+            `${semester}`
+        );
+
+    }
+
+
+    return (
+        `${term.academicYear}年度 ` +
+        `${semester}`
+    );
+
+}
+
+
+function renderAttendanceTermSelector() {
+
+    if (!el.termSelect) {
+        return;
+    }
+
+
+    const enrolledCurrent =
+        availableAttendanceTerms.find(
+            term =>
+                isSameAttendanceTerm(
+                    term,
+                    academicTerm
+                )
+        );
+
+
+    const options =
+        enrolledCurrent
+            ? [
+                ...availableAttendanceTerms
+            ]
+            : [
+                {
+                    ...academicTerm,
+                    unavailable:
+                        true
+                },
+                ...availableAttendanceTerms
+            ];
+
+
+    el.termSelect.innerHTML =
+        options.map(
+            term => {
+
+                const key =
+                    createAttendanceTermKey(
+                        term
+                    );
+
+
+                const suffix =
+                    term.unavailable
+                        ? "（未履修）"
+                        : "";
+
+
+                return `
+                    <option
+                        value="${escapeHtml(key)}"
+                        ${
+                            term.unavailable
+                                ? "disabled"
+                                : ""
+                        }>
+                        ${escapeHtml(
+                            attendanceTermOptionLabel(
+                                term
+                            ) +
+                            suffix
+                        )}
+                    </option>
+                `;
+
+            }
+        ).join("");
+
+
+    const selectedKey =
+        createAttendanceTermKey(
+            enrolledCurrent ||
+            academicTerm
+        );
+
+
+    el.termSelect.value =
+        selectedKey;
+
+
+    el.termSelect.disabled =
+        availableAttendanceTerms.length ===
+        0;
+
+
+    if (el.enrollmentNotice) {
+
+        el.enrollmentNotice.hidden =
+            Boolean(
+                enrolledCurrent
+            );
+
+    }
+
+}
+
+
+function handleAttendanceTermChange() {
+
+    if (!el.termSelect) {
+        return;
+    }
+
+
+    const selected =
+        availableAttendanceTerms.find(
+            term =>
+                createAttendanceTermKey(
+                    term
+                ) ===
+                el.termSelect.value
+        );
+
+
+    if (!selected) {
+        return;
+    }
+
+
+    selectedAttendanceTerm = {
+        ...selected
+    };
+
+
+    academicTerm = {
+        ...selected
+    };
+
+
+    rebuildTermLectures();
+
+    renderAttendanceTermSelector();
+
+    renderSubjectAttendanceList();
+
+}
+
+
+function rebuildTermLectures() {
+
+    const scheduleId =
+        resolveScheduleId(
+            userData
+        );
+
+
+    termLectures =
+        (
+            scheduleData &&
+            scheduleId
+        )
+            ? buildTermLectures(
+                scheduleData,
+                scheduleId,
+                enrolledAliases,
+                academicTerm,
+                userData
+                    .classSelections ||
+                    {}
+            )
+            : [];
 
 }
 
@@ -3538,6 +4150,10 @@ function renderSubjectAttendanceList() {
     const termRecords =
         allRecords.filter(
             item =>
+
+                item.attendanceNotificationTest !==
+                    true &&
+
                 isDateInAcademicTerm(
                     normalizeDate(
                         item.date
@@ -5568,6 +6184,58 @@ function updateCurrentLectureStatus() {
     }
 
 
+    const active =
+        lectures.find(
+            lecture => {
+
+                try {
+
+                    const normalizedLecture =
+                        normalizeAttendanceLecture(
+                            lecture
+                        );
+
+
+                    const now =
+                        getAttendanceNow(
+                            normalizedLecture
+                        );
+
+
+                    return (
+                        now >=
+                        normalizedLecture
+                            .lectureWindow
+                            .startNotificationAt &&
+
+                        now <=
+                        normalizedLecture
+                            .lectureWindow
+                            .endStampExpiresAt
+                    );
+
+                } catch {
+
+                    return false;
+
+                }
+
+            }
+        );
+
+
+    if (active) {
+
+        el.currentStatus.textContent =
+            `現在の打刻対象：` +
+            `${active.period}限 ` +
+            `${active.subject}`;
+
+        return;
+
+    }
+
+
     const next =
         lectures.find(
             lecture => {
@@ -5766,7 +6434,9 @@ function confirmationContent(
             classifyEndStamp({
 
                 stampAt:
-                    new Date(),
+                    getAttendanceNow(
+                        normalized
+                    ),
 
                 lecture:
                     normalized

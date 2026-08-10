@@ -293,6 +293,14 @@ function createLecture() {
         attendanceNotificationTest:
             notificationTest,
 
+        attendanceNotificationTestClock:
+            (
+                notificationTest &&
+                effectiveClock
+            )
+                ? effectiveClock.toISOString()
+                : null,
+
         testId
 
     };
@@ -531,17 +539,52 @@ function validateClassSelection() {
             : {};
 
 
-    const key =
-        `${subject}_${date}_${period}`;
+    const slashDate =
+        date.replaceAll(
+            "-",
+            "/"
+        );
 
 
-    if (
-        !Object.prototype
-            .hasOwnProperty.call(
-                selections,
-                key
+    const keys = [
+
+        `${subject}_${date}_${period}`,
+
+        `${subject}_${slashDate}_${period}`,
+
+        `${subject}_${date}_${period}限`,
+
+        `${subject}__${period}`,
+
+        `${date}_${subject}_${period}`,
+
+        [
+            encodeURIComponent(
+                date
+            ),
+            encodeURIComponent(
+                subject
+            ),
+            encodeURIComponent(
+                String(period)
             )
-    ) {
+        ].join("__")
+
+    ];
+
+
+    const key =
+        keys.find(
+            item =>
+                Object.prototype
+                    .hasOwnProperty.call(
+                        selections,
+                        item
+                    )
+        );
+
+
+    if (!key) {
 
         throw new Error(
             "この講義のクラス選択が完了していません。ホームでクラスを選択してください。"
@@ -781,9 +824,7 @@ async function executeAttendanceAction(
 
         renderPendingJudgement(
             action,
-            getAttendanceNow(
-                normalizedLecture
-            )
+            now
         );
 
 
@@ -1183,8 +1224,32 @@ function canAutomaticallyExecute(
 ) {
 
     if (!record) {
-        return true;
+
+        return (
+            action === "start" ||
+            action === "absent"
+        );
+
     }
+
+
+    const hasStart =
+        Boolean(
+            record.startStampedAt ||
+            record.startKind
+        );
+
+
+    const hasEnd =
+        Boolean(
+            record.endStampedAt ||
+            record.endKind
+        );
+
+
+    const absent =
+        record.absenceTapped ===
+        true;
 
 
     if (
@@ -1192,10 +1257,10 @@ function canAutomaticallyExecute(
         action === "absent"
     ) {
 
-        return !(
-            record.startStampedAt ||
-            record.startKind ||
-            record.absenceTapped === true
+        return (
+            !hasStart &&
+            !hasEnd &&
+            !absent
         );
 
     }
@@ -1207,9 +1272,10 @@ function canAutomaticallyExecute(
             "early_leave"
     ) {
 
-        return !(
-            record.endStampedAt ||
-            record.endKind
+        return (
+            hasStart &&
+            !hasEnd &&
+            !absent
         );
 
     }
