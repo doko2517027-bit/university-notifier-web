@@ -957,17 +957,131 @@ async function loadRegistrationData() {
             );
 
 
+        const earnedEnrollmentRecords =
+            [...enrolledDocs.values()]
+                .filter(
+                    enrollment =>
+                        enrollment.creditStatus ===
+                        "earned"
+                )
+                .map(
+                    enrollment => ({
+
+                        subjectId:
+                            String(
+                                enrollment.subjectId ||
+                                enrollment.id ||
+                                ""
+                            ),
+
+                        subjectKey:
+                            String(
+                                enrollment.subjectKey ||
+                                enrollment.name ||
+                                enrollment.subject ||
+                                ""
+                            ),
+
+                        name:
+                            String(
+                                enrollment.name ||
+                                enrollment.subject ||
+                                enrollment.subjectKey ||
+                                ""
+                            ),
+
+                        credits:
+                            toNonNegativeNumber(
+                                enrollment.credits
+                            ),
+
+                        requirementType:
+                            enrollment.requirementType ||
+                            (
+                                enrollment.required === true
+                                    ? "required"
+                                    : "elective"
+                            ),
+
+                        required:
+                            enrollment.required === true,
+
+                        category:
+                            enrollment.category || "",
+
+                        requirementTags:
+                            Array.isArray(
+                                enrollment.requirementTags
+                            )
+                                ? enrollment.requirementTags
+                                : [],
+
+                        academicYear:
+                            Number(
+                                enrollment.creditConfirmedAcademicYear ||
+                                enrollment.academicYear ||
+                                0
+                            ),
+
+                        semester:
+                            enrollment.creditConfirmedSemester ||
+                            enrollment.semester ||
+                            "",
+
+                        status:
+                            "earned"
+
+                    }))
+                .filter(
+                    record =>
+                        record.subjectId ||
+                        record.subjectKey
+                );
+
+
+        const combinedCreditRecordMap =
+            new Map();
+
+
+        [
+            ...creditRecords,
+            ...earnedEnrollmentRecords
+        ]
+        .forEach(
+            record => {
+
+                const key =
+                    String(
+                        record.subjectId ||
+                        record.subjectKey ||
+                        record.id ||
+                        ""
+                    );
+
+
+                if (!key) {
+                    return;
+                }
+
+
+                combinedCreditRecordMap.set(
+                    key,
+                    record
+                );
+
+            }
+        );
+
+
+        const combinedCreditRecords =
+            [...combinedCreditRecordMap.values()];
+
+
         progress =
             buildProgress(
                 userData.courseProgress || {},
-                creditRecords
+                combinedCreditRecords
             );
-
-
-        // ========================================
-        // ③ visibleSubjects = subjects.filter(...)
-        // を丸ごとこれに置換
-        // ========================================
 
         const regularSubjects =
             subjects.filter(
@@ -993,7 +1107,17 @@ async function loadRegistrationData() {
                     [
                         ...retakeSubjects,
                         ...regularSubjects
-                    ].map(
+                    ]
+                    .filter(
+                        subject =>
+                            !isAlreadyEarned(
+                                subject
+                            ) ||
+                            isRetakeSubject(
+                                subject
+                            )
+                    )
+                    .map(
                         subject => [
                             subject.id,
                             subject
