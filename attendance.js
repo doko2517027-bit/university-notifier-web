@@ -3137,7 +3137,7 @@ function resolveStudentAttendanceTerm(
 ){
 
     const current =
-        data.attendanceCurrentTerm;
+        data.systemAttendanceCurrentTerm;
 
 
     if(
