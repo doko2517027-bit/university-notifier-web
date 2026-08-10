@@ -100,6 +100,10 @@ const attendanceYes =
 
 const attendanceNo =
     document.getElementById("attendanceNo");
+const annualTransitionOverlay = document.getElementById("annualTransitionOverlay");
+const annualTransitionTitle = document.getElementById("annualTransitionTitle");
+const annualTransitionMessage = document.getElementById("annualTransitionMessage");
+const annualTransitionActions = document.getElementById("annualTransitionActions");
 
 // 追加 定数
 const rankingList =
@@ -254,6 +258,8 @@ console.log("studentNumber =", studentNumber);
 
         user = userSnap.data();
 
+        await showAnnualTransitionIfRequired(user);
+
 
         applyManabaFeatureVisibility(
             user
@@ -317,6 +323,110 @@ console.log("studentNumber =", studentNumber);
     setupAdminTab();
 
 }
+
+
+function academicYearForTransition(date = new Date()) {
+
+    return date.getMonth() < 3
+        ? date.getFullYear() - 1
+        : date.getFullYear();
+
+}
+
+
+async function showAnnualTransitionIfRequired(user) {
+
+    if (!annualTransitionOverlay || !studentNumber) return;
+
+    if (["graduated", "withdrawn"].includes(user?.academicStatus)) return;
+
+    const systemSnap = await getDoc(doc(db, "system", "app"));
+    const transition = systemSnap.data()?.annualTransition;
+
+    if (transition?.enabled !== true) return;
+
+    const targetYear = Number(transition.academicYear || academicYearForTransition());
+
+    if (Number(user?.annualTransitionResponse?.academicYear) === targetYear) return;
+
+    const grade = Number(String(user?.grade || "").replace("年", ""));
+    const finalYear = grade === 4;
+    const choices = finalYear
+        ? [
+            ["graduate", "卒業予定"],
+            ["repeat", "留年"],
+            ["withdraw", "退学"]
+        ]
+        : [
+            ["promote", "進級予定"],
+            ["repeat", "留年"],
+            ["withdraw", "退学"]
+        ];
+
+    annualTransitionTitle.textContent = finalYear
+        ? "卒業・進路予定の確認"
+        : "次年度の予定を確認";
+    annualTransitionMessage.textContent = "該当する項目を選んで確定してください。";
+    annualTransitionActions.innerHTML = choices.map(([action, label]) => `
+        <button class="btn ${action === "withdraw" ? "btn-danger" : action === "promote" || action === "graduate" ? "btn-primary" : ""}" data-annual-transition-action="${action}" type="button">${label}</button>
+    `).join("");
+    annualTransitionOverlay.hidden = false;
+    annualTransitionOverlay.classList.add("show");
+
+}
+
+
+annualTransitionActions?.addEventListener("click", async event => {
+
+    const button = event.target.closest("[data-annual-transition-action]");
+    const action = button?.dataset.annualTransitionAction;
+
+    if (!action) return;
+
+    const labels = {
+        promote: "進級予定",
+        repeat: "留年",
+        graduate: "卒業予定",
+        withdraw: "退学"
+    };
+
+    if (!confirm(`「${labels[action]}」として回答します。よろしいですか？`)) return;
+
+    try {
+
+        const systemSnap = await getDoc(doc(db, "system", "app"));
+        const transition = systemSnap.data()?.annualTransition;
+
+        if (transition?.enabled !== true) {
+            alert("年度末確認は終了しています。");
+            location.reload();
+            return;
+        }
+
+        button.disabled = true;
+
+        await updateDoc(doc(db, "users", studentNumber), {
+            annualTransitionResponse: {
+                academicYear: Number(transition.academicYear || academicYearForTransition()),
+                action,
+                submittedAt: new Date().toISOString()
+            },
+            updatedAt: serverTimestamp()
+        });
+
+        annualTransitionOverlay.classList.remove("show");
+        annualTransitionOverlay.hidden = true;
+        alert("回答を保存しました。反映予定日までは現在の画面をそのまま利用できます。");
+
+    } catch (error) {
+
+        console.error("年度末確認の回答保存エラー:", error);
+        alert("回答を保存できませんでした。もう一度お試しください。");
+        button.disabled = false;
+
+    }
+
+});
 
 function applyManabaFeatureVisibility(
     user

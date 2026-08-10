@@ -30,7 +30,8 @@ const {
 } = require("firebase-admin/auth");
 
 const {
-    getFirestore
+    getFirestore,
+    FieldValue
 } = require("firebase-admin/firestore");
 
 const webpush =
@@ -1659,6 +1660,107 @@ exports.sendAttendanceNotifications = onSchedule({
 // 出席通知テスト
 // 2510044だけに送信
 // ======================
+
+// 年度末確認は、反映予定日まで回答だけを保存し、開始日に一度だけ適用する。
+exports.applyAnnualTransitions = onSchedule({
+    schedule: "0 2 * * *", timeZone: "Asia/Tokyo", region: "asia-northeast1"
+}, async () => {
+
+    const systemRef = db.collection("system").doc("app");
+    const systemSnap = await systemRef.get();
+    const transition = systemSnap.data()?.annualTransition;
+
+    if (transition?.enabled !== true || !transition.activationDate) return;
+
+    const dateParts = new Intl.DateTimeFormat("en", {
+        timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date());
+    const part = type => dateParts.find(item => item.type === type)?.value;
+    const japanToday = `${part("year")}-${part("month")}-${part("day")}`;
+
+    if (String(transition.activationDate) > japanToday) return;
+
+    const academicYear = Number(transition.academicYear);
+
+    if (!Number.isInteger(academicYear)) {
+        console.error("年度末確認の年度が不正です", transition);
+        return;
+    }
+
+    const usersSnap = await db.collection("users").get();
+    const commits = [];
+    let batch = db.batch();
+    let operations = 0;
+    let appliedCount = 0;
+
+    for (const userDoc of usersSnap.docs) {
+
+        const user = userDoc.data();
+        const response = user.annualTransitionResponse;
+
+        if (
+            Number(response?.academicYear) !== academicYear ||
+            !["promote", "repeat", "graduate", "withdraw"].includes(response?.action) ||
+            Number(user.annualProgression?.academicYear) === academicYear
+        ) continue;
+
+        const grade = Number(String(user.grade || "").replace("年", ""));
+        const action = response.action;
+        const entry = {
+            academicYear,
+            action,
+            appliedAt: new Date().toISOString(),
+            source: "student_annual_transition"
+        };
+        const changes = {
+            annualProgression: entry,
+            academicProgressionHistory: FieldValue.arrayUnion(entry),
+            annualTransitionAppliedAt: new Date().toISOString(),
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        if (action === "promote" && Number.isInteger(grade) && grade >= 1 && grade < 4) {
+            changes.grade = String(grade + 1);
+            changes.academicStatus = "active";
+        } else if (action === "repeat") {
+            changes.academicStatus = "repeat";
+        } else if (action === "graduate" && grade === 4) {
+            changes.academicStatus = "graduated";
+            changes.graduatedAt = new Date().toISOString();
+        } else if (action === "withdraw") {
+            changes.academicStatus = "withdrawn";
+            changes.withdrawnAt = new Date().toISOString();
+        } else continue;
+
+        batch.update(userDoc.ref, changes);
+        operations += 1;
+        appliedCount += 1;
+
+        if (operations === 450) {
+            commits.push(batch.commit());
+            batch = db.batch();
+            operations = 0;
+        }
+
+    }
+
+    if (operations > 0) commits.push(batch.commit());
+
+    await Promise.all(commits);
+
+    await systemRef.set({
+        annualTransition: {
+            ...transition,
+            enabled: false,
+            appliedAt: new Date().toISOString(),
+            appliedCount
+        },
+        updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    console.log(`年度末確認を反映しました: ${academicYear}年度 ${appliedCount}件`);
+
+});
 
 exports.sendAttendanceTest =
 onRequest(

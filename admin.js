@@ -30,7 +30,8 @@ import {
     setDoc,
     updateDoc,
     collection,
-    getDocs
+    getDocs,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -59,6 +60,11 @@ const adminScopeDepartment = document.getElementById("adminScopeDepartment");
 const adminScopeMajor = document.getElementById("adminScopeMajor");
 const adminScopeGrade = document.getElementById("adminScopeGrade");
 const adminScopeCurrent = document.getElementById("adminScopeCurrent");
+const annualProgressionHelp = document.getElementById("annualProgressionHelp");
+const annualProgressionList = document.getElementById("annualProgressionList");
+const annualTransitionActivationDate = document.getElementById("annualTransitionActivationDate");
+const startAnnualTransition = document.getElementById("startAnnualTransition");
+const stopAnnualTransition = document.getElementById("stopAnnualTransition");
 
 const versionText =
     document.getElementById("versionText");
@@ -184,6 +190,7 @@ function renderAdminScope() {
     }
 
     loadDashboard();
+    loadAnnualProgression();
 
 }
 
@@ -242,6 +249,7 @@ await initializePage([
     loadDashboard(),
     loadSystemStatus(),
     loadMaintenance(),
+    loadAnnualProgression(),
     loadNotificationSettings(),
     updateAssignmentNavBadge(),
     updateShareNavBadge(),
@@ -314,6 +322,143 @@ async function loadDashboard() {
             firestoreStatus,
             "🔴 エラー"
         );
+
+    }
+
+}
+
+
+function academicYearForTransition(date = new Date()) {
+
+    return date.getMonth() < 3
+        ? date.getFullYear() - 1
+        : date.getFullYear();
+
+}
+
+
+function defaultTransitionDate() {
+
+    const year = academicYearForTransition() + 1;
+
+    return `${year}-04-01`;
+
+}
+
+
+async function loadAnnualProgression() {
+
+    if (!annualProgressionList) return;
+
+    try {
+
+        const [systemSnap, usersSnap] = await Promise.all([
+            getDoc(doc(db, "system", "app")),
+            getDocs(collection(db, "users"))
+        ]);
+
+        const transition = systemSnap.data()?.annualTransition || {};
+        const active = transition.enabled === true;
+        const targetYear = Number(transition.academicYear || academicYearForTransition());
+
+        if (annualTransitionActivationDate) {
+            annualTransitionActivationDate.value = transition.activationDate || defaultTransitionDate();
+        }
+
+        startAnnualTransition.hidden = active;
+        stopAnnualTransition.hidden = !active;
+
+        if (annualProgressionHelp) {
+            annualProgressionHelp.textContent = active
+                ? `${targetYear}年度の確認を受付中です。反映予定日：${transition.activationDate || "未設定"}。対象：${scopeLabel(getAdminScope())}`
+                : "年度末確認を開始すると、対象学生は次回アプリを開いた時に必ず回答します。回答内容は反映予定日まで現在の画面へ影響しません。";
+        }
+
+        if (!active) {
+            annualProgressionList.innerHTML = "<p>年度末確認はまだ開始していません。</p>";
+            return;
+        }
+
+        const candidates = usersSnap.docs
+            .map(item => ({ id: item.id, ...item.data() }))
+            .filter(user => matchesAdminScope(user, getAdminScope()))
+            .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+
+        annualProgressionList.innerHTML = candidates.length > 0
+            ? candidates.map(user => renderAnnualProgressionUser(user, targetYear)).join("")
+            : "<p>対象学生はいません。</p>";
+
+    } catch (error) {
+
+        console.error("年度末確認取得エラー:", error);
+        annualProgressionList.innerHTML = "<p>年度末確認を取得できませんでした。</p>";
+
+    }
+
+}
+
+
+function renderAnnualProgressionUser(user, targetYear) {
+
+    const grade = Number(String(user.grade || "").replace("年", ""));
+    const name = String(user.name || user.userName || user.displayName || "氏名未設定");
+    const response = user.annualTransitionResponse;
+    const answered = Number(response?.academicYear) === targetYear;
+    const labels = {
+        promote: "進級予定",
+        repeat: "留年",
+        graduate: "卒業予定",
+        withdraw: "退学"
+    };
+
+    return `
+        <article class="attendance-review-card">
+            <b>${escapeHtml(name)}</b>
+            <p>${escapeHtml(user.id)} ／ ${grade || "未設定"}年<br>
+                回答：${answered ? escapeHtml(labels[response.action] || "未設定") : "未回答"}</p>
+        </article>
+    `;
+
+}
+
+
+async function saveAnnualTransition(enabled) {
+
+    const activationDate = annualTransitionActivationDate?.value;
+
+    if (enabled && !/^\d{4}-\d{2}-\d{2}$/.test(activationDate || "")) {
+        showToast("反映予定日を入力してください");
+        return;
+    }
+
+    const targetYear = academicYearForTransition();
+    const message = enabled
+        ? `${targetYear}年度の年度末確認を開始します。学生には必須の確認画面が表示されます。`
+        : "年度末確認を停止します。学生の確認画面は表示されなくなります。";
+
+    if (!confirm(message)) return;
+
+    try {
+
+        await setDoc(doc(db, "system", "app"), {
+            annualTransition: {
+                enabled,
+                academicYear: targetYear,
+                activationDate: enabled ? activationDate : null,
+                startedAt: enabled ? new Date().toISOString() : null,
+                updatedAt: new Date().toISOString(),
+                updatedBy: studentNumber || ""
+            },
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        showToast(enabled ? "年度末確認を開始しました" : "年度末確認を停止しました");
+        await loadAnnualProgression();
+
+    } catch (error) {
+
+        console.error("年度末確認保存エラー:", error);
+        showToast("設定の保存に失敗しました");
 
     }
 
@@ -778,6 +923,9 @@ async function saveNotificationSettings() {
 ======================================== */
 
 function setupEvents() {
+
+    startAnnualTransition?.addEventListener("click", () => saveAnnualTransition(true));
+    stopAnnualTransition?.addEventListener("click", () => saveAnnualTransition(false));
 
     [
         adminScopeDepartment,

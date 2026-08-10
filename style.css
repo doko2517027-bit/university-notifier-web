@@ -18118,3 +18118,22 @@ body:has(#profileImage)
 :where(.btn-danger, .delete-button, #attendanceNo, #resetPhoto) {
     color: #ffffff;
 }
+
+/* 年度末確認は閉じられない確認画面として、選択肢を見やすく並べる。 */
+.annual-transition-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.annual-transition-actions .btn {
+    min-height: 46px;
+    font-weight: 700;
+}
+
+.annual-transition-note {
+    margin-top: 16px;
+    font-size: .82rem;
+    line-height: 1.55;
+    color: var(--subtext);
+}

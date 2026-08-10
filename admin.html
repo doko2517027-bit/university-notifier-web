@@ -147,6 +147,39 @@ if(localStorage.getItem("theme")==="dark"){
 
 </div>
 
+<h2>🎓 年度末の進級・卒業判定</h2>
+
+<section class="card setting-card" id="annualProgressionSection">
+
+    <p id="annualProgressionHelp">
+        年度末確認を開始すると、学生は次回アプリを開いた時に回答します。
+    </p>
+
+    <label class="setting-label" for="annualTransitionActivationDate">
+        新しい状態を反映する日
+    </label>
+
+    <input
+        id="annualTransitionActivationDate"
+        class="form-input"
+        type="date">
+
+    <div class="report-actions" style="margin-top:12px;">
+        <button id="startAnnualTransition" class="btn btn-primary" type="button">
+            年度末確認を開始
+        </button>
+
+        <button id="stopAnnualTransition" class="btn" type="button" hidden>
+            年度末確認を停止
+        </button>
+    </div>
+
+    <div id="annualProgressionList">
+        読み込み中...
+    </div>
+
+</section>
+
 <div class="admin-menu-grid">
 
 
