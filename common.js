@@ -644,7 +644,7 @@ function showRankingNicknamePrompt(
                     type="text"
                     maxlength="20"
                     autocomplete="off"
-                    placeholder="例：ふかしょお"
+                    placeholder="例：ケアメイト"
                     style="
                         width:100%;
                         box-sizing:border-box;
