@@ -1385,98 +1385,6 @@ async function loadTodaySchedule() {
         }
     }
 
-    /*
-クラス選択用には、
-履修済みの生時間割をそのまま渡す。
-
-classGroupありの講義は、
-この後classSelectionsを使って
-ホーム表示対象を決める。
-*/
-
-setClassSelectionSchedule(
-
-    lectureSchedules.flatMap(
-        day =>
-
-            (day.schedules || [])
-                .map(
-                    item => ({
-                        ...item,
-
-                        date:
-                            day.date || ""
-                    })
-                )
-    )
-
-);
-
-
-/*
-Firestoreに保存済みの
-日付 × 科目 × 時限ごとの
-クラス選択を取得。
-*/
-
-const classSelections =
-
-    userSnapshot?.data()
-        ?.classSelections &&
-    typeof userSnapshot.data()
-        .classSelections ===
-        "object"
-
-        ? userSnapshot.data()
-            .classSelections
-
-        : {};
-
-
-/*
-ホーム時間割へクラス選択を反映。
-
-・classGroupなし
-  → そのまま表示
-
-・classGroupあり、未選択
-  → 表示しない
-     後で選択ポップアップ
-
-・選択クラス一致
-  → 表示
-
-・クラスなし
-  → 表示しない
-*/
-
-lectureSchedules =
-
-    lectureSchedules.map(
-        day => ({
-
-            ...day,
-
-            schedules:
-                applyClassSelections(
-
-                    (day.schedules || [])
-                        .map(
-                            item => ({
-                                ...item,
-
-                                date:
-                                    day.date || ""
-                            })
-                        ),
-
-                    classSelections
-
-                )
-
-        })
-    );
-
     const today =
         new Date();
 
@@ -1484,6 +1392,137 @@ lectureSchedules =
     const actualToday =
         today.toLocaleDateString(
             "sv-SE"
+        );
+
+
+    /*
+    クラス選択を要求するのは
+    「今日の履修講義」だけ。
+
+    未来日の講義は、
+    classGroupがあって未選択でも
+    予定そのものは消さない。
+
+    出席表示テスト中だけは、
+    テスト日を今日扱いにする。
+    */
+    const classSelectionDate =
+
+        userTestDateActive
+            ? userTestClock.date
+            : actualToday;
+
+
+    const classSelectionSchedules =
+
+        lectureSchedules
+
+            .filter(
+                day =>
+                    day.date ===
+                    classSelectionDate
+            )
+
+            .flatMap(
+                day =>
+
+                    (day.schedules || [])
+                        .map(
+                            item => ({
+
+                                ...item,
+
+                                date:
+                                    day.date || ""
+
+                            })
+                        )
+            );
+
+
+    setClassSelectionSchedule(
+        classSelectionSchedules
+    );
+
+
+    /*
+    Firestoreに保存済みの
+    日付 × 科目 × 時限ごとの
+    クラス選択を取得。
+    */
+    const classSelections =
+
+        userSnapshot?.data()
+            ?.classSelections &&
+        typeof userSnapshot.data()
+            .classSelections ===
+            "object"
+
+            ? userSnapshot.data()
+                .classSelections
+
+            : {};
+
+
+    /*
+    今日
+    → クラス選択を反映する。
+
+    未来日・過去日
+    → 履修登録済み予定をそのまま残す。
+
+    これで未来日のclassGroupあり講義も
+    カレンダー・時間割から消えない。
+    */
+    lectureSchedules =
+
+        lectureSchedules.map(
+            day => {
+
+                const schedules =
+
+                    (day.schedules || [])
+                        .map(
+                            item => ({
+
+                                ...item,
+
+                                date:
+                                    day.date || ""
+
+                            })
+                        );
+
+
+                if (
+                    day.date !==
+                    classSelectionDate
+                ) {
+
+                    return {
+
+                        ...day,
+
+                        schedules
+
+                    };
+
+                }
+
+
+                return {
+
+                    ...day,
+
+                    schedules:
+                        applyClassSelections(
+                            schedules,
+                            classSelections
+                        )
+
+                };
+
+            }
         );
 
 
@@ -1925,15 +1964,43 @@ function renderSchedule(
     append = false
 ) {
 
-    const list = schedules
-        .filter(item =>
-            String(item.grade || "")
-                .normalize("NFKC")
-                .replace("年", "")
-                .trim() === grade
+    const normalizedGrade =
+        String(
+            grade || ""
         )
-        .sort((a, b) =>
-            parseInt(a.period) - parseInt(b.period)
+            .normalize("NFKC")
+            .replace("年", "")
+            .trim();
+
+
+    const list = schedules
+
+        .filter(
+            item => {
+
+                const itemGrade =
+                    String(
+                        item.grade || ""
+                    )
+                        .normalize("NFKC")
+                        .replace("年", "")
+                        .trim();
+
+
+                return (
+                    !normalizedGrade ||
+                    !itemGrade ||
+                    itemGrade ===
+                        normalizedGrade
+                );
+
+            }
+        )
+
+        .sort(
+            (a, b) =>
+                parseInt(a.period) -
+                parseInt(b.period)
         );
 
     if (list.length === 0) {
@@ -3016,6 +3083,15 @@ function renderLectureCalendar() {
             );
 
 
+        const normalizedGrade =
+            String(
+                grade || ""
+            )
+                .normalize("NFKC")
+                .replace("年", "")
+                .trim();
+
+
         const hasLecture =
 
             dayData &&
@@ -3025,12 +3101,25 @@ function renderLectureCalendar() {
             ) &&
 
             dayData.schedules.some(
-                schedule =>
-                    !grade ||
-                    String(schedule.grade || "")
-                        .normalize("NFKC")
-                        .replace("年", "")
-                        .trim() === String(grade || "")
+                schedule => {
+
+                    const scheduleGrade =
+                        String(
+                            schedule.grade || ""
+                        )
+                            .normalize("NFKC")
+                            .replace("年", "")
+                            .trim();
+
+
+                    return (
+                        !normalizedGrade ||
+                        !scheduleGrade ||
+                        scheduleGrade ===
+                            normalizedGrade
+                    );
+
+                }
             );
 
 

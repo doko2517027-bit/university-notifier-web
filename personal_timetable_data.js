@@ -25,7 +25,6 @@ export async function loadPersonalTimetableData(){
         getDocs(collection(db,"users",studentNumber,"enrolledSubjects"))
     ]);
     const user=userSnap.data()||{};
-    const selectedClassGroup=String(user.attendanceClassGroup||"").trim();
     const enrolled=enrollmentSnap.docs.map(item=>({id:item.id,...item.data()})).filter(item=>item.status!=="removed");
     const aliasToCourse=new Map();
     for(const course of enrolled){
@@ -49,8 +48,21 @@ export async function loadPersonalTimetableData(){
     const entries=[];
     for(const day of days){
         for(const item of Array.isArray(day.schedules)?day.schedules:[]){
-            if(selectedClassGroup&&item.classGroup&&String(item.classGroup).trim()!==selectedClassGroup)continue;
-            if(grade&&String(item.grade||"").normalize("NFKC").replace("年","").trim()!==grade) continue;
+
+            const itemGrade=
+                String(item.grade||"")
+                    .normalize("NFKC")
+                    .replace("年","")
+                    .trim();
+
+            if(
+                grade &&
+                itemGrade &&
+                itemGrade!==grade
+            ){
+                continue;
+            }
+
             const course=aliasToCourse.get(normalizeCourseName(item.subject));
             if(!course) continue;
             entries.push({
