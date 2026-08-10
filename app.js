@@ -42,7 +42,8 @@ import {
     getDocs,
     orderBy,
     onSnapshot,
-    limit
+    limit,
+    writeBatch
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { VERSION } from "./version.js";
@@ -104,6 +105,11 @@ const annualTransitionOverlay = document.getElementById("annualTransitionOverlay
 const annualTransitionTitle = document.getElementById("annualTransitionTitle");
 const annualTransitionMessage = document.getElementById("annualTransitionMessage");
 const annualTransitionActions = document.getElementById("annualTransitionActions");
+const creditConfirmationOverlay = document.getElementById("creditConfirmationOverlay");
+const creditConfirmationTitle = document.getElementById("creditConfirmationTitle");
+const creditConfirmationMessage = document.getElementById("creditConfirmationMessage");
+const creditConfirmationList = document.getElementById("creditConfirmationList");
+const saveCreditConfirmation = document.getElementById("saveCreditConfirmation");
 
 // 追加 定数
 const rankingList =
@@ -259,6 +265,7 @@ console.log("studentNumber =", studentNumber);
         user = userSnap.data();
 
         await showAnnualTransitionIfRequired(user);
+        await showCreditConfirmationIfRequired(user);
 
 
         applyManabaFeatureVisibility(
@@ -432,6 +439,103 @@ annualTransitionActions?.addEventListener("click", async event => {
 
     }
 
+});
+
+function escapeCreditText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[character]));
+}
+
+async function showCreditConfirmationIfRequired(user) {
+    if (!creditConfirmationOverlay || !studentNumber || annualTransitionOverlay?.hidden === false) return;
+    if (["graduated", "withdrawn"].includes(user?.academicStatus)) return;
+
+    const profileName = String(user?.name || user?.userName || user?.displayName || "").trim();
+    if (!profileName || profileName === "氏名未設定") return;
+
+    const systemSnap = await getDoc(doc(db, "system", "app"));
+    const config = systemSnap.data()?.creditConfirmation;
+    if (config?.enabled !== true) return;
+
+    const academicYear = Number(config.academicYear);
+    const semester = String(config.semester || "");
+    if (!Number.isInteger(academicYear) || !["前期", "後期"].includes(semester)) return;
+    const previous = user?.creditConfirmationResponse;
+    if (Number(previous?.academicYear) === academicYear && previous?.semester === semester) return;
+
+    const enrolledSnap = await getDocs(collection(db, "users", studentNumber, "enrolledSubjects"));
+    const courses = enrolledSnap.docs
+        .map(item => ({ id: item.id, ...item.data() }))
+        .filter(item => item.status !== "removed")
+        .filter(item => {
+            const courseSemester = String(item.registeredSemester || item.semester || "");
+            return !courseSemester || courseSemester === semester || courseSemester === "通年";
+        })
+        .sort((a, b) => String(a.name || a.subject || a.id).localeCompare(String(b.name || b.subject || b.id), "ja"));
+
+    if (!courses.length) return;
+    creditConfirmationTitle.textContent = `${academicYear}年度 ${semester}の単位取得確認`;
+    creditConfirmationMessage.textContent = "履修した各科目について、単位を取得できたか選択してください。";
+    creditConfirmationList.innerHTML = courses.map(course => {
+        const subject = course.name || course.subject || course.subjectKey || course.id;
+        return `<label class="credit-confirmation-item" data-credit-course="${escapeCreditText(course.id)}">
+            <span>${escapeCreditText(subject)}${course.isRetake ? " <small>再履修</small>" : ""}</span>
+            <select aria-label="${escapeCreditText(subject)}の単位取得状況">
+                <option value="earned">取得できた</option>
+                <option value="not_earned">取得できなかった（再履修）</option>
+            </select>
+        </label>`;
+    }).join("");
+    creditConfirmationOverlay.dataset.academicYear = String(academicYear);
+    creditConfirmationOverlay.dataset.semester = semester;
+    creditConfirmationOverlay.hidden = false;
+    creditConfirmationOverlay.classList.add("show");
+}
+
+saveCreditConfirmation?.addEventListener("click", async () => {
+    const academicYear = Number(creditConfirmationOverlay?.dataset.academicYear);
+    const semester = creditConfirmationOverlay?.dataset.semester;
+    const items = [...creditConfirmationList.querySelectorAll("[data-credit-course]")];
+    if (!Number.isInteger(academicYear) || !semester || !items.length) return;
+    if (!confirm("単位取得状況を保存します。よろしいですか？")) return;
+    saveCreditConfirmation.disabled = true;
+    try {
+        const batch = writeBatch(db);
+        const results = {};
+        items.forEach(item => {
+            const courseId = item.dataset.creditCourse;
+            const status = item.querySelector("select")?.value === "not_earned" ? "not_earned" : "earned";
+            results[courseId] = status;
+            batch.set(doc(db, "users", studentNumber, "enrolledSubjects", courseId), {
+                creditStatus: status,
+                creditConfirmedAcademicYear: academicYear,
+                creditConfirmedSemester: semester,
+                creditConfirmedAt: new Date().toISOString(),
+                isRetake: status === "not_earned",
+                retakeLabel: status === "not_earned" ? "再履修" : null,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+        });
+        batch.update(doc(db, "users", studentNumber), {
+            creditConfirmationResponse: {
+                academicYear,
+                semester,
+                results,
+                submittedAt: new Date().toISOString()
+            },
+            updatedAt: serverTimestamp()
+        });
+        await batch.commit();
+        creditConfirmationOverlay.classList.remove("show");
+        creditConfirmationOverlay.hidden = true;
+        alert("単位取得状況を保存しました。未取得の科目は再履修として表示されます。");
+    } catch (error) {
+        console.error("単位取得確認の保存エラー:", error);
+        alert("保存できませんでした。もう一度お試しください。");
+    } finally {
+        saveCreditConfirmation.disabled = false;
+    }
 });
 
 function applyManabaFeatureVisibility(

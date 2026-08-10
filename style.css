@@ -18139,6 +18139,13 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
     margin-top: 20px;
 }
 
+.credit-confirmation-card { max-height: min(78vh, 680px); overflow: auto; }
+.credit-confirmation-list { display: grid; gap: 10px; margin: 16px 0; text-align: left; }
+.credit-confirmation-item { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; border-radius: 12px; background: var(--card-bg, #f7f9fc); }
+.credit-confirmation-item span { font-weight: 700; }
+.credit-confirmation-item small { color: var(--accent-color, #d55); margin-left: 6px; }
+.credit-confirmation-item select { max-width: 178px; }
+
 .annual-transition-actions .btn {
     min-height: 46px;
     font-weight: 700;

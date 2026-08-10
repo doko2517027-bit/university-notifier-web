@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>単位取得確認 | CareMate</title>
+  <link rel="stylesheet" href="style.css">
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
+</head>
+<body class="page-loading">
+  <div class="top-buttons">
+    <button id="backButton" class="circle-button" aria-label="戻る">←</button>
+    <h2>単位取得確認</h2>
+    <div class="top-right"><button id="themeButton" class="circle-button">🌙</button></div>
+  </div>
+  <main class="attendance-admin-page">
+    <p id="creditScopeLabel" class="attendance-admin-help"></p>
+    <section class="card setting-card attendance-admin-section">
+      <h3>確認を開始する</h3>
+      <p id="creditConfirmationHelp" class="attendance-admin-help">開始すると、対象の学生に履修済み科目ごとの単位取得確認が表示されます。未取得を選んだ科目は再履修として残ります。</p>
+      <label>対象年度<input id="creditAcademicYear" type="number" min="2024" step="1"></label>
+      <label>対象学期<select id="creditSemester"><option value="前期">前期</option><option value="後期">後期</option></select></label>
+      <div class="report-actions">
+        <button id="startCreditConfirmation" class="btn btn-primary" type="button">単位取得確認を開始</button>
+        <button id="stopCreditConfirmation" class="btn" type="button" hidden>単位取得確認を停止</button>
+      </div>
+    </section>
+    <section class="card setting-card attendance-admin-section">
+      <h3>学生の回答状況</h3>
+      <div id="creditConfirmationAdminList"><p>読み込み中...</p></div>
+    </section>
+  </main>
+  <nav class="bottom-nav">
+    <a href="index.html">🏠<br><span>ホーム</span></a><a href="assignments.html">📚<br><span>課題</span></a><a href="share.html">🤝<br><span>共有</span></a><a href="news.html">📢<br><span>お知らせ</span></a><a id="settingsTab" href="admin.html" class="active">👑<br><span>管理</span></a>
+  </nav>
+  <script type="module" src="credit_confirmation_admin.js"></script>
+</body>
+</html>

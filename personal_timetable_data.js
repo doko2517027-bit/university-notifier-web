@@ -71,6 +71,7 @@ export async function loadPersonalTimetableData(){
                 building:item.building||"",
                 room:item.room||"",
                 isPractical:course.isPractical===true,
+                isRetake:course.isRetake===true || course.creditStatus==="not_earned",
                 lectureCount:Number(course.lectureCount||0),
                 credits:Number(course.credits||0)
             });

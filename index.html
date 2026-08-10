@@ -218,6 +218,18 @@ if(localStorage.getItem("theme")==="dark"){
     </div>
 </div>
 
+<div id="creditConfirmationOverlay" class="exam-popup-overlay" hidden>
+    <div class="exam-popup-card credit-confirmation-card">
+        <div class="exam-popup-icon">💳</div>
+        <p class="exam-popup-label">単位取得の確認</p>
+        <h2 id="creditConfirmationTitle">履修科目の単位を確認</h2>
+        <p id="creditConfirmationMessage">各科目について、単位を取得できたか選択してください。</p>
+        <div id="creditConfirmationList" class="credit-confirmation-list"></div>
+        <button id="saveCreditConfirmation" class="btn btn-primary" type="button">回答を保存</button>
+        <p class="annual-transition-note">取得できなかった科目は、履修科目に「再履修」として残ります。</p>
+    </div>
+</div>
+
 <div class="top-buttons">
 
     <div class="top-user-info">
