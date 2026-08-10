@@ -18119,6 +18119,19 @@ body:has(#profileImage)
     color: #ffffff;
 }
 
+/* 選択中の日付は「今日」の装飾より優先し、数字を必ず読める白に保つ。 */
+body:has(#weatherCard) .lecture-calendar-day.is-selected,
+body:has(#weatherCard) .lecture-calendar-day.is-today.is-selected {
+    background: var(--primary);
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+}
+
+body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-number {
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+}
+
 /* 年度末確認は閉じられない確認画面として、選択肢を見やすく並べる。 */
 .annual-transition-actions {
     display: grid;
