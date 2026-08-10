@@ -1804,14 +1804,33 @@ export function recalculateAttendanceStatus(
         );
 
 
+    const isNotificationTest =
+        record.attendanceNotificationTest ===
+        true;
+
+
     const resolvedStartAt =
-        serverStartAt ||
-        clientStartAt;
+        isNotificationTest
+            ? (
+                clientStartAt ||
+                serverStartAt
+            )
+            : (
+                serverStartAt ||
+                clientStartAt
+            );
 
 
     const resolvedEndAt =
-        serverEndAt ||
-        clientEndAt;
+        isNotificationTest
+            ? (
+                clientEndAt ||
+                serverEndAt
+            )
+            : (
+                serverEndAt ||
+                clientEndAt
+            );
 
 
     if (resolvedStartAt) {
