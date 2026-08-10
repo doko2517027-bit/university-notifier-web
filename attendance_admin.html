@@ -24,7 +24,7 @@
     <section class="card setting-card attendance-admin-section">
       <h3>学生別の出席記録</h3>
       <p class="attendance-admin-help">学籍番号を指定して、学生画面と同じ出席・遅刻・早退・欠席の結果を確認・修正できます。</p>
-      <label>学籍番号<input id="recordStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
+      <label>学籍番号<input id="recordStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510000"></label>
       <button id="loadStudentAttendance" class="btn" type="button">出席記録を表示</button>
       <div id="studentAttendanceList"></div>
     </section>
@@ -32,7 +32,7 @@
     <section class="card setting-card attendance-admin-section attendance-test-card">
       <h3>出席通知テスト</h3>
       <p class="attendance-admin-help">指定した学生の履修済み科目だけを使い、通常と同じ打刻ルールでテスト通知を送ります。</p>
-      <label>学籍番号<input id="testStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510044"></label>
+      <label>学籍番号<input id="testStudentNumber" inputmode="numeric" maxlength="7" placeholder="例：2510000"></label>
       <button id="loadEnrolledSubjects" class="btn" type="button">履修科目を読み込む</button>
       <label>テスト対象科目<select id="testSubject" disabled><option>学籍番号を入力してください</option></select></label>
       <div class="attendance-time-grid">
