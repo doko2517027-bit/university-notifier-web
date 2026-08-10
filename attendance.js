@@ -3779,8 +3779,7 @@ function buildTermLectures(
             !isDateInAcademicTerm(
                 date,
                 term
-            ) ||
-            date > effectiveDate
+            )
         ) {
 
             continue;
@@ -3818,28 +3817,235 @@ function buildTermLectures(
                 : [];
 
 
-        const classResult =
-            buildStudentLectures(
+        /*
+         * 今日以前は実際のクラス選択を反映。
+         *
+         * 未来の講義はまだクラス選択されていなくても
+         * 「予定」として出席管理へ表示する。
+         */
+        if (
+            date <= effectiveDate
+        ) {
 
-                source,
+            const classResult =
+                buildStudentLectures(
 
-                selections,
+                    source,
 
-                date,
+                    selections,
 
-                scheduleId
+                    date,
 
+                    scheduleId
+
+                );
+
+
+            result.push(
+                ...classResult.lectures
             );
 
+        } else {
 
-        result.push(
-            ...classResult.lectures
-        );
+            result.push(
+                ...buildFutureAttendanceLectures(
+                    source,
+                    date,
+                    scheduleId,
+                    selections
+                )
+            );
+
+        }
 
     }
 
 
         return result;
+
+}
+
+
+function buildFutureAttendanceLectures(
+    source,
+    date,
+    scheduleId,
+    selections
+) {
+
+    /*
+     * まず通常のクラス選択処理を行う。
+     *
+     * すでにクラス選択されている予定なら
+     * そのクラスをそのまま使う。
+     */
+    const selectedResult =
+        buildStudentLectures(
+            source,
+            selections,
+            date,
+            scheduleId
+        );
+
+
+    const selectedKeys =
+        new Set(
+            selectedResult.lectures.map(
+                lecture =>
+                    `${normalizeSubjectIdentity(
+                        lecture.subject
+                    )}|${normalizePeriod(
+                        lecture.period
+                    )}`
+            )
+        );
+
+
+    const groups =
+        new Map();
+
+
+    for (const item of source) {
+
+        const subject =
+            normalizeText(
+                item.subject ||
+                item.name ||
+                item.title
+            );
+
+
+        const period =
+            normalizePeriod(
+                item.period
+            );
+
+
+        if (
+            !subject ||
+            !period
+        ) {
+
+            continue;
+
+        }
+
+
+        const key =
+            `${normalizeSubjectIdentity(
+                subject
+            )}|${period}`;
+
+
+        /*
+         * すでに本人のクラスが確定している講義は
+         * generic予定を追加しない。
+         */
+        if (
+            selectedKeys.has(
+                key
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            !groups.has(key)
+        ) {
+
+            groups.set(
+                key,
+                {
+                    subject,
+                    period,
+                    rows: []
+                }
+            );
+
+        }
+
+
+        groups
+            .get(key)
+            .rows
+            .push(item);
+
+    }
+
+
+    const futureLectures = [
+        ...selectedResult.lectures
+    ];
+
+
+    for (
+        const group of
+        groups.values()
+    ) {
+
+        const preferred =
+            group.rows[0];
+
+
+        futureLectures.push({
+
+            ...preferred,
+
+            date,
+
+            subject:
+                group.subject,
+
+            period:
+                group.period,
+
+            scheduleDocumentId:
+                preferred
+                    ?.scheduleDocumentId ||
+                scheduleId,
+
+            selectedClassGroup:
+                "",
+
+            classOptions:
+                [
+                    ...new Set(
+                        group.rows.flatMap(
+                            row =>
+                                extractClassGroups(
+                                    row.classGroup
+                                )
+                        )
+                    )
+                ],
+
+            attendancePlanned:
+                true
+
+        });
+
+    }
+
+
+    futureLectures.sort(
+        (left, right) =>
+
+            Number(
+                left.period ||
+                0
+            ) -
+
+            Number(
+                right.period ||
+                0
+            )
+    );
+
+
+    return futureLectures;
 
 }
 
@@ -4366,7 +4572,16 @@ function calculateSubjectAttendance(
 
         if (!session.record) {
 
-            pending++;
+            if (
+                !isFutureAttendanceSession(
+                    session
+                )
+            ) {
+
+                pending++;
+
+            }
+
 
             continue;
 
@@ -4762,6 +4977,95 @@ function createSubjectSessionRows(
 }
 
 
+function isFutureAttendanceSession(
+    session
+) {
+
+    if (!session) {
+
+        return false;
+
+    }
+
+
+    const date =
+        normalizeDate(
+            session.date
+        );
+
+
+    if (!date) {
+
+        return false;
+
+    }
+
+
+    if (
+        date > effectiveDate
+    ) {
+
+        return true;
+
+    }
+
+
+    if (
+        date < effectiveDate
+    ) {
+
+        return false;
+
+    }
+
+
+    /*
+     * 今日の講義なら
+     * 開始打刻開始時刻より前は「予定」。
+     */
+    if (session.lecture) {
+
+        try {
+
+            const lecture =
+                normalizeAttendanceLecture({
+
+                    ...session.lecture,
+
+                    date,
+
+                    period:
+                        session.period ||
+                        session.lecture.period
+
+                });
+
+
+            return (
+                getAttendanceNow(
+                    lecture
+                ).getTime() <
+
+                lecture
+                    .lectureWindow
+                    .startNotificationAt
+                    .getTime()
+            );
+
+        } catch {
+
+            return false;
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+
 function renderSubjectAttendanceCard(
     stats
 ) {
@@ -4835,10 +5139,8 @@ function renderSubjectAttendanceCard(
                     </span>
 
                     <span>
-                        全${
-                            stats.subject.lectureCount ||
-                            stats.totalLectures
-                        }回の講義
+                        時間割登録
+                        ${stats.totalLectures}回
                     </span>
 
                 </div>
@@ -5039,6 +5341,20 @@ function renderSubjectSessionRow(
                         ? `
                             <small>
                                 ${session.period}限
+                                ${
+                                    session.lecture
+                                        ?.startTime &&
+                                    session.lecture
+                                        ?.endTime
+                                        ? `・${escapeHtml(
+                                            session.lecture
+                                                .startTime
+                                        )}〜${escapeHtml(
+                                            session.lecture
+                                                .endTime
+                                        )}`
+                                        : ""
+                                }
                             </small>
                         `
                         : ""
@@ -5204,6 +5520,25 @@ function getSubjectSessionDisplay(
 ) {
 
     if (!session.record) {
+
+        if (
+            isFutureAttendanceSession(
+                session
+            )
+        ) {
+
+            return {
+
+                label:
+                    "予定",
+
+                className:
+                    "is-scheduled"
+
+            };
+
+        }
+
 
         return {
 
