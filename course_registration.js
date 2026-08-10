@@ -2340,13 +2340,156 @@ function getAcademicYearForGrade(
 }
 
 
-function getHistoricalSubjectsForGrade(
-    targetGrade
+function getPastAcademicPeriods() {
+
+    const currentGrade =
+        Math.max(
+            1,
+            Math.min(
+                4,
+                Number(grade) || 1
+            )
+        );
+
+
+    const currentSemester =
+        normalizeSemester(
+            config?.semester
+        );
+
+
+    const periods =
+        [];
+
+
+    /*
+     ========================================
+     現在学年より前
+     ========================================
+
+     すでに年度そのものが終了しているため、
+     前期・後期を両方過去として扱う。
+
+     通期科目が存在する場合は、
+     その年度が完全に終了している場合だけ
+     通期も登録対象にする。
+    */
+
+    for (
+        let targetGrade = 1;
+        targetGrade < currentGrade;
+        targetGrade += 1
+    ) {
+
+        const academicYear =
+            getAcademicYearForGrade(
+                targetGrade
+            );
+
+
+        periods.push({
+
+            grade:
+                targetGrade,
+
+            semester:
+                "前期",
+
+            academicYear
+
+        });
+
+
+        periods.push({
+
+            grade:
+                targetGrade,
+
+            semester:
+                "後期",
+
+            academicYear
+
+        });
+
+
+        /*
+         通期科目が存在する場合のみ
+         後から表示される。
+        */
+
+        periods.push({
+
+            grade:
+                targetGrade,
+
+            semester:
+                "通期",
+
+            academicYear
+
+        });
+
+    }
+
+
+    /*
+     ========================================
+     現在学年
+     ========================================
+
+     現在が後期なら、
+     同じ学年の前期はすでに終了済み。
+
+     例：
+     2年後期
+     → 2年前期を過去履修として入力できる。
+
+     1年後期
+     → 1年前期を入力できる。
+    */
+
+    if (
+        currentSemester ===
+        "後期"
+    ) {
+
+        periods.push({
+
+            grade:
+                currentGrade,
+
+            semester:
+                "前期",
+
+            academicYear:
+                getAcademicYearForGrade(
+                    currentGrade
+                )
+
+        });
+
+    }
+
+
+    return periods;
+
+}
+
+
+function getHistoricalSubjectsForPeriod(
+    targetGrade,
+    targetSemester
 ) {
 
     return allSubjects
         .filter(
             subject => {
+
+                /*
+                 その学生のカリキュラムに
+                 属する科目だけ。
+                */
 
                 if (
                     !matchesCurriculum(
@@ -2359,9 +2502,31 @@ function getHistoricalSubjectsForGrade(
                 }
 
 
-                return (
-                    Number(subject.grade) ===
+                /*
+                 対象学年。
+                */
+
+                if (
+                    Number(subject.grade) !==
                     Number(targetGrade)
+                ) {
+
+                    return false;
+
+                }
+
+
+                /*
+                 対象学期。
+                */
+
+                return (
+                    normalizeSemester(
+                        subject.semester
+                    ) ===
+                    normalizeSemester(
+                        targetSemester
+                    )
                 );
 
             }
@@ -3167,23 +3332,20 @@ function renderUnavailable(
 
 function renderProgress() {
 
-    const currentGrade =
-        Math.max(
-            1,
-            Math.min(
-                4,
-                Number(grade) || 1
-            )
-        );
+    const pastPeriods =
+        getPastAcademicPeriods();
 
 
     /*
-     1年生には基本的に
-     過去年度の履修履歴がない。
+     過去として入力できる学期がなく、
+     既存履歴もなければ非表示。
+
+     例：
+     1年前期
     */
 
     if (
-        currentGrade <= 1 &&
+        pastPeriods.length === 0 &&
         pastCourseRecords.size === 0
     ) {
 
@@ -3197,23 +3359,6 @@ function renderProgress() {
 
     elements.progressCard.hidden =
         false;
-
-
-    const pastGrades =
-        Array.from(
-            {
-                length:
-                    Math.max(
-                        0,
-                        currentGrade - 1
-                    )
-            },
-            (
-                _,
-                index
-            ) =>
-                index + 1
-        );
 
 
     const registeredRecords =
@@ -3244,7 +3389,7 @@ function renderProgress() {
         );
 
 
-    const manuallyEarnedCredits =
+    const earnedCredits =
         earnedRecords.reduce(
             (
                 total,
@@ -3278,7 +3423,9 @@ function renderProgress() {
 
                 <strong>
 
-                    ${earnedRecords.length}科目修得
+                    ${formatCredit(
+                        earnedCredits
+                    )}単位修得
 
                 </strong>
 
@@ -3291,13 +3438,6 @@ function renderProgress() {
 
                     未修得
                     ${failedRecords.length}科目
-
-                    ・
-
-                    登録済み
-                    ${formatCredit(
-                        manuallyEarnedCredits
-                    )}単位
 
                 </small>
 
@@ -3322,171 +3462,294 @@ function renderProgress() {
         "過去の履修結果を保存";
 
 
+    /*
+     ========================================
+     実際に科目が存在する学期だけ残す
+     ========================================
+    */
+
+    const periodsWithSubjects =
+        pastPeriods
+            .map(
+                period => ({
+
+                    ...period,
+
+                    subjects:
+                        getHistoricalSubjectsForPeriod(
+                            period.grade,
+                            period.semester
+                        )
+
+                })
+            )
+            .filter(
+                period =>
+                    period.subjects.length > 0
+            );
+
+
+    if (
+        periodsWithSubjects.length === 0
+    ) {
+
+        elements.progressYearFields.innerHTML = `
+
+            <div class="course-progress-empty">
+
+                登録できる過去の履修科目はありません。
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    /*
+     ========================================
+     年次ごとにまとめる
+     ========================================
+    */
+
+    const groupedByGrade =
+        new Map();
+
+
+    periodsWithSubjects.forEach(
+        period => {
+
+            const key =
+                String(
+                    period.grade
+                );
+
+
+            if (
+                !groupedByGrade.has(
+                    key
+                )
+            ) {
+
+                groupedByGrade.set(
+                    key,
+                    {
+                        grade:
+                            period.grade,
+
+                        academicYear:
+                            period.academicYear,
+
+                        periods:
+                            []
+                    }
+                );
+
+            }
+
+
+            groupedByGrade
+                .get(key)
+                .periods
+                .push(
+                    period
+                );
+
+        }
+    );
+
+
     elements.progressYearFields.innerHTML =
-        pastGrades.map(
-            targetGrade => {
-
-                const academicYear =
-                    getAcademicYearForGrade(
-                        targetGrade
-                    );
-
-
-                const gradeSubjects =
-                    getHistoricalSubjectsForGrade(
-                        targetGrade
-                    );
-
-
-                if (
-                    gradeSubjects.length === 0
-                ) {
-
-                    return `
-
-                        <section
-                            class="course-history-year">
-
-                            <div class="course-history-year-heading">
-
-                                <h3>
-                                    ${targetGrade}年次
-                                </h3>
-
-                                <span>
-                                    ${academicYear}年度
-                                </span>
-
-                            </div>
-
-
-                            <div class="course-progress-empty">
-
-                                この年度の対象科目が登録されていません。
-
-                            </div>
-
-                        </section>
-
-                    `;
-
-                }
-
-
-                const semesters =
-                    [
-                        "前期",
-                        "後期",
-                        "通期"
-                    ];
-
-
-                return `
+        [...groupedByGrade.values()]
+            .map(
+                yearGroup => `
 
                     <section
                         class="course-history-year">
 
-                        <div class="course-history-year-heading">
+                        <div
+                            class="
+                                course-history-year-heading
+                            ">
 
                             <div>
 
                                 <h3>
-                                    ${targetGrade}年次
+
+                                    ${yearGroup.grade}年次
+
                                 </h3>
 
                                 <small>
-                                    ${academicYear}年度
+
+                                    ${yearGroup.academicYear}年度
+
                                 </small>
 
                             </div>
-
-                            <span>
-                                ${gradeSubjects.length}科目
-                            </span>
 
                         </div>
 
 
                         ${
-                            semesters.map(
-                                semester => {
-
-                                    const semesterSubjects =
-                                        gradeSubjects.filter(
-                                            subject =>
-                                                normalizeSemester(
-                                                    subject.semester
-                                                ) ===
-                                                semester
-                                        );
-
-
-                                    if (
-                                        semesterSubjects.length ===
-                                        0
-                                    ) {
-
-                                        return "";
-
-                                    }
-
-
-                                    return `
-
-                                        <div
-                                            class="
-                                                course-history-semester
-                                            ">
-
-                                            <h4>
-
-                                                ${semester}
-
-                                            </h4>
-
-
-                                            <div
-                                                class="
-                                                    course-history-subject-list
-                                                ">
-
-                                                ${
-                                                    semesterSubjects
-                                                        .map(
-                                                            subject =>
-                                                                createPastCourseHistoryRow(
-                                                                    subject,
-                                                                    academicYear
-                                                                )
-                                                        )
-                                                        .join("")
-                                                }
-
-                                            </div>
-
-                                        </div>
-
-                                    `;
-
-                                }
-                            )
-                            .join("")
+                            yearGroup.periods
+                                .map(
+                                    period =>
+                                        createPastSemesterSection(
+                                            period
+                                        )
+                                )
+                                .join("")
                         }
 
                     </section>
 
-                `;
+                `
+            )
+            .join("");
+
+}
+
+
+function createPastSemesterSection(
+    period
+) {
+
+    const semesterLabel = {
+
+        前期:
+            "🌸 前期",
+
+        後期:
+            "🍂 後期",
+
+        通期:
+            "📅 通期"
+
+    }[
+        period.semester
+    ] || period.semester;
+
+
+    const earnedCount =
+        period.subjects.filter(
+            subject => {
+
+                const record =
+                    findPastCourseRecord(
+                        subject
+                    );
+
+
+                return (
+                    record &&
+                    isPastCourseEarned(
+                        record
+                    )
+                );
 
             }
-        )
-        .join("");
+        ).length;
+
+
+    const failedCount =
+        period.subjects.filter(
+            subject => {
+
+                const record =
+                    findPastCourseRecord(
+                        subject
+                    );
+
+
+                return (
+                    record &&
+                    isPastCourseFailed(
+                        record
+                    )
+                );
+
+            }
+        ).length;
+
+
+    return `
+
+        <div
+            class="course-history-semester">
+
+            <div
+                class="
+                    course-history-semester-heading
+                ">
+
+                <div>
+
+                    <h4>
+
+                        ${semesterLabel}
+
+                    </h4>
+
+                    <small>
+
+                        ${period.academicYear}年度
+                        ${period.grade}年次
+                        ${period.semester}
+
+                    </small>
+
+                </div>
+
+
+                <span>
+
+                    修得
+                    ${earnedCount}
+
+                    ・
+
+                    未修得
+                    ${failedCount}
+
+                </span>
+
+            </div>
+
+
+            <div
+                class="
+                    course-history-subject-list
+                ">
+
+                ${
+                    period.subjects
+                        .map(
+                            subject =>
+                                createPastCourseHistoryRow(
+                                    subject,
+                                    period.academicYear,
+                                    period.semester
+                                )
+                        )
+                        .join("")
+                }
+
+            </div>
+
+        </div>
+
+    `;
 
 }
 
 
 function createPastCourseHistoryRow(
     subject,
-    academicYear
+    academicYear,
+    semester
 ) {
 
     const record =
@@ -3573,10 +3836,17 @@ function createPastCourseHistoryRow(
 
             <select
                 class="course-history-status"
+
                 data-history-subject-id="${escapeAttribute(
                     subject.id
                 )}"
+
                 data-history-academic-year="${academicYear}"
+
+                data-history-semester="${escapeAttribute(
+                    semester
+                )}"
+
                 aria-label="${escapeAttribute(
                     subject.name
                 )}の履修結果">
@@ -3690,6 +3960,13 @@ async function saveCourseProgress() {
                         field.dataset
                             .historyAcademicYear ||
                         0
+                    ),
+
+                semester:
+                    normalizeSemester(
+                        field.dataset
+                            .historySemester ||
+                        ""
                     ),
 
                 status:
@@ -3867,6 +4144,7 @@ async function saveCourseProgress() {
                         ),
 
                     semester:
+                        history.semester ||
                         subject.semester,
 
                     requirementType:
