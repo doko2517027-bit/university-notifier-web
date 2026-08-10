@@ -1078,8 +1078,8 @@ async function loadAttendanceData() {
                 notificationTest.date
             ) === effectiveDate &&
 
-            Date.parse(
-                notificationTest.expiresAt || ""
+            getNotificationTestExpiryMs(
+                notificationTest
             ) > Date.now();
 
 
@@ -2189,9 +2189,8 @@ function isVisibleAttendanceRecord(
 
 
     const expiresAt =
-        Date.parse(
-            test.expiresAt ||
-            ""
+        getNotificationTestExpiryMs(
+            test
         );
 
 
@@ -2242,6 +2241,49 @@ function isVisibleAttendanceRecord(
 }
 
 
+/*
+ * 通知テストは、退席通知を送信した後20分間だけ表示する。
+ * 退席通知前は、従来の安全用 expiresAt を使う。
+ */
+function getNotificationTestExpiryMs(
+    test
+) {
+
+    const departureSentAt =
+        test?.departureSentAt;
+
+
+    const departureSentMs =
+        typeof departureSentAt?.toMillis === "function"
+            ? departureSentAt.toMillis()
+            : Date.parse(
+                departureSentAt ||
+                ""
+            );
+
+
+    if (
+        Number.isFinite(
+            departureSentMs
+        )
+    ) {
+
+        return (
+            departureSentMs +
+            20 * 60 * 1000
+        );
+
+    }
+
+
+    return Date.parse(
+        test?.expiresAt ||
+        ""
+    );
+
+}
+
+
 function scheduleNotificationTestExpiryRefresh() {
 
     if (
@@ -2265,9 +2307,8 @@ function scheduleNotificationTestExpiryRefresh() {
 
 
     const expiresAt =
-        Date.parse(
-            test.expiresAt ||
-            ""
+        getNotificationTestExpiryMs(
+            test
         );
 
 

@@ -1635,7 +1635,7 @@ async function processAttendanceNotifications() {
                 item.attendanceNotificationTest
             ) {
 
-                await userDoc.ref.update({
+                const testUpdate = {
 
                     "attendanceNotificationTest.lastSentAt":
                         new Date(),
@@ -1643,7 +1643,27 @@ async function processAttendanceNotifications() {
                     "attendanceNotificationTest.lastResults":
                         results
 
-                });
+                };
+
+
+                /*
+                 * テスト表示は、退席通知を送った瞬間から20分後に消す。
+                 */
+                if (
+                    notificationType ===
+                    "departure"
+                ) {
+
+                    testUpdate[
+                        "attendanceNotificationTest.departureSentAt"
+                    ] = new Date();
+
+                }
+
+
+                await userDoc.ref.update(
+                    testUpdate
+                );
 
             }
 
