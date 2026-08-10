@@ -488,6 +488,7 @@ if (
 
 </div>
 
+
 <!-- ========================================
      科目別の出席状況
 ======================================== -->
@@ -517,6 +518,43 @@ if (
     </div>
 
 
+    <div class="attendance-term-switch">
+
+        <label for="attendanceTermSelect">
+            表示する学期
+        </label>
+
+        <select
+            id="attendanceTermSelect"
+            disabled>
+
+            <option value="">
+                履修学期を読み込んでいます...
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <div
+        id="attendanceEnrollmentNotice"
+        class="attendance-personal-notice"
+        hidden>
+
+        <b>
+            履修登録してください
+        </b>
+
+        <br>
+
+        管理者が設定している現在学期には、
+        履修登録済みの科目がありません。
+        履修済みの別の学期へ切り替えることはできます。
+
+    </div>
+
+
     <div
         id="attendanceSubjectList"
         class="attendance-subject-list">
@@ -536,7 +574,7 @@ if (
         hidden>
 
         <p>
-            表示できる履修科目がありません。
+            この学期に表示できる履修科目がありません。
         </p>
 
     </div>
