@@ -388,6 +388,9 @@ let visibleSubjects = [];
 let enrolledDocs =
     new Map();
 
+let retakeSubjectIds =
+    new Set();
+
 let originalSelectedIds =
     new Set();
 
@@ -909,6 +912,43 @@ async function loadRegistrationData() {
                 )
             );
 
+        retakeSubjectIds =
+            new Set(
+                [...enrolledDocs.values()]
+                    .filter(
+                        enrollment =>
+                            enrollment.isRetake === true &&
+                            enrollment.creditStatus === "not_earned"
+                    )
+                    .filter(
+                        enrollment => {
+
+                            const sourceYear =
+                                Number(
+                                    enrollment.retakeSourceAcademicYear ||
+                                    enrollment.creditConfirmedAcademicYear ||
+                                    enrollment.academicYear ||
+                                    0
+                                );
+
+                            return (
+                                sourceYear > 0 &&
+                                Number(config.academicYear) >
+                                sourceYear
+                            );
+
+                        }
+                    )
+                    .map(
+                        enrollment =>
+                            String(
+                                enrollment.subjectId ||
+                                enrollment.id ||
+                                ""
+                            )
+                    )
+                    .filter(Boolean)
+            );
 
         const creditRecords =
             mergeCreditRecords(
@@ -924,13 +964,43 @@ async function loadRegistrationData() {
             );
 
 
-        visibleSubjects =
+        // ========================================
+        // ③ visibleSubjects = subjects.filter(...)
+        // を丸ごとこれに置換
+        // ========================================
+
+        const regularSubjects =
             subjects.filter(
                 subject =>
                     matchesCurriculum(subject) &&
                     matchesStudentGrade(subject) &&
                     matchesSemester(subject)
             );
+
+
+        const retakeSubjects =
+            subjects.filter(
+                subject =>
+                    matchesCurriculum(subject) &&
+                    matchesSemester(subject) &&
+                    isRetakeSubject(subject)
+            );
+
+
+        visibleSubjects =
+            [
+                ...new Map(
+                    [
+                        ...retakeSubjects,
+                        ...regularSubjects
+                    ].map(
+                        subject => [
+                            subject.id,
+                            subject
+                        ]
+                    )
+                ).values()
+            ];
 
 
         originalSelectedIds =
@@ -1747,6 +1817,110 @@ function matchesSemester(
         subject.semester ===
             "通期"
 
+    );
+
+}
+
+// ========================================
+// ④ matchesSemester() の下に追加
+// ========================================
+
+function getRetakeEnrollment(
+    subject
+) {
+
+    const direct =
+        enrolledDocs.get(
+            subject.id
+        );
+
+
+    if (
+        direct &&
+        direct.isRetake === true &&
+        direct.creditStatus === "not_earned"
+    ) {
+
+        return direct;
+
+    }
+
+
+    return (
+        [...enrolledDocs.values()]
+            .find(
+                enrollment => {
+
+                    if (
+                        enrollment.isRetake !== true ||
+                        enrollment.creditStatus !==
+                            "not_earned"
+                    ) {
+
+                        return false;
+
+                    }
+
+
+                    const enrollmentKey =
+                        String(
+                            enrollment.subjectKey ||
+                            enrollment.name ||
+                            ""
+                        ).trim();
+
+
+                    return (
+                        enrollmentKey &&
+                        enrollmentKey ===
+                            subject.subjectKey
+                    );
+
+                }
+            ) ||
+        null
+    );
+
+}
+
+
+function isRetakeSubject(
+    subject
+) {
+
+    const enrollment =
+        getRetakeEnrollment(
+            subject
+        );
+
+
+    if (!enrollment) {
+        return false;
+    }
+
+
+    const sourceYear =
+        Number(
+            enrollment.retakeSourceAcademicYear ||
+            enrollment.creditConfirmedAcademicYear ||
+            enrollment.academicYear ||
+            0
+        );
+
+
+    if (
+        !sourceYear ||
+        Number(config.academicYear) <=
+        sourceYear
+    ) {
+
+        return false;
+
+    }
+
+
+    return matchesSemester(
+        subject
     );
 
 }
@@ -3062,6 +3236,80 @@ function renderSubjects() {
     }
 
 
+    // ========================================
+    // ⑤ renderSubjects() の
+    // const groups = [ ... ] より前に追加
+    // ========================================
+
+    const retakeSubjects =
+        filteredSubjects.filter(
+            subject =>
+                isRetakeSubject(
+                    subject
+                )
+        );
+
+
+    const regularFilteredSubjects =
+        filteredSubjects.filter(
+            subject =>
+                !isRetakeSubject(
+                    subject
+                )
+        );
+
+
+    const retakeHtml =
+        retakeSubjects.length > 0
+            ? `
+
+                <section
+                    class="
+                        course-registration-section
+                        is-retake
+                    ">
+
+                    <div class="course-list-section-heading">
+
+                        <div>
+
+                            <h2>
+
+                                🔁 再履修が必要な科目
+
+                                <small>
+                                    ${retakeSubjects.length}科目
+                                </small>
+
+                            </h2>
+
+                            <p>
+                                過去に単位を取得できなかった科目です
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="course-registration-card-list">
+
+                        ${
+                            retakeSubjects
+                                .map(
+                                    createSubjectCardHtml
+                                )
+                                .join("")
+                        }
+
+                    </div>
+
+                </section>
+
+            `
+            : "";
+
+
     const groups = [
 
         {
@@ -3110,11 +3358,12 @@ function renderSubjects() {
 
 
     elements.list.innerHTML =
+        retakeHtml +
         groups.map(
             group => {
 
                 const groupSubjects =
-                    filteredSubjects.filter(
+                    regularFilteredSubjects.filter(
                         subject =>
                             subject.requirementType ===
                             group.type
@@ -3205,6 +3454,20 @@ function createSubjectCardHtml(
         );
 
 
+    const retake =
+        isRetakeSubject(
+            subject
+        );
+
+
+    const retakeEnrollment =
+        retake
+            ? getRetakeEnrollment(
+                subject
+            )
+            : null;
+
+
     const selectable =
         canToggleSubject(
             subject,
@@ -3235,13 +3498,23 @@ function createSubjectCardHtml(
 
 
     let statusText =
-        "タップして選択";
+        retake
+            ? "再履修を登録"
+            : "タップして選択";
 
 
     if (alreadyEarned) {
 
         statusText =
             "取得済み";
+
+    } else if (
+        selected &&
+        retake
+    ) {
+
+        statusText =
+            "再履修・選択中";
 
     } else if (selected) {
 
@@ -3259,7 +3532,9 @@ function createSubjectCardHtml(
     ) {
 
         statusText =
-            "登録が必要";
+            retake
+                ? "再履修を登録"
+                : "登録が必要";
 
     }
 
@@ -3287,6 +3562,12 @@ function createSubjectCardHtml(
                 ${
                     warnings.length > 0
                         ? "has-warning"
+                        : ""
+                }
+
+                ${
+                    retake
+                        ? "is-retake"
                         : ""
                 }
             "
@@ -3357,6 +3638,35 @@ function createSubjectCardHtml(
 
 
                 <span class="course-registration-meta">
+
+                    ${
+                        retake
+                            ? `
+
+                                <span class="course-tag retake">
+                                    🔁 再履修
+                                </span>
+
+                                ${
+                                    retakeEnrollment
+                                        ?.retakeSourceAcademicYear
+                                        ? `
+                                            <span>
+                                                ${escapeHtml(
+                                                    retakeEnrollment.retakeSourceAcademicYear
+                                                )}年度
+                                                ${escapeHtml(
+                                                    retakeEnrollment.retakeSourceSemester || ""
+                                                )}
+                                                未取得
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            `
+                            : ""
+                    }
 
                     <span
                         class="
@@ -5798,6 +6108,18 @@ async function saveEnrollment() {
                         );
 
 
+                    const retakeEnrollment =
+                        getRetakeEnrollment(
+                            subject
+                        );
+
+
+                    const registeringAsRetake =
+                        isRetakeSubject(
+                            subject
+                        );
+
+
                     batch.set(
                         enrollmentReference,
                         {
@@ -5875,6 +6197,52 @@ async function saveEnrollment() {
                                 subject
                                     .attendanceReminderMinutes,
 
+
+                            ...(registeringAsRetake
+                                ? {
+
+                                    isRetake:
+                                        true,
+
+                                    retakeLabel:
+                                        "再履修",
+
+                                    retakeSourceAcademicYear:
+                                        Number(
+                                            retakeEnrollment
+                                                ?.retakeSourceAcademicYear ||
+                                            retakeEnrollment
+                                                ?.creditConfirmedAcademicYear ||
+                                            retakeEnrollment
+                                                ?.academicYear ||
+                                            0
+                                        ),
+
+                                    retakeSourceSemester:
+                                        retakeEnrollment
+                                            ?.retakeSourceSemester ||
+                                        retakeEnrollment
+                                            ?.creditConfirmedSemester ||
+                                        retakeEnrollment
+                                            ?.semester ||
+                                        "",
+
+                                    retakeRegisteredAcademicYear:
+                                        Number(
+                                            config.academicYear
+                                        ),
+
+                                    retakeRegisteredSemester:
+                                        config.semester,
+
+                                    retakeRegisteredAt:
+                                        new Date()
+                                            .toISOString()
+
+                                }
+                                : {}),
+
+
                             status:
                                 "enrolled",
 
@@ -5927,15 +6295,41 @@ async function saveEnrollment() {
                     )
                 ) {
 
+                    const previousEnrollment =
+                        enrolledDocs.get(
+                            subject.id
+                        ) || {};
+
+
+                    const retakeEnrollment =
+                        getRetakeEnrollment(
+                            subject
+                        );
+
+
+                    const registeringAsRetake =
+                        isRetakeSubject(
+                            subject
+                        );
+
+
                     enrolledDocs.set(
                         subject.id,
                         {
+
+                            ...previousEnrollment,
 
                             id:
                                 subject.id,
 
                             subjectId:
                                 subject.id,
+
+                            name:
+                                subject.name,
+
+                            subjectKey:
+                                subject.subjectKey,
 
                             academicYear:
                                 Number(
@@ -5950,6 +6344,49 @@ async function saveEnrollment() {
 
                             credits:
                                 subject.credits,
+
+                            status:
+                                "enrolled",
+
+                            ...(registeringAsRetake
+                                ? {
+
+                                    isRetake:
+                                        true,
+
+                                    retakeLabel:
+                                        "再履修",
+
+                                    retakeSourceAcademicYear:
+                                        Number(
+                                            retakeEnrollment
+                                                ?.retakeSourceAcademicYear ||
+                                            retakeEnrollment
+                                                ?.creditConfirmedAcademicYear ||
+                                            retakeEnrollment
+                                                ?.academicYear ||
+                                            0
+                                        ),
+
+                                    retakeSourceSemester:
+                                        retakeEnrollment
+                                            ?.retakeSourceSemester ||
+                                        retakeEnrollment
+                                            ?.creditConfirmedSemester ||
+                                        retakeEnrollment
+                                            ?.semester ||
+                                        "",
+
+                                    retakeRegisteredAcademicYear:
+                                        Number(
+                                            config.academicYear
+                                        ),
+
+                                    retakeRegisteredSemester:
+                                        config.semester
+
+                                }
+                                : {}),
 
                             updatedAt:
                                 new Date()

@@ -166,6 +166,9 @@ let lectureCalendarMonthIndex = 0;
 let examSchedules = [];
 let examScheduleIndex = 0;
 
+let creditConfirmationCourses =
+    new Map();
+
 const root = document.documentElement;
 
 const department = localStorage.getItem("department");
@@ -475,6 +478,16 @@ async function showCreditConfirmationIfRequired(user) {
         })
         .sort((a, b) => String(a.name || a.subject || a.id).localeCompare(String(b.name || b.subject || b.id), "ja"));
 
+    creditConfirmationCourses =
+        new Map(
+            courses.map(
+                course => [
+                    course.id,
+                    course
+                ]
+            )
+        );
+
     if (!courses.length) return;
     creditConfirmationTitle.textContent = `${academicYear}年度 ${semester}の単位取得確認`;
     creditConfirmationMessage.textContent = "履修した各科目について、単位を取得できたか選択してください。";
@@ -508,15 +521,114 @@ saveCreditConfirmation?.addEventListener("click", async () => {
             const courseId = item.dataset.creditCourse;
             const status = item.querySelector("select")?.value === "not_earned" ? "not_earned" : "earned";
             results[courseId] = status;
-            batch.set(doc(db, "users", studentNumber, "enrolledSubjects", courseId), {
-                creditStatus: status,
-                creditConfirmedAcademicYear: academicYear,
-                creditConfirmedSemester: semester,
-                creditConfirmedAt: new Date().toISOString(),
-                isRetake: status === "not_earned",
-                retakeLabel: status === "not_earned" ? "再履修" : null,
-                updatedAt: serverTimestamp()
-            }, { merge: true });
+            const courseRef =
+                doc(
+                    db,
+                    "users",
+                    studentNumber,
+                    "enrolledSubjects",
+                    courseId
+                );
+
+            const courseData =
+                creditConfirmationCourses
+                    .get(courseId) || {};
+
+            const wasRetake =
+                courseData.isRetake === true;
+
+            const updateData = {
+
+                creditStatus:
+                    status,
+
+                creditConfirmedAcademicYear:
+                    academicYear,
+
+                creditConfirmedSemester:
+                    semester,
+
+                creditConfirmedAt:
+                    new Date().toISOString(),
+
+                isRetake:
+                    status === "not_earned",
+
+                retakeLabel:
+                    status === "not_earned"
+                        ? "再履修"
+                        : null,
+
+                updatedAt:
+                    serverTimestamp()
+
+            };
+
+
+            /*
+            未取得になった場合。
+
+            最初に落とした年度・学期を保存する。
+            すでに再履修中の場合は、
+            元の落単年度・学期を上書きしない。
+            */
+            if (
+                status === "not_earned"
+            ) {
+
+                if (!wasRetake) {
+
+                    updateData
+                        .retakeSourceAcademicYear =
+                        academicYear;
+
+                    updateData
+                        .retakeSourceSemester =
+                        semester;
+
+                    updateData
+                        .retakeStartedAt =
+                        new Date().toISOString();
+
+                }
+
+            }
+
+
+            /*
+            再履修科目を取得できた場合。
+
+            再履修終了年度・学期を保存する。
+            元のretakeSourceは履歴として残す。
+            */
+            if (
+                status === "earned" &&
+                wasRetake
+            ) {
+
+                updateData
+                    .retakeResolvedAcademicYear =
+                    academicYear;
+
+                updateData
+                    .retakeResolvedSemester =
+                    semester;
+
+                updateData
+                    .retakeResolvedAt =
+                    new Date().toISOString();
+
+            }
+
+
+            batch.set(
+                courseRef,
+                updateData,
+                {
+                    merge:
+                        true
+                }
+            );
         });
         batch.update(doc(db, "users", studentNumber), {
             creditConfirmationResponse: {
