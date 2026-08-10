@@ -3797,29 +3797,54 @@ function createPastCourseHistoryRow(
                 <div
                     class="course-history-subject-meta">
 
-                    <span>
+                    <span
+                        class="
+                            course-tag
+                            ${escapeAttribute(
+                                subject.requirementType
+                            )}
+                        ">
+
                         ${escapeHtml(
                             requirementLabel
                         )}
+
                     </span>
+
 
                     ${
                         subject.category
                             ? `
-                                <span>
+
+                                <span
+                                    class="
+                                        course-tag
+                                        category
+                                    ">
+
                                     ${escapeHtml(
                                         subject.category
                                     )}
+
                                 </span>
+
                             `
                             : ""
                     }
 
-                    <span>
 
-                        ${formatCredit(
-                            subject.credits
-                        )}単位
+                    <span
+                        class="course-credit-label">
+
+                        <b>
+
+                            ${formatCredit(
+                                subject.credits
+                            )}
+
+                        </b>
+
+                        単位
 
                     </span>
 
@@ -3828,65 +3853,75 @@ function createPastCourseHistoryRow(
             </div>
 
 
-            <select
-                class="course-history-status"
+            <label
+                class="course-history-status-field">
 
-                data-history-subject-id="${escapeAttribute(
-                    subject.id
-                )}"
-
-                data-history-academic-year="${academicYear}"
-
-                data-history-semester="${escapeAttribute(
-                    semester
-                )}"
-
-                aria-label="${escapeAttribute(
-                    subject.name
-                )}の履修結果">
-
-                <option
-                    value="not_taken"
-                    ${
-                        status ===
-                        "not_taken"
-                            ? "selected"
-                            : ""
-                    }>
-
-                    未履修
-
-                </option>
+                <span>
+                    履修結果
+                </span>
 
 
-                <option
-                    value="earned"
-                    ${
-                        status ===
-                        "earned"
-                            ? "selected"
-                            : ""
-                    }>
+                <select
+                    class="course-history-status"
 
-                    修得
+                    data-history-subject-id="${escapeAttribute(
+                        subject.id
+                    )}"
 
-                </option>
+                    data-history-academic-year="${academicYear}"
+
+                    data-history-semester="${escapeAttribute(
+                        semester
+                    )}"
+
+                    aria-label="${escapeAttribute(
+                        subject.name
+                    )}の履修結果">
+
+                    <option
+                        value="not_taken"
+                        ${
+                            status ===
+                            "not_taken"
+                                ? "selected"
+                                : ""
+                        }>
+
+                        未履修
+
+                    </option>
 
 
-                <option
-                    value="not_earned"
-                    ${
-                        status ===
-                        "not_earned"
-                            ? "selected"
-                            : ""
-                    }>
+                    <option
+                        value="earned"
+                        ${
+                            status ===
+                            "earned"
+                                ? "selected"
+                                : ""
+                        }>
 
-                    未修得
+                        修得
 
-                </option>
+                    </option>
 
-            </select>
+
+                    <option
+                        value="not_earned"
+                        ${
+                            status ===
+                            "not_earned"
+                                ? "selected"
+                                : ""
+                        }>
+
+                        未修得
+
+                    </option>
+
+                </select>
+
+            </label>
 
         </div>
 

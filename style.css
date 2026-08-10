@@ -18160,41 +18160,71 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
 /* ========================================
    過去の履修結果
+   履修登録画面デザイン統一版
 ======================================== */
 
 
 /* ========================================
-   年次ブロック
+   旧「3列の単位入力」レイアウトを解除
+======================================== */
+
+/*
+現在は数字入力ではなく、
+学期ごとの科目履歴を表示するため
+年次ブロックは必ず横幅いっぱい使う。
+*/
+
+.course-registration-body
+.course-progress-year-fields {
+    grid-template-columns: 1fr;
+}
+
+
+/* ========================================
+   年次
 ======================================== */
 
 .course-history-year {
-    margin-top: 22px;
-    padding: 0;
-    border: 1px solid rgba(127, 127, 127, 0.18);
-    border-radius: 18px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+
+    margin: 0;
+
     overflow: hidden;
-    background: rgba(127, 127, 127, 0.025);
+
+    border: 1px solid var(--border);
+    border-radius: 17px;
+
+    background: var(--card);
 }
 
 
-.course-history-year:first-child {
-    margin-top: 0;
+.course-history-year + .course-history-year {
+    margin-top: 16px;
 }
 
 
-/* 年次見出し */
+/* 年次ヘッダー */
 
 .course-history-year-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 
-    padding: 18px 20px;
+    box-sizing: border-box;
 
-    border-bottom: 1px solid rgba(127, 127, 127, 0.16);
+    padding: 15px 17px;
 
-    background: rgba(127, 127, 127, 0.065);
+    border-bottom: 1px solid var(--border);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 184, 166, 0.08),
+            rgba(20, 184, 166, 0.025)
+        );
 }
 
 
@@ -18206,47 +18236,53 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 .course-history-year-heading h3 {
     margin: 0;
 
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 1.35;
+    color: var(--text);
 
-    letter-spacing: 0.01em;
+    font-size: 17px;
+    font-weight: 850;
+    line-height: 1.4;
 }
 
 
 .course-history-year-heading small {
     display: block;
 
-    margin-top: 4px;
+    margin-top: 3px;
 
-    font-size: 13px;
-    font-weight: 600;
+    color: var(--subtext);
 
-    opacity: 0.62;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.4;
 }
 
 
 /* ========================================
-   前期・後期・通期
+   学期
 ======================================== */
 
 .course-history-semester {
-    padding: 20px;
+    box-sizing: border-box;
+
+    padding: 16px 17px 18px;
 }
 
 
-.course-history-semester + .course-history-semester {
-    border-top: 1px solid rgba(127, 127, 127, 0.15);
+.course-history-semester +
+.course-history-semester {
+    border-top: 1px solid var(--border);
 }
 
+
+/* 学期見出し */
 
 .course-history-semester-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 
@@ -18258,8 +18294,10 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 .course-history-semester-heading h4 {
     margin: 0;
 
-    font-size: 16px;
-    font-weight: 800;
+    color: var(--text);
+
+    font-size: 15px;
+    font-weight: 850;
     line-height: 1.4;
 }
 
@@ -18269,27 +18307,36 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
     margin-top: 3px;
 
-    font-size: 12px;
-    line-height: 1.4;
+    color: var(--subtext);
 
-    opacity: 0.58;
+    font-size: 9px;
+    line-height: 1.45;
 }
 
 
-/* 修得○・未修得○ */
+/* 修得数 */
 
 .course-history-semester-heading > span {
-    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-    padding: 7px 11px;
+    min-height: 28px;
+    flex: 0 0 auto;
+
+    box-sizing: border-box;
+
+    padding: 5px 10px;
 
     border-radius: 999px;
 
-    background: rgba(127, 127, 127, 0.09);
+    background:
+        rgba(100, 116, 139, 0.09);
 
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
+    color: var(--subtext);
+
+    font-size: 9px;
+    font-weight: 800;
 
     white-space: nowrap;
 }
@@ -18301,55 +18348,72 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
 .course-history-subject-list {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 11px;
+
+    min-width: 0;
 }
 
 
-/* 1科目 */
+/* ========================================
+   科目カード
+======================================== */
 
 .course-history-subject {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 150px;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        132px;
+
     align-items: center;
-    gap: 18px;
 
-    min-height: 74px;
+    gap: 12px;
 
-    padding: 14px 15px 14px 17px;
+    min-width: 0;
+    min-height: 104px;
 
-    border: 1px solid rgba(127, 127, 127, 0.16);
-    border-radius: 14px;
+    box-sizing: border-box;
 
-    background: rgba(127, 127, 127, 0.025);
+    padding: 14px 14px 14px 15px;
+
+    border: 1px solid var(--border);
+    border-radius: 17px;
+
+    background: var(--card);
 
     transition:
-        border-color 0.18s ease,
-        background-color 0.18s ease,
-        transform 0.18s ease,
-        box-shadow 0.18s ease;
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        box-shadow 0.16s ease;
 }
 
 
 @media (hover: hover) {
 
     .course-history-subject:hover {
-        border-color: rgba(127, 127, 127, 0.3);
+        transform: translateY(-2px);
 
-        background: rgba(127, 127, 127, 0.055);
-
-        transform: translateY(-1px);
+        border-color:
+            rgba(20, 184, 166, 0.42);
 
         box-shadow:
-            0 4px 14px
-            rgba(0, 0, 0, 0.055);
+            0 8px 22px
+            rgba(15, 23, 42, 0.09);
     }
 
 }
 
 
 /* ========================================
-   科目名
+   科目情報
 ======================================== */
 
 .course-history-subject-info {
@@ -18360,211 +18424,219 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 .course-history-subject-info > strong {
     display: block;
 
+    min-width: 0;
+
     margin: 0;
 
-    font-size: 15px;
-    font-weight: 750;
-    line-height: 1.5;
+    color: var(--text);
 
-    overflow-wrap: anywhere;
+    font-size: 14px;
+    font-weight: 850;
+    line-height: 1.45;
+
+    /*
+    「看護学概論」が1文字ずつ縦に
+    折り返されるのを防ぐ。
+    */
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 
-/* 必修・区分・単位 */
+/* ========================================
+   必修・選択 / 区分 / 単位
+======================================== */
 
 .course-history-subject-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+
     gap: 6px;
 
-    margin-top: 8px;
+    min-width: 0;
+
+    margin-top: 10px;
+
+    color: var(--subtext);
+
+    font-size: 9px;
 }
 
 
-.course-history-subject-meta span {
+/*
+JS変更前の普通のspanにも対応しておく。
+course-tagが付いたspanには適用しない。
+*/
+
+.course-history-subject-meta
+> span:not(.course-tag):not(.course-credit-label) {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
 
-    min-height: 24px;
+    min-height: 23px;
+
+    box-sizing: border-box;
 
     padding: 4px 8px;
 
-    border: 1px solid rgba(127, 127, 127, 0.14);
-    border-radius: 7px;
+    border-radius: 999px;
 
-    background: rgba(127, 127, 127, 0.07);
+    background:
+        rgba(100, 116, 139, 0.09);
 
-    font-size: 11px;
-    font-weight: 650;
-    line-height: 1.25;
+    color: var(--subtext);
 
-    opacity: 0.82;
+    font-size: 8px;
+    font-weight: 800;
 }
 
 
 /* ========================================
-   修得状況セレクト
+   履修結果入力
 ======================================== */
+
+.course-history-status-field {
+    display: block;
+
+    min-width: 0;
+    width: 100%;
+}
+
+
+.course-history-status-field > span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--subtext);
+
+    font-size: 8px;
+    font-weight: 750;
+}
+
 
 .course-history-status {
     width: 100%;
     min-width: 0;
-    height: 44px;
+    height: 42px;
 
-    padding: 0 36px 0 13px;
+    box-sizing: border-box;
 
-    border: 1px solid rgba(127, 127, 127, 0.25);
+    margin: 0;
+
+    padding:
+        0
+        31px
+        0
+        10px;
+
+    border: 1px solid var(--border);
     border-radius: 11px;
 
-    background-color: rgba(127, 127, 127, 0.055);
+    background-color: var(--card);
 
-    color: inherit;
+    color: var(--text);
 
-    font: inherit;
-    font-size: 14px;
-    font-weight: 750;
+    font-size: 12px;
+    font-weight: 800;
 
     cursor: pointer;
 
-    outline: none;
-
     transition:
-        border-color 0.18s ease,
-        background-color 0.18s ease,
-        box-shadow 0.18s ease;
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        box-shadow 0.16s ease;
 }
 
 
 .course-history-status:hover {
-    border-color: rgba(127, 127, 127, 0.4);
+    border-color:
+        rgba(20, 184, 166, 0.45);
 }
 
 
 .course-history-status:focus {
-    border-color: #4f8cff;
+    outline: none;
+
+    border-color: var(--primary);
 
     box-shadow:
         0 0 0 3px
-        rgba(79, 140, 255, 0.16);
-}
-
-
-/*
- 修得
-*/
-
-.course-history-status:has(
-    option[value="earned"]:checked
-) {
-    border-color: rgba(35, 160, 90, 0.48);
-
-    background-color: rgba(35, 160, 90, 0.1);
-}
-
-
-/*
- 未修得
-*/
-
-.course-history-status:has(
-    option[value="not_earned"]:checked
-) {
-    border-color: rgba(220, 70, 70, 0.48);
-
-    background-color: rgba(220, 70, 70, 0.1);
-}
-
-
-/*
- 未履修
-*/
-
-.course-history-status:has(
-    option[value="not_taken"]:checked
-) {
-    border-color: rgba(127, 127, 127, 0.24);
-
-    background-color: rgba(127, 127, 127, 0.055);
+        rgba(20, 184, 166, 0.12);
 }
 
 
 /* ========================================
-   PC
+   修得状態ごとの色
 ======================================== */
 
-@media (min-width: 900px) {
+/* 未履修 */
 
-    .course-history-year {
-        margin-top: 26px;
-    }
-
-
-    .course-history-year-heading {
-        padding:
-            19px
-            24px;
-    }
+.course-history-status-field:has(
+    .course-history-status
+    option[value="not_taken"]:checked
+)
+.course-history-status {
+    border-color: var(--border);
+    background: var(--card);
+}
 
 
-    .course-history-semester {
-        padding:
-            22px
-            24px
-            24px;
-    }
+/* 修得 */
+
+.course-history-status-field:has(
+    .course-history-status
+    option[value="earned"]:checked
+)
+.course-history-status {
+    border-color:
+        rgba(16, 185, 129, 0.34);
+
+    background:
+        rgba(16, 185, 129, 0.07);
+
+    color: var(--course-success);
+}
 
 
-    .course-history-semester-heading {
-        margin-bottom: 16px;
-    }
+/* 未修得 */
 
+.course-history-status-field:has(
+    .course-history-status
+    option[value="not_earned"]:checked
+)
+.course-history-status {
+    border-color:
+        rgba(220, 38, 38, 0.32);
+
+    background:
+        rgba(239, 68, 68, 0.065);
+
+    color: var(--course-danger);
+}
+
+
+/* ========================================
+   中型PC
+======================================== */
+
+@media (
+    min-width: 901px
+) and (
+    max-width: 1120px
+) {
 
     /*
-     横幅に余裕があるPCでは
-     科目カードを2列にして見渡しやすくする。
+    現在の履修登録科目一覧と同じ。
+    サイドバーで横幅が狭くなるため1列。
     */
 
     .course-history-subject-list {
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(0, 1fr)
-            );
-
-        gap: 12px;
+        grid-template-columns: 1fr;
     }
 
-
-    .course-history-subject {
-        grid-template-columns:
-            minmax(0, 1fr)
-            135px;
-
-        gap: 14px;
-
-        min-height: 82px;
-
-        padding:
-            15px
-            15px
-            15px
-            17px;
-    }
-
-
-    .course-history-subject-info > strong {
-        font-size: 15px;
-    }
-
-}
-
-
-/* ========================================
-   大きめPC
-======================================== */
-
-@media (min-width: 1250px) {
 
     .course-history-subject {
         grid-template-columns:
@@ -18576,24 +18648,26 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
 
 /* ========================================
-   スマホ・タブレット
+   タブレット・スマートフォン
 ======================================== */
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
 
     .course-history-year {
-        margin-top: 16px;
-
         border-radius: 15px;
     }
 
 
-    /* 年次 */
+    .course-history-year +
+    .course-history-year {
+        margin-top: 13px;
+    }
+
 
     .course-history-year-heading {
         padding:
-            14px
-            15px;
+            13px
+            14px;
     }
 
 
@@ -18603,55 +18677,47 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
 
     .course-history-year-heading small {
-        margin-top: 2px;
-
-        font-size: 11px;
+        font-size: 9px;
     }
 
 
-    /* 前期・後期 */
-
     .course-history-semester {
         padding:
-            15px
+            14px
             12px
-            17px;
+            15px;
     }
 
 
     .course-history-semester-heading {
-        align-items: flex-start;
+        gap: 9px;
 
-        gap: 10px;
-
-        margin-bottom: 11px;
-
-        padding:
-            0
-            2px;
+        margin-bottom: 10px;
     }
 
 
     .course-history-semester-heading h4 {
-        font-size: 15px;
+        font-size: 14px;
     }
 
 
     .course-history-semester-heading small {
-        font-size: 10.5px;
+        font-size: 8px;
     }
 
 
     .course-history-semester-heading > span {
+        min-height: 26px;
+
         padding:
-            6px
+            4px
             8px;
 
-        font-size: 10.5px;
+        font-size: 8px;
     }
 
 
-    /* 科目は完全に1列 */
+    /* スマホは1列 */
 
     .course-history-subject-list {
         grid-template-columns: 1fr;
@@ -18661,68 +18727,82 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
 
     /*
-     スマホでは
-
-     科目名
-     必修・区分・単位
-     ↓
-     修得状態
-
-     の縦並びにする。
+    スマホでも横並びを基本にする。
+    科目名とセレクトが明確に分かれる。
     */
 
     .course-history-subject {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
+        grid-template-columns:
+            minmax(0, 1fr)
+            118px;
 
-        gap: 12px;
+        gap: 10px;
 
-        min-height: 0;
+        min-height: 94px;
 
         padding:
-            14px
             13px
-            13px;
-
-        border-radius: 13px;
-    }
-
-
-    .course-history-subject-info {
-        width: 100%;
+            12px;
     }
 
 
     .course-history-subject-info > strong {
-        font-size: 14px;
-        line-height: 1.5;
+        font-size: 13px;
     }
 
 
     .course-history-subject-meta {
         gap: 5px;
 
-        margin-top: 7px;
+        margin-top: 8px;
     }
 
 
-    .course-history-subject-meta span {
-        min-height: 22px;
+    .course-history-status {
+        height: 44px;
 
-        padding:
-            3px
-            7px;
+        padding-left: 9px;
 
-        border-radius: 6px;
-
-        font-size: 10px;
+        font-size: 12px;
     }
 
+}
+
+
+/* ========================================
+   スマートフォン
+======================================== */
+
+@media (max-width: 560px) {
 
     /*
-     iPhoneでも押しやすいサイズ。
+    画面が狭くなったら
+    科目情報 → 履修結果
+    の縦並びに変更。
     */
+
+    .course-history-subject {
+        display: block;
+
+        min-height: 0;
+
+        padding:
+            13px
+            12px;
+    }
+
+
+    .course-history-status-field {
+        margin-top: 12px;
+    }
+
+
+    .course-history-status-field > span {
+        margin-bottom: 6px;
+
+        font-size: 9px;
+    }
+
 
     .course-history-status {
         width: 100%;
@@ -18732,45 +18812,43 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
             0
             38px
             0
-            14px;
-
-        border-radius: 11px;
-
-        font-size: 16px;
+            13px;
 
         /*
-         iOSでフォーム選択時に
-         勝手にズームされにくくする。
+        iPhoneで入力時の自動ズームを避ける。
         */
+        font-size: 16px;
     }
 
 }
 
 
 /* ========================================
-   小さいスマホ
+   小さいスマートフォン
 ======================================== */
 
 @media (max-width: 390px) {
 
     .course-history-year-heading {
         padding:
-            13px
-            12px;
+            12px
+            11px;
     }
 
 
     .course-history-semester {
         padding:
-            13px
+            12px
             9px
-            15px;
+            13px;
     }
 
 
     .course-history-semester-heading {
+        align-items: flex-start;
         flex-direction: column;
-        gap: 7px;
+
+        gap: 6px;
     }
 
 
@@ -18781,9 +18859,40 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
 
     .course-history-subject {
         padding:
-            13px
-            11px
-            12px;
+            12px
+            10px;
     }
 
+}
+
+
+/* ========================================
+   ダークモード
+======================================== */
+
+.dark
+.course-history-subject:hover {
+    box-shadow:
+        0 8px 24px
+        rgba(0, 0, 0, 0.34);
+}
+
+
+.dark
+.course-history-status-field:has(
+    .course-history-status
+    option[value="earned"]:checked
+)
+.course-history-status {
+    color: #6ee7b7;
+}
+
+
+.dark
+.course-history-status-field:has(
+    .course-history-status
+    option[value="not_earned"]:checked
+)
+.course-history-status {
+    color: #fca5a5;
 }
