@@ -781,7 +781,9 @@ async function executeAttendanceAction(
 
         renderPendingJudgement(
             action,
-            now
+            getAttendanceNow(
+                normalizedLecture
+            )
         );
 
 

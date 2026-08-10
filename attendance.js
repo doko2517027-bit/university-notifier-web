@@ -2297,10 +2297,9 @@ function renderLectureCard(
 
 
     const record =
-        records.get(
-            recordId
-        ) ||
-        null;
+        getRecordForLecture(
+            lecture
+        );
 
 
     const finalResult =
@@ -4284,7 +4283,7 @@ function isAttendanceSessionEditable(
 
     const now =
         getAttendanceNow(
-            normalizedLecture
+            session.lecture
         );
 
 
@@ -5358,9 +5357,7 @@ function updateCurrentLectureStatus() {
 
 
     const now =
-        getAttendanceNow(
-            normalizedLecture
-        );
+        new Date();
 
 
     const active =
@@ -5369,21 +5366,27 @@ function updateCurrentLectureStatus() {
 
                 try {
 
-                    const item =
+                    const normalizedLecture =
                         normalizeAttendanceLecture(
                             lecture
+                        );
+
+
+                    const now =
+                        getAttendanceNow(
+                            normalizedLecture
                         );
 
 
                     return (
 
                         now >=
-                        item
+                        normalizedLecture
                             .lectureWindow
                             .startNotificationAt &&
 
                         now <=
-                        item
+                        normalizedLecture
                             .lectureWindow
                             .endStampExpiresAt
 
@@ -5410,32 +5413,6 @@ function updateCurrentLectureStatus() {
         return;
 
     }
-
-
-    const next =
-        lectures.find(
-            lecture => {
-
-                try {
-
-                    return (
-                        normalizeAttendanceLecture(
-                            lecture
-                        )
-                            .lectureWindow
-                            .startNotificationAt >
-                        now
-                    );
-
-                } catch {
-
-                    return false;
-
-                }
-
-            }
-        );
-
 
     el.currentStatus.textContent =
         next
