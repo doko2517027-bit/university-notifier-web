@@ -776,8 +776,7 @@ async function loadRegistrationData() {
             enrollmentSnapshot,
             curriculumSnapshot,
             creditRecordSnapshot,
-            courseHistorySnapshot,
-            topLevelCreditSnapshot
+            courseHistorySnapshot
         ] = await Promise.all([
 
             getDoc(
@@ -830,14 +829,6 @@ async function loadRegistrationData() {
                     "users",
                     studentNumber,
                     "courseHistoryRecords"
-                )
-            ),
-
-            safeGetDoc(
-                doc(
-                    db,
-                    "creditRecords",
-                    studentNumber
                 )
             )
 
@@ -966,7 +957,10 @@ async function loadRegistrationData() {
 
         pastCourseRecords =
             new Map(
-                courseHistorySnapshot.docs.map(
+                (
+                    courseHistorySnapshot?.docs ||
+                    []
+                ).map(
                     historyDocument => {
 
                         const data =
@@ -1044,7 +1038,7 @@ async function loadRegistrationData() {
         const creditRecords =
             mergeCreditRecords(
                 creditRecordSnapshot,
-                topLevelCreditSnapshot
+                null
             );
 
         
@@ -8516,7 +8510,19 @@ async function safeGetDocs(
             error
         );
 
-        return null;
+
+        return {
+
+            docs:
+                [],
+
+            empty:
+                true,
+
+            size:
+                0
+
+        };
 
     }
 
