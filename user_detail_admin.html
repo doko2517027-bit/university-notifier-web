@@ -239,6 +239,89 @@ if (localStorage.getItem("theme") === "dark") {
 </div>
 
 
+<h2>🏆 ランキング表示設定</h2>
+
+<div class="card setting-card">
+
+    <label for="rankingNicknameInput">
+        <b>ニックネーム</b>
+    </label>
+
+    <br><br>
+
+    <input
+        id="rankingNicknameInput"
+        type="text"
+        maxlength="20"
+        autocomplete="off"
+        placeholder="未設定">
+
+    <p class="admin-input-help">
+        ランキング用のニックネームです。
+        学生本人の通常表示名には影響しません。
+    </p>
+
+    <br>
+
+    <label for="rankingDisplayMode">
+        <b>ランキングでの表示方法</b>
+    </label>
+
+    <br><br>
+
+    <select id="rankingDisplayMode">
+
+        <option value="nickname">
+            ニックネーム
+        </option>
+
+        <option value="student_number">
+            学籍番号
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <label for="rankingNicknamePromptStatus">
+        <b>ニックネーム登録状態</b>
+    </label>
+
+    <br><br>
+
+    <select id="rankingNicknamePromptStatus">
+
+        <option value="completed">
+            登録済み・確認済み
+        </option>
+
+        <option value="pending">
+            未登録・次回確認
+        </option>
+
+    </select>
+
+    <p class="admin-input-help">
+        「未登録・次回確認」にすると、
+        学生側で次にCareMateを開いた際に
+        ニックネーム設定ポップアップが再表示されます。
+    </p>
+
+    <div class="admin-readonly-row">
+
+        <span>
+            <b>現在のランキング表示</b>
+        </span>
+
+        <strong id="rankingCurrentDisplayValue">
+            ----
+        </strong>
+
+    </div>
+
+</div>
+
+
 <h2>📊 アカウント状態</h2>
 
 <div class="card setting-card">

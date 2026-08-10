@@ -449,12 +449,21 @@ function getFilteredUsers() {
         const userNameText =
             getUserName(user);
 
+        const rankingNicknameText =
+            String(
+                user.rankingNickname ||
+                ""
+            );
+
         const matchesKeyword =
             !keyword ||
             String(user.id)
                 .toLowerCase()
                 .includes(keyword) ||
             userNameText
+                .toLowerCase()
+                .includes(keyword) ||
+            rankingNicknameText
                 .toLowerCase()
                 .includes(keyword) ||
             userDepartment
@@ -562,6 +571,17 @@ function createUserHtml(user) {
     const studentName =
         getUserName(user);
 
+    const rankingNickname =
+        String(
+            user.rankingNickname ||
+            ""
+        ).trim();
+
+
+    const rankingNicknameLabel =
+        rankingNickname ||
+        "未設定";
+
     const department =
         getUserDepartment(user);
 
@@ -580,6 +600,10 @@ function createUserHtml(user) {
                     <strong>
                         ${status.icon}
                         ${escapeHtml(user.id)}
+                        /
+                        ${escapeHtml(
+                            rankingNicknameLabel
+                        )}
                     </strong>
 
                     <span class="admin-user-status">

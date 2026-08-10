@@ -7,7 +7,8 @@ import {
     formatDateTime,
     initializePage,
     setupOfflineAlert,
-    renderPostCard
+    renderPostCard,
+    showToast
 } from "./common.js";
 
 import {
@@ -21,13 +22,33 @@ import {
     query,
     where,
     orderBy,
-    getDocs
+    getDocs,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const themeButton = document.getElementById("themeButton");
 const profileImage = document.getElementById("profileImage");
 const menu = document.getElementById("photoMenu");
 const picker = document.getElementById("photoPicker");
+const rankingNicknameInput =
+    document.getElementById(
+        "rankingNicknameInput"
+    );
+
+const rankingDisplayMode =
+    document.getElementById(
+        "rankingDisplayMode"
+    );
+
+const rankingNicknameStatus =
+    document.getElementById(
+        "rankingNicknameStatus"
+    );
+
+const saveRankingNicknameButton =
+    document.getElementById(
+        "saveRankingNicknameButton"
+    );
 
     picker.addEventListener("change", async (e) => {
 
@@ -104,6 +125,13 @@ await initializePage([
         console.error("プロフィール取得エラー", e);
     })
 ]);
+
+if (saveRankingNicknameButton) {
+
+    saveRankingNicknameButton.onclick =
+        saveRankingNicknameSettings;
+
+}
 
 document
 .getElementById("choosePhoto")
@@ -183,13 +211,30 @@ async function loadProfile() {
     document.getElementById("studentNumber").textContent =
         studentNumber;
 
-    const [snap, postSnap, posts] = await Promise.all([
+    const [
+        snap,
+        privateUserSnap,
+        postSnap,
+        posts
+    ] = await Promise.all([
 
-    getDoc(
-        doc(db, "publicUsers", studentNumber)
-    ),
+        getDoc(
+            doc(
+                db,
+                "publicUsers",
+                studentNumber
+            )
+        ),
 
-    getDocs(
+        getDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            )
+        ),
+
+        getDocs(
         query(
             collection(db, "posts"),
             where("studentNumber", "==", studentNumber)
@@ -208,6 +253,14 @@ const user = snap.data();
 
 document.getElementById("userName").textContent =
     user.name;
+
+if (privateUserSnap.exists()) {
+
+    renderRankingNicknameSettings(
+        privateUserSnap.data()
+    );
+
+}
 
 const photo =
     await getProfilePhoto(studentNumber);
@@ -283,6 +336,186 @@ commentSnapshots.forEach(commentSnap => {
 
 document.getElementById("commentCount").textContent =
     commentCount;
+
+}
+
+function renderRankingNicknameSettings(
+    userData
+) {
+
+    const nickname =
+        String(
+            userData.rankingNickname ||
+            ""
+        ).trim();
+
+
+    if (rankingNicknameInput) {
+
+        rankingNicknameInput.value =
+            nickname;
+
+    }
+
+
+    const mode =
+        userData.rankingDisplayMode ===
+            "nickname" &&
+        nickname
+            ? "nickname"
+            : "student_number";
+
+
+    if (rankingDisplayMode) {
+
+        rankingDisplayMode.value =
+            mode;
+
+    }
+
+
+    if (!rankingNicknameStatus) {
+        return;
+    }
+
+
+    if (!nickname) {
+
+        rankingNicknameStatus.textContent =
+            `未設定・現在は学籍番号 ${studentNumber} を表示しています。`;
+
+        return;
+
+    }
+
+
+    if (mode === "nickname") {
+
+        rankingNicknameStatus.textContent =
+            `現在のランキング表示：${nickname}`;
+
+    } else {
+
+        rankingNicknameStatus.textContent =
+            `ニックネーム「${nickname}」は設定済みです。現在は学籍番号 ${studentNumber} を表示しています。`;
+
+    }
+
+}
+
+
+async function saveRankingNicknameSettings() {
+
+    const nickname =
+        rankingNicknameInput
+            ?.value.trim() || "";
+
+
+    const mode =
+        rankingDisplayMode?.value ===
+            "nickname"
+            ? "nickname"
+            : "student_number";
+
+
+    if (
+        mode === "nickname" &&
+        !nickname
+    ) {
+
+        alert(
+            "ニックネーム表示を選択する場合は、ニックネームを入力してください。"
+        );
+
+        rankingNicknameInput
+            ?.focus();
+
+        return;
+
+    }
+
+
+    if (nickname.length > 20) {
+
+        alert(
+            "ニックネームは20文字以内で入力してください。"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        saveRankingNicknameButton.disabled =
+            true;
+
+        saveRankingNicknameButton.textContent =
+            "保存中...";
+
+
+        await updateDoc(
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
+            {
+                rankingNickname:
+                    nickname,
+
+                rankingDisplayMode:
+                    mode,
+
+                rankingNicknamePromptCompleted:
+                    true,
+
+                rankingNicknameUpdatedAt:
+                    serverTimestamp(),
+
+                rankingNicknameUpdatedBy:
+                    studentNumber
+            }
+        );
+
+
+        renderRankingNicknameSettings({
+            rankingNickname:
+                nickname,
+
+            rankingDisplayMode:
+                mode
+        });
+
+
+        showToast(
+            "ランキング表示名を保存しました"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "ランキング表示名保存エラー:",
+            error
+        );
+
+
+        alert(
+            "ランキング表示名を保存できませんでした。"
+        );
+
+
+    } finally {
+
+        saveRankingNicknameButton.disabled =
+            false;
+
+        saveRankingNicknameButton.textContent =
+            "ランキング表示名を保存";
+
+    }
 
 }
 

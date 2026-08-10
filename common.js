@@ -21,7 +21,8 @@ import {
     query,
     where,
     getDocs,
-    onSnapshot
+    onSnapshot,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -358,9 +359,553 @@ export function getRankMark(point){
 
 }
 
-// ランキングには実名を出さず、学籍番号だけを表示する。
-export function getAnonymousRankingName(userId){
-    return String(userId || "学籍番号不明");
+// ======================
+// ランキング表示名
+// ======================
+
+export function getRankingDisplayName(
+    userId,
+    userData = null
+) {
+
+    const normalizedStudentNumber =
+        String(
+            userId ||
+            "学籍番号不明"
+        );
+
+
+    if (!userData) {
+
+        return normalizedStudentNumber;
+
+    }
+
+
+    const nickname =
+        String(
+            userData.rankingNickname ||
+            ""
+        ).trim();
+
+
+    if (
+        userData.rankingDisplayMode ===
+            "nickname" &&
+        nickname
+    ) {
+
+        return nickname;
+
+    }
+
+
+    return normalizedStudentNumber;
+
+}
+
+
+// 既存コードとの互換性維持
+export function getAnonymousRankingName(
+    userId,
+    userData = null
+) {
+
+    return getRankingDisplayName(
+        userId,
+        userData
+    );
+
+}
+
+
+// ランキング画面から一括取得するために使用
+export async function getRankingUserMap() {
+
+    const snapshot =
+        await getDocs(
+            collection(
+                db,
+                "users"
+            )
+        );
+
+
+    return new Map(
+        snapshot.docs.map(
+            userDoc => [
+
+                userDoc.id,
+
+                {
+                    id:
+                        userDoc.id,
+
+                    ...userDoc.data()
+                }
+
+            ]
+        )
+    );
+
+}
+
+// ======================
+// ランキング表示名
+// 初回設定ポップアップ
+// ======================
+
+let rankingNicknamePromptPromise = null;
+
+
+export async function setupRankingNicknamePrompt() {
+
+    if (!studentNumber) {
+        return;
+    }
+
+
+    if (rankingNicknamePromptPromise) {
+
+        return rankingNicknamePromptPromise;
+
+    }
+
+
+    rankingNicknamePromptPromise =
+        checkRankingNicknamePrompt()
+            .finally(() => {
+
+                rankingNicknamePromptPromise =
+                    null;
+
+            });
+
+
+    return rankingNicknamePromptPromise;
+
+}
+
+
+async function checkRankingNicknamePrompt() {
+
+    try {
+
+        const userRef =
+            doc(
+                db,
+                "users",
+                studentNumber
+            );
+
+
+        const snapshot =
+            await getDoc(
+                userRef
+            );
+
+
+        if (!snapshot.exists()) {
+            return;
+        }
+
+
+        const userData =
+            snapshot.data() || {};
+
+
+        if (
+            userData
+                .rankingNicknamePromptCompleted ===
+            true
+        ) {
+
+            return;
+
+        }
+
+
+        await showRankingNicknamePrompt(
+            userRef,
+            userData
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "ランキング表示名確認エラー:",
+            error
+        );
+
+    }
+
+}
+
+
+function showRankingNicknamePrompt(
+    userRef,
+    userData
+) {
+
+    return new Promise(resolve => {
+
+        const oldOverlay =
+            document.getElementById(
+                "rankingNicknamePrompt"
+            );
+
+
+        if (oldOverlay) {
+
+            oldOverlay.remove();
+
+        }
+
+
+        const overlay =
+            document.createElement(
+                "div"
+            );
+
+
+        overlay.id =
+            "rankingNicknamePrompt";
+
+        overlay.className =
+            "exam-popup-overlay";
+
+
+        overlay.innerHTML = `
+
+            <div
+                class="exam-popup-card"
+                style="
+                    text-align:left;
+                    max-width:420px;
+                ">
+
+                <div
+                    class="exam-popup-icon"
+                    style="margin-bottom:16px;">
+                    🏆
+                </div>
+
+                <p
+                    class="exam-popup-label"
+                    style="text-align:center;">
+                    ランキング表示名
+                </p>
+
+                <h2
+                    style="
+                        margin:0 0 12px;
+                        text-align:center;
+                    ">
+                    ニックネームを設定しますか？
+                </h2>
+
+                <p
+                    style="
+                        margin:0 0 18px;
+                        color:var(--subtext);
+                        line-height:1.7;
+                    ">
+
+                    現在ランキングでは
+                    <b>${studentNumber}</b>
+                    と表示されています。
+
+                    <br><br>
+
+                    ニックネームを設定すると、
+                    ランキングでは学籍番号の代わりに
+                    ニックネームが表示されます。
+
+                    <br><br>
+
+                    あとからプロフィール画面で
+                    変更できます。
+
+                </p>
+
+                <label
+                    for="rankingNicknamePromptInput"
+                    style="
+                        display:block;
+                        margin-bottom:7px;
+                        font-weight:800;
+                    ">
+                    ニックネーム
+                </label>
+
+                <input
+                    id="rankingNicknamePromptInput"
+                    type="text"
+                    maxlength="20"
+                    autocomplete="off"
+                    placeholder="例：ふかしょお"
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                        margin-bottom:8px;
+                    ">
+
+                <small
+                    style="
+                        display:block;
+                        color:var(--subtext);
+                        margin-bottom:20px;
+                    ">
+                    20文字以内
+                </small>
+
+                <button
+                    id="saveRankingNicknamePrompt"
+                    type="button"
+                    class="btn btn-primary"
+                    style="
+                        width:100%;
+                        margin:0 0 10px;
+                    ">
+                    ニックネームを設定
+                </button>
+
+                <button
+                    id="skipRankingNicknamePrompt"
+                    type="button"
+                    class="btn"
+                    style="
+                        width:100%;
+                        margin:0;
+                    ">
+                    学籍番号のまま使う
+                </button>
+
+            </div>
+        `;
+
+
+        document.body.appendChild(
+            overlay
+        );
+
+
+        const input =
+            overlay.querySelector(
+                "#rankingNicknamePromptInput"
+            );
+
+
+        const saveButton =
+            overlay.querySelector(
+                "#saveRankingNicknamePrompt"
+            );
+
+
+        const skipButton =
+            overlay.querySelector(
+                "#skipRankingNicknamePrompt"
+            );
+
+
+        input.value =
+            String(
+                userData.rankingNickname ||
+                ""
+            ).trim();
+
+
+        const closePopup = () => {
+
+            overlay.classList.remove(
+                "show"
+            );
+
+
+            setTimeout(() => {
+
+                overlay.remove();
+
+            }, 220);
+
+
+            resolve();
+
+        };
+
+
+        const setBusy =
+            busy => {
+
+                input.disabled =
+                    busy;
+
+                saveButton.disabled =
+                    busy;
+
+                skipButton.disabled =
+                    busy;
+
+            };
+
+
+        saveButton.onclick =
+            async () => {
+
+                const nickname =
+                    input.value.trim();
+
+
+                if (!nickname) {
+
+                    alert(
+                        "ニックネームを入力してください。"
+                    );
+
+                    input.focus();
+
+                    return;
+
+                }
+
+
+                if (nickname.length > 20) {
+
+                    alert(
+                        "ニックネームは20文字以内で入力してください。"
+                    );
+
+                    return;
+
+                }
+
+
+                try {
+
+                    setBusy(true);
+
+
+                    await updateDoc(
+                        userRef,
+                        {
+                            rankingNickname:
+                                nickname,
+
+                            rankingDisplayMode:
+                                "nickname",
+
+                            rankingNicknamePromptCompleted:
+                                true,
+
+                            rankingNicknameUpdatedAt:
+                                serverTimestamp(),
+
+                            rankingNicknameUpdatedBy:
+                                studentNumber
+                        }
+                    );
+
+
+                    showToast(
+                        "ランキング表示名を設定しました"
+                    );
+
+
+                    closePopup();
+
+
+                } catch (error) {
+
+                    console.error(
+                        "ランキング表示名保存エラー:",
+                        error
+                    );
+
+
+                    alert(
+                        "ニックネームを保存できませんでした。"
+                    );
+
+
+                    setBusy(false);
+
+                }
+
+            };
+
+
+        skipButton.onclick =
+            async () => {
+
+                try {
+
+                    setBusy(true);
+
+
+                    await updateDoc(
+                        userRef,
+                        {
+                            rankingDisplayMode:
+                                "student_number",
+
+                            rankingNicknamePromptCompleted:
+                                true,
+
+                            rankingNicknameUpdatedAt:
+                                serverTimestamp(),
+
+                            rankingNicknameUpdatedBy:
+                                studentNumber
+                        }
+                    );
+
+
+                    showToast(
+                        "ランキングでは学籍番号を表示します"
+                    );
+
+
+                    closePopup();
+
+
+                } catch (error) {
+
+                    console.error(
+                        "ランキング表示設定保存エラー:",
+                        error
+                    );
+
+
+                    alert(
+                        "設定を保存できませんでした。"
+                    );
+
+
+                    setBusy(false);
+
+                }
+
+            };
+
+
+        requestAnimationFrame(() => {
+
+            overlay.classList.add(
+                "show"
+            );
+
+
+            setTimeout(() => {
+
+                input.focus();
+
+            }, 220);
+
+        });
+
+    });
+
 }
 
 export async function loadUserName(element, user = null){
@@ -426,6 +971,13 @@ export async function loadMyRanking(){
 
     const element =
         document.getElementById("myRanking");
+
+
+    if (studentNumber) {
+
+        await setupRankingNicknamePrompt();
+
+    }
 
 
     if(!element || !studentNumber){

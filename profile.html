@@ -88,6 +88,72 @@ if(localStorage.getItem("theme")==="dark"){
 
     </div>
 
+    <h2>🏆 ランキング表示名</h2>
+
+    <div class="card setting-card">
+
+        <p>
+            <b>ランキングに表示する名前</b>
+        </p>
+
+        <p>
+            <small>
+                ここで設定した内容はランキングだけに使用されます。
+                上に表示されている自分用の名前は変更されません。
+            </small>
+        </p>
+
+        <label for="rankingNicknameInput">
+            <b>ニックネーム</b>
+        </label>
+
+        <br><br>
+
+        <input
+            id="rankingNicknameInput"
+            type="text"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="例：ふかしょお">
+
+        <br><br>
+
+        <label for="rankingDisplayMode">
+            <b>ランキングでの表示</b>
+        </label>
+
+        <br><br>
+
+        <select id="rankingDisplayMode">
+
+            <option value="nickname">
+                ニックネーム
+            </option>
+
+            <option value="student_number">
+                学籍番号
+            </option>
+
+        </select>
+
+        <p
+            id="rankingNicknameStatus"
+            style="
+                margin-top:14px;
+                color:var(--subtext);
+            ">
+            読み込み中...
+        </p>
+
+        <button
+            id="saveRankingNicknameButton"
+            type="button"
+            class="btn btn-primary">
+            ランキング表示名を保存
+        </button>
+
+    </div>
+
     <div class="card profile-stats">
 
         <div>

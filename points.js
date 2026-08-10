@@ -1,4 +1,12 @@
-import { db, studentNumber, setupTheme, initializePage, getRankMark, getAnonymousRankingName } from "./common.js";
+import {
+    db,
+    studentNumber,
+    setupTheme,
+    initializePage,
+    getRankMark,
+    getAnonymousRankingName,
+    getRankingUserMap
+} from "./common.js";
 import { collection, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { localDateKey } from "./test_points.js";
 
@@ -227,6 +235,10 @@ function listenRanking() {
                             );
 
 
+                            const userMap =
+                                await getRankingUserMap();
+
+
                         list.innerHTML =
                             rankingWithTotal.length
 
@@ -268,7 +280,8 @@ function listenRanking() {
 
                                                     ${escapeHtml(
                                                         getAnonymousRankingName(
-                                                            item.id
+                                                            item.id,
+                                                            userMap.get(item.id)
                                                         )
                                                     )}
 

@@ -141,6 +141,27 @@ const studentPageIdValue =
     );
 
 
+const rankingNicknameInput =
+    document.getElementById(
+        "rankingNicknameInput"
+    );
+
+const rankingDisplayMode =
+    document.getElementById(
+        "rankingDisplayMode"
+    );
+
+const rankingNicknamePromptStatus =
+    document.getElementById(
+        "rankingNicknamePromptStatus"
+    );
+
+const rankingCurrentDisplayValue =
+    document.getElementById(
+        "rankingCurrentDisplayValue"
+    );
+
+
 const lastLoginAtValue =
     document.getElementById(
         "lastLoginAtValue"
@@ -491,6 +512,58 @@ function renderUserInformation() {
         studentPageIdValue,
         targetUserData.studentPageId ||
         "未設定"
+    );
+
+    const rankingNickname =
+        String(
+            targetUserData
+                .rankingNickname ||
+            ""
+        ).trim();
+
+
+    if (rankingNicknameInput) {
+
+        rankingNicknameInput.value =
+            rankingNickname;
+
+    }
+
+
+    const rankingMode =
+        targetUserData
+            .rankingDisplayMode ===
+            "nickname" &&
+        rankingNickname
+            ? "nickname"
+            : "student_number";
+
+
+    if (rankingDisplayMode) {
+
+        rankingDisplayMode.value =
+            rankingMode;
+
+    }
+
+
+    if (rankingNicknamePromptStatus) {
+
+        rankingNicknamePromptStatus.value =
+            targetUserData
+                .rankingNicknamePromptCompleted ===
+                true
+                ? "completed"
+                : "pending";
+
+    }
+
+
+    setText(
+        rankingCurrentDisplayValue,
+        rankingMode === "nickname"
+            ? rankingNickname
+            : targetStudentNumber
     );
 
     setText(
@@ -894,6 +967,51 @@ async function saveUserChanges() {
         return;
     }
 
+    const rankingNickname =
+        rankingNicknameInput
+            ?.value.trim() || "";
+
+
+    const nextRankingDisplayMode =
+        rankingDisplayMode?.value ===
+            "nickname"
+            ? "nickname"
+            : "student_number";
+
+
+    const rankingPromptCompleted =
+        rankingNicknamePromptStatus
+            ?.value ===
+            "completed";
+
+    if (
+        nextRankingDisplayMode ===
+            "nickname" &&
+        !rankingNickname
+    ) {
+
+        alert(
+            "ニックネーム表示を選択する場合は、ニックネームを入力してください。"
+        );
+
+        rankingNicknameInput
+            ?.focus();
+
+        return;
+
+    }
+
+
+    if (rankingNickname.length > 20) {
+
+        alert(
+            "ニックネームは20文字以内で入力してください。"
+        );
+
+        return;
+
+    }
+
     const newActiveMailPassword =
         activeMailPassword
             ?.value.trim() || "";
@@ -1010,6 +1128,21 @@ async function saveUserChanges() {
     try {
 
         const updates = {
+
+            rankingNickname:
+                rankingNickname,
+
+            rankingDisplayMode:
+                nextRankingDisplayMode,
+
+            rankingNicknamePromptCompleted:
+                rankingPromptCompleted,
+
+            rankingNicknameUpdatedAt:
+                serverTimestamp(),
+
+            rankingNicknameUpdatedBy:
+                adminStudentNumber || "",
 
             "notificationSettings.schedule":
                 notifySchedule?.checked ?? true,
