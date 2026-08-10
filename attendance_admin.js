@@ -1,4 +1,5 @@
 import {db,studentNumber,isAdmin,setupTheme,setupAdminTab,showPage,showToast} from "./common.js";
+import {readAdminScopeFromUrl,matchesAdminScope,scopeLabel,withAdminScope} from "./admin_scope.js";
 import {collection,doc,getDoc,getDocs,serverTimestamp,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const pendingList=document.getElementById("pendingReviewList");
@@ -15,12 +16,14 @@ const loadButton=document.getElementById("loadEnrolledSubjects");
 const sendButton=document.getElementById("sendTestNotification");
 const testResult=document.getElementById("testNotificationResult");
 const testExplanation=document.getElementById("testScheduleExplanation");
+const attendanceScopeLabel=document.getElementById("attendanceScopeLabel");
 const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
 const two=value=>String(value).padStart(2,"0");
 const timeAt=(minutes)=>`${two(Math.floor(minutes/60)%24)}:${two(minutes%60)}`;
 const nowMinutes=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
 const statusOptions={present:"出席",late:"遅刻",early_leave:"早退",late_and_early_leave:"遅刻・早退",absent:"欠席",unrecorded:"未打刻"};
 let attendanceRecords=[];
+const adminScope=readAdminScopeFromUrl();
 
 if(!await isAdmin()){
   alert("管理者のみ利用できます");
@@ -28,7 +31,8 @@ if(!await isAdmin()){
 } else {
   setupTheme(document.getElementById("themeButton"));
   setupAdminTab();
-  document.getElementById("backButton").onclick=()=>location.href="admin.html";
+  document.getElementById("backButton").onclick=()=>location.href=withAdminScope("admin.html");
+  attendanceScopeLabel.textContent=`現在の管理対象：${scopeLabel(adminScope)}`;
   const initial=nowMinutes()+11;
   startInput.value=timeAt(initial);
   endInput.value=timeAt(initial+30);
@@ -64,6 +68,7 @@ async function loadEnrolledSubjects(){
   subjectSelect.innerHTML="<option>読み込み中...</option>";
   const user=await getDoc(doc(db,"users",number));
   if(!user.exists()){subjectSelect.innerHTML="<option>登録されていない学籍番号です</option>";sendButton.disabled=true;return}
+  if(!matchesAdminScope(user.data(),adminScope)){subjectSelect.innerHTML="<option>現在の管理対象外の学生です</option>";sendButton.disabled=true;return}
   if(user.data()?.manabaVerified!==true){subjectSelect.innerHTML="<option>Manaba認証が未完了です</option>";sendButton.disabled=true;showToast("Manaba認証済みの学生だけテストできます");return}
   const enrolled=await getDocs(collection(db,"users",number,"enrolledSubjects"));
   const subjects=[...new Set(enrolled.docs.map(item=>item.data()).filter(item=>item.status!=="removed").map(item=>item.name||item.subject||item.subjectKey||item.subjectId).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"ja"));
@@ -110,7 +115,8 @@ function reviewCard(item){
 async function watchPendingReviews(){
   try{
     const users=await getDocs(collection(db,"users"));
-    const snapshots=await Promise.all(users.docs.map(user=>getDocs(collection(user.ref,"attendanceRecords"))));
+    const scopedUsers=users.docs.filter(user=>matchesAdminScope(user.data(),adminScope));
+    const snapshots=await Promise.all(scopedUsers.map(user=>getDocs(collection(user.ref,"attendanceRecords"))));
     attendanceRecords=snapshots.flatMap(snapshot=>snapshot.docs);
     const pending=attendanceRecords.filter(item=>item.data().earlyEndReviewRequired===true&&item.data().earlyEndReviewStatus==="pending");
     pending.sort((left,right)=>((right.data().updatedAt?.toMillis?.()||0)-(left.data().updatedAt?.toMillis?.()||0)));
@@ -158,6 +164,8 @@ async function loadStudentAttendance(){
   if(!/^\d{7}$/.test(number)){showToast("7桁の学籍番号を入力してください");return}
   recordStudentList.innerHTML="<p>読み込み中...</p>";
   try{
+    const user=await getDoc(doc(db,"users",number));
+    if(!user.exists()||!matchesAdminScope(user.data(),adminScope)){recordStudentList.innerHTML="<p>現在の管理対象外の学生です。</p>";return}
     const records=await getDocs(collection(db,"users",number,"attendanceRecords"));
     const rows=records.docs.sort((left,right)=>String(right.data().date||"").localeCompare(String(left.data().date||""))||Number(right.data().period||0)-Number(left.data().period||0));
     recordStudentList.innerHTML=rows.map(item=>{const data=item.data(),current=data.status||"unrecorded";return `<article class="attendance-review-card" data-student-record="${escapeHtml(item.id)}"><b>${escapeHtml(data.subject||"科目未設定")}</b><p>${escapeHtml(data.date||"-")} ${escapeHtml(data.period||"-")}限<br>開始：${formatDate(data.startClientAt)}／終了：${formatDate(data.endClientAt)}</p><label>最終判定<select class="student-record-status">${Object.entries(statusOptions).map(([value,label])=>`<option value="${value}" ${value===current?"selected":""}>${label}</option>`).join("")}</select></label><button class="btn btn-primary save-student-record" data-student="${number}">変更を保存</button></article>`}).join("")||"<p>出席記録はありません。</p>";

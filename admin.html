@@ -60,6 +60,52 @@ if(localStorage.getItem("theme")==="dark"){
 
 </header>
 
+<section class="card setting-card" aria-labelledby="adminScopeTitle">
+
+    <h2 id="adminScopeTitle">🎯 管理対象の切り替え</h2>
+
+    <p>
+        ここで選んだ学科・専攻・学年だけを、学生・出席などの管理画面で表示します。
+    </p>
+
+    <div class="admin-user-filter-grid">
+
+        <div>
+            <label for="adminScopeDepartment"><b>学科</b></label>
+            <select id="adminScopeDepartment">
+                <option value="">全学科</option>
+                <option value="看護学科">看護学科</option>
+                <option value="リハビリテーション学科">リハビリテーション学科</option>
+                <option value="医療薬学科">医療薬学科</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="adminScopeMajor"><b>専攻</b></label>
+            <select id="adminScopeMajor">
+                <option value="">すべて</option>
+                <option value="理学療法学専攻">理学療法学専攻</option>
+                <option value="作業療法学専攻">作業療法学専攻</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="adminScopeGrade"><b>学年</b></label>
+            <select id="adminScopeGrade">
+                <option value="">全学年</option>
+                <option value="1">1年</option>
+                <option value="2">2年</option>
+                <option value="3">3年</option>
+                <option value="4">4年</option>
+            </select>
+        </div>
+
+    </div>
+
+    <p id="adminScopeCurrent" class="attendance-admin-help" aria-live="polite"></p>
+
+</section>
+
 <h2>📊 ダッシュボード</h2>
 
 <div class="card setting-card">

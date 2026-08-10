@@ -1,6 +1,14 @@
 import { VERSION } from "./version.js";
 
 import {
+    getAdminScope,
+    saveAdminScope,
+    scopeLabel,
+    withAdminScope,
+    matchesAdminScope
+} from "./admin_scope.js";
+
+import {
     db,
     studentNumber,
     setupTheme,
@@ -46,6 +54,11 @@ const topProfileImage =
 
 const userCount =
     document.getElementById("userCount");
+
+const adminScopeDepartment = document.getElementById("adminScopeDepartment");
+const adminScopeMajor = document.getElementById("adminScopeMajor");
+const adminScopeGrade = document.getElementById("adminScopeGrade");
+const adminScopeCurrent = document.getElementById("adminScopeCurrent");
 
 const versionText =
     document.getElementById("versionText");
@@ -150,6 +163,31 @@ const logoutButton =
 let systemAppPromise = null;
 
 
+function currentAdminScope() {
+
+    return saveAdminScope({
+        department: adminScopeDepartment?.value || "",
+        major: adminScopeMajor?.value || "",
+        grade: adminScopeGrade?.value || ""
+    });
+
+}
+
+
+function renderAdminScope() {
+
+    const scope = currentAdminScope();
+
+    if (adminScopeCurrent) {
+        adminScopeCurrent.textContent =
+            `現在の管理対象：${scopeLabel(scope)}`;
+    }
+
+    loadDashboard();
+
+}
+
+
 function getSystemAppSnapshot() {
 
     if (!systemAppPromise) {
@@ -211,6 +249,15 @@ await initializePage([
 ]);
 
 
+const storedAdminScope = getAdminScope();
+
+if (adminScopeDepartment) adminScopeDepartment.value = storedAdminScope.department;
+if (adminScopeMajor) adminScopeMajor.value = storedAdminScope.major;
+if (adminScopeGrade) adminScopeGrade.value = storedAdminScope.grade;
+
+renderAdminScope();
+
+
 setupEvents();
 
 
@@ -237,10 +284,11 @@ async function loadDashboard() {
             );
 
 
-        setText(
-            userCount,
-            `${usersSnapshot.size}人`
-        );
+        const scopedUsers = usersSnapshot.docs
+            .map(userDocument => userDocument.data())
+            .filter(user => matchesAdminScope(user, getAdminScope()));
+
+        setText(userCount, `${scopedUsers.length}人`);
 
 
         setText(
@@ -730,6 +778,43 @@ async function saveNotificationSettings() {
 ======================================== */
 
 function setupEvents() {
+
+    [
+        adminScopeDepartment,
+        adminScopeMajor,
+        adminScopeGrade
+    ]
+    .filter(Boolean)
+    .forEach(input => {
+
+        input.addEventListener(
+            "change",
+            renderAdminScope
+        );
+
+    });
+
+
+    document.querySelectorAll(
+        ".admin-menu-card[onclick]"
+    )
+    .forEach(card => {
+
+        const match = card
+            .getAttribute("onclick")
+            ?.match(/location\.href='([^']+)'/);
+
+        if (!match) {
+            return;
+        }
+
+        card.onclick = () => {
+
+            location.href = withAdminScope(match[1]);
+
+        };
+
+    });
 
     if (enablePushButton) {
 

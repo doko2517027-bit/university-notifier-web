@@ -15,6 +15,12 @@ import {
 } from "./common.js";
 
 import {
+    readAdminScopeFromUrl,
+    matchesAdminScope,
+    withAdminScope
+} from "./admin_scope.js";
+
+import {
     collection,
     getDocs,
     onSnapshot
@@ -83,6 +89,8 @@ let presenceTimer = null;
 
 let stopUsersListener = null;
 
+const adminScope = readAdminScopeFromUrl();
+
 
 setupTheme(themeButton);
 
@@ -112,6 +120,22 @@ await initializePage([
     updateShareNavBadge(),
     updateNewsNavBadge()
 ]);
+
+
+if (departmentFilter) {
+
+    departmentFilter.value =
+        adminScope.major ||
+        adminScope.department ||
+        "";
+
+}
+
+if (gradeFilter) {
+
+    gradeFilter.value = adminScope.grade || "";
+
+}
 
 
 startUsersListener();
@@ -243,7 +267,7 @@ function setupEvents() {
         backButton.onclick = () => {
 
             location.href =
-                "admin.html";
+                withAdminScope("admin.html");
 
         };
 
@@ -255,7 +279,7 @@ function setupEvents() {
         addUserButton.onclick = () => {
 
             location.href =
-                "admin_user_register.html";
+                withAdminScope("admin_user_register.html");
 
         };
 
@@ -452,6 +476,7 @@ function getFilteredUsers() {
             statusKey === selectedStatus;
 
         return (
+            matchesAdminScope(user, adminScope) &&
             matchesKeyword &&
             matchesDepartment &&
             matchesGrade &&
