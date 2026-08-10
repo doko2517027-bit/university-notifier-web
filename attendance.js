@@ -1444,46 +1444,20 @@ function extractLectures(
     scheduleId
 ) {
 
-    const days =
-        Array.isArray(data.allDays) &&
-        data.allDays.length
-            ? data.allDays
-            : data.days;
+    const rows =
+        normalizeAttendanceScheduleRows(
+            data,
+            scheduleId,
+            academicTerm
+        );
 
 
-    if (
-        Array.isArray(days) &&
-        days.length
-    ) {
+    if (rows.length) {
 
-        return days
-
-            .filter(
-                day =>
-                    normalizeDate(
-                        day.date
-                    ) === date
-            )
-
-            .flatMap(
-                day =>
-                    Array.isArray(
-                        day.schedules
-                    )
-                        ? day.schedules.map(
-                            item => ({
-
-                                ...item,
-
-                                date,
-
-                                scheduleDocumentId:
-                                    scheduleId
-
-                            })
-                        )
-                        : []
-            );
+        return rows.filter(
+            item =>
+                item.date === date
+        );
 
     }
 
@@ -3815,6 +3789,235 @@ function doesSubjectMatchTerm(
 }
 
 
+function resolveAttendanceScheduleDate(
+    row,
+    term
+) {
+
+    const direct =
+        normalizeDate(
+            row?.date
+        );
+
+
+    if (direct) {
+
+        return direct;
+
+    }
+
+
+    const text =
+        normalizeText(
+            row?.day
+        );
+
+
+    if (!text) {
+
+        return "";
+
+    }
+
+
+    const full =
+        text.match(
+            /(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/
+        );
+
+
+    if (full) {
+
+        return (
+            `${full[1]}-` +
+            `${full[2].padStart(2, "0")}-` +
+            `${full[3].padStart(2, "0")}`
+        );
+
+    }
+
+
+    const short =
+        text.match(
+            /(\d{1,2})月\s*(\d{1,2})日/
+        );
+
+
+    if (!short) {
+
+        return "";
+
+    }
+
+
+    const month =
+        Number(
+            short[1]
+        );
+
+
+    const day =
+        Number(
+            short[2]
+        );
+
+
+    const academicYear =
+        Number(
+            term?.academicYear || 0
+        );
+
+
+    if (!academicYear) {
+
+        return "";
+
+    }
+
+
+    const year =
+        month >= 4
+            ? academicYear
+            : academicYear + 1;
+
+
+    return (
+        `${year}-` +
+        `${String(month).padStart(2, "0")}-` +
+        `${String(day).padStart(2, "0")}`
+    );
+
+}
+
+
+function normalizeAttendanceScheduleRows(
+    data,
+    scheduleId,
+    term
+) {
+
+    const source =
+        Array.isArray(
+            data?.allDays
+        ) &&
+        data.allDays.length
+            ? data.allDays
+
+            : Array.isArray(
+                data?.days
+            )
+                ? data.days
+                : [];
+
+
+    const rows = [];
+
+
+    for (const entry of source) {
+
+        /*
+         * 新しい形式
+         *
+         * {
+         *   date,
+         *   schedules:[...]
+         * }
+         */
+        if (
+            Array.isArray(
+                entry?.schedules
+            )
+        ) {
+
+            const parentDate =
+                resolveAttendanceScheduleDate(
+                    entry,
+                    term
+                );
+
+
+            for (
+                const item of
+                entry.schedules
+            ) {
+
+                const date =
+                    resolveAttendanceScheduleDate(
+                        item,
+                        term
+                    ) ||
+                    parentDate;
+
+
+                if (!date) {
+
+                    continue;
+
+                }
+
+
+                rows.push({
+
+                    ...item,
+
+                    date,
+
+                    scheduleDocumentId:
+                        scheduleId
+
+                });
+
+            }
+
+
+            continue;
+
+        }
+
+
+        /*
+         * 実際のFirestoreにある形式
+         *
+         * {
+         *   day:"10月15日(木) 月曜日の授業",
+         *   subject:"地域看護方法論",
+         *   period:"5限",
+         *   ...
+         * }
+         */
+        const date =
+            resolveAttendanceScheduleDate(
+                entry,
+                term
+            );
+
+
+        if (!date) {
+
+            continue;
+
+        }
+
+
+        rows.push({
+
+            ...entry,
+
+            date,
+
+            scheduleDocumentId:
+                scheduleId
+
+        });
+
+    }
+
+
+    return rows;
+
+}
+
+
 function buildTermLectures(
     data,
     scheduleId,
@@ -3823,31 +4026,22 @@ function buildTermLectures(
     selections
 ) {
 
-    const days =
-        Array.isArray(data.allDays) &&
-        data.allDays.length
-            ? data.allDays
-            : data.days;
+    const rows =
+        normalizeAttendanceScheduleRows(
+            data,
+            scheduleId,
+            term
+        );
 
 
-    if (!Array.isArray(days)) {
-
-        return [];
-
-    }
+    const grouped =
+        new Map();
 
 
-    const result = [];
-
-
-    for (
-        const day of days
-    ) {
+    for (const row of rows) {
 
         const date =
-            normalizeDate(
-                day.date
-            );
+            row.date;
 
 
         if (
@@ -3863,69 +4057,64 @@ function buildTermLectures(
         }
 
 
-        const source =
-            Array.isArray(
-                day.schedules
-            )
-                ? day.schedules
-
-                    .map(
-                        item => {
-
-                            const enrolledItem =
-                                attachEnrolledSubjectData(
-                                    item,
-                                    aliases
-                                );
+        const enrolledItem =
+            attachEnrolledSubjectData(
+                row,
+                aliases
+            );
 
 
-                            if (!enrolledItem) {
+        if (!enrolledItem) {
 
-                                return null;
+            continue;
 
-                            }
-
-
-                            return {
-
-                                ...enrolledItem,
-
-                                date,
-
-                                scheduleDocumentId:
-                                    scheduleId
-
-                            };
-
-                        }
-                    )
-
-                    .filter(Boolean)
-
-                : [];
+        }
 
 
-        /*
-         * 今日以前は実際のクラス選択を反映。
-         *
-         * 未来の講義はまだクラス選択されていなくても
-         * 「予定」として出席管理へ表示する。
-         */
+        if (!grouped.has(date)) {
+
+            grouped.set(
+                date,
+                []
+            );
+
+        }
+
+
+        grouped
+            .get(date)
+            .push({
+
+                ...enrolledItem,
+
+                date,
+
+                scheduleDocumentId:
+                    scheduleId
+
+            });
+
+    }
+
+
+    const result = [];
+
+
+    for (
+        const [date, source]
+        of grouped
+    ) {
+
         if (
             date <= effectiveDate
         ) {
 
             const classResult =
                 buildStudentLectures(
-
                     source,
-
                     selections,
-
                     date,
-
                     scheduleId
-
                 );
 
 
@@ -3949,7 +4138,24 @@ function buildTermLectures(
     }
 
 
-        return result;
+    return result.sort(
+        (left, right) =>
+
+            String(
+                left.date || ""
+            ).localeCompare(
+                String(
+                    right.date || ""
+                )
+            ) ||
+
+            Number(
+                left.period || 0
+            ) -
+            Number(
+                right.period || 0
+            )
+    );
 
 }
 
