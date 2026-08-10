@@ -3896,112 +3896,128 @@ function normalizeAttendanceScheduleRows(
     term
 ) {
 
-    const source =
-        Array.isArray(
-            data?.allDays
-        ) &&
-        data.allDays.length
-            ? data.allDays
-
-            : Array.isArray(
-                data?.days
-            )
-                ? data.days
-                : [];
-
-
     const rows = [];
 
+    const seen =
+        new Set();
 
-    for (const entry of source) {
 
-        /*
-         * 新しい形式
-         *
-         * {
-         *   date,
-         *   schedules:[...]
-         * }
-         */
+    const addRow = (
+        item,
+        inheritedDate = ""
+    ) => {
+
         if (
-            Array.isArray(
-                entry?.schedules
-            )
+            !item ||
+            typeof item !== "object"
         ) {
 
-            const parentDate =
-                resolveAttendanceScheduleDate(
-                    entry,
-                    term
-                );
-
-
-            for (
-                const item of
-                entry.schedules
-            ) {
-
-                const date =
-                    resolveAttendanceScheduleDate(
-                        item,
-                        term
-                    ) ||
-                    parentDate;
-
-
-                if (!date) {
-
-                    continue;
-
-                }
-
-
-                rows.push({
-
-                    ...item,
-
-                    date,
-
-                    scheduleDocumentId:
-                        scheduleId
-
-                });
-
-            }
-
-
-            continue;
+            return;
 
         }
 
 
-        /*
-         * 実際のFirestoreにある形式
-         *
-         * {
-         *   day:"10月15日(木) 月曜日の授業",
-         *   subject:"地域看護方法論",
-         *   period:"5限",
-         *   ...
-         * }
-         */
-        const date =
+        const ownDate =
             resolveAttendanceScheduleDate(
-                entry,
+                item,
                 term
             );
 
 
-        if (!date) {
+        const date =
+            ownDate ||
+            inheritedDate;
 
-            continue;
+
+        /*
+         * 日付グループの中に
+         * schedules がある形式にも対応
+         */
+        if (
+            Array.isArray(
+                item.schedules
+            )
+        ) {
+
+            for (
+                const child of
+                item.schedules
+            ) {
+
+                addRow(
+                    child,
+                    date
+                );
+
+            }
 
         }
 
 
+        /*
+         * 実際の講義行だけ追加
+         */
+        const subject =
+            normalizeText(
+                item.subject ||
+                item.name ||
+                item.title
+            );
+
+
+        const period =
+            normalizePeriod(
+                item.period
+            );
+
+
+        if (
+            !date ||
+            !subject ||
+            !period
+        ) {
+
+            return;
+
+        }
+
+
+        const classGroup =
+            normalizeText(
+                item.classGroup
+            );
+
+
+        const key =
+            [
+                date,
+                normalizeSubjectIdentity(
+                    subject
+                ),
+                period,
+                classGroup
+            ].join("|");
+
+
+        if (
+            seen.has(key)
+        ) {
+
+            return;
+
+        }
+
+
+        seen.add(key);
+
+
         rows.push({
 
-            ...entry,
+            ...item,
+
+            subject,
+
+            period,
 
             date,
 
@@ -4010,10 +4026,83 @@ function normalizeAttendanceScheduleRows(
 
         });
 
+    };
+
+
+    /*
+     * 現行形式
+     */
+    if (
+        Array.isArray(
+            data?.allDays
+        )
+    ) {
+
+        for (
+            const entry of
+            data.allDays
+        ) {
+
+            addRow(entry);
+
+        }
+
     }
 
 
-    return rows;
+    /*
+     * 旧形式・互換形式
+     */
+    if (
+        Array.isArray(
+            data?.days
+        )
+    ) {
+
+        for (
+            const entry of
+            data.days
+        ) {
+
+            addRow(entry);
+
+        }
+
+    }
+
+
+    /*
+     * 万一 schedules が
+     * ドキュメント直下にある場合も対応
+     */
+    if (
+        Array.isArray(
+            data?.schedules
+        )
+    ) {
+
+        for (
+            const entry of
+            data.schedules
+        ) {
+
+            addRow(entry);
+
+        }
+
+    }
+
+
+    return rows.sort(
+        (left, right) =>
+
+            left.date.localeCompare(
+                right.date
+            ) ||
+
+            Number(left.period) -
+            Number(right.period)
+    );
 
 }
 
