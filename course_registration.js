@@ -381,12 +381,20 @@ let curricula = [];
 
 let currentCurriculum = null;
 
+let allSubjects = [];
+
 let subjects = [];
 
 let visibleSubjects = [];
 
 let enrolledDocs =
     new Map();
+
+let pastCourseRecords =
+    new Map();
+
+let courseHistoryDirty =
+    false;
 
 let retakeSubjectIds =
     new Set();
@@ -688,8 +696,13 @@ function setupEvents() {
         "beforeunload",
         event => {
 
-            if (!pageDirty) {
+            if (
+                !pageDirty &&
+                !courseHistoryDirty
+            ) {
+
                 return;
+
             }
 
             event.preventDefault();
@@ -698,6 +711,32 @@ function setupEvents() {
 
         }
     );
+
+    elements.progressYearFields
+        ?.addEventListener(
+            "change",
+            event => {
+
+                const target =
+                    event.target;
+
+
+                if (
+                    !target.matches(
+                        "[data-history-subject-id]"
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                courseHistoryDirty =
+                    true;
+
+            }
+        );
 
 }
 
@@ -737,6 +776,7 @@ async function loadRegistrationData() {
             enrollmentSnapshot,
             curriculumSnapshot,
             creditRecordSnapshot,
+            courseHistorySnapshot,
             topLevelCreditSnapshot
         ] = await Promise.all([
 
@@ -781,6 +821,15 @@ async function loadRegistrationData() {
                     "users",
                     studentNumber,
                     "creditRecords"
+                )
+            ),
+
+            safeGetDocs(
+                collection(
+                    db,
+                    "users",
+                    studentNumber,
+                    "courseHistoryRecords"
                 )
             ),
 
@@ -877,7 +926,7 @@ async function loadRegistrationData() {
         }
 
 
-        const allSubjects =
+        allSubjects =
             subjectSnapshot.docs
                 .map(subjectDocument =>
                     normalizeSubject(
@@ -914,6 +963,45 @@ async function loadRegistrationData() {
                     ]
                 )
             );
+
+        pastCourseRecords =
+            new Map(
+                courseHistorySnapshot.docs.map(
+                    historyDocument => {
+
+                        const data =
+                            historyDocument.data() || {};
+
+
+                        const record = {
+
+                            id:
+                                historyDocument.id,
+
+                            ...data
+
+                        };
+
+
+                        const key =
+                            String(
+                                record.subjectId ||
+                                historyDocument.id
+                            ).trim();
+
+
+                        return [
+                            key,
+                            record
+                        ];
+
+                    }
+                )
+            );
+
+
+        courseHistoryDirty =
+            false;
 
         retakeSubjectIds =
             new Set(
@@ -958,6 +1046,26 @@ async function loadRegistrationData() {
                 creditRecordSnapshot,
                 topLevelCreditSnapshot
             );
+
+        
+        const earnedHistoryRecords =
+            [...pastCourseRecords.values()]
+                .filter(
+                    record =>
+                        isPastCourseEarned(
+                            record
+                        )
+                )
+                .map(
+                    record => ({
+
+                        ...record,
+
+                        status:
+                            "earned"
+
+                    })
+                );
 
 
         const earnedEnrollmentRecords =
@@ -1047,6 +1155,7 @@ async function loadRegistrationData() {
 
 
         [
+            ...earnedHistoryRecords,
             ...creditRecords,
             ...earnedEnrollmentRecords
         ]
@@ -1098,9 +1207,19 @@ async function loadRegistrationData() {
             [...combinedCreditRecordMap.values()];
 
 
+        const storedProgressForBuild =
+            userData.courseHistoryInitialized ===
+                true
+                ? {}
+                : (
+                    userData.courseProgress ||
+                    {}
+                );
+
+
         progress =
             buildProgress(
-                userData.courseProgress || {},
+                storedProgressForBuild,
                 combinedCreditRecords
             );
 
@@ -1974,50 +2093,158 @@ function getRetakeEnrollment(
     subject
 ) {
 
-    const direct =
-        enrolledDocs.get(
-            subject.id
+    const record =
+        findPastCourseRecord(
+            subject
         );
 
 
     if (
-        direct &&
-        direct.isRetake === true &&
-        direct.creditStatus === "not_earned"
+        !record ||
+        !isPastCourseFailed(
+            record
+        )
     ) {
 
-        return direct;
+        return null;
 
     }
 
 
+    return record;
+
+}
+
+
+function isRetakeSubject(
+    subject
+) {
+
+    const historyRecord =
+        getRetakeEnrollment(
+            subject
+        );
+
+
+    if (!historyRecord) {
+        return false;
+    }
+
+
+    const sourceYear =
+        Number(
+            historyRecord.academicYear ||
+            historyRecord
+                .creditConfirmedAcademicYear ||
+            0
+        );
+
+
+    if (
+        !sourceYear ||
+        Number(config.academicYear) <=
+            sourceYear
+    ) {
+
+        return false;
+
+    }
+
+
+    /*
+     過去に未修得だった科目でも、
+     現在の履修登録対象学期と一致するときだけ
+     再履修候補として表示する。
+    */
+
+    return matchesSemester(
+        subject
+    );
+
+}
+
+
+/* ========================================
+   過去履修履歴
+======================================== */
+
+function normalizePastCourseStatus(
+    value
+) {
+
+    const status =
+        String(
+            value ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+        [
+            "earned",
+            "修得",
+            "取得"
+        ].includes(status)
+    ) {
+
+        return "earned";
+
+    }
+
+
+    if (
+        [
+            "not_earned",
+            "failed",
+            "未修得",
+            "不合格",
+            "不可"
+        ].includes(status)
+    ) {
+
+        return "not_earned";
+
+    }
+
+
+    return "not_taken";
+
+}
+
+
+function findPastCourseRecord(
+    subject
+) {
+
+    const direct =
+        pastCourseRecords.get(
+            subject.id
+        );
+
+
+    if (direct) {
+        return direct;
+    }
+
+
     return (
-        [...enrolledDocs.values()]
+        [...pastCourseRecords.values()]
             .find(
-                enrollment => {
+                record => {
 
-                    if (
-                        enrollment.isRetake !== true ||
-                        enrollment.creditStatus !==
-                            "not_earned"
-                    ) {
-
-                        return false;
-
-                    }
-
-
-                    const enrollmentKey =
+                    const recordKey =
                         String(
-                            enrollment.subjectKey ||
-                            enrollment.name ||
+                            record.subjectKey ||
+                            record.name ||
                             ""
                         ).trim();
 
 
                     return (
-                        enrollmentKey &&
-                        enrollmentKey ===
+                        recordKey &&
+                        recordKey ===
                             subject.subjectKey
                     );
 
@@ -2029,44 +2256,119 @@ function getRetakeEnrollment(
 }
 
 
-function isRetakeSubject(
-    subject
+function isPastCourseActuallyTaken(
+    record
 ) {
 
-    const enrollment =
-        getRetakeEnrollment(
-            subject
-        );
-
-
-    if (!enrollment) {
-        return false;
-    }
-
-
-    const sourceYear =
-        Number(
-            enrollment.retakeSourceAcademicYear ||
-            enrollment.creditConfirmedAcademicYear ||
-            enrollment.academicYear ||
-            0
-        );
-
-
-    if (
-        !sourceYear ||
-        Number(config.academicYear) <=
-        sourceYear
-    ) {
-
-        return false;
-
-    }
-
-
-    return matchesSemester(
-        subject
+    return (
+        record?.tookCourse === true
     );
+
+}
+
+
+function isPastCourseFailed(
+    record
+) {
+
+    return (
+        isPastCourseActuallyTaken(
+            record
+        ) &&
+        normalizePastCourseStatus(
+            record.status ||
+            record.creditStatus
+        ) ===
+            "not_earned"
+    );
+
+}
+
+
+function isPastCourseEarned(
+    record
+) {
+
+    return (
+        isPastCourseActuallyTaken(
+            record
+        ) &&
+        normalizePastCourseStatus(
+            record.status ||
+            record.creditStatus
+        ) ===
+            "earned"
+    );
+
+}
+
+
+function getAcademicYearForGrade(
+    targetGrade
+) {
+
+    const gradeNumber =
+        Number(targetGrade) || 1;
+
+
+    if (admissionYear > 0) {
+
+        return (
+            admissionYear +
+            gradeNumber -
+            1
+        );
+
+    }
+
+
+    const currentGrade =
+        Number(grade) || 1;
+
+
+    return (
+        Number(
+            config?.academicYear ||
+            new Date().getFullYear()
+        ) -
+        (
+            currentGrade -
+            gradeNumber
+        )
+    );
+
+}
+
+
+function getHistoricalSubjectsForGrade(
+    targetGrade
+) {
+
+    return allSubjects
+        .filter(
+            subject => {
+
+                if (
+                    !matchesCurriculum(
+                        subject
+                    )
+                ) {
+
+                    return false;
+
+                }
+
+
+                return (
+                    Number(subject.grade) ===
+                    Number(targetGrade)
+                );
+
+            }
+        )
+        .sort(
+            compareSubjects
+        );
 
 }
 
@@ -2875,9 +3177,14 @@ function renderProgress() {
         );
 
 
+    /*
+     1年生には基本的に
+     過去年度の履修履歴がない。
+    */
+
     if (
-        currentGrade === 1 &&
-        progress.earnedCredits <= 0
+        currentGrade <= 1 &&
+        pastCourseRecords.size === 0
     ) {
 
         elements.progressCard.hidden =
@@ -2892,60 +3199,7 @@ function renderProgress() {
         false;
 
 
-    if (
-        progressSource === "records"
-    ) {
-
-        elements.progressToggle.hidden =
-            true;
-
-        elements.progressEditor.hidden =
-            true;
-
-
-        elements.progressSummary.innerHTML = `
-
-            <div class="course-progress-official-summary">
-
-                <span>
-                    ✅
-                </span>
-
-                <div>
-
-                    <b>
-                        取得済み単位を確認しました
-                    </b>
-
-                    <strong>
-                        ${formatCredit(
-                            progress.earnedCredits
-                        )}単位
-                    </strong>
-
-                    <small>
-                        必修
-                        ${formatCredit(
-                            progress.earnedRequiredCredits
-                        )}単位・
-                        選択
-                        ${formatCredit(
-                            progress.earnedElectiveCredits
-                        )}単位
-                    </small>
-
-                </div>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    const yearRows =
+    const pastGrades =
         Array.from(
             {
                 length:
@@ -2962,160 +3216,417 @@ function renderProgress() {
         );
 
 
-    if (
-        progress.locked === true
-    ) {
-
-        elements.progressToggle.hidden =
-            true;
-
-        elements.progressEditor.hidden =
-            true;
-
-        elements.progressSummary.hidden =
-            false;
+    const registeredRecords =
+        [...pastCourseRecords.values()]
+            .filter(
+                record =>
+                    isPastCourseActuallyTaken(
+                        record
+                    )
+            );
 
 
-        elements.progressSummary.innerHTML =
-            yearRows.map(
-                year => {
-
-                    const yearProgress =
-                        progress.years?.[
-                            String(year)
-                        ] || {};
-
-
-                    return `
-
-                        <div class="course-progress-year-summary">
-
-                            <b>
-                                ${year}年次
-                            </b>
-
-                            <span>
-                                ${formatCredit(
-                                    yearProgress.total
-                                )}単位
-                            </span>
-
-                            <small>
-
-                                必修
-                                ${formatCredit(
-                                    yearProgress.required
-                                )}・
-
-                                選択
-                                ${formatCredit(
-                                    yearProgress.elective
-                                )}
-
-                            </small>
-
-                        </div>
-
-                    `;
-
-                }
-            )
-            .join("");
+    const earnedRecords =
+        registeredRecords.filter(
+            record =>
+                isPastCourseEarned(
+                    record
+                )
+        );
 
 
-        return;
+    const failedRecords =
+        registeredRecords.filter(
+            record =>
+                isPastCourseFailed(
+                    record
+                )
+        );
 
-    }
+
+    const manuallyEarnedCredits =
+        earnedRecords.reduce(
+            (
+                total,
+                record
+            ) =>
+                total +
+                toNonNegativeNumber(
+                    record.credits
+                ),
+            0
+        );
+
+
+    elements.progressSummary.hidden =
+        false;
+
+
+    elements.progressSummary.innerHTML = `
+
+        <div class="course-progress-official-summary">
+
+            <span>
+                📚
+            </span>
+
+            <div>
+
+                <b>
+                    過去の履修結果
+                </b>
+
+                <strong>
+
+                    ${earnedRecords.length}科目修得
+
+                </strong>
+
+                <small>
+
+                    修得
+                    ${earnedRecords.length}科目
+
+                    ・
+
+                    未修得
+                    ${failedRecords.length}科目
+
+                    ・
+
+                    登録済み
+                    ${formatCredit(
+                        manuallyEarnedCredits
+                    )}単位
+
+                </small>
+
+            </div>
+
+        </div>
+
+    `;
 
 
     elements.progressToggle.hidden =
         false;
 
-    elements.progressSummary.hidden =
-        true;
+
+    elements.progressToggle.textContent =
+        elements.progressEditor.hidden
+            ? "過去の履修結果を登録・編集"
+            : "入力欄を閉じる";
+
+
+    elements.progressSave.textContent =
+        "過去の履修結果を保存";
 
 
     elements.progressYearFields.innerHTML =
-        yearRows.map(
-            year => {
+        pastGrades.map(
+            targetGrade => {
 
-                const yearProgress =
-                    progress.years?.[
-                        String(year)
-                    ] || {};
+                const academicYear =
+                    getAcademicYearForGrade(
+                        targetGrade
+                    );
+
+
+                const gradeSubjects =
+                    getHistoricalSubjectsForGrade(
+                        targetGrade
+                    );
+
+
+                if (
+                    gradeSubjects.length === 0
+                ) {
+
+                    return `
+
+                        <section
+                            class="course-history-year">
+
+                            <div class="course-history-year-heading">
+
+                                <h3>
+                                    ${targetGrade}年次
+                                </h3>
+
+                                <span>
+                                    ${academicYear}年度
+                                </span>
+
+                            </div>
+
+
+                            <div class="course-progress-empty">
+
+                                この年度の対象科目が登録されていません。
+
+                            </div>
+
+                        </section>
+
+                    `;
+
+                }
+
+
+                const semesters =
+                    [
+                        "前期",
+                        "後期",
+                        "通期"
+                    ];
 
 
                 return `
 
-                    <fieldset
-                        class="course-progress-year"
-                        data-year="${year}">
+                    <section
+                        class="course-history-year">
 
-                        <legend>
-                            ${year}年次の取得単位
-                        </legend>
+                        <div class="course-history-year-heading">
 
+                            <div>
 
-                        <label>
+                                <h3>
+                                    ${targetGrade}年次
+                                </h3>
 
-                            <span>
-                                合計
-                            </span>
+                                <small>
+                                    ${academicYear}年度
+                                </small>
 
-                            <input
-                                data-credit="total"
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value="${formatCredit(
-                                    yearProgress.total
-                                )}">
-
-                        </label>
-
-
-                        <label>
+                            </div>
 
                             <span>
-                                必修
+                                ${gradeSubjects.length}科目
                             </span>
 
-                            <input
-                                data-credit="required"
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value="${formatCredit(
-                                    yearProgress.required
-                                )}">
-
-                        </label>
+                        </div>
 
 
-                        <label>
+                        ${
+                            semesters.map(
+                                semester => {
 
-                            <span>
-                                選択
-                            </span>
+                                    const semesterSubjects =
+                                        gradeSubjects.filter(
+                                            subject =>
+                                                normalizeSemester(
+                                                    subject.semester
+                                                ) ===
+                                                semester
+                                        );
 
-                            <input
-                                data-credit="elective"
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value="${formatCredit(
-                                    yearProgress.elective
-                                )}">
 
-                        </label>
+                                    if (
+                                        semesterSubjects.length ===
+                                        0
+                                    ) {
 
-                    </fieldset>
+                                        return "";
+
+                                    }
+
+
+                                    return `
+
+                                        <div
+                                            class="
+                                                course-history-semester
+                                            ">
+
+                                            <h4>
+
+                                                ${semester}
+
+                                            </h4>
+
+
+                                            <div
+                                                class="
+                                                    course-history-subject-list
+                                                ">
+
+                                                ${
+                                                    semesterSubjects
+                                                        .map(
+                                                            subject =>
+                                                                createPastCourseHistoryRow(
+                                                                    subject,
+                                                                    academicYear
+                                                                )
+                                                        )
+                                                        .join("")
+                                                }
+
+                                            </div>
+
+                                        </div>
+
+                                    `;
+
+                                }
+                            )
+                            .join("")
+                        }
+
+                    </section>
 
                 `;
 
             }
         )
         .join("");
+
+}
+
+
+function createPastCourseHistoryRow(
+    subject,
+    academicYear
+) {
+
+    const record =
+        findPastCourseRecord(
+            subject
+        );
+
+
+    const status =
+        record
+            ? normalizePastCourseStatus(
+                record.status ||
+                record.creditStatus
+            )
+            : "not_taken";
+
+
+    const requirementLabel = {
+
+        required:
+            "必修",
+
+        elective:
+            "選択",
+
+        free:
+            "自由"
+
+    }[
+        subject.requirementType
+    ] || "未設定";
+
+
+    return `
+
+        <div
+            class="course-history-subject">
+
+            <div
+                class="course-history-subject-info">
+
+                <strong>
+
+                    ${escapeHtml(
+                        subject.name
+                    )}
+
+                </strong>
+
+
+                <div
+                    class="course-history-subject-meta">
+
+                    <span>
+                        ${escapeHtml(
+                            requirementLabel
+                        )}
+                    </span>
+
+                    ${
+                        subject.category
+                            ? `
+                                <span>
+                                    ${escapeHtml(
+                                        subject.category
+                                    )}
+                                </span>
+                            `
+                            : ""
+                    }
+
+                    <span>
+
+                        ${formatCredit(
+                            subject.credits
+                        )}単位
+
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <select
+                class="course-history-status"
+                data-history-subject-id="${escapeAttribute(
+                    subject.id
+                )}"
+                data-history-academic-year="${academicYear}"
+                aria-label="${escapeAttribute(
+                    subject.name
+                )}の履修結果">
+
+                <option
+                    value="not_taken"
+                    ${
+                        status ===
+                        "not_taken"
+                            ? "selected"
+                            : ""
+                    }>
+
+                    未履修
+
+                </option>
+
+
+                <option
+                    value="earned"
+                    ${
+                        status ===
+                        "earned"
+                            ? "selected"
+                            : ""
+                    }>
+
+                    修得
+
+                </option>
+
+
+                <option
+                    value="not_earned"
+                    ${
+                        status ===
+                        "not_earned"
+                            ? "selected"
+                            : ""
+                    }>
+
+                    未修得
+
+                </option>
+
+            </select>
+
+        </div>
+
+    `;
 
 }
 
@@ -3132,7 +3643,7 @@ function toggleProgressEditor() {
 
     elements.progressToggle.textContent =
         elements.progressEditor.hidden
-            ? "初回登録"
+            ? "過去の履修結果を登録・編集"
             : "入力欄を閉じる";
 
 }
@@ -3140,77 +3651,97 @@ function toggleProgressEditor() {
 
 async function saveCourseProgress() {
 
+    const fields =
+        [
+            ...elements
+                .progressYearFields
+                .querySelectorAll(
+                    "[data-history-subject-id]"
+                )
+        ];
+
+
     if (
-        progress.locked === true ||
-        progressSource === "records"
+        fields.length === 0
     ) {
+
+        alert(
+            "登録できる過去科目がありません。"
+        );
 
         return;
 
     }
 
 
-    const rows =
-        elements.progressYearFields
-            .querySelectorAll(
-                "[data-year]"
-            );
+    const selectedHistory =
+        fields.map(
+            field => ({
+
+                subjectId:
+                    String(
+                        field.dataset
+                            .historySubjectId ||
+                        ""
+                    ),
+
+                academicYear:
+                    Number(
+                        field.dataset
+                            .historyAcademicYear ||
+                        0
+                    ),
+
+                status:
+                    normalizePastCourseStatus(
+                        field.value
+                    )
+
+            })
+        );
 
 
-    const years = {};
+    const takenCount =
+        selectedHistory.filter(
+            history =>
+                history.status !==
+                "not_taken"
+        ).length;
 
 
-    for (const row of rows) {
-
-        const year =
-            row.dataset.year;
-
-
-        const readValue =
-            field =>
-                toNonNegativeNumber(
-                    row.querySelector(
-                        `[data-credit="${field}"]`
-                    )?.value
-                );
+    const earnedCount =
+        selectedHistory.filter(
+            history =>
+                history.status ===
+                "earned"
+        ).length;
 
 
-        years[year] = {
-
-            total:
-                readValue("total"),
-
-            required:
-                readValue("required"),
-
-            elective:
-                readValue("elective")
-
-        };
-
-
-        if (
-            years[year].required +
-            years[year].elective >
-            years[year].total
-        ) {
-
-            alert(
-                `${year}年次の必修と選択の合計が、取得単位合計を超えています。`
-            );
-
-            return;
-
-        }
-
-    }
+    const failedCount =
+        selectedHistory.filter(
+            history =>
+                history.status ===
+                "not_earned"
+        ).length;
 
 
     const confirmed =
         confirm(
-            "取得単位は一度だけ登録できます。\n\n" +
-            "保存後は学生側から変更できません。\n" +
-            "内容に間違いがないか確認してください。"
+
+            "過去の履修結果を保存します。\n\n" +
+
+            `履修した科目：${takenCount}科目\n` +
+
+            `修得：${earnedCount}科目\n` +
+
+            `未修得：${failedCount}科目\n\n` +
+
+            "「未履修」にした科目は、" +
+            "再履修対象にはなりません。\n\n" +
+
+            "過去に実際に履修した科目を" +
+            "すべて正しく設定してください。"
+
         );
 
 
@@ -3219,109 +3750,205 @@ async function saveCourseProgress() {
     }
 
 
-    const latestUserSnapshot =
-        await getDoc(
-            doc(
-                db,
-                "users",
-                studentNumber
-            )
-        );
-
-
-    if (
-        latestUserSnapshot
-            .data()
-            ?.courseProgress
-            ?.locked === true
-    ) {
-
-        progress =
-            latestUserSnapshot
-                .data()
-                .courseProgress;
-
-
-        renderProgress();
-
-        updateAllDisplays();
-
-
-        alert(
-            "取得単位はすでに登録済みです。"
-        );
-
-        return;
-
-    }
-
-
-    const nextProgress = {
-
-        years,
-
-        locked:
-            true,
-
-        earnedCredits:
-            sumObjectValues(
-                years,
-                "total"
-            ),
-
-        earnedRequiredCredits:
-            sumObjectValues(
-                years,
-                "required"
-            ),
-
-        earnedElectiveCredits:
-            sumObjectValues(
-                years,
-                "elective"
-            ),
-
-        categoryCredits:
-            {},
-
-        categoryRequiredCredits:
-            {},
-
-        categoryElectiveCredits:
-            {},
-
-        requirementTagCredits:
-            {},
-
-        registeredAt:
-            new Date()
-                .toISOString(),
-
-        updatedAt:
-            new Date()
-                .toISOString()
-
-    };
-
-
     try {
 
         elements.progressSave.disabled =
             true;
 
+
         elements.progressSave.textContent =
             "保存中...";
 
 
-        await setDoc(
+        const batch =
+            writeBatch(
+                db
+            );
+
+
+        for (
+            const history of
+            selectedHistory
+        ) {
+
+            const subject =
+                allSubjects.find(
+                    candidate =>
+                        candidate.id ===
+                        history.subjectId
+                );
+
+
+            if (!subject) {
+                continue;
+            }
+
+
+            const existingRecord =
+                findPastCourseRecord(
+                    subject
+                );
+
+
+            const recordId =
+                existingRecord?.id ||
+                subject.id;
+
+
+            const recordReference =
+                doc(
+                    db,
+                    "users",
+                    studentNumber,
+                    "courseHistoryRecords",
+                    recordId
+                );
+
+
+            /*
+             未履修の場合は
+             履修履歴そのものを削除。
+
+             つまり
+             「科目が存在していた」
+             だけでは再履修にならない。
+            */
+
+            if (
+                history.status ===
+                "not_taken"
+            ) {
+
+                if (existingRecord) {
+
+                    batch.delete(
+                        recordReference
+                    );
+
+                }
+
+
+                continue;
+
+            }
+
+
+            batch.set(
+                recordReference,
+                {
+
+                    subjectId:
+                        subject.id,
+
+                    subjectKey:
+                        subject.subjectKey,
+
+                    name:
+                        subject.name,
+
+                    curriculumId:
+                        currentCurriculum
+                            .curriculumId,
+
+                    department:
+                        subject.department ||
+                        department,
+
+                    major:
+                        subject.major ||
+                        major,
+
+                    grade:
+                        subject.grade,
+
+                    academicYear:
+                        Number(
+                            history.academicYear
+                        ),
+
+                    semester:
+                        subject.semester,
+
+                    requirementType:
+                        subject.requirementType,
+
+                    required:
+                        subject.requirementType ===
+                        "required",
+
+                    category:
+                        subject.category,
+
+                    subcategory:
+                        subject.subcategory,
+
+                    requirementTags:
+                        subject.requirementTags,
+
+                    credits:
+                        subject.credits,
+
+                    /*
+                     履修したことを明示する。
+                    */
+
+                    tookCourse:
+                        true,
+
+                    /*
+                     earned
+                     not_earned
+                    */
+
+                    status:
+                        history.status,
+
+                    creditStatus:
+                        history.status,
+
+                    source:
+                        "student_manual_history",
+
+                    manualHistory:
+                        true,
+
+                    registeredAt:
+                        existingRecord
+                            ?.registeredAt ||
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp()
+
+                },
+                {
+                    merge:
+                        true
+                }
+            );
+
+        }
+
+
+        /*
+         旧「単位数だけ入力」方式から
+         科目履歴方式へ移行したことを保存。
+        */
+
+        batch.set(
             doc(
                 db,
                 "users",
                 studentNumber
             ),
             {
-                courseProgress:
-                    nextProgress
+
+                courseHistoryInitialized:
+                    true,
+
+                courseHistoryUpdatedAt:
+                    serverTimestamp()
+
             },
             {
                 merge:
@@ -3330,38 +3957,47 @@ async function saveCourseProgress() {
         );
 
 
-        progress =
-            nextProgress;
+        await batch.commit();
 
 
-        renderProgress();
-
-        updateAllDisplays();
+        courseHistoryDirty =
+            false;
 
 
         showToast(
-            "取得単位を保存しました"
+            "過去の履修結果を保存しました"
         );
+
+
+        /*
+         単位数・再履修判定を
+         Firestoreから再計算。
+        */
+
+        await loadRegistrationData();
+
 
     } catch (error) {
 
         console.error(
-            "取得単位保存エラー:",
+            "過去履修結果保存エラー:",
             error
         );
 
 
         alert(
-            "取得単位を保存できませんでした。"
+            "過去の履修結果を保存できませんでした。"
         );
+
 
     } finally {
 
         elements.progressSave.disabled =
             false;
 
+
         elements.progressSave.textContent =
-            "この内容で取得単位を登録";
+            "過去の履修結果を保存";
 
     }
 
@@ -7489,7 +8125,10 @@ function navigateWithUnsavedCheck(
     url
 ) {
 
-    if (pageDirty) {
+    if (
+        pageDirty ||
+        courseHistoryDirty
+    ) {
 
         const confirmed =
             confirm(
@@ -7505,7 +8144,7 @@ function navigateWithUnsavedCheck(
     }
 
 
-    pageDirty =
+    courseHistoryDirty =
         false;
 
 
