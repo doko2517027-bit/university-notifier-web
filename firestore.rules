@@ -564,9 +564,25 @@ service cloud.firestore {
     ======================================== */
 
     match /contacts/{id} {
-
-      allow create, read, update: if true;
+      allow create: if request.auth != null
+        && request.resource.data.studentNumber == request.auth.token.studentNumber;
+      allow read: if request.auth != null
+        && (resource.data.studentNumber == request.auth.token.studentNumber
+          || request.auth.token.studentNumber == "2510044");
+      allow update: if request.auth != null
+        && (resource.data.studentNumber == request.auth.token.studentNumber
+          || request.auth.token.studentNumber == "2510044");
       allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && (get(/databases/$(database)/documents/contacts/$(id)).data.studentNumber == request.auth.token.studentNumber
+            || request.auth.token.studentNumber == "2510044");
+        allow create: if request.auth != null
+          && (get(/databases/$(database)/documents/contacts/$(id)).data.studentNumber == request.auth.token.studentNumber
+            || request.auth.token.studentNumber == "2510044");
+        allow update, delete: if false;
+      }
 
     }
 

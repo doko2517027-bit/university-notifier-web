@@ -2223,7 +2223,7 @@ onDocumentCreated(
     }
 );
 
-// お問い合わせは2510044の全登録端末にだけ通知する。
+// 新規お問い合わせは担当者 2510044 の全登録端末にだけ通知する。
 exports.notifyContactMessage = onDocumentCreated(
     { document:"contacts/{contactId}", region:"asia-northeast1", secrets:[WEB_PUSH_PUBLIC_KEY,WEB_PUSH_PRIVATE_KEY] },
     async event => {
@@ -2231,9 +2231,26 @@ exports.notifyContactMessage = onDocumentCreated(
         if(!snapshot)return;
         const contact=snapshot.data();
         webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",WEB_PUSH_PUBLIC_KEY.value(),WEB_PUSH_PRIVATE_KEY.value());
-        const devices=await db.collection("users").doc("2510044").collection("pushSubscriptions").get();
-        const payload=JSON.stringify({title:"📨 CareMate お問い合わせ",body:`${contact.category||"お問い合わせ"}：${String(contact.message||"").slice(0,80)}`,url:"https://doko2517027-bit.github.io/university-notifier-web/contact_admin.html"});
-        const results=await Promise.all(devices.docs.map(async device=>{try{await webpush.sendNotification(device.data(),payload);return{deviceId:device.id,result:"sent"};}catch(error){if(error?.statusCode===404||error?.statusCode===410)await device.ref.delete();return{deviceId:device.id,result:"failed",statusCode:error?.statusCode||null};}}));
+        const results=await sendToUserDevices("2510044",{title:"📨 CareMate お問い合わせ",body:`${contact.category||"お問い合わせ"}：${String(contact.message||"添付ファイル").slice(0,80)}`,url:`${SITE_URL}/contact_admin.html?contactId=${event.params.contactId}`});
+        await snapshot.ref.update({notificationSentAt:new Date(),notificationResults:results});
+    }
+);
+
+// 個別チャットの新着を、学生または担当管理者へ即時に知らせる。
+exports.notifyContactChatMessage = onDocumentCreated(
+    { document:"contacts/{contactId}/messages/{messageId}", region:"asia-northeast1", secrets:[WEB_PUSH_PUBLIC_KEY,WEB_PUSH_PRIVATE_KEY] },
+    async event => {
+        const snapshot=event.data;
+        if(!snapshot)return;
+        const message=snapshot.data();
+        const contactSnap=await db.collection("contacts").doc(event.params.contactId).get();
+        const contact=contactSnap.data();
+        if(!contact?.studentNumber)return;
+        webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com",WEB_PUSH_PUBLIC_KEY.value(),WEB_PUSH_PRIVATE_KEY.value());
+        const isAdminMessage=message.senderRole==="admin";
+        const recipient=isAdminMessage?String(contact.studentNumber):"2510044";
+        const url=isAdminMessage?`${SITE_URL}/contact_chat.html?contactId=${event.params.contactId}`:`${SITE_URL}/contact_admin.html?contactId=${event.params.contactId}`;
+        const results=await sendToUserDevices(recipient,{title:isAdminMessage?"💬 CareMate お問い合わせ":"📨 CareMate お問い合わせ",body:isAdminMessage?"管理者から返信があります":`学生から返信があります：${String(message.body||"添付ファイル").slice(0,80)}`,url});
         await snapshot.ref.update({notificationSentAt:new Date(),notificationResults:results});
     }
 );

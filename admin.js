@@ -31,6 +31,7 @@ import {
     updateDoc,
     collection,
     getDocs,
+    onSnapshot,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -77,6 +78,22 @@ const lastScheduleCheckText =
     document.getElementById(
         "lastScheduleCheckText"
     );
+
+// お問い合わせ管理は担当者 2510044 のみ表示する。
+const adminContactCard = document.getElementById("adminContactCard");
+const adminContactCardBadge = document.getElementById("adminContactCardBadge");
+if (studentNumber === "2510044" && adminContactCard) {
+    adminContactCard.hidden = false;
+    onSnapshot(collection(db, "contacts"), snapshot => {
+        const count = snapshot.docs.filter(item =>
+            !["done", "resolved"].includes(item.data().status || "new")
+        ).length;
+        if (adminContactCardBadge) {
+            adminContactCardBadge.textContent = count > 99 ? "99+" : String(count);
+            adminContactCardBadge.hidden = count === 0;
+        }
+    });
+}
 
 const lastAssignmentCheckText =
     document.getElementById(
