@@ -2533,7 +2533,7 @@ function getHistoricalSubjectsForPeriod(
 
 
 /* ========================================
-   取得単位
+   修得単位
 ======================================== */
 
 function createEmptyProgress() {
@@ -3321,7 +3321,7 @@ function renderUnavailable(
 
 
 /* ========================================
-   取得単位表示
+   修得単位表示
 ======================================== */
 
 function renderProgress() {
@@ -3931,7 +3931,7 @@ function createPastCourseHistoryRow(
 
 
 /* ========================================
-   取得単位登録
+   修得単位登録
 ======================================== */
 
 function toggleProgressEditor() {
@@ -4790,7 +4790,7 @@ function createSubjectCardHtml(
     if (alreadyEarned) {
 
         statusText =
-            "取得済み";
+            "修得済み";
 
     } else if (
         selected &&
@@ -5830,7 +5830,7 @@ function updateGraduationDisplay(
     setText(
         elements.earnedCredits,
         formatCredit(
-            progress.earnedCredits
+            summary.projectedCredits
         )
     );
 
@@ -6085,7 +6085,7 @@ function updateCategoryProgress(
 
                 <span>
 
-                    取得済み
+                    修得済み
                     <b>
                         ${formatCredit(
                             earnedRequired
@@ -6201,7 +6201,7 @@ function updateCategoryProgress(
 
                 <span>
 
-                    取得済み
+                    修得済み
                     <b>
                         ${formatCredit(
                             earnedElective
@@ -6466,7 +6466,7 @@ function updateCategoryProgress(
 
                                     <span>
 
-                                        取得済み
+                                        修得済み
                                         <b>
                                             ${formatCredit(
                                                 earnedTotal
@@ -6586,7 +6586,7 @@ function updateCategoryProgress(
 
                     <div class="course-category-data-note">
 
-                        ℹ️ 過去の取得単位は総単位・必修・選択には反映されています。
+                        ℹ️ 過去の修得単位は総単位・必修・選択には反映されています。
                         科目ごとの区分情報が登録されていないため、
                         総合教育科目・専門基礎科目・専門科目の内訳には
                         今回選択した科目だけが反映されています。
@@ -8351,7 +8351,7 @@ function subjectHasWarning(
 
 
 /* ========================================
-   取得済み判定
+   修得済み判定
 ======================================== */
 
 function isAlreadyEarned(

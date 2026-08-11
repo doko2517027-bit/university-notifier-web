@@ -99,6 +99,23 @@ service cloud.firestore {
 
 
       /*
+       過去に履修した科目の修得・未修得記録。
+       本人、または管理者のFirebase認証済み端末だけが扱える。
+      */
+
+      match /courseHistoryRecords/{id} {
+
+        allow read, create, update, delete: if
+          request.auth != null &&
+          (
+            request.auth.token.studentNumber == userId ||
+            request.auth.token.admin == true
+          );
+
+      }
+
+
+      /*
        CareMate内の個人用出席記録。
        大学の公式出席記録ではない。
       */
