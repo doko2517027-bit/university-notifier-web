@@ -272,34 +272,56 @@ export const studentAcademicContext =
 
 export function setupTheme(themeButton){
 
-    if(localStorage.getItem("theme")==="dark"){
+    const applyTheme = theme => {
 
-        document.documentElement.classList.add("dark");
-        themeButton.textContent="☀️";
+        const isDark = theme === "dark";
 
-    }else{
+        document.documentElement.classList.toggle("dark", isDark);
 
-        themeButton.textContent="🌙";
-
-    }
-
-    themeButton.onclick=()=>{
-
-        document.documentElement.classList.toggle("dark");
-
-        if(document.documentElement.classList.contains("dark")){
-
-            localStorage.setItem("theme","dark");
-            themeButton.textContent="☀️";
-
-        }else{
-
-            localStorage.setItem("theme","light");
-            themeButton.textContent="🌙";
-
+        if (themeButton) {
+            themeButton.textContent = isDark ? "☀️" : "🌙";
+            themeButton.setAttribute(
+                "aria-label",
+                isDark ? "ライトモードに切り替える" : "ダークモードに切り替える"
+            );
         }
 
     };
+
+    applyTheme(localStorage.getItem("theme") === "dark" ? "dark" : "light");
+
+    if (themeButton) {
+        themeButton.onclick = () => {
+
+            const theme = document.documentElement.classList.contains("dark")
+                ? "light"
+                : "dark";
+
+            localStorage.setItem("theme", theme);
+            applyTheme(theme);
+
+        };
+    }
+
+    document.querySelectorAll("#profileButton, [data-profile-button]")
+        .forEach(profileButton => {
+
+            if (profileButton.dataset.profileNavigationBound === "true") {
+                return;
+            }
+
+            profileButton.dataset.profileNavigationBound = "true";
+            profileButton.addEventListener("click", () => {
+                location.href = "profile.html";
+            });
+
+        });
+
+    window.addEventListener("storage", event => {
+        if (event.key === "theme") {
+            applyTheme(event.newValue === "dark" ? "dark" : "light");
+        }
+    });
 
 }
 
@@ -1428,16 +1450,21 @@ export async function setupAdminTab() {
     `;
 
     try {
-        const reportsSnapshot = await getDocs(collection(db, "reports"));
-        const unresolvedCount = reportsSnapshot.docs.filter(item =>
-            !["closed", "corrected", "resolved"].includes(item.data().status || "open")
-        ).length;
-        ["adminReportBadge", "adminReportCardBadge"].forEach(id => {
-            const badge = document.getElementById(id);
-            if (badge && unresolvedCount > 0) {
+        onSnapshot(collection(db, "reports"), reportsSnapshot => {
+            const unresolvedCount = reportsSnapshot.docs.filter(item =>
+                !["closed", "corrected", "resolved"].includes(item.data().status || "open")
+            ).length;
+
+            ["adminReportBadge", "adminReportCardBadge"].forEach(id => {
+                const badge = document.getElementById(id);
+
+                if (!badge) {
+                    return;
+                }
+
                 badge.textContent = unresolvedCount > 99 ? "99+" : String(unresolvedCount);
-                badge.hidden = false;
-            }
+                badge.hidden = unresolvedCount === 0;
+            });
         });
     } catch (error) {
         console.error("管理通報バッジ取得エラー:", error);
