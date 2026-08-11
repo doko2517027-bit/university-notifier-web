@@ -589,6 +589,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /* ========================================
+       2510044専用 AIデジタルノート
+    ======================================== */
+    match /digitalNotes/{studentId}/notes/{noteId} {
+      allow read, create, update, delete: if request.auth != null
+        && request.auth.token.studentNumber == "2510044"
+        && studentId == "2510044";
+    }
+
   }
 
 }

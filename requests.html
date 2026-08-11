@@ -8,6 +8,7 @@
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
 <style>
 .request-slots{display:grid;gap:10px}.request-slot{padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--card)}.request-slot.is-locked{opacity:.68}.request-progress{height:9px;background:color-mix(in srgb,var(--primary) 15%,var(--card));border-radius:999px;overflow:hidden}.request-progress i{display:block;height:100%;background:var(--primary);border-radius:inherit}.request-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.request-item{border-left:4px solid var(--primary)}.request-status{font-weight:700;color:var(--primary)}
+.digital-note-card{display:none;border-left:4px solid #5865f2;background:linear-gradient(135deg,color-mix(in srgb,#5865f2 12%,var(--card)),var(--card))}.digital-note-card.is-available{display:block}.digital-note-card h2{margin-bottom:6px}.digital-note-card p{margin:6px 0 14px}
 </style>
 </head>
 <body class="page-loading">
@@ -17,6 +18,7 @@
 <section class="card setting-card"><h2>💡 機能リクエスト</h2><p>あなた専用のCareMateに、欲しい機能をリクエストできます。<br>「こんなのがあったら便利」「こんなのがあったら面白い」もOKです。</p><p><b>ポイントは消費しません。</b>累計ポイントに応じて、リクエスト枠が永久に解放されます。</p></section>
 <section class="card setting-card"><h2>あなたのリクエスト枠</h2><p id="requestTotalPoints">累計ポイントを確認中...</p><div id="requestSlots" class="request-slots"></div><p id="requestNextUnlock"></p></section>
 <section id="requestFormCard" class="card setting-card" hidden><h2>新しいリクエスト</h2><label>機能名<input id="requestTitle" maxlength="100" placeholder="例：次の授業までカウントダウン"></label><label>どんな機能？<textarea id="requestDescription" rows="5" maxlength="2000" placeholder="ホームに次の授業までの時間を秒単位で表示してほしい"></textarea></label><label>こんな時に使いたい<textarea id="requestUseCase" rows="3" maxlength="1000" placeholder="例：空きコマのとき"></textarea></label><button id="sendFeatureRequest" class="btn btn-primary">リクエストを送信</button></section>
+<section id="digitalNoteCard" class="card setting-card digital-note-card" aria-hidden="true"><h2>✨ AIデジタルノート</h2><p>メモ、リアルタイム文字起こし、ToDo、検索、目隠し学習、ChatGPT用の要約・問題作成をまとめて使えます。</p><a class="btn btn-primary" href="ai_notes.html">AIデジタルノートを開く</a></section>
 <section class="card setting-card"><h2>送信済みリクエスト</h2><div id="requestHistory">読み込み中...</div></section>
 </main>
 <nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span><span id="assignmentNavBadge" class="nav-notification-badge" hidden>0</span></span><span>課題</span></a><a href="requests.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav>

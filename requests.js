@@ -8,6 +8,8 @@ let totalPoints=0,requests=[];
 const escapeHtml=value=>String(value??"").replace(/[&<>\"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[char]);
 setupTheme(themeButton);
 await initializePage([setupAdminTab(),loadUserName(userName),loadMyRanking(),loadProfileImage(topProfileImage)]);
+const digitalNoteCard=document.getElementById("digitalNoteCard");
+if(studentNumber==="2510044"){digitalNoteCard.classList.add("is-available");digitalNoteCard.setAttribute("aria-hidden","false")}
 onSnapshot(doc(db,"totalRanking",studentNumber),snap=>{totalPoints=Number(snap.data()?.point||0);render()});
 onSnapshot(query(collection(db,"featureRequests"),where("studentNumber","==",studentNumber)),snap=>{requests=snap.docs.map(item=>({id:item.id,...item.data()})).sort((a,b)=>timeOf(b.createdAt)-timeOf(a.createdAt));render()});
 function timeOf(value){return typeof value?.toDate==="function"?value.toDate().getTime():0}
