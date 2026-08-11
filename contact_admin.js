@@ -1,7 +1,7 @@
 import { db, studentNumber, setupTheme, initializePage, isAdmin, setupAdminTab } from "./common.js";
-import { collection, onSnapshot, doc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const list=document.getElementById("contactList"), messageListeners=new Map();
+const list=document.getElementById("contactList");
 setupTheme(document.getElementById("themeButton"));
 document.getElementById("backButton").onclick=()=>history.length>1?history.back():location.replace("admin.html");
 await initializePage([setupAdminTab()]);
@@ -10,16 +10,20 @@ if(studentNumber!=="2510044"||!(await isAdmin())){
   list.innerHTML='<div class="card setting-card">この画面を利用できません。</div>';
 }else{
   onSnapshot(collection(db,"contacts"),snapshot=>{
-    const contacts=snapshot.docs.map(item=>({id:item.id,...item.data()})).sort((a,b)=>timeOf(b.createdAt)-timeOf(a.createdAt));
-    const valid=new Set(contacts.map(item=>item.id));
-    messageListeners.forEach((unsub,id)=>{if(!valid.has(id)){unsub();messageListeners.delete(id)}});
-    list.innerHTML=contacts.length?contacts.map(renderContact).join(""):'<div class="card setting-card">お問い合わせはありません。</div>';
-    contacts.forEach(contact=>listenMessages(contact.id));
+    const groups=new Map();
+    snapshot.docs.forEach(item=>{
+      const contact={id:item.id,...item.data()},key=String(contact.studentNumber||"不明");
+      const group=groups.get(key)||{studentNumber:key,items:[]};
+      group.items.push(contact);groups.set(key,group);
+    });
+    const students=[...groups.values()].map(group=>{
+      group.items.sort((a,b)=>timeOf(b.lastMessageAt||b.createdAt)-timeOf(a.lastMessageAt||a.createdAt));
+      group.latest=group.items[0];
+      group.open=group.items.filter(item=>!['done','resolved'].includes(item.status||'new')).length;
+      return group;
+    }).sort((a,b)=>timeOf(b.latest.lastMessageAt||b.latest.createdAt)-timeOf(a.latest.lastMessageAt||a.latest.createdAt));
+    list.innerHTML=students.length?students.map(renderStudent).join(""):'<div class="card setting-card">お問い合わせはありません。</div>';
   },error=>{console.error(error);list.innerHTML='<div class="card setting-card">お問い合わせを読み込めませんでした。</div>'});
 }
-
-function renderContact(x){const status=x.status||"new";return `<article class="card setting-card contact-thread" data-contact-id="${x.id}"><small>${formatTime(x.createdAt)}・${escapeHtml(x.studentNumber||"不明")}</small><h3>${escapeHtml(x.category||"お問い合わせ")}</h3><p class="contact-bubble student"><b>学生</b><br>${formatText(x.message)}</p><label>対応状況<select class="contact-status" data-id="${x.id}"><option value="new" ${status==="new"?"selected":""}>未対応</option><option value="in_progress" ${status==="in_progress"?"selected":""}>対応中</option><option value="done" ${status==="done"?"selected":""}>対応済み</option></select></label><div class="contact-messages" id="messages-${x.id}"><small>メッセージを読み込み中...</small></div><label>返信<textarea id="reply-${x.id}" rows="3" maxlength="2000" placeholder="学生へ返信する内容"></textarea></label><button class="btn btn-primary contact-send" data-id="${x.id}">返信を送る</button></article>`}
-function listenMessages(id){if(messageListeners.has(id))return;messageListeners.set(id,onSnapshot(collection(db,"contacts",id,"messages"),snapshot=>{const target=document.getElementById(`messages-${id}`);if(!target)return;const messages=snapshot.docs.map(item=>item.data()).sort((a,b)=>timeOf(a.createdAt)-timeOf(b.createdAt));target.innerHTML=messages.length?messages.map(message=>`<p class="contact-bubble ${message.senderRole==="admin"?"admin":"student"}"><b>${message.senderRole==="admin"?"管理者":"学生"}</b> <small>${formatTime(message.createdAt)}</small><br>${formatText(message.body)}</p>`).join(""):'<small>まだ返信はありません。</small>'}))}
-document.addEventListener("change",async event=>{const select=event.target.closest(".contact-status");if(!select)return;await updateDoc(doc(db,"contacts",select.dataset.id),{status:select.value,statusUpdatedAt:serverTimestamp(),statusUpdatedBy:studentNumber})});
-document.addEventListener("click",async event=>{const button=event.target.closest(".contact-send");if(!button)return;const id=button.dataset.id,textarea=document.getElementById(`reply-${id}`),body=textarea.value.trim();if(!body){alert("返信を入力してください。");return}button.disabled=true;try{await addDoc(collection(db,"contacts",id,"messages"),{senderRole:"admin",senderStudentNumber:studentNumber,body,createdAt:serverTimestamp()});await updateDoc(doc(db,"contacts",id),{status:"in_progress",lastMessageAt:serverTimestamp()});textarea.value=""}catch(error){console.error(error);alert("返信を送信できませんでした。")}finally{button.disabled=false}});
-function timeOf(value){return value?.toMillis?.()||0} function formatTime(value){return value?.toDate?.().toLocaleString("ja-JP")||"送信直後"} function formatText(value){return escapeHtml(value||"").replace(/\n/g,"<br>")} function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function renderStudent(group){const latest=group.latest,preview=String(latest.message||'追加メッセージがあります').replace(/\s+/g,' ').slice(0,70);return `<button type="button" class="card setting-card" style="width:100%;text-align:left;cursor:pointer" onclick="location.href='contact_admin_chat.html?studentNumber=${encodeURIComponent(group.studentNumber)}'"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">👤 ${escapeHtml(group.studentNumber)}</h3><span>${group.open?`<b style="color:#dc2626">未対応 ${group.open}件</b>`:'対応済み'}</span></div><p style="margin:.5rem 0 0"><b>${escapeHtml(latest.category||'お問い合わせ')}</b>　${escapeHtml(preview)}</p><small>${formatTime(latest.lastMessageAt||latest.createdAt)}　タップしてチャットを開く</small></button>`}
+function timeOf(value){return value?.toMillis?.()||0}function formatTime(value){return value?.toDate?.().toLocaleString('ja-JP')||'送信直後'}function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
