@@ -29,6 +29,7 @@ if(studentNumber!=="2510044"){
   $("voiceButton").onclick=toggleVoice;
   $("openSummary").onclick=()=>openChatGPT("要約");
   $("openQuiz").onclick=()=>openChatGPT("問題作成");
+  setupDrawer();
   document.querySelectorAll(".workspace-tab").forEach(button=>button.onclick=()=>selectPanel(button.dataset.panel));
   $("penColor").oninput=()=>setDrawTool("pen");
   $("penSize").oninput=()=>$("penSizeValue").textContent=`${$("penSize").value}px`;
@@ -39,7 +40,7 @@ if(studentNumber!=="2510044"){
   setupBoard();
   ["noteTitle","noteBody","maskTerms"].forEach(id=>$(id).addEventListener("input",renderPreview));
   document.addEventListener("click",event=>{
-    const select=event.target.closest(".note-entry");if(select){state.selected=select.dataset.id;render();return}
+    const select=event.target.closest(".note-entry");if(select){state.selected=select.dataset.id;render();$("noteDrawer").classList.remove("is-open");$("drawerBackdrop").classList.remove("is-open");return}
     const mask=event.target.closest(".mask-word");if(mask)mask.classList.toggle("is-open");
   });
   document.body.classList.remove("page-loading");
@@ -52,6 +53,7 @@ function renderTodos(){const note=current();$("todoList").innerHTML=(note?.todos
 function todoChange(event){const note=current(),target=event.target;if(!note)return;const index=Number(target.dataset.todoDone??target.dataset.todoText??target.dataset.todoDelete);if(target.dataset.todoDelete!==undefined){note.todos.splice(index,1)}else if(target.dataset.todoDone!==undefined){note.todos[index].done=target.checked}else{note.todos[index].text=target.value}renderTodos()}
 async function deleteCurrentNote(){const note=current();if(!note)return alert("削除するノートを選んでください。");if(!confirm(`「${note.title||"無題のノート"}」を削除しますか？\n本文とこの端末の手書きは元に戻せません。`))return;try{localStorage.removeItem(`careMateHandwriting:${note.id}`);localStorage.removeItem(`careMatePaper:${note.id}`);await deleteDoc(doc(db,"digitalNotes","2510044","notes",note.id));state.selected=null;alert("ノートを削除しました。")}catch(error){console.error(error);alert("ノートを削除できませんでした。")}}
 function selectPanel(id){document.querySelectorAll(".workspace-tab").forEach(item=>item.classList.toggle("active",item.dataset.panel===id));document.querySelectorAll(".workspace-panel").forEach(item=>item.classList.toggle("active",item.id===id));if(id==="writePanel")resizeBoard()}
+function setupDrawer(){const drawer=$("noteDrawer"),backdrop=$("drawerBackdrop"),open=()=>{drawer.classList.add("is-open");backdrop.classList.add("is-open")},close=()=>{drawer.classList.remove("is-open");backdrop.classList.remove("is-open")};$("noteMenuButton").onclick=open;$("closeDrawer").onclick=close;backdrop.onclick=close;const noteAside=document.querySelector(".note-shell>aside");if(noteAside)$("drawerNotesMount").append(noteAside);document.querySelectorAll("[data-drawer-panel]").forEach(button=>button.onclick=()=>{selectPanel(button.dataset.drawerPanel);close()});document.querySelectorAll("[data-drawer-target]").forEach(button=>button.onclick=()=>{const target=button.dataset.drawerTarget==="todos"?$("todoList").closest("section"):$("todoList").closest("section").nextElementSibling;target?.scrollIntoView({behavior:"smooth",block:"start"});close()})}
 function setupBoard(){const board=$("writingBoard");["pointerdown","pointermove","pointerup","pointercancel","pointerleave"].forEach(type=>board.addEventListener(type,drawPointer));window.addEventListener("resize",resizeBoard);resizeBoard()}
 function resizeBoard(){const board=$("writingBoard");if(!board||!board.offsetWidth)return;const previous=board.toDataURL();const ratio=window.devicePixelRatio||1;board.width=Math.round(board.clientWidth*ratio);board.height=Math.round(board.clientHeight*ratio);const ctx=board.getContext("2d");ctx.scale(ratio,ratio);if(previous&&previous!=="data:,"){const image=new Image();image.onload=()=>ctx.drawImage(image,0,0,board.clientWidth,board.clientHeight);image.src=previous}}
 function setDrawTool(tool){state.drawTool=tool;document.querySelectorAll("[data-draw-tool]").forEach(item=>item.classList.toggle("active",item.dataset.drawTool===tool))}
