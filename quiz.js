@@ -115,7 +115,7 @@ function renderQuestion() {
                 <button class="btn btn-primary next-question">${currentIndex + 1 < visibleQuiz.length ? "次の問題" : "結果を終了"}</button>
             </div>
             <button type="button" class="test-report-link report-wrong-answer">答えが違います</button>
-        </div>${scrubberHtml(currentIndex,visibleQuiz.length)}${studySearchHtml(q.question)}`;
+        </div>${scrubberHtml(currentIndex,visibleQuiz.length)}${studySearchHtml()}`;
     setupScrubber(quizArea,index=>{currentIndex=index;renderQuestion();saveTestProgress("quiz",subjectId,subjectName,unitId,currentIndex,visibleQuiz.length)});
     setupStudyTools(quizArea);
 }

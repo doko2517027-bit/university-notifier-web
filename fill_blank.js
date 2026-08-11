@@ -200,7 +200,7 @@ function renderFillQuestion() {
                     data-question-index="${currentFillIndex}">
                     答えが違います
                 </button>
-            </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}${studySearchHtml(q.question)}
+            </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}${studySearchHtml()}
         `;
     setupScrubber(questions,index=>{currentFillIndex=index;renderFillQuestion();saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length)});
     setupStudyTools(questions);

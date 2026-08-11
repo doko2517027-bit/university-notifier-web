@@ -187,7 +187,7 @@ async function loadDailyQuestion() {
                 答えが違います
             </button>
         </div>
-        ${studySearchHtml(q.question)}
+        ${studySearchHtml()}
     `;
 
     setupStudyTools(questionArea);

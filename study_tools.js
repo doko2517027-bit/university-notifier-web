@@ -1,11 +1,6 @@
 import { db, studentNumber } from "./common.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-function escapeHtml(value) {
-    return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
 export function studyPointHtml(earnedPoints) {
     return `
         <div class="study-point-summary" aria-label="この問題のポイント">
@@ -14,10 +9,10 @@ export function studyPointHtml(earnedPoints) {
         </div>`;
 }
 
-export function studySearchHtml(question) {
+export function studySearchHtml() {
     return `
         <form class="study-search-form" aria-label="問題をGoogleで検索">
-            <input class="study-search-input" type="search" value="${escapeHtml(question)}" placeholder="この問題をGoogleで検索" aria-label="この問題をGoogleで検索">
+            <input class="study-search-input" type="search" placeholder="この問題をGoogleで検索" aria-label="この問題をGoogleで検索">
             <button class="study-search-button" type="submit">検索</button>
         </form>`;
 }
