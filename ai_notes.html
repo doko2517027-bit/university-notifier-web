@@ -13,7 +13,7 @@
 </head>
 <body class="page-loading">
 <div class="top-buttons"><button id="noteMenuButton" class="circle-button" aria-label="AIデジタルノートのメニューを開く">☰</button><div class="top-user-info"><span id="userName">2510044さん</span><span id="myRanking"></span></div><div class="top-right"><button id="themeButton" class="circle-button">🌙</button><button id="profileButton" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image"></button></div></div>
-<div id="drawerBackdrop" class="drawer-backdrop"></div><aside id="noteDrawer" class="note-drawer" aria-label="AIデジタルノートのメニュー"><div class="drawer-head"><h2>📝 AIデジタルノート</h2><button id="closeDrawer" class="circle-button" aria-label="メニューを閉じる">×</button></div><div class="drawer-menu"><button data-drawer-panel="typedPanel">⌨️ 文字ノート</button><button data-drawer-panel="writePanel">✍️ 手書きノート</button><button data-drawer-panel="transcriptPanel">🎙 文字起こし</button><button data-drawer-target="todos">✅ ToDo</button><button data-drawer-target="study">📚 学習・添付</button></div><div class="drawer-note-actions"><b>ノート</b><button id="newNoteDrawer" class="btn btn-primary">＋ 新しいノート</button></div><div id="drawerNotesMount"></div></aside>
+<div id="drawerBackdrop" class="drawer-backdrop"></div><aside id="noteDrawer" class="note-drawer" aria-label="AIデジタルノートのメニュー"><div class="drawer-head"><h2>📝 AIデジタルノート</h2><button id="closeDrawer" class="circle-button" aria-label="メニューを閉じる">×</button></div><div class="drawer-note-actions"><b>ノート</b><button id="newNoteDrawer" class="btn btn-primary">＋ 新しいノート</button></div><div id="drawerNotesMount"></div></aside>
 <header class="header"><div class="logo">📝</div><h1>AIデジタルノート</h1><p>書く・話す・覚えるを、ひとつのノートに。</p></header>
 <main>
 <section id="denied" class="card setting-card" hidden><h2>利用できません</h2><p>この機能は2510044専用です。</p></section>
@@ -25,6 +25,6 @@
 </div>
 </main>
 <nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="requests.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>管理</span></a></nav>
-<script type="module" src="ai_notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script type="module" src="ai_notes.js"></script>
 </body>
 </html>
