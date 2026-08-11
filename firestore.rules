@@ -570,8 +570,10 @@ service cloud.firestore {
         && (resource.data.studentNumber == request.auth.token.studentNumber
           || request.auth.token.studentNumber == "2510044");
       allow update: if request.auth != null
-        && (resource.data.studentNumber == request.auth.token.studentNumber
-          || request.auth.token.studentNumber == "2510044");
+        && (request.auth.token.studentNumber == "2510044"
+          || (resource.data.studentNumber == request.auth.token.studentNumber
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["status", "lastMessageAt"])));
       allow delete: if false;
 
       match /messages/{messageId} {

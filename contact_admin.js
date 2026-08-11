@@ -12,7 +12,7 @@ if(studentNumber!=="2510044"||!(await isAdmin())){
   onSnapshot(collection(db,"contacts"),snapshot=>{
     const groups=new Map();
     snapshot.docs.forEach(item=>{
-      const contact={id:item.id,...item.data()},key=String(contact.studentNumber||"不明");
+      const contact={id:item.id,...item.data()};if(contact.deletedAt)return;const key=String(contact.studentNumber||"不明");
       const group=groups.get(key)||{studentNumber:key,items:[]};
       group.items.push(contact);groups.set(key,group);
     });
