@@ -173,7 +173,7 @@ button.onclick = async () => {
 
         setTimeout(() => {
 
-            location.href = "share.html";
+            location.href = "requests.html";
 
         }, 1800);
 

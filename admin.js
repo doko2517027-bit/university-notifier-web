@@ -82,6 +82,8 @@ const lastScheduleCheckText =
 // お問い合わせ管理は担当者 2510044 のみ表示する。
 const adminContactCard = document.getElementById("adminContactCard");
 const adminContactCardBadge = document.getElementById("adminContactCardBadge");
+const adminFeatureRequestCard = document.getElementById("adminFeatureRequestCard");
+const adminFeatureRequestBadge = document.getElementById("adminFeatureRequestBadge");
 if (studentNumber === "2510044" && adminContactCard) {
     adminContactCard.hidden = false;
     onSnapshot(collection(db, "contacts"), snapshot => {
@@ -91,6 +93,19 @@ if (studentNumber === "2510044" && adminContactCard) {
         if (adminContactCardBadge) {
             adminContactCardBadge.textContent = count > 99 ? "99+" : String(count);
             adminContactCardBadge.hidden = count === 0;
+        }
+    });
+}
+
+if (studentNumber === "2510044" && adminFeatureRequestCard) {
+    adminFeatureRequestCard.hidden = false;
+    onSnapshot(collection(db, "featureRequests"), snapshot => {
+        const count = snapshot.docs.filter(item =>
+            ["submitted", "reviewing", "developing"].includes(item.data().status || "submitted")
+        ).length;
+        if (adminFeatureRequestBadge) {
+            adminFeatureRequestBadge.textContent = count > 99 ? "99+" : String(count);
+            adminFeatureRequestBadge.hidden = count === 0;
         }
     });
 }

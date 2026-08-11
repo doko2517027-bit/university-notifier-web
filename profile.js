@@ -3,11 +3,8 @@ import {
     studentNumber,
     setupTheme,
     loadProfileImage,
-    getProfilePhoto,
-    formatDateTime,
     initializePage,
     setupOfflineAlert,
-    renderPostCard,
     showToast
 } from "./common.js";
 
@@ -17,12 +14,6 @@ import {
     setDoc,
     deleteDoc,
     updateDoc,
-    increment,
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -192,20 +183,6 @@ document
 
 };
 
-function changeTab(button){
-
-    document
-    .querySelectorAll(".profile-tabs button")
-    .forEach(btn=>{
-
-        btn.classList.remove("active");
-
-    });
-
-    button.classList.add("active");
-
-}
-
 async function loadProfile() {
 
     document.getElementById("studentNumber").textContent =
@@ -213,9 +190,7 @@ async function loadProfile() {
 
     const [
         snap,
-        privateUserSnap,
-        postSnap,
-        posts
+        privateUserSnap
     ] = await Promise.all([
 
         getDoc(
@@ -232,18 +207,7 @@ async function loadProfile() {
                 "users",
                 studentNumber
             )
-        ),
-
-        getDocs(
-        query(
-            collection(db, "posts"),
-            where("studentNumber", "==", studentNumber)
         )
-    ),
-
-    getDocs(
-        collection(db, "posts")
-    )
 
 ]);
 
@@ -266,76 +230,6 @@ const photo =
     await getProfilePhoto(studentNumber);
 
 profileImage.src = photo;
-
-document.getElementById("postCount").textContent =
-    postSnap.size;
-
-const likeSnapshots = await Promise.all(
-    posts.docs.map(post =>
-        getDocs(
-            collection(
-                db,
-                "posts",
-                post.id,
-                "likes"
-            )
-        )
-    )
-);
-
-let likedCount = 0;
-
-likeSnapshots.forEach(likeSnap => {
-    likeSnap.forEach(like => {
-        if (like.id === studentNumber) {
-            likedCount++;
-        }
-    });
-});
-
-const receivedLikeSnapshots = await Promise.all(
-    postSnap.docs.map(post =>
-        getDocs(
-            collection(
-                db,
-                "posts",
-                post.id,
-                "likes"
-            )
-        )
-    )
-);
-
-let receivedLikes = 0;
-
-receivedLikeSnapshots.forEach(likes => {
-    receivedLikes += likes.size;
-});
-
-document.getElementById("likeCount").textContent =
-    `${receivedLikes} / ${likedCount}`;
-
-let commentCount = 0;
-
-const commentSnapshots = await Promise.all(
-    postSnap.docs.map(post =>
-        getDocs(
-            collection(
-                db,
-                "posts",
-                post.id,
-                "comments"
-            )
-        )
-    )
-);
-
-commentSnapshots.forEach(commentSnap => {
-    commentCount += commentSnap.size;
-});
-
-document.getElementById("commentCount").textContent =
-    commentCount;
 
 }
 
@@ -518,290 +412,3 @@ async function saveRankingNicknameSettings() {
     }
 
 }
-
-document
-.getElementById("myPosts")
-.onclick = async () => {
-
-    changeTab(document.getElementById("myPosts"));
-
-    const content =
-        document.getElementById("profileContent");
-
-    content.innerHTML = "";
-
-    const snapshot = await getDocs(
-
-        query(
-            collection(db, "posts"),
-            orderBy("createdAt", "desc")
-        )
-
-    );
-
-    const myPosts = snapshot.docs
-        .filter(doc => doc.data().studentNumber === studentNumber)
-
-    if (myPosts.length === 0) {
-
-        content.innerHTML =
-            "<p>投稿がありません。</p>";
-
-        return;
-
-    }
-
-    const cards = await Promise.all(
-        myPosts.map(async postDoc => {
-
-            const post = postDoc.data();
-
-            const [photo, likeSnap] = await Promise.all([
-                getProfilePhoto(post.studentNumber),
-                getDoc(
-                    doc(
-                        db,
-                        "posts",
-                        postDoc.id,
-                        "likes",
-                        studentNumber
-                    )
-                )
-            ]);
-
-            return renderPostCard({
-                postId: postDoc.id,
-                post,
-                photo,
-                time: formatDateTime(post.createdAt),
-                liked: likeSnap.exists(),
-                showMenu: false,
-                clickable: false
-            });
-
-        })
-    );
-
-    content.innerHTML = cards.join("");
-
-};
-
-document
-.getElementById("likedPosts")
-.onclick = async () => {
-
-    changeTab(document.getElementById("likedPosts"));
-
-    const content = document.getElementById("profileContent");
-    content.innerHTML = "";
-
-    const snapshot = await getDocs(
-        query(
-            collection(db, "posts"),
-            orderBy("createdAt", "desc")
-        )
-    );
-
-    const likedResults = await Promise.all(
-        snapshot.docs.map(async postDoc => {
-
-            const likeSnap = await getDoc(
-                doc(
-                    db,
-                    "posts",
-                    postDoc.id,
-                    "likes",
-                    studentNumber
-                )
-            );
-
-            return {
-                postDoc,
-                liked: likeSnap.exists()
-            };
-
-        })
-    );
-
-    const likedPosts = likedResults
-        .filter(item => item.liked)
-        .map(item => item.postDoc);
-
-    if (likedPosts.length === 0) {
-        content.innerHTML = "<p>いいねした投稿はありません。</p>";
-        return;
-    }
-
-    const cards = await Promise.all(
-        likedPosts.map(async postDoc => {
-
-            const post = postDoc.data();
-
-            const photo =
-                await getProfilePhoto(post.studentNumber);
-
-            return renderPostCard({
-                postId: postDoc.id,
-                post,
-                photo,
-                time: formatDateTime(post.createdAt),
-                liked: true,
-                showMenu: false,
-                clickable: false
-            });
-
-        })
-    );
-
-    content.innerHTML = cards.join("");
-
-};
-
-document
-.getElementById("myComments")
-.onclick = async () => {
-
-    changeTab(document.getElementById("myComments"));
-
-    const content =
-        document.getElementById("profileContent");
-
-    content.innerHTML = "";
-
-    const snapshot = await getDocs(
-        query(
-            collection(db, "posts"),
-            orderBy("createdAt", "desc")
-        )
-    );
-
-    const myComments = [];
-
-    for (const postDoc of snapshot.docs) {
-
-        const commentSnap = await getDocs(
-            collection(
-                db,
-                "posts",
-                postDoc.id,
-                "comments"
-            )
-        );
-
-        commentSnap.forEach(commentDoc => {
-
-            const comment = commentDoc.data();
-
-            if (comment.studentNumber === studentNumber) {
-                myComments.push({
-                    postId: postDoc.id,
-                    post: postDoc.data(),
-                    comment
-                });
-            }
-
-        });
-
-    }
-
-    if (myComments.length === 0) {
-        content.innerHTML = "<p>コメントした投稿はありません。</p>";
-        return;
-    }
-
-    let html = "";
-
-    myComments.forEach(item => {
-
-        html += `
-
-    <div class="card post-card"
-        onclick="location.href='comments.html?postId=${item.postId}'">
-
-        <div class="post-time">
-            コメント先：${item.post.studentNumber}
-        </div>
-
-        <div class="post-text">
-            ${item.comment.text}
-        </div>
-
-        <div class="news-link">
-            💬 コメント画面を開く
-        </div>
-
-    </div>
-
-    `;
-
-    });
-
-    content.innerHTML = html;
-
-};
-
-document.addEventListener("click", async (e)=>{
-
-    const pdf = e.target.closest(".post-pdf");
-
-    if (pdf) {
-
-        window.open(pdf.dataset.url, "_blank");
-
-        return;
-
-    }
-
-    const image = e.target.closest(".post-image");
-
-    if (image) {
-
-        window.open(image.dataset.url, "_blank");
-
-    }
-
-    if (e.target.classList.contains("comment-button")) {
-        location.href = `comments.html?postId=${e.target.dataset.id}`;
-        return;
-    }
-
-    if (e.target.classList.contains("like-button")) {
-        const postId = e.target.dataset.id;
-
-        const likeRef = doc(db, "posts", postId, "likes", studentNumber);
-        const postRef = doc(db, "posts", postId);
-
-        const countSpan = e.target.nextElementSibling;
-        const count = Number(countSpan.textContent);
-        const wasLiked = e.target.classList.contains("liked");
-
-        if (wasLiked) {
-            e.target.textContent = "🤍";
-            e.target.classList.remove("liked");
-            countSpan.textContent = count - 1;
-
-            await deleteDoc(likeRef);
-            await updateDoc(postRef, {
-                likeCount: increment(-1)
-            });
-        } else {
-            e.target.textContent = "❤️";
-            e.target.classList.add("liked");
-            countSpan.textContent = count + 1;
-
-            await setDoc(likeRef, {
-                likedAt: new Date(),
-                studentNumber,
-                notificationType: "like",
-                notificationSentAt: null
-            });
-
-            await updateDoc(postRef, {
-                likeCount: increment(1)
-            });
-        }
-
-        return;
-    }
-
-});

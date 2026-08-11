@@ -67,6 +67,46 @@ const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = defineSecret("WEB_PUSH_PRIVATE_KEY");
 
+// 学生専用機能リクエスト。累計ポイントに応じた最大3枠をサーバー側で保証する。
+exports.submitFeatureRequest = onCall(
+    { region: "asia-northeast1" },
+    async request => {
+        const studentNumber = String(request.auth?.token?.studentNumber || "");
+        if (!studentNumber) {
+            throw new HttpsError("unauthenticated", "ログインが必要です。");
+        }
+
+        const title = String(request.data?.title || "").trim().slice(0, 100);
+        const description = String(request.data?.description || "").trim().slice(0, 2000);
+        const useCase = String(request.data?.useCase || "").trim().slice(0, 1000);
+        if (!title || !description) {
+            throw new HttpsError("invalid-argument", "機能名と内容を入力してください。");
+        }
+
+        const [rankingSnapshot, existingSnapshot] = await Promise.all([
+            db.collection("totalRanking").doc(studentNumber).get(),
+            db.collection("featureRequests").where("studentNumber", "==", studentNumber).get()
+        ]);
+        const totalPoints = Number(rankingSnapshot.data()?.point || 0);
+        const unlockedSlots = totalPoints >= 5000 ? 3 : totalPoints >= 800 ? 2 : 1;
+        if (existingSnapshot.size >= unlockedSlots) {
+            throw new HttpsError("resource-exhausted", "利用できるリクエスト枠がありません。");
+        }
+
+        const created = await db.collection("featureRequests").add({
+            studentNumber,
+            title,
+            description,
+            useCase,
+            status: "submitted",
+            slotIndex: existingSnapshot.size,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+        });
+        return { id: created.id, unlockedSlots };
+    }
+);
+
 /*
  * 登録テスト専用の照合値。
  * 値そのものはコード・Firestore・ブラウザへ保存しない。

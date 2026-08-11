@@ -100,7 +100,7 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
 export const auth = getAuth(app);
-const functions = getFunctions(app, "asia-northeast1");
+export const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber =
     localStorage.getItem("studentNumber");
@@ -1721,92 +1721,8 @@ export async function updateAssignmentNavBadge() {
 }
 
 export async function updateShareNavBadge() {
-
-    const badge =
-        document.getElementById(
-            "shareNavBadge"
-        );
-
-    if (!badge || !studentNumber) {
-        return;
-    }
-
-    try {
-
-        const userSnap = await cachedGetDoc(
-            `users/${studentNumber}`,
-            doc(
-                db,
-                "users",
-                studentNumber
-            )
-        );
-
-        if (!userSnap.exists()) {
-
-            badge.hidden = true;
-            badge.textContent = "0";
-
-            return;
-
-        }
-
-        const shareLastReadAt =
-            userSnap.data().shareLastReadAt || null;
-
-        let postsQuery;
-
-        if (shareLastReadAt) {
-
-            postsQuery = query(
-                collection(db, "posts"),
-                where(
-                    "createdAt",
-                    ">",
-                    shareLastReadAt
-                )
-            );
-
-        } else {
-
-            postsQuery = query(
-                collection(db, "posts")
-            );
-
-        }
-
-        const postsSnap =
-            await getDocs(postsQuery);
-
-        const count =
-            postsSnap.size;
-
-        if (count <= 0) {
-
-            badge.hidden = true;
-            badge.textContent = "0";
-
-            return;
-
-        }
-
-        badge.hidden = false;
-
-        badge.textContent =
-            count > 99
-                ? "99+"
-                : String(count);
-
-    } catch (error) {
-
-        console.error(
-            "共有バッジ取得エラー:",
-            error
-        );
-
-        badge.hidden = true;
-
-    }
+    // 共有タブは機能リクエストへ置き換え済み。旧投稿の取得は行わない。
+    return;
 
 }
 
@@ -2004,7 +1920,7 @@ let presenceInitialized = false;
 const presencePageNames = {
     "index.html": "ホーム画面",
     "news.html": "お知らせ",
-    "share.html": "共有画面",
+    "requests.html": "機能リクエスト",
     "post.html": "投稿作成",
     "comments.html": "コメント画面",
     "profile.html": "プロフィール",

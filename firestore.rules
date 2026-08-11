@@ -573,8 +573,8 @@ service cloud.firestore {
     ======================================== */
 
     match /contacts/{id} {
-      allow create: if request.auth != null
-        && request.resource.data.studentNumber == request.auth.token.studentNumber;
+      // 枠数と累計ポイントをCloud Functions側で検証して作成する。
+      allow create: if false;
       allow read: if request.auth != null
         && (resource.data.studentNumber == request.auth.token.studentNumber
           || request.auth.token.studentNumber == "2510044");
@@ -595,6 +595,23 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+    }
+
+
+    /* ========================================
+       学生専用の機能リクエスト
+       一般学生は自分の分だけ、2510044だけが全件を管理する。
+    ======================================== */
+
+    match /featureRequests/{requestId} {
+      allow create: if request.auth != null
+        && request.resource.data.studentNumber == request.auth.token.studentNumber;
+      allow read: if request.auth != null
+        && (resource.data.studentNumber == request.auth.token.studentNumber
+          || request.auth.token.studentNumber == "2510044");
+      allow update: if request.auth != null
+        && request.auth.token.studentNumber == "2510044";
+      allow delete: if false;
     }
 
   }

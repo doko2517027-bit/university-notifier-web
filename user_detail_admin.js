@@ -1720,7 +1720,7 @@ function formatPageName(page) {
         "assignments.html": "課題一覧",
         "assignment.html": "課題詳細",
         "news.html": "お知らせ",
-        "share.html": "共有",
+        "requests.html": "機能リクエスト",
         "post.html": "投稿作成",
         "comments.html": "コメント",
         "profile.html": "プロフィール",

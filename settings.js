@@ -68,9 +68,6 @@ const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
 const notifySystemNews = document.getElementById("notifySystemNews");
-const notifySharePost = document.getElementById("notifySharePost");
-const notifyLike = document.getElementById("notifyLike");
-const notifyComment = document.getElementById("notifyComment");
 const enablePushButton = document.getElementById("enablePushButton");
 
 const topProfileImage = document.getElementById("topProfileImage");
@@ -197,11 +194,6 @@ async function loadnotificationSettings() {
         .style.display =
         manabaVerified ? "flex" : "none";
 
-    document
-        .getElementById("shareNotificationGroup")
-        .style.display =
-        manabaVerified ? "block" : "none";
-
     const switchs =
         snap.data().notificationSettings || {};
 
@@ -220,15 +212,6 @@ async function loadnotificationSettings() {
     notifySystemNews.checked =
         switchs.systemNews ?? true;
 
-    notifySharePost.checked = 
-        switchs.sharePost ?? true;
-
-    notifyLike.checked = 
-        switchs.like ?? true;
-
-    notifyComment.checked = 
-        switchs.comment ?? true;
-
 }
 
 function setupNotificationEvents() {
@@ -238,10 +221,7 @@ function setupNotificationEvents() {
         notifyAssignment,
         notifyReminder,
         notifyCourseNews,
-        notifySystemNews,
-        notifySharePost,
-        notifyLike,
-        notifyComment
+        notifySystemNews
     ].forEach(input => {
 
         input.addEventListener("change", savenotificationSettings);
@@ -262,10 +242,7 @@ async function savenotificationSettings() {
                 assignment: notifyAssignment.checked,
                 reminder: notifyReminder.checked,
                 courseNews: notifyCourseNews.checked,
-                systemNews: notifySystemNews.checked,
-                sharePost: notifySharePost.checked,
-                like: notifyLike.checked,
-                comment: notifyComment.checked
+                systemNews: notifySystemNews.checked
             }
         }
     );
