@@ -58,6 +58,12 @@ const firebaseConfig = {
 
 let app;
 
+// アプリ内では拡大・縮小を行わず、通常のスクロール操作だけを残す。
+document.addEventListener("touchmove", event => {
+    if (event.touches.length > 1) event.preventDefault();
+}, { passive: false });
+document.addEventListener("gesturestart", event => event.preventDefault());
+
 if (!getApps().length) {
     app = initializeApp(firebaseConfig);
 } else {
