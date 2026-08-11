@@ -1921,8 +1921,6 @@ const presencePageNames = {
     "index.html": "ホーム画面",
     "news.html": "お知らせ",
     "requests.html": "機能リクエスト",
-    "post.html": "投稿作成",
-    "comments.html": "コメント画面",
     "profile.html": "プロフィール",
     "settings.html": "設定画面",
     "assignment.html": "課題画面",

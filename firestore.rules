@@ -289,31 +289,6 @@ service cloud.firestore {
 
 
     /* ========================================
-       共有投稿
-    ======================================== */
-
-    match /posts/{id} {
-
-      allow read, create, update, delete: if true;
-
-
-      match /likes/{studentNumber} {
-
-        allow read, create, delete: if true;
-
-      }
-
-
-      match /comments/{commentId} {
-
-        allow read, create, update, delete: if true;
-
-      }
-
-    }
-
-
-    /* ========================================
        講義予定
     ======================================== */
 

@@ -954,8 +954,6 @@ function formatPageName(page) {
         "assignment.html": "課題詳細",
         "news.html": "お知らせ",
         "requests.html": "機能リクエスト",
-        "post.html": "投稿作成",
-        "comments.html": "コメント",
         "profile.html": "プロフィール",
         "settings.html": "設定",
         "exam.html": "テスト対策",
