@@ -331,13 +331,17 @@ console.log("studentNumber =", studentNumber);
     // 表示を止めない補助情報は裏で続ける。
     void backgroundTasks;
 
-    loadRankingPopup();
-
-    loadRanking();
-
-    loadAttendancePopup();
-
-    setupAdminTab();
+    // 初期操作を優先し、重いランキング・ポップアップ・管理バッジは
+    // 画面が落ち着いてから読み込む。
+    const runWhenIdle = window.requestIdleCallback || (callback => setTimeout(callback, 120));
+    runWhenIdle(() => {
+        Promise.all([
+            loadRankingPopup(),
+            loadRanking(),
+            loadAttendancePopup(),
+            setupAdminTab()
+        ]).catch(error => console.error("ホーム後続表示の読み込みエラー:", error));
+    });
 
 }
 
