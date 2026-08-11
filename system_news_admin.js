@@ -785,18 +785,11 @@ function createSystemNewsHtml(news) {
             news.updatedAt
         );
 
-    const notificationPending =
-        news.notifyTarget ===
-            "allUsers" &&
-        !news.notificationSentAt;
-
     const notificationText =
         news.notifyTarget === "none" ||
         news.notificationRequested === false
             ? "🔕 通知なし"
-            : notificationPending
-                ? "⏳ 通知待ち"
-                : "🔔 通知済み";
+            : "🔔 即時通知";
 
 
     return `
@@ -920,9 +913,6 @@ function updateSummary() {
 
     let todayCount = 0;
 
-    let pendingCount = 0;
-
-
     systemNewsItems.forEach(news => {
 
         const date =
@@ -943,18 +933,6 @@ function updateSummary() {
             todayCount += 1;
 
         }
-
-
-        if (
-            news.notifyTarget ===
-                "allUsers" &&
-            !news.notificationSentAt
-        ) {
-
-            pendingCount += 1;
-
-        }
-
     });
 
 
@@ -966,11 +944,6 @@ function updateSummary() {
     setText(
         systemNewsTodayCount,
         `${todayCount}件`
-    );
-
-    setText(
-        systemNewsPendingCount,
-        `${pendingCount}件`
     );
 
 }

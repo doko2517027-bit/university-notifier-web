@@ -2223,6 +2223,61 @@ onDocumentCreated(
     }
 );
 
+// お知らせの本文・タイトル・重要設定が編集された場合も即時に知らせる。
+exports.notifySystemNewsUpdated =
+onDocumentUpdated(
+    {
+        document: "systemNews/{newsId}",
+        region: "asia-northeast1",
+        secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY]
+    },
+    async event => {
+        const before = event.data?.before.data() || {};
+        const after = event.data?.after.data() || {};
+        const changed = before.title !== after.title ||
+            before.body !== after.body ||
+            before.important !== after.important;
+
+        if (!changed || after.notifyTarget !== "allUsers" || after.notificationRequested === false) {
+            return;
+        }
+
+        webpush.setVapidDetails(
+            "mailto:kidokohei.shonaniryo2517027@gmail.com",
+            WEB_PUSH_PUBLIC_KEY.value(),
+            WEB_PUSH_PRIVATE_KEY.value()
+        );
+
+        const title = String(after.title || "CareMateからのお知らせ").trim();
+        const body = String(after.body || "").replace(/\s+/g, " ").trim().slice(0, 140);
+        const users = await db.collection("users").get();
+        const userResults = [];
+
+        for (const userDoc of users.docs) {
+            const user = userDoc.data() || {};
+            if (user.notificationSettings?.systemNews === false) {
+                userResults.push({ studentNumber: userDoc.id, result: "skipped" });
+                continue;
+            }
+            userResults.push({
+                studentNumber: userDoc.id,
+                results: await sendToUserDevices(userDoc.id, {
+                    title: `💙 更新：${title}`,
+                    body: body || "CareMateのお知らせが更新されました。",
+                    url: `${SITE_URL}/news.html?systemNews=${encodeURIComponent(event.params.newsId)}`,
+                    tag: `system-news-update-${event.params.newsId}`
+                })
+            });
+        }
+
+        await event.data.after.ref.update({
+            lastEditNotificationSentAt: new Date(),
+            lastEditNotificationResults: userResults,
+            notificationSource: "firebase"
+        });
+    }
+);
+
 // 新規お問い合わせは担当者 2510044 の全登録端末にだけ通知する。
 exports.notifyContactMessage = onDocumentCreated(
     { document:"contacts/{contactId}", region:"asia-northeast1", secrets:[WEB_PUSH_PUBLIC_KEY,WEB_PUSH_PRIVATE_KEY] },
