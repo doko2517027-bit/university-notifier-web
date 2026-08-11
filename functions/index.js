@@ -300,16 +300,37 @@ function scheduleDocumentId(user) {
 async function sendToUserDevices(userId, payload) {
     const devices = await db.collection("users").doc(userId)
         .collection("pushSubscriptions").get();
+    const targets = devices.docs.map(device => ({
+        deviceId: device.id,
+        subscription: device.data(),
+        ref: device.ref
+    }));
+
+    // 端末別購読へ移行する前に登録した利用者にも通知を届ける。
+    if (targets.length === 0) {
+        const userSnapshot = await db.collection("users").doc(userId).get();
+        const legacySubscription = userSnapshot.data()?.pushSubscription ||
+            userSnapshot.data()?.subscription;
+
+        if (legacySubscription?.endpoint) {
+            targets.push({
+                deviceId: "legacy",
+                subscription: legacySubscription,
+                ref: null
+            });
+        }
+    }
+
     const results = [];
-    for (const device of devices.docs) {
+    for (const device of targets) {
         try {
-            await webpush.sendNotification(device.data(), JSON.stringify(payload));
-            results.push({ deviceId: device.id, result: "sent" });
+            await webpush.sendNotification(device.subscription, JSON.stringify(payload));
+            results.push({ deviceId: device.deviceId, result: "sent" });
         } catch (error) {
             if (error?.statusCode === 404 || error?.statusCode === 410) {
-                await device.ref.delete();
+                await device.ref?.delete();
             }
-            results.push({ deviceId: device.id, result: "failed", statusCode: error?.statusCode || null });
+            results.push({ deviceId: device.deviceId, result: "failed", statusCode: error?.statusCode || null });
         }
     }
     return results;
@@ -2111,6 +2132,94 @@ onDocumentCreated(
             notificationResults: results
         });
 
+    }
+);
+
+
+// ======================
+// CareMate お知らせの即時通知
+// ======================
+
+exports.notifySystemNews =
+onDocumentCreated(
+    {
+        document: "systemNews/{newsId}",
+        region: "asia-northeast1",
+        secrets: [
+            WEB_PUSH_PUBLIC_KEY,
+            WEB_PUSH_PRIVATE_KEY
+        ]
+    },
+
+    async event => {
+
+        const snapshot = event.data;
+
+        if (!snapshot) {
+            return;
+        }
+
+        const news = snapshot.data() || {};
+
+        if (
+            news.notifyTarget !== "allUsers" ||
+            news.notificationRequested === false ||
+            news.notificationSentAt
+        ) {
+            return;
+        }
+
+        webpush.setVapidDetails(
+            "mailto:kidokohei.shonaniryo2517027@gmail.com",
+            WEB_PUSH_PUBLIC_KEY.value(),
+            WEB_PUSH_PRIVATE_KEY.value()
+        );
+
+        const title = String(
+            news.title ||
+            "CareMateからのお知らせ"
+        ).trim();
+
+        const body = String(news.body || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 140);
+
+        const users = await db.collection("users").get();
+        const userResults = [];
+
+        for (const userDoc of users.docs) {
+            const user = userDoc.data() || {};
+
+            if (user.notificationSettings?.systemNews === false) {
+                userResults.push({
+                    studentNumber: userDoc.id,
+                    result: "skipped"
+                });
+                continue;
+            }
+
+            const results = await sendToUserDevices(
+                userDoc.id,
+                {
+                    title: `💙 ${title}`,
+                    body: body || "CareMateから新しいお知らせがあります。",
+                    url: `${SITE_URL}/news.html?systemNews=${encodeURIComponent(event.params.newsId)}`,
+                    tag: `system-news-${event.params.newsId}`
+                }
+            );
+
+            userResults.push({
+                studentNumber: userDoc.id,
+                results
+            });
+        }
+
+        await snapshot.ref.update({
+            notificationSentAt: new Date(),
+            notificationResults: userResults,
+            notificationSource: "firebase"
+        });
     }
 );
 
