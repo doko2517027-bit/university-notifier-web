@@ -311,11 +311,10 @@ console.log("studentNumber =", studentNumber);
         updateNewsNavBadge()
     ]);
 
-    await loadTodaySchedule();
-
-    await checkClassSelectionRequired();
-
-    await Promise.all([
+    // 画面の表示後は、予定表示と補助カードの取得を並行にする。
+    // 機能は同じまま、待ち時間だけを減らす。
+    const todayScheduleTask = loadTodaySchedule();
+    const backgroundTasks = Promise.all([
         loadExamMode(),
         loadWeather(user),
         loadNews(),
@@ -323,7 +322,14 @@ console.log("studentNumber =", studentNumber);
         loadHomeSystemNews(),
         loadCourseLinks(),
         loadCourseRegistrationBanner(user),
-    ]);
+    ]).catch(error => console.error("ホーム補助表示の読み込みエラー:", error));
+
+    await todayScheduleTask;
+
+    await checkClassSelectionRequired();
+
+    // 表示を止めない補助情報は裏で続ける。
+    void backgroundTasks;
 
     loadRankingPopup();
 
