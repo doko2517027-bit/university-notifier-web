@@ -91,7 +91,6 @@ const systemNewsImportant =
         "systemNewsImportant"
     );
 
-const systemNewsRecipients = document.getElementById("systemNewsRecipients");
 const systemNewsRecipientMode = document.getElementById("systemNewsRecipientMode");
 const systemNewsRecipientSelect = document.getElementById("systemNewsRecipientSelect");
 
@@ -198,7 +197,11 @@ let systemNewsItems = [];
 
 let selectedDeleteId = "";
 
+let selectedDeleteCollection = "systemNews";
+
 let stopSystemNewsListener = null;
+
+let stopTargetedSystemNewsListener = null;
 
 
 /* ========================================
@@ -258,6 +261,27 @@ function startSystemNewsListener() {
 
     }
 
+    if (stopTargetedSystemNewsListener) {
+
+        stopTargetedSystemNewsListener();
+
+    }
+
+    const updateNewsItems = () => {
+
+        systemNewsItems = [
+            ...globalSystemNewsItems,
+            ...targetedSystemNewsItems
+        ];
+
+        renderSystemNews();
+
+    };
+
+    let globalSystemNewsItems = [];
+
+    let targetedSystemNewsItems = [];
+
     const newsQuery =
         query(
             collection(
@@ -275,17 +299,20 @@ function startSystemNewsListener() {
             newsQuery,
             snapshot => {
 
-                systemNewsItems =
+                globalSystemNewsItems =
                     snapshot.docs.map(
                         newsDocument => ({
                             id:
                                 newsDocument.id,
 
+                            sourceCollection:
+                                "systemNews",
+
                             ...newsDocument.data()
                         })
                     );
 
-                renderSystemNews();
+                updateNewsItems();
 
             },
             error => {
@@ -304,6 +331,49 @@ function startSystemNewsListener() {
                     `;
 
                 }
+
+            }
+        );
+
+    const targetedNewsQuery =
+        query(
+            collection(
+                db,
+                "targetedSystemNews"
+            ),
+            orderBy(
+                "createdAt",
+                "desc"
+            )
+        );
+
+    stopTargetedSystemNewsListener =
+        onSnapshot(
+            targetedNewsQuery,
+            snapshot => {
+
+                targetedSystemNewsItems =
+                    snapshot.docs.map(
+                        newsDocument => ({
+                            id:
+                                newsDocument.id,
+
+                            sourceCollection:
+                                "targetedSystemNews",
+
+                            ...newsDocument.data()
+                        })
+                    );
+
+                updateNewsItems();
+
+            },
+            error => {
+
+                console.error(
+                    "指定先お知らせ取得エラー:",
+                    error
+                );
 
             }
         );
@@ -396,7 +466,8 @@ function setupEvents() {
                 if (editButton) {
 
                     openEditModal(
-                        editButton.dataset.id
+                        editButton.dataset.id,
+                        editButton.dataset.source
                     );
 
                     return;
@@ -412,7 +483,8 @@ function setupEvents() {
                 if (deleteButton) {
 
                     openDeleteModal(
-                        deleteButton.dataset.id
+                        deleteButton.dataset.id,
+                        deleteButton.dataset.source
                     );
 
                 }
@@ -570,7 +642,7 @@ async function postNews() {
         sendSystemNewsNotification
             ?.checked !== false;
 
-    const recipients = [...new Set([...systemNewsRecipientSelect?.selectedOptions||[]].map(option=>option.value).concat(String(systemNewsRecipients?.value || "").split(/[\s,，]+/).map(value => value.trim())).filter(Boolean))];
+    const recipients = [...new Set([...systemNewsRecipientSelect?.selectedOptions||[]].map(option=>option.value))];
     const recipientMode = systemNewsRecipientMode?.value || "only";
     if (recipients.some(value => !/^\d{7}$/.test(value))) {
         alert("学籍番号は7桁の数字で入力してください。");
@@ -617,7 +689,7 @@ async function postNews() {
 
                 notifyTarget:
                     shouldNotify
-                        ? "allUsers"
+                        ? (recipients.length ? "selectedUsers" : "allUsers")
                         : "none",
 
                 notificationRequested:
@@ -655,7 +727,6 @@ async function postNews() {
 
         }
 
-        if (systemNewsRecipients) systemNewsRecipients.value = "";
 
         if (
             sendSystemNewsNotification
@@ -811,6 +882,25 @@ function createSystemNewsHtml(news) {
             ? "🔕 通知なし"
             : "🔔 即時通知";
 
+    const selectedRecipients =
+        Array.isArray(news.targetStudentNumbers)
+            ? news.targetStudentNumbers
+            : [];
+
+    const excludedRecipients =
+        Array.isArray(news.excludedStudentNumbers)
+            ? news.excludedStudentNumbers
+            : [];
+
+    const recipientText =
+        news.sourceCollection !== "targetedSystemNews"
+            ? "全員"
+            : selectedRecipients.length
+                ? `指定：${selectedRecipients.join("、")}`
+                : excludedRecipients.length
+                    ? `除外：${excludedRecipients.join("、")}`
+                    : "全員";
+
 
     return `
         <article
@@ -891,6 +981,11 @@ function createSystemNewsHtml(news) {
                     )}
                 </span>
 
+                <span>
+                    表示・通知対象：
+                    ${escapeHtml(recipientText)}
+                </span>
+
             </div>
 
 
@@ -899,7 +994,8 @@ function createSystemNewsHtml(news) {
                 <button
                     type="button"
                     class="btn edit-system-news"
-                    data-id="${escapeHtml(news.id)}">
+                    data-id="${escapeHtml(news.id)}"
+                    data-source="${escapeHtml(news.sourceCollection || "systemNews")}">
 
                     編集
 
@@ -908,7 +1004,8 @@ function createSystemNewsHtml(news) {
                 <button
                     type="button"
                     class="btn btn-danger delete-system-news"
-                    data-id="${escapeHtml(news.id)}">
+                    data-id="${escapeHtml(news.id)}"
+                    data-source="${escapeHtml(news.sourceCollection || "systemNews")}">
 
                     削除
 
@@ -973,11 +1070,13 @@ function updateSummary() {
    編集
 ======================================== */
 
-function openEditModal(newsId) {
+function openEditModal(newsId, sourceCollection = "systemNews") {
 
     const news =
         systemNewsItems.find(
-            item => item.id === newsId
+            item =>
+                item.id === newsId &&
+                (item.sourceCollection || "systemNews") === sourceCollection
         );
 
     if (!news) {
@@ -994,7 +1093,7 @@ function openEditModal(newsId) {
     if (editSystemNewsId) {
 
         editSystemNewsId.value =
-            news.id;
+            `${news.sourceCollection || "systemNews"}:${news.id}`;
 
     }
 
@@ -1033,9 +1132,12 @@ function openEditModal(newsId) {
 
 async function saveEditedNews() {
 
-    const newsId =
+    const newsKey =
         editSystemNewsId
             ?.value.trim() || "";
+
+    const [sourceCollection = "systemNews", newsId = ""] =
+        newsKey.split(":");
 
     const title =
         editSystemNewsTitle
@@ -1078,7 +1180,7 @@ async function saveEditedNews() {
         await updateDoc(
             doc(
                 db,
-                "systemNews",
+                sourceCollection,
                 newsId
             ),
             {
@@ -1138,11 +1240,13 @@ async function saveEditedNews() {
    削除
 ======================================== */
 
-function openDeleteModal(newsId) {
+function openDeleteModal(newsId, sourceCollection = "systemNews") {
 
     const news =
         systemNewsItems.find(
-            item => item.id === newsId
+            item =>
+                item.id === newsId &&
+                (item.sourceCollection || "systemNews") === sourceCollection
         );
 
     if (!news) {
@@ -1158,6 +1262,9 @@ function openDeleteModal(newsId) {
 
     selectedDeleteId =
         news.id;
+
+    selectedDeleteCollection =
+        news.sourceCollection || "systemNews";
 
 
     setText(
@@ -1198,7 +1305,7 @@ async function deleteSelectedNews() {
         await deleteDoc(
             doc(
                 db,
-                "systemNews",
+                selectedDeleteCollection,
                 selectedDeleteId
             )
         );
@@ -1209,6 +1316,8 @@ async function deleteSelectedNews() {
         );
 
         selectedDeleteId = "";
+
+        selectedDeleteCollection = "systemNews";
 
         showToast(
             "お知らせを削除しました"
@@ -1263,30 +1372,51 @@ async function refreshNewsList() {
 
     try {
 
-        const snapshot =
-            await getDocs(
-                query(
-                    collection(
-                        db,
-                        "systemNews"
-                    ),
-                    orderBy(
-                        "createdAt",
-                        "desc"
+        const [globalSnapshot, targetedSnapshot] =
+            await Promise.all([
+                getDocs(
+                    query(
+                        collection(
+                            db,
+                            "systemNews"
+                        ),
+                        orderBy(
+                            "createdAt",
+                            "desc"
+                        )
+                    )
+                ),
+                getDocs(
+                    query(
+                        collection(
+                            db,
+                            "targetedSystemNews"
+                        ),
+                        orderBy(
+                            "createdAt",
+                            "desc"
+                        )
                     )
                 )
-            );
+            ]);
 
 
-        systemNewsItems =
-            snapshot.docs.map(
+        systemNewsItems = [
+            ...globalSnapshot.docs.map(
                 newsDocument => ({
-                    id:
-                        newsDocument.id,
-
+                    id: newsDocument.id,
+                    sourceCollection: "systemNews",
                     ...newsDocument.data()
                 })
-            );
+            ),
+            ...targetedSnapshot.docs.map(
+                newsDocument => ({
+                    id: newsDocument.id,
+                    sourceCollection: "targetedSystemNews",
+                    ...newsDocument.data()
+                })
+            )
+        ];
 
 
         renderSystemNews();
