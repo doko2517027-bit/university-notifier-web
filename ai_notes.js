@@ -18,10 +18,12 @@ if(studentNumber!=="2510044"){
     if(!state.selected&&state.notes[0]) state.selected=state.notes[0].id;
     render();
   },error=>{console.error(error);$("noteList").textContent="ノートを読み込めませんでした。"});
-  $("newNote").onclick=async()=>{
+  $("newNoteDrawer").onclick=createNewNote;
+  async function createNewNote(){
     const created=await addDoc(notesRef,{title:"新しいノート",body:"",maskTerms:[],todos:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
     state.selected=created.id;
-  };
+    $("noteDrawer").classList.remove("is-open");$("drawerBackdrop").classList.remove("is-open");
+  }
   $("deleteNote").onclick=deleteCurrentNote;
   $("saveNote").onclick=saveCurrent;
   $("noteSearch").oninput=renderList;
