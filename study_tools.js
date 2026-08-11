@@ -6,18 +6,20 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-export function studyToolsHtml(question, earnedPoints) {
+export function studyPointHtml(earnedPoints) {
     return `
-        <section class="study-tools" aria-label="問題の検索とポイント">
-            <div class="study-point-summary">
-                <span>この問題の正解ポイント <b>+${Number(earnedPoints || 0)}pt</b></span>
-                <span>累計 <b class="study-total-points">読み込み中…</b></span>
-            </div>
-            <form class="study-search-form">
-                <input class="study-search-input" type="search" value="${escapeHtml(question)}" placeholder="この問題をGoogleで検索" aria-label="この問題をGoogleで検索">
-                <button class="btn btn-secondary" type="submit">検索</button>
-            </form>
-        </section>`;
+        <div class="study-point-summary" aria-label="この問題のポイント">
+            <span>この問題の正解ポイント <b>+${Number(earnedPoints || 0)}pt</b></span>
+            <span>累計 <b class="study-total-points">読み込み中…</b></span>
+        </div>`;
+}
+
+export function studySearchHtml(question) {
+    return `
+        <form class="study-search-form" aria-label="問題をGoogleで検索">
+            <input class="study-search-input" type="search" value="${escapeHtml(question)}" placeholder="この問題をGoogleで検索" aria-label="この問題をGoogleで検索">
+            <button class="study-search-button" type="submit">検索</button>
+        </form>`;
 }
 
 export function setupStudyTools(root) {

@@ -13,7 +13,7 @@ import {
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import { loadTestProgress, saveTestProgress, scrubberHtml, setupScrubber, finishTest } from "./test_session.js";
-import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
+import { studyPointHtml, studySearchHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -171,7 +171,7 @@ function renderFillQuestion() {
 
                 <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
-                ${studyToolsHtml(q.question, 4)}
+                ${studyPointHtml(4)}
 
                 ${renderQuestionImage(q)}
 
@@ -200,7 +200,7 @@ function renderFillQuestion() {
                     data-question-index="${currentFillIndex}">
                     答えが違います
                 </button>
-            </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}
+            </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}${studySearchHtml(q.question)}
         `;
     setupScrubber(questions,index=>{currentFillIndex=index;renderFillQuestion();saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length)});
     setupStudyTools(questions);

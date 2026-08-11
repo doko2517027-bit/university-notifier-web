@@ -3,7 +3,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import { loadTestProgress, saveTestProgress, scrubberHtml, setupScrubber, finishTest } from "./test_session.js";
-import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
+import { studyPointHtml, studySearchHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -101,7 +101,7 @@ function renderQuestion() {
             <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
-            ${studyToolsHtml(q.question, 2)}
+            ${studyPointHtml(2)}
 
             ${renderQuestionImage(q)}
 
@@ -115,7 +115,7 @@ function renderQuestion() {
                 <button class="btn btn-primary next-question">${currentIndex + 1 < visibleQuiz.length ? "次の問題" : "結果を終了"}</button>
             </div>
             <button type="button" class="test-report-link report-wrong-answer">答えが違います</button>
-        </div>${scrubberHtml(currentIndex,visibleQuiz.length)}`;
+        </div>${scrubberHtml(currentIndex,visibleQuiz.length)}${studySearchHtml(q.question)}`;
     setupScrubber(quizArea,index=>{currentIndex=index;renderQuestion();saveTestProgress("quiz",subjectId,subjectName,unitId,currentIndex,visibleQuiz.length)});
     setupStudyTools(quizArea);
 }

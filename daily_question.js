@@ -12,7 +12,7 @@ import {
 
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints, localDateKey } from "./test_points.js";
-import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
+import { studyPointHtml, studySearchHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -163,7 +163,7 @@ async function loadDailyQuestion() {
             <div class="test-question-number">今日の1問</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
-            ${studyToolsHtml(q.question, 3)}
+            ${studyPointHtml(3)}
 
             ${renderQuestionImage(q)}
 
@@ -187,6 +187,7 @@ async function loadDailyQuestion() {
                 答えが違います
             </button>
         </div>
+        ${studySearchHtml(q.question)}
     `;
 
     setupStudyTools(questionArea);
