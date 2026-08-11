@@ -232,7 +232,10 @@ if (
 
         <br>
 
-        <label for="systemNewsRecipients"><b>表示・通知する学生</b></label>
+        <label for="systemNewsRecipientMode"><b>表示・通知する学生</b></label>
+        <select id="systemNewsRecipientMode"><option value="only">選んだ学生だけに送る</option><option value="exclude">選んだ学生には送らない</option></select>
+        <select id="systemNewsRecipientSelect" multiple size="8" aria-label="登録済み学生を複数選択"></select>
+        <small>登録済み学生を複数選択できます。⌘/Ctrlを押しながら選択してください。</small>
         <textarea id="systemNewsRecipients" rows="3" maxlength="2000" placeholder="全員向けは空欄。指定する場合は学籍番号をカンマまたは改行で入力&#10;例：2510001, 2510002"></textarea>
         <small>入力した学生だけがお知らせタブで見られ、通知もその学生だけに届きます。</small>
 

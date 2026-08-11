@@ -2285,8 +2285,11 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
         const snapshot = event.data;
         if (!snapshot) return;
         const news = snapshot.data() || {};
-        const recipients = [...new Set((Array.isArray(news.targetStudentNumbers) ? news.targetStudentNumbers : []).map(String))];
-        if (!recipients.length) return;
+        let recipients = [...new Set((Array.isArray(news.targetStudentNumbers) ? news.targetStudentNumbers : []).map(String))];
+        if (!recipients.length) {
+            const excluded = new Set((Array.isArray(news.excludedStudentNumbers) ? news.excludedStudentNumbers : []).map(String));
+            recipients = (await db.collection("users").get()).docs.map(user => user.id).filter(userId => !excluded.has(userId));
+        }
         webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com", WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value());
         const title = String(news.title || "CareMateからのお知らせ").trim();
         const body = String(news.body || "").replace(/\s+/g, " ").trim().slice(0, 140);

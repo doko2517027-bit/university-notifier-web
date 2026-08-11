@@ -92,6 +92,10 @@ const systemNewsImportant =
     );
 
 const systemNewsRecipients = document.getElementById("systemNewsRecipients");
+const systemNewsRecipientMode = document.getElementById("systemNewsRecipientMode");
+const systemNewsRecipientSelect = document.getElementById("systemNewsRecipientSelect");
+
+async function loadNewsRecipients(){if(!systemNewsRecipientSelect)return;const snapshot=await getDocs(collection(db,"publicUsers"));const users=snapshot.docs.map(item=>({id:item.id,...item.data()})).filter(item=>/^\d{7}$/.test(item.id)).sort((a,b)=>a.id.localeCompare(b.id));systemNewsRecipientSelect.innerHTML=users.map(user=>`<option value="${user.id}">${user.id}　${String(user.name||"氏名未設定")}</option>`).join("")||'<option disabled>登録済み学生がいません</option>'}
 
 const postSystemNews =
     document.getElementById(
@@ -231,6 +235,8 @@ await initializePage([
     updateShareNavBadge(),
     updateNewsNavBadge()
 ]);
+
+loadNewsRecipients().catch(error=>console.error("お知らせ対象学生取得エラー:",error));
 
 
 setupEvents();
@@ -564,7 +570,8 @@ async function postNews() {
         sendSystemNewsNotification
             ?.checked !== false;
 
-    const recipients = [...new Set(String(systemNewsRecipients?.value || "").split(/[\s,，]+/).map(value => value.trim()).filter(Boolean))];
+    const recipients = [...new Set([...systemNewsRecipientSelect?.selectedOptions||[]].map(option=>option.value).concat(String(systemNewsRecipients?.value || "").split(/[\s,，]+/).map(value => value.trim())).filter(Boolean))];
+    const recipientMode = systemNewsRecipientMode?.value || "only";
     if (recipients.some(value => !/^\d{7}$/.test(value))) {
         alert("学籍番号は7桁の数字で入力してください。");
         return;
@@ -621,7 +628,8 @@ async function postNews() {
                         ? null
                         : serverTimestamp()
                 ,
-                targetStudentNumbers: recipients
+                targetStudentNumbers: recipientMode === "only" ? recipients : [],
+                excludedStudentNumbers: recipientMode === "exclude" ? recipients : []
             }
         );
 
