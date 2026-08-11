@@ -895,35 +895,17 @@ async function loadSystemNews() {
 
     }
 
-    const userSnap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (
-        !userSnap.exists() ||
-        userSnap.data().manabaVerified !== true
-    ) {
-
-        systemNews.innerHTML =
-            "Manaba認証後に表示されます。";
-
-        setNewsTabBadge(
-            systemNewsBadge,
-            0
-        );
-
-        return;
-
-    }
-
     const q = query(
         collection(db, "systemNews"),
         orderBy("createdAt", "desc")
     );
 
-    const snapshot = await getDocs(q);
+    const [snapshot, targetedSnapshot] = await Promise.all([
+        getDocs(q),
+        getDocs(collection(db, "users", studentNumber, "targetedSystemNews"))
+    ]);
 
-    if (snapshot.empty) {
+    if (snapshot.empty && targetedSnapshot.empty) {
 
         systemNews.innerHTML =
             "CareMateからのお知らせはありません。";
@@ -939,7 +921,7 @@ async function loadSystemNews() {
 
     let unreadCount = 0;
 
-    const notices = snapshot.docs
+    const notices = [...snapshot.docs, ...targetedSnapshot.docs]
         .map(newsDoc => ({
             id: newsDoc.id,
             ...newsDoc.data()

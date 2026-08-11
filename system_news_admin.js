@@ -91,6 +91,8 @@ const systemNewsImportant =
         "systemNewsImportant"
     );
 
+const systemNewsRecipients = document.getElementById("systemNewsRecipients");
+
 const postSystemNews =
     document.getElementById(
         "postSystemNews"
@@ -562,6 +564,12 @@ async function postNews() {
         sendSystemNewsNotification
             ?.checked !== false;
 
+    const recipients = [...new Set(String(systemNewsRecipients?.value || "").split(/[\s,，]+/).map(value => value.trim()).filter(Boolean))];
+    if (recipients.some(value => !/^\d{7}$/.test(value))) {
+        alert("学籍番号は7桁の数字で入力してください。");
+        return;
+    }
+
 
     postSystemNews.disabled = true;
 
@@ -574,7 +582,7 @@ async function postNews() {
         await addDoc(
             collection(
                 db,
-                "systemNews"
+                recipients.length ? "targetedSystemNews" : "systemNews"
             ),
             {
                 title,
@@ -612,6 +620,8 @@ async function postNews() {
                     shouldNotify
                         ? null
                         : serverTimestamp()
+                ,
+                targetStudentNumbers: recipients
             }
         );
 
@@ -636,6 +646,8 @@ async function postNews() {
                 false;
 
         }
+
+        if (systemNewsRecipients) systemNewsRecipients.value = "";
 
         if (
             sendSystemNewsNotification

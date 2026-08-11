@@ -2278,6 +2278,32 @@ onDocumentUpdated(
     }
 );
 
+// 指定学生向けCareMateお知らせは、対象学生の専用受信箱へだけ複製して通知する。
+exports.deliverTargetedSystemNews = onDocumentCreated(
+    { document: "targetedSystemNews/{newsId}", region: "asia-northeast1", secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY] },
+    async event => {
+        const snapshot = event.data;
+        if (!snapshot) return;
+        const news = snapshot.data() || {};
+        const recipients = [...new Set((Array.isArray(news.targetStudentNumbers) ? news.targetStudentNumbers : []).map(String))];
+        if (!recipients.length) return;
+        webpush.setVapidDetails("mailto:kidokohei.shonaniryo2517027@gmail.com", WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value());
+        const title = String(news.title || "CareMateからのお知らせ").trim();
+        const body = String(news.body || "").replace(/\s+/g, " ").trim().slice(0, 140);
+        const results = [];
+        await Promise.all(recipients.map(async userId => {
+            await db.collection("users").doc(userId).collection("targetedSystemNews").doc(event.params.newsId).set({
+                title, body: String(news.body || ""), author: String(news.author || ""), createdAt: new Date(), important: news.important === true, sourceNewsId: event.params.newsId
+            });
+            const user = (await db.collection("users").doc(userId).get()).data() || {};
+            if (news.notificationRequested !== false && user.notificationSettings?.systemNews !== false) {
+                results.push({ studentNumber: userId, results: await sendToUserDevices(userId, { title: `💙 ${title}`, body: body || "CareMateから新しいお知らせがあります。", url: `${SITE_URL}/news.html?systemNews=${encodeURIComponent(event.params.newsId)}`, tag: `targeted-system-news-${event.params.newsId}` }) });
+            }
+        }));
+        await snapshot.ref.update({ notificationSentAt: new Date(), notificationResults: results, notificationSource: "firebase" });
+    }
+);
+
 // 新規お問い合わせは担当者 2510044 の全登録端末にだけ通知する。
 exports.notifyContactMessage = onDocumentCreated(
     { document:"contacts/{contactId}", region:"asia-northeast1", secrets:[WEB_PUSH_PUBLIC_KEY,WEB_PUSH_PRIVATE_KEY] },

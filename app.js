@@ -1135,19 +1135,8 @@ async function loadHomeCourseNews() {
 }
 
 async function loadHomeSystemNews() {
-
-    const userSnap = await getDoc(
-        doc(db, "users", studentNumber)
-    );
-
-    if (
-        !userSnap.exists() ||
-        userSnap.data().manabaVerified !== true
-    ) {
-        homeSystemNews.innerHTML =
-            "Manaba認証後に表示されます。";
-        return;
-    }
+    const targetedSnapshot = await getDocs(collection(db, "users", studentNumber, "targetedSystemNews"));
+    const targetedDocs = targetedSnapshot.docs;
 
     const q = query(
         collection(db, "systemNews"),
@@ -1156,7 +1145,8 @@ async function loadHomeSystemNews() {
 
     onSnapshot(q, (snapshot) => {
 
-        if (snapshot.empty) {
+        const allDocs = [...snapshot.docs, ...targetedDocs].sort((a, b) => (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0));
+        if (allDocs.length === 0) {
 
             homeSystemNews.innerHTML =
                 "CareMateからのお知らせはありません。";
@@ -1167,7 +1157,7 @@ async function loadHomeSystemNews() {
 
         homeSystemNews.innerHTML = "";
 
-        snapshot.docs.slice(0, 3).forEach(newsDoc => {
+        allDocs.slice(0, 3).forEach(newsDoc => {
 
             const notice = newsDoc.data();
 
