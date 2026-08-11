@@ -89,7 +89,10 @@ exports.submitFeatureRequest = onCall(
         ]);
         const totalPoints = Number(rankingSnapshot.data()?.point || 0);
         const unlockedSlots = totalPoints >= 5000 ? 3 : totalPoints >= 800 ? 2 : 1;
-        if (existingSnapshot.size >= unlockedSlots) {
+        const usedSlots = existingSnapshot.docs.filter(item =>
+            ["submitted", "reviewing", "developing", "implemented"].includes(item.data().status || "submitted")
+        ).length;
+        if (usedSlots >= unlockedSlots) {
             throw new HttpsError("resource-exhausted", "利用できるリクエスト枠がありません。");
         }
 
@@ -99,11 +102,36 @@ exports.submitFeatureRequest = onCall(
             description,
             useCase,
             status: "submitted",
-            slotIndex: existingSnapshot.size,
+            slotIndex: usedSlots,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp()
         });
         return { id: created.id, unlockedSlots };
+    }
+);
+
+// 学生本人は送信済みの間だけ取り下げられる。検討中以降と実装済みは枠を保持する。
+exports.withdrawFeatureRequest = onCall(
+    { region: "asia-northeast1" },
+    async request => {
+        const studentNumber = String(request.auth?.token?.studentNumber || "");
+        const requestId = String(request.data?.requestId || "").trim();
+        if (!studentNumber) throw new HttpsError("unauthenticated", "ログインが必要です。");
+        if (!requestId) throw new HttpsError("invalid-argument", "リクエストを指定してください。");
+        const reference = db.collection("featureRequests").doc(requestId);
+        const snapshot = await reference.get();
+        if (!snapshot.exists || snapshot.data().studentNumber !== studentNumber) {
+            throw new HttpsError("permission-denied", "このリクエストは操作できません。");
+        }
+        if ((snapshot.data().status || "submitted") !== "submitted") {
+            throw new HttpsError("failed-precondition", "送信済み以外のリクエストは取り下げできません。");
+        }
+        await reference.update({
+            status: "withdrawn",
+            withdrawnAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+        });
+        return { ok: true };
     }
 );
 
