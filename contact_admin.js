@@ -22,7 +22,7 @@ if(studentNumber!=="2510044"||!(await isAdmin())){
       group.open=group.items.filter(item=>!['done','resolved'].includes(item.status||'new')).length;
       return group;
     }).sort((a,b)=>timeOf(b.latest.lastMessageAt||b.latest.createdAt)-timeOf(a.latest.lastMessageAt||a.latest.createdAt));
-    list.innerHTML=students.length?students.map(renderStudent).join(""):'<div class="card setting-card">お問い合わせはありません。</div>';
+    list.innerHTML=students.length?`<section class="contact-student-list">${students.map(renderStudent).join("")}</section>`:'<div class="card setting-card">お問い合わせはありません。</div>';
   },error=>{console.error(error);list.innerHTML='<div class="card setting-card">お問い合わせを読み込めませんでした。</div>'});
 }
 function renderStudent(group){const latest=group.latest,preview=String(latest.message||'追加メッセージがあります').replace(/\s+/g,' ').slice(0,70);return `<button type="button" class="card setting-card" style="width:100%;text-align:left;cursor:pointer" onclick="location.href='contact_admin_chat.html?studentNumber=${encodeURIComponent(group.studentNumber)}'"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">👤 ${escapeHtml(group.studentNumber)}</h3><span>${group.open?`<b style="color:#dc2626">未対応 ${group.open}件</b>`:'対応済み'}</span></div><p style="margin:.5rem 0 0"><b>${escapeHtml(latest.category||'お問い合わせ')}</b>　${escapeHtml(preview)}</p><small>${formatTime(latest.lastMessageAt||latest.createdAt)}　タップしてチャットを開く</small></button>`}
