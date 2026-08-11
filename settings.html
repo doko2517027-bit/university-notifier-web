@@ -101,7 +101,7 @@ if(localStorage.getItem("theme")==="dark"){
     <label>種類<select id="contactCategory"><option>不具合</option><option>使い方</option><option>要望</option><option>その他</option></select></label>
     <label>内容<textarea id="contactMessage" rows="5" maxlength="2000" placeholder="お問い合わせ内容を入力"></textarea></label>
     <button id="sendContact" class="btn btn-primary">送信する</button>
-    <a class="btn btn-secondary" href="contact_chat.html">💬 お問い合わせの履歴・返信を見る</a>
+    <a id="contactChatLink" class="btn btn-secondary" href="contact_chat.html" style="display:flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box">💬 お問い合わせの履歴・返信を見る</a>
     <a id="contactInboxLink" href="contact_admin.html" hidden>📨 お問い合わせ管理</a>
 </div>
 
