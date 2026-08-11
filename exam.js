@@ -2011,8 +2011,11 @@ function updateOverallProgress() {
     );
 
 
-    elements.overallProgressBar.style.width =
-        `${percentage}%`;
+    elements.overallProgressBar.style.setProperty(
+        "width",
+        `${percentage}%`,
+        "important"
+    );
 
 
     elements.completedFormatCount.textContent =
@@ -2133,8 +2136,11 @@ function updateDailyProgress() {
         `${dailyCompleted} / ${dailyTotal}達成`;
 
 
-    elements.todayDailyProgressBar.style.width =
-        `${percentage}%`;
+    elements.todayDailyProgressBar.style.setProperty(
+        "width",
+        `${percentage}%`,
+        "important"
+    );
 
 
     if (dailyTotal === 0) {

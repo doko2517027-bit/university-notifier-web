@@ -13,6 +13,7 @@ import {
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import { loadTestProgress, saveTestProgress, scrubberHtml, setupScrubber, finishTest } from "./test_session.js";
+import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -170,6 +171,8 @@ function renderFillQuestion() {
 
                 <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
+                ${studyToolsHtml(q.question, 4)}
+
                 ${renderQuestionImage(q)}
 
                 ${answers.map((answer, answerIndex) => `
@@ -200,6 +203,7 @@ function renderFillQuestion() {
             </div>${scrubberHtml(currentFillIndex,visibleFillBlank.length)}
         `;
     setupScrubber(questions,index=>{currentFillIndex=index;renderFillQuestion();saveTestProgress("fillBlank",subjectId,subjectName,unitId,currentFillIndex,visibleFillBlank.length)});
+    setupStudyTools(questions);
 }
 
 document.addEventListener("click", async (e) => {
@@ -272,7 +276,7 @@ document.addEventListener("click", async (e) => {
         panel.querySelector(".test-mark").textContent = "○";
 
         const awarded=await awardDailyQuestionPoints({type:"fillBlank",points:4,subjectId,subjectName,unitId,questionId:String(visibleFillBlank[currentFillIndex].id??currentFillIndex)});
-        if(awarded.awarded){sessionPoints+=4;panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋4pt</div>')}
+        if(awarded.awarded){sessionPoints+=4;panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋4pt</div>');await refreshTotalPoints(questions)}
 
     } else {
 

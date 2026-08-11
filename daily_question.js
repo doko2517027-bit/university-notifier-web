@@ -12,6 +12,7 @@ import {
 
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints, localDateKey } from "./test_points.js";
+import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -162,6 +163,8 @@ async function loadDailyQuestion() {
             <div class="test-question-number">今日の1問</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
+            ${studyToolsHtml(q.question, 3)}
+
             ${renderQuestionImage(q)}
 
             <div class="test-choice-list">${q.choices.map((choice, index) => `
@@ -185,6 +188,8 @@ async function loadDailyQuestion() {
             </button>
         </div>
     `;
+
+    setupStudyTools(questionArea);
 
     sessionStorage.setItem(
         "quizPlaying",
@@ -279,7 +284,7 @@ document.addEventListener("click", async (e) => {
                     )
 
             });
-        if(awarded.awarded)panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋3pt</div>');
+        if(awarded.awarded){panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋3pt</div>');await refreshTotalPoints(questionArea);}
 
     } else {
         result.textContent = "不正解";

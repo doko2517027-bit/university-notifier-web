@@ -3,6 +3,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import { loadTestProgress, saveTestProgress, scrubberHtml, setupScrubber, finishTest } from "./test_session.js";
+import { studyToolsHtml, setupStudyTools, refreshTotalPoints } from "./study_tools.js";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -100,6 +101,8 @@ function renderQuestion() {
             <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
+            ${studyToolsHtml(q.question, 2)}
+
             ${renderQuestionImage(q)}
 
             <div class="test-choice-list">
@@ -114,6 +117,7 @@ function renderQuestion() {
             <button type="button" class="test-report-link report-wrong-answer">答えが違います</button>
         </div>${scrubberHtml(currentIndex,visibleQuiz.length)}`;
     setupScrubber(quizArea,index=>{currentIndex=index;renderQuestion();saveTestProgress("quiz",subjectId,subjectName,unitId,currentIndex,visibleQuiz.length)});
+    setupStudyTools(quizArea);
 }
 
 document.addEventListener("click", async event => {
@@ -161,7 +165,7 @@ document.addEventListener("click", async event => {
     panel.classList.add(isCorrect ? "correct" : "wrong");
     panel.querySelector(".test-mark").textContent = isCorrect ? "○" : "×";
     panel.querySelector(".test-result-label").textContent = isCorrect ? "正解！" : "不正解";
-    if (isCorrect) {const result=await awardDailyQuestionPoints({type:"quiz",points:2,subjectId,subjectName,unitId,questionId:String(visibleQuiz[currentIndex].id??currentIndex)});if(result.awarded){sessionPoints+=2;panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋2pt</div>')}}
+    if (isCorrect) {const result=await awardDailyQuestionPoints({type:"quiz",points:2,subjectId,subjectName,unitId,questionId:String(visibleQuiz[currentIndex].id??currentIndex)});if(result.awarded){sessionPoints+=2;panel.insertAdjacentHTML("afterbegin",'<div class="point-earned-effect">＋2pt</div>');await refreshTotalPoints(quizArea)}}
     await saveTestProgress("quiz",subjectId,subjectName,unitId,currentIndex,visibleQuiz.length);
 });
 

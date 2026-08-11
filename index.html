@@ -293,13 +293,19 @@ if ("serviceWorker" in navigator) {
     </span>
 </button>
 
-<button id="weatherCard" class="home-weather-compact" type="button">
-    <span id="weatherLocation" class="home-weather-location">地域</span>
-    <span id="weatherMain" class="home-weather-main">読み込み中...</span>
-    <span id="weatherDetail" class="home-weather-detail"></span>
-    <span id="weatherDate" hidden></span>
-    <span id="weatherUpdated" hidden></span>
-</button>
+<div class="home-weather-search-row">
+    <button id="weatherCard" class="home-weather-compact" type="button">
+        <span id="weatherLocation" class="home-weather-location">地域</span>
+        <span id="weatherMain" class="home-weather-main">読み込み中...</span>
+        <span id="weatherDetail" class="home-weather-detail"></span>
+        <span id="weatherDate" hidden></span>
+        <span id="weatherUpdated" hidden></span>
+    </button>
+    <form id="homeSearchForm" class="home-search-form">
+        <input id="homeSearchInput" type="search" placeholder="Googleで検索" aria-label="Googleで検索">
+        <button type="submit" aria-label="検索">⌕</button>
+    </form>
+</div>
 
 <div
     id="examStatusCard"

@@ -58,6 +58,8 @@ const weatherDetail = document.getElementById("weatherDetail");
 const weatherCard = document.getElementById("weatherCard");
 const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
+const homeSearchForm = document.getElementById("homeSearchForm");
+const homeSearchInput = document.getElementById("homeSearchInput");
 const examStatusCard = document.getElementById("examStatusCard");
 const examStatusLabel = document.getElementById("examStatusLabel");
 const examStatusText = document.getElementById("examStatusText");
@@ -829,6 +831,15 @@ if(weatherCard){
 
     };
 
+}
+
+if (homeSearchForm) {
+    homeSearchForm.addEventListener("submit", event => {
+        event.preventDefault();
+        const query = homeSearchInput?.value.trim();
+        if (!query) return;
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener");
+    });
 }
 
 if(attendanceCard){
