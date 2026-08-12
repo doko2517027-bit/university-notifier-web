@@ -385,11 +385,28 @@ let enrolledAliases =
 
 let missingClasses = [];
 
+
+/*
+前回描画した講義HTML。
+同じならDOMを書き換えない。
+*/
+let lastLectureCardsHtml =
+    "";
+
+
 let pendingAction =
     null;
 
 let loading =
     false;
+
+
+/*
+最後に出席データを取得した時刻。
+*/
+let attendanceLastLoadedAt =
+    0;
+
 
 let toastTimer =
     null;
@@ -666,13 +683,35 @@ function setupEvents() {
         "visibilitychange",
         () => {
 
-            if (!document.hidden) {
+            if (document.hidden) {
+                return;
+            }
 
-                refreshAttendance(
-                    true
-                );
+
+            /*
+            30秒以内に最新データを取得済みなら
+            Firestoreを全部読み直さない。
+
+            時計・ボタン状態だけ更新する。
+            */
+            if (
+                Date.now() -
+                attendanceLastLoadedAt <
+                30 * 1000
+            ) {
+
+                renderLectureCards();
+
+                updateCurrentLectureStatus();
+
+                return;
 
             }
+
+
+            void refreshAttendance(
+                true
+            );
 
         }
     );
@@ -812,6 +851,17 @@ async function initializeAttendance() {
     setInterval(
         () => {
 
+            /*
+            画面を見ていない間は
+            DOMを再生成しない。
+            */
+            if (
+                document.hidden
+            ) {
+                return;
+            }
+
+
             renderLectureCards();
 
             updateCurrentLectureStatus();
@@ -890,8 +940,6 @@ async function loadAttendanceData() {
 
         const [
             userSnap,
-            personalTimetable,
-            enrollmentSnap,
             systemSnap
         ] = await Promise.all([
 
@@ -900,17 +948,6 @@ async function loadAttendanceData() {
                     db,
                     "users",
                     studentNumber
-                )
-            ),
-
-            loadPersonalTimetableData(),
-
-            getDocs(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "enrolledSubjects"
                 )
             ),
 
@@ -955,11 +992,27 @@ async function loadAttendanceData() {
                 userData
             );
 
-        
+
         const systemData =
             systemSnap.exists()
                 ? systemSnap.data()
                 : {};
+
+
+        /*
+        ユーザー情報はすでに取得済みなので
+        personal_timetable_data側で再取得しない。
+
+        さらにホームと同様、
+        entries生成も不要。
+
+        履修情報＋時間割だけ取得する。
+        */
+        const personalTimetable =
+            await loadPersonalTimetableData({
+                userData,
+                buildEntries: false
+            });
 
 
         if (!selectedAttendanceTerm) {
@@ -980,11 +1033,15 @@ async function loadAttendanceData() {
 
         enrolledSubjects =
             normalizeEnrolledSubjects(
-                enrollmentSnap
+                personalTimetable
+                    ?.enrolled ||
+                []
             );
 
 
         const scheduleId =
+            personalTimetable
+                ?.scheduleDocumentId ||
             resolveScheduleId(
                 userData
             );
@@ -999,20 +1056,14 @@ async function loadAttendanceData() {
         }
 
 
-        const scheduleSnap =
-            await getDoc(
-                doc(
-                    db,
-                    "schedule",
-                    scheduleId
-                )
-            );
-
-
+        /*
+        personal_timetable_data側ですでに
+        取得した最新時間割を再利用。
+        */
         scheduleData =
-            scheduleSnap.exists()
-                ? scheduleSnap.data()
-                : null;
+            personalTimetable
+                ?.scheduleData ||
+            null;
 
 
         enrolledAliases =
@@ -1257,13 +1308,21 @@ async function loadAttendanceData() {
 
         await loadRecords();
 
+
+        /*
+        最新データ取得完了時刻。
+        */
+        attendanceLastLoadedAt =
+            Date.now();
+
+
         scheduleNotificationTestExpiryRefresh();
 
-    } finally {
+        } finally {
 
-        loading = false;
+            loading = false;
 
-    }
+        }
 
 }
 
@@ -2551,10 +2610,24 @@ function renderLectureCards() {
         !lectures.length
     ) {
 
-        el.todayList.innerHTML =
+        const nextHtml =
             missingClasses.length
                 ? renderMissingClassCard()
                 : "";
+
+
+        if (
+            nextHtml !==
+            lastLectureCardsHtml
+        ) {
+
+            lastLectureCardsHtml =
+                nextHtml;
+
+            el.todayList.innerHTML =
+                nextHtml;
+
+        }
 
 
         if (el.empty) {
@@ -2599,8 +2672,26 @@ function renderLectureCards() {
     }
 
 
-    el.todayList.innerHTML =
+    const nextHtml =
         cards.join("");
+
+
+    if (
+        nextHtml ===
+        lastLectureCardsHtml
+    ) {
+
+        return;
+
+    }
+
+
+    lastLectureCardsHtml =
+        nextHtml;
+
+
+    el.todayList.innerHTML =
+        nextHtml;
 
 }
 
@@ -3428,13 +3519,23 @@ function resolveStudentAttendanceTerm(
 
 
 function normalizeEnrolledSubjects(
-    snapshot
+    source
 ) {
 
-    const rows =
-        snapshot.docs
-
-            .map(
+    /*
+    Firestore QuerySnapshotでも
+    すでに配列化された履修情報でも
+    使えるようにする。
+    */
+    const sourceRows =
+        Array.isArray(
+            source
+        )
+            ? source
+            : (
+                source?.docs ||
+                []
+            ).map(
                 item => ({
 
                     id:
@@ -3443,7 +3544,11 @@ function normalizeEnrolledSubjects(
                     ...item.data()
 
                 })
-            )
+            );
+
+
+    const rows =
+        sourceRows
 
             .filter(
                 item => {
