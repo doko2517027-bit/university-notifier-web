@@ -2,7 +2,32 @@ import {db,studentNumber,setupTheme,initializePage,loadProfileImage,loadUserName
 import {collection,doc,addDoc,deleteDoc,onSnapshot,orderBy,query,serverTimestamp,setDoc,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const $=id=>document.getElementById(id);
-const state={notes:[],selected:null,recognition:null,isListening:false,interim:"",drawing:false,lastPoint:null,drawTool:"pen",paper:"blank"};
+const state={
+    notes:[],
+    selected:null,
+
+    recognition:null,
+
+    isListening:false,
+
+    /*
+    ユーザーが明示的に停止するまで
+    音声認識を継続する。
+    */
+    keepListening:false,
+
+    /*
+    確定済み文字列と
+    聞き取り途中文字列を分離する。
+    */
+    finalTranscript:"",
+    interim:"",
+
+    drawing:false,
+    lastPoint:null,
+    drawTool:"pen",
+    paper:"blank"
+};
 const escapeHtml=value=>String(value??"").replace(/[&<>\"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[char]);
 setupTheme($("themeButton"));
 await initializePage([setupAdminTab(),loadUserName($("userName")),loadMyRanking(),loadProfileImage($("topProfileImage"))]);
@@ -78,7 +103,447 @@ function restoreBoard(){const board=$("writingBoard"),key=boardKey();if(!board||
 function clearBoard(){const key=boardKey();if(!key||!confirm("このノートの手書きをすべて消しますか？"))return;const board=$("writingBoard");board.getContext("2d").clearRect(0,0,board.clientWidth,board.clientHeight);localStorage.removeItem(key);$("boardStatus").textContent="手書きを消しました。"}
 function renderPreview(){let text=$("noteBody").value||"";const terms=$("maskTerms").value.split(",").map(value=>value.trim()).filter(Boolean).sort((a,b)=>b.length-a.length);const escaped=escapeHtml(text);if(!terms.length){$("notePreview").textContent=text;return}const pattern=new RegExp(`(${terms.map(term=>term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")})`,"g");$("notePreview").innerHTML=escaped.replace(pattern,"<button class=\"mask-word\" type=\"button\">$1</button>")}
 async function saveCurrent(){const note=current();if(!note)return;syncPlainBody();const title=$("noteTitle").value.trim()||"無題のノート";const body=$("noteBody").value;const bodyHtml=$("noteDocument").innerHTML;const maskTerms=$("maskTerms").value.split(",").map(value=>value.trim()).filter(Boolean);const transcript=$("liveTranscript").textContent==="まだ文字起こしは始まっていません。"?"":$("liveTranscript").textContent;await updateDoc(doc(db,"digitalNotes","2510044","notes",note.id),{title,body,bodyHtml,inkData:$("inkOverlay").toDataURL("image/png"),transcript,maskTerms,todos:note.todos||[],updatedAt:serverTimestamp()});alert("ノートを保存しました。")}
-function toggleVoice(){const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){alert("このブラウザではリアルタイム文字起こしに対応していません。Chromeなどの対応ブラウザでお試しください。");return}if(state.isListening){state.recognition?.stop();return}const recognition=new SpeechRecognition();state.recognition=recognition;recognition.lang="ja-JP";recognition.interimResults=true;recognition.continuous=true;recognition.onstart=()=>{state.isListening=true;$("voiceButton").textContent="■ 文字起こしを停止";$("liveTranscript").hidden=false;$("voiceState").textContent="文字起こし中です。文字起こしタブだけに保存されます。"};recognition.onresult=event=>{let confirmed="",interim="";for(let i=event.resultIndex;i<event.results.length;i++){const text=event.results[i][0].transcript;if(event.results[i].isFinal)confirmed+=text;else interim+=text}if(confirmed){const currentText=$("liveTranscript").textContent.replace("まだ文字起こしは始まっていません。","").replace("聞き取り中…","").trim();$("liveTranscript").textContent=`${currentText}${currentText?"\n":""}${confirmed}`}state.interim=interim;if(interim){const currentText=$("liveTranscript").textContent.replace("まだ文字起こしは始まっていません。","").trim();$("liveTranscript").textContent=`${currentText}${currentText?"\n":""}${interim}`}};recognition.onend=()=>{state.isListening=false;$("voiceButton").textContent="🎙 文字起こしを開始";$("voiceState").textContent="文字起こしを停止しました。保存すると文字起こしタブへ残ります。"};recognition.onerror=event=>{console.error(event.error);$("voiceState").textContent=`文字起こしを開始できませんでした：${event.error}`};recognition.start()}
+function toggleVoice() {
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+
+    if (!SpeechRecognition) {
+
+        alert(
+            "このブラウザではリアルタイム文字起こしに対応していません。Chromeなどの対応ブラウザでお試しください。"
+        );
+
+        return;
+
+    }
+
+
+    /*
+    停止ボタンを押した場合。
+
+    無音によるブラウザ側終了とは区別する。
+    */
+    if (state.keepListening) {
+
+        state.keepListening =
+            false;
+
+        state.isListening =
+            false;
+
+        state.interim =
+            "";
+
+        state.recognition?.stop();
+
+        $("voiceButton").textContent =
+            "🎙 文字起こしを開始";
+
+        $("voiceState").textContent =
+            "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
+
+        renderLiveTranscript();
+
+        return;
+
+    }
+
+
+    /*
+    既存の文字起こしを
+    確定済み文章として引き継ぐ。
+    */
+    const existingText =
+        $("liveTranscript")
+            .textContent
+            .replace(
+                "まだ文字起こしは始まっていません。",
+                ""
+            )
+            .trim();
+
+
+    state.finalTranscript =
+        existingText;
+
+    state.interim =
+        "";
+
+    state.keepListening =
+        true;
+
+
+    startSpeechRecognition();
+
+
+    function startSpeechRecognition() {
+
+        /*
+        ユーザーが停止したなら
+        再起動しない。
+        */
+        if (!state.keepListening) {
+            return;
+        }
+
+
+        const recognition =
+            new SpeechRecognition();
+
+
+        state.recognition =
+            recognition;
+
+
+        recognition.lang =
+            "ja-JP";
+
+        recognition.interimResults =
+            true;
+
+        recognition.continuous =
+            true;
+
+        /*
+        対応ブラウザでは
+        より多くの候補を要求しない。
+        */
+        recognition.maxAlternatives =
+            1;
+
+
+        recognition.onstart =
+            () => {
+
+                state.isListening =
+                    true;
+
+                $("voiceButton").textContent =
+                    "■ 文字起こしを停止";
+
+                $("liveTranscript").hidden =
+                    false;
+
+                $("voiceState").textContent =
+                    "文字起こし中です。話すのを止めても、そのまま聞き取りを続けます。";
+
+            };
+
+
+        recognition.onresult =
+            event => {
+
+                let newFinal =
+                    "";
+
+                let newInterim =
+                    "";
+
+
+                /*
+                今回のイベントで返された
+                結果だけ処理する。
+                */
+                for (
+                    let i = event.resultIndex;
+                    i < event.results.length;
+                    i++
+                ) {
+
+                    const result =
+                        event.results[i];
+
+                    const text =
+                        result[0]
+                            ?.transcript
+                            ?.trim() ||
+                        "";
+
+
+                    if (!text) {
+                        continue;
+                    }
+
+
+                    if (result.isFinal) {
+
+                        newFinal +=
+                            (
+                                newFinal
+                                    ? " "
+                                    : ""
+                            ) +
+                            text;
+
+                    } else {
+
+                        newInterim +=
+                            (
+                                newInterim
+                                    ? " "
+                                    : ""
+                            ) +
+                            text;
+
+                    }
+
+                }
+
+
+                /*
+                確定結果だけ永久保存。
+
+                interimは確定文章へ
+                絶対に混ぜない。
+                */
+                if (newFinal) {
+
+                    state.finalTranscript =
+                        appendTranscriptText(
+                            state.finalTranscript,
+                            newFinal
+                        );
+
+                }
+
+
+                state.interim =
+                    newInterim;
+
+
+                renderLiveTranscript();
+
+            };
+
+
+        recognition.onerror =
+            event => {
+
+                console.warn(
+                    "音声認識エラー:",
+                    event.error
+                );
+
+
+                /*
+                この3種類は
+                自動再開しても意味がないので停止。
+                */
+                if (
+                    [
+                        "not-allowed",
+                        "service-not-allowed",
+                        "audio-capture"
+                    ].includes(
+                        event.error
+                    )
+                ) {
+
+                    state.keepListening =
+                        false;
+
+                    state.isListening =
+                        false;
+
+                    $("voiceButton").textContent =
+                        "🎙 文字起こしを開始";
+
+                    $("voiceState").textContent =
+                        `文字起こしを開始できませんでした：${event.error}`;
+
+                    return;
+
+                }
+
+
+                /*
+                no-speech等は正常扱い。
+                onend後に自動再開する。
+                */
+            };
+
+
+        recognition.onend =
+            () => {
+
+                state.isListening =
+                    false;
+
+                state.interim =
+                    "";
+
+                renderLiveTranscript();
+
+
+                /*
+                ユーザーが停止していなければ
+                無音等で認識が終了しても
+                新しい認識セッションを開始する。
+
+                iPhone録音のように、
+                利用者から見れば連続状態を保つ。
+                */
+                if (state.keepListening) {
+
+                    $("voiceState").textContent =
+                        "文字起こしを継続しています…";
+
+
+                    setTimeout(
+                        () => {
+
+                            if (
+                                state.keepListening
+                            ) {
+
+                                startSpeechRecognition();
+
+                            }
+
+                        },
+                        250
+                    );
+
+                    return;
+
+                }
+
+
+                $("voiceButton").textContent =
+                    "🎙 文字起こしを開始";
+
+                $("voiceState").textContent =
+                    "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
+
+            };
+
+
+        try {
+
+            recognition.start();
+
+        } catch (error) {
+
+            console.warn(
+                "音声認識開始エラー:",
+                error
+            );
+
+
+            /*
+            セッション切替直後などの
+            startエラーなら少し待って再試行。
+            */
+            if (state.keepListening) {
+
+                setTimeout(
+                    startSpeechRecognition,
+                    500
+                );
+
+            }
+
+        }
+
+    }
+
+}
+
+function appendTranscriptText(
+    current,
+    addition
+) {
+
+    const before =
+        String(
+            current || ""
+        ).trim();
+
+    const next =
+        String(
+            addition || ""
+        ).trim();
+
+
+    if (!next) {
+        return before;
+    }
+
+
+    if (!before) {
+        return next;
+    }
+
+
+    /*
+    発話ごとに改行。
+
+    iPhoneの文字起こしっぽく
+    一続きで読みやすく残す。
+    */
+    return `${before}\n${next}`;
+
+}
+
+
+function renderLiveTranscript() {
+
+    const element =
+        $("liveTranscript");
+
+
+    if (!element) {
+        return;
+    }
+
+
+    const finalText =
+        String(
+            state.finalTranscript ||
+            ""
+        ).trim();
+
+
+    const interimText =
+        String(
+            state.interim ||
+            ""
+        ).trim();
+
+
+    if (
+        !finalText &&
+        !interimText
+    ) {
+
+        element.textContent =
+            "まだ文字起こしは始まっていません。";
+
+        return;
+
+    }
+
+
+    /*
+    interimは画面上にだけ出す。
+
+    確定後に置き換わるので、
+    過去の文章へ累積しない。
+    */
+    element.textContent =
+
+        finalText +
+
+        (
+            interimText
+                ? `${finalText ? "\n" : ""}${interimText}`
+                : ""
+        );
+
+}
 async function openChatGPT(kind){const note=current();if(!note)return alert("先にノートを作成してください。");const body=$("noteBody").value.trim();if(!body)return alert("メモを入力してから使ってください。");const prompt=kind==="要約"?`以下の講義メモを、重要語句・要点・次に確認することに分けて日本語で要約してください。\n\n${body}`:`以下の講義メモから、4択問題と穴埋め問題を作成してください。各問題に答えと簡潔な解説を付け、JSONでも出力してください。\n\n${body}`;try{await navigator.clipboard.writeText(prompt)}catch(error){console.warn(error)}window.open("https://chatgpt.com/","_blank","noopener");alert(`${kind}用の指示とメモをコピーしました。開いたChatGPTに貼り付けてください。`)}
 function dateLabel(value){return typeof value?.toDate==="function"?value.toDate().toLocaleString("ja-JP"):"更新日時未設定"}
 
