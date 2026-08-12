@@ -1348,14 +1348,32 @@ async function cachedGetDoc(path, ref) {
         return firestoreCache.get(path);
     }
 
-    const snap = await getDoc(ref);
+    const request =
+        getDoc(ref)
+            .catch(error => {
 
+                firestoreCache.delete(path);
+
+                throw error;
+
+            });
+
+    /*
+    Snapshot取得後ではなく、
+    リクエスト開始時点でPromiseを保存する。
+
+    同じページ内で同時に
+    publicUsers/xxxx
+    users/xxxx
+    などを要求しても、
+    Firestore通信は1回だけになる。
+    */
     firestoreCache.set(
         path,
-        snap
+        request
     );
 
-    return snap;
+    return request;
 
 }
 

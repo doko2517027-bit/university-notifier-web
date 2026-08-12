@@ -220,7 +220,10 @@ body{
     margin:0 auto;
     padding:20px;
     padding-bottom:90px;
-    transition:.3s;
+
+    transition:
+        background-color .18s ease,
+        color .18s ease;
 }
 
 h1,h2,h3{
@@ -432,7 +435,9 @@ select:focus{
     align-items:center;
     z-index:9999;
     opacity:1;
-    transition:opacity .5s ease;
+
+    transition:
+        opacity .18s ease;
 }
 
 #splash.hide{
@@ -1529,10 +1534,17 @@ white-space:pre-wrap;
     display:flex;
 
     overflow-x:auto;
+    overflow-y:hidden;
 
     gap:16px;
 
     scroll-snap-type:x mandatory;
+
+    overscroll-behavior-inline:contain;
+
+    -webkit-overflow-scrolling:touch;
+
+    scrollbar-width:none;
 
     padding-bottom:8px;
 
@@ -1564,7 +1576,9 @@ white-space:pre-wrap;
 
     justify-content:center;
 
-    transition:.2s;
+    transition:
+        transform .14s ease,
+        box-shadow .14s ease;
 
 }
 

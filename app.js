@@ -201,40 +201,43 @@ if (loggedIn !== "true") {
 
 }
 
-async function checkMaintenance() {
-
-    const snap = await getDoc(
-        doc(db, "system", "app")
-    );
-
-    if (!snap.exists()) {
-        return;
-    }
-
-    const system = snap.data();
+async function checkMaintenance(
+    system = {}
+) {
 
     if (!system.maintenance) {
-        return;
+        return false;
     }
 
-    const devSnap = await getDoc(
-        doc(db, "developers", studentNumber)
-    );
+    const devSnap =
+        await getDoc(
+            doc(
+                db,
+                "developers",
+                studentNumber
+            )
+        );
 
     if (
         devSnap.exists() &&
         devSnap.data().enabled === true
     ) {
-        return;
+        return false;
     }
 
-    location.href = "maintenance.html";
+    location.href =
+        "maintenance.html";
+
+    return true;
 
 }
 
 async function startApp() {
 
-console.log("studentNumber =", studentNumber);
+    console.log(
+        "studentNumber =",
+        studentNumber
+    );
 
     let user = null;
 
@@ -242,36 +245,103 @@ console.log("studentNumber =", studentNumber);
 
         if (!studentNumber) {
 
-	    localStorage.removeItem("loggedIn");
-	    localStorage.removeItem("studentNumber");
-	
-	    location.href = "login.html";
-	    return;
-	
-	}
+            localStorage.removeItem(
+                "loggedIn"
+            );
 
-        await checkMaintenance();
+            localStorage.removeItem(
+                "studentNumber"
+            );
 
-        const userSnap = await getDoc(
-            doc(db, "users", studentNumber)
-        );
+            location.href =
+                "login.html";
+
+            return;
+
+        }
+
+
+        /*
+        ユーザー情報とsystem/appを
+        同時に取得する。
+
+        これまで：
+        system/app
+        ↓
+        users
+        ↓
+        表示
+
+        修正後：
+        system/app ┐
+                   ├ 同時
+        users      ┘
+        */
+        const [
+            systemSnap,
+            userSnap
+        ] = await Promise.all([
+
+            getDoc(
+                doc(
+                    db,
+                    "system",
+                    "app"
+                )
+            ),
+
+            getDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                )
+            )
+
+        ]);
+
+
+        const system =
+            systemSnap.exists()
+                ? systemSnap.data()
+                : {};
+
+
+        const maintenanceRedirected =
+            await checkMaintenance(
+                system
+            );
+
+
+        if (maintenanceRedirected) {
+            return;
+        }
+
 
         if (!userSnap.exists()) {
-	
-	    localStorage.removeItem("loggedIn");
-	    localStorage.removeItem("studentNumber");
-	
-	    alert("ユーザー情報を取得できませんでした。もう一度ログインしてください。");
-	
-	    location.href = "login.html";
-	    return;
-	
-	}
 
-        user = userSnap.data();
+            localStorage.removeItem(
+                "loggedIn"
+            );
 
-        await showAnnualTransitionIfRequired(user);
-        await showCreditConfirmationIfRequired(user);
+            localStorage.removeItem(
+                "studentNumber"
+            );
+
+            alert(
+                "ユーザー情報を取得できませんでした。もう一度ログインしてください。"
+            );
+
+            location.href =
+                "login.html";
+
+            return;
+
+        }
+
+
+        user =
+            userSnap.data();
 
 
         applyManabaFeatureVisibility(
@@ -279,21 +349,64 @@ console.log("studentNumber =", studentNumber);
         );
 
 
-        if (user.activeMailResetRequired === true) {
-            location.href = "activemail_setup.html";
+        if (
+            user.activeMailResetRequired ===
+            true
+        ) {
+
+            location.href =
+                "activemail_setup.html";
+
             return;
+
         }
 
-        if (user.manabaResetRequired === true) {
-            location.href = "manaba_setup.html";
+
+        if (
+            user.manabaResetRequired ===
+            true
+        ) {
+
+            location.href =
+                "manaba_setup.html";
+
             return;
+
         }
 
-        renderAuthSetupCards(user);
 
-    } catch (e) {
+        renderAuthSetupCards(
+            user
+        );
 
-        console.error(e);
+
+        /*
+        必須情報が確認できた時点で
+        先に画面を表示する。
+        */
+        showPage();
+
+
+        /*
+        年度末・単位確認は
+        同じsystem/appデータを再利用。
+        */
+        await showAnnualTransitionIfRequired(
+            user,
+            system
+        );
+
+        await showCreditConfirmationIfRequired(
+            user,
+            system
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
 
         showPage();
 
@@ -301,48 +414,130 @@ console.log("studentNumber =", studentNumber);
 
     }
 
-    showPage();
 
+    /*
+    最初に見える情報。
+    */
     Promise.all([
-        loadUserName(userName),
-        loadMyRanking(),
-        loadProfileImage(topProfileImage),
-        loadActiveMailBadge(user),
-        updateAssignmentNavBadge(),
-        updateShareNavBadge(),
-        updateNewsNavBadge()
-    ]);
 
-    // 画面の表示後は、予定表示と補助カードの取得を並行にする。
-    // 機能は同じまま、待ち時間だけを減らす。
-    const todayScheduleTask = loadTodaySchedule();
-    const backgroundTasks = Promise.all([
-        loadExamMode(),
-        loadWeather(user),
-        loadNews(),
-        loadHomeCourseNews(),
-        loadHomeSystemNews(),
-        loadCourseLinks(),
-        loadCourseRegistrationBanner(user),
-    ]).catch(error => console.error("ホーム補助表示の読み込みエラー:", error));
+        loadUserName(
+            userName
+        ),
+
+        loadProfileImage(
+            topProfileImage
+        ),
+
+        loadActiveMailBadge(
+            user
+        ),
+
+        updateAssignmentNavBadge()
+
+    ]).catch(error => {
+
+        console.error(
+            "ホーム基本情報読み込みエラー:",
+            error
+        );
+
+    });
+
+
+    /*
+    時間割を最優先。
+    startAppで取得済みのuserを渡し、
+    usersドキュメントを再取得しない。
+    */
+    const todayScheduleTask =
+        loadTodaySchedule(
+            user
+        );
+
+
+    /*
+    時間割を待たずに、
+    その他も並行取得。
+    */
+    const backgroundTasks =
+        Promise.all([
+
+            loadExamMode(),
+
+            loadWeather(
+                user
+            ),
+
+            loadNews(),
+
+            loadHomeCourseNews(),
+
+            loadHomeSystemNews(),
+
+            loadCourseLinks(),
+
+            loadCourseRegistrationBanner(
+                user
+            )
+
+        ]).catch(error => {
+
+            console.error(
+                "ホーム補助表示の読み込みエラー:",
+                error
+            );
+
+        });
+
 
     await todayScheduleTask;
 
     await checkClassSelectionRequired();
 
-    // 表示を止めない補助情報は裏で続ける。
+
     void backgroundTasks;
 
-    // 初期操作を優先し、重いランキング・ポップアップ・管理バッジは
-    // 画面が落ち着いてから読み込む。
-    const runWhenIdle = window.requestIdleCallback || (callback => setTimeout(callback, 120));
+
+    /*
+    初期表示に不要な重い処理は、
+    操作可能になってから開始する。
+    */
+    const runWhenIdle =
+        window.requestIdleCallback ||
+        (
+            callback =>
+                setTimeout(
+                    callback,
+                    120
+                )
+        );
+
+
     runWhenIdle(() => {
+
         Promise.all([
+
+            loadMyRanking(),
+
+            updateNewsNavBadge(),
+
             loadRankingPopup(),
+
             loadRanking(),
+
             loadAttendancePopup(),
+
             setupAdminTab()
-        ]).catch(error => console.error("ホーム後続表示の読み込みエラー:", error));
+
+        ]).catch(error => {
+
+            console.error(
+                "ホーム後続表示の読み込みエラー:",
+                error
+            );
+
+        });
+
     });
 
 }
@@ -357,7 +552,10 @@ function academicYearForTransition(date = new Date()) {
 }
 
 
-async function showAnnualTransitionIfRequired(user) {
+async function showAnnualTransitionIfRequired(
+    user,
+    system = {}
+) {
 
     if (!annualTransitionOverlay || !studentNumber) return;
 
@@ -369,8 +567,8 @@ async function showAnnualTransitionIfRequired(user) {
 
     if (!profileName || profileName === "氏名未設定") return;
 
-    const systemSnap = await getDoc(doc(db, "system", "app"));
-    const transition = systemSnap.data()?.annualTransition;
+    const transition =
+        system?.annualTransition;
 
     if (transition?.enabled !== true) return;
 
@@ -463,15 +661,18 @@ function escapeCreditText(value) {
     }[character]));
 }
 
-async function showCreditConfirmationIfRequired(user) {
+async function showCreditConfirmationIfRequired(
+    user,
+    system = {}
+) {
     if (!creditConfirmationOverlay || !studentNumber || annualTransitionOverlay?.hidden === false) return;
     if (["graduated", "withdrawn"].includes(user?.academicStatus)) return;
 
     const profileName = String(user?.name || user?.userName || user?.displayName || "").trim();
     if (!profileName || profileName === "氏名未設定") return;
 
-    const systemSnap = await getDoc(doc(db, "system", "app"));
-    const config = systemSnap.data()?.creditConfirmation;
+    const config =
+        system?.creditConfirmation;
     if (config?.enabled !== true) return;
 
     const academicYear = Number(config.academicYear);
@@ -1150,8 +1351,15 @@ async function loadHomeSystemNews() {
     const targetedDocs = targetedSnapshot.docs;
 
     const q = query(
-        collection(db, "systemNews"),
-        orderBy("createdAt", "desc")
+        collection(
+            db,
+            "systemNews"
+        ),
+        orderBy(
+            "createdAt",
+            "desc"
+        ),
+        limit(3)
     );
 
     onSnapshot(q, (snapshot) => {
@@ -1216,42 +1424,101 @@ async function loadHomeSystemNews() {
 
 }
 
-async function loadTodaySchedule() {
-
-    const personalTimetable = await loadPersonalTimetableData();
-    const enrolledAliases = personalTimetable.aliasToCourse || new Map();
+async function loadTodaySchedule(
+    userData = null
+) {
 
     const department =
-        localStorage.getItem("department");
+        localStorage.getItem(
+            "department"
+        );
 
     const major =
-        localStorage.getItem("major");
+        localStorage.getItem(
+            "major"
+        );
 
     const grade =
-        String(localStorage.getItem("grade") || "")
+        String(
+            localStorage.getItem(
+                "grade"
+            ) || ""
+        )
             .normalize("NFKC")
             .replace("年", "")
             .trim();
 
+
     let docId = "";
 
-    if (department === "看護学科") {
 
-        docId = "ns_yamate";
+    if (
+        department ===
+        "看護学科"
+    ) {
 
-    } else if (major === "理学療法学専攻") {
+        docId =
+            "ns_yamate";
 
-        docId = "pt";
+    } else if (
+        major ===
+        "理学療法学専攻"
+    ) {
 
-    } else if (major === "作業療法学専攻") {
+        docId =
+            "pt";
 
-        docId = "ot";
+    } else if (
+        major ===
+        "作業療法学専攻"
+    ) {
+
+        docId =
+            "ot";
 
     }
 
-    const snap = await getDoc(
-        doc(db, "schedule", docId)
-    );
+
+    if (!docId) {
+
+        lectureScheduleLabel.textContent =
+            "講義予定";
+
+        lectureScheduleList.innerHTML =
+            `<p class="empty-text">時間割がありません。</p>`;
+
+        return;
+
+    }
+
+
+    /*
+    履修情報と大学時間割を
+    同時取得。
+    */
+    const [
+        personalTimetable,
+        snap
+    ] = await Promise.all([
+
+        loadPersonalTimetableData(),
+
+        getDoc(
+            doc(
+                db,
+                "schedule",
+                docId
+            )
+        )
+
+    ]);
+
+
+    const enrolledAliases =
+        personalTimetable
+            ?.aliasToCourse ||
+        new Map();
+
 
     if (!snap.exists()) {
 
@@ -1265,7 +1532,9 @@ async function loadTodaySchedule() {
 
     }
 
-    const data = snap.data();
+
+    const data =
+        snap.data();
 
     if (
         lectureSchedulePdfLink &&
@@ -1340,22 +1609,122 @@ async function loadTodaySchedule() {
 
     }
 
-    const scheduleParams = new URLSearchParams(location.search);
-    if (scheduleParams.get("clearAttendanceTestDate") === "1") {
-        localStorage.removeItem("careMateAttendanceTestDate");
-        localStorage.removeItem("careMateSelectedScheduleDate");
+    const scheduleParams =
+        new URLSearchParams(
+            location.search
+        );
+
+
+    let currentUserData =
+        userData
+            ? {
+                ...userData
+            }
+            : null;
+
+
+    if (
+        scheduleParams.get(
+            "clearAttendanceTestDate"
+        ) === "1"
+    ) {
+
+        localStorage.removeItem(
+            "careMateAttendanceTestDate"
+        );
+
+        localStorage.removeItem(
+            "careMateSelectedScheduleDate"
+        );
+
+
+        const resetAt =
+            new Date().toISOString();
+
+
         if (studentNumber) {
-            await updateDoc(doc(db, "users", studentNumber), {
-                "attendanceTestClock.enabled": false,
-                "attendanceTestClock.resetAt": new Date().toISOString()
-            });
+
+            await updateDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                ),
+                {
+                    "attendanceTestClock.enabled":
+                        false,
+
+                    "attendanceTestClock.resetAt":
+                        resetAt
+                }
+            );
+
         }
+
+
+        if (currentUserData) {
+
+            currentUserData = {
+
+                ...currentUserData,
+
+                attendanceTestClock: {
+
+                    ...(
+                        currentUserData
+                            .attendanceTestClock ||
+                        {}
+                    ),
+
+                    enabled:
+                        false,
+
+                    resetAt
+
+                }
+
+            };
+
+        }
+
     }
 
-    const userSnapshot = studentNumber
-        ? await getDoc(doc(db, "users", studentNumber))
-        : null;
-    const userTestClock = userSnapshot?.data()?.attendanceTestClock || {};
+
+    /*
+    startAppからuserが渡されていない場合だけ
+    Firestoreから取得。
+    */
+    if (
+        !currentUserData &&
+        studentNumber
+    ) {
+
+        const userSnapshot =
+            await getDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                )
+            );
+
+
+        currentUserData =
+            userSnapshot.exists()
+                ? userSnapshot.data()
+                : {};
+
+    }
+
+
+    currentUserData =
+        currentUserData || {};
+
+
+    const userTestClock =
+        currentUserData
+            .attendanceTestClock ||
+        {};
     const userTestDateActive = userTestClock.enabled === true &&
         /^\d{4}-\d{2}-\d{2}$/.test(userTestClock.date || "") &&
         Date.parse(userTestClock.expiresAt || "") > Date.now();
@@ -1365,7 +1734,10 @@ async function loadTodaySchedule() {
         localStorage.removeItem("careMateSelectedScheduleDate");
     }
 
-    const notificationTest = userSnapshot?.data()?.attendanceNotificationTest || {};
+    const notificationTest =
+        currentUserData
+            .attendanceNotificationTest ||
+        {};
     const notificationTestActive = notificationTest.enabled === true &&
         notificationTest.date === new Date().toLocaleDateString("sv-SE") &&
         Date.parse(notificationTest.expiresAt || "") > Date.now() &&
@@ -1463,13 +1835,13 @@ async function loadTodaySchedule() {
     */
     const classSelections =
 
-        userSnapshot?.data()
+        currentUserData
             ?.classSelections &&
-        typeof userSnapshot.data()
+        typeof currentUserData
             .classSelections ===
             "object"
 
-            ? userSnapshot.data()
+            ? currentUserData
                 .classSelections
 
             : {};
@@ -2116,26 +2488,41 @@ const splash = document.getElementById("splash");
 
 if (
     splash &&
-    !sessionStorage.getItem("splashShown")
+    !sessionStorage.getItem(
+        "splashShown"
+    )
 ) {
 
-    splash.style.display = "flex";
+    splash.style.display =
+        "flex";
+
 
     setTimeout(() => {
 
-        splash.classList.add("hide");
+        splash.classList.add(
+            "hide"
+        );
+
 
         setTimeout(() => {
-            splash.style.display = "none";
-        }, 500);
 
-    }, 1200);
+            splash.style.display =
+                "none";
 
-    sessionStorage.setItem("splashShown", "true");
+        }, 180);
+
+    }, 320);
+
+
+    sessionStorage.setItem(
+        "splashShown",
+        "true"
+    );
 
 } else if (splash) {
 
-    splash.style.display = "none";
+    splash.style.display =
+        "none";
 
 }
 
