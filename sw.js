@@ -1,7 +1,65 @@
 /* ========================================
    CareMate Service Worker
-   Push通知・通知タップ処理
+   高速表示・Push通知・通知タップ処理
 ======================================== */
+
+
+/*
+Service Workerを更新した時は
+この数字を1つ上げる。
+
+例
+caremate-static-v1
+↓
+caremate-static-v2
+*/
+const STATIC_CACHE =
+    "caremate-static-v1";
+
+
+const RUNTIME_CACHE =
+    "caremate-runtime-v1";
+
+
+const CACHE_NAMES = [
+    STATIC_CACHE,
+    RUNTIME_CACHE
+];
+
+
+/*
+確実に存在する主要ファイルだけ
+先にキャッシュする。
+
+1ファイル失敗しただけで
+Service Worker全体のinstallを
+失敗させないよう個別取得する。
+*/
+const CORE_ASSETS = [
+
+    "./",
+
+    "index.html",
+
+    "style.css",
+
+    "app.js",
+
+    "common.js",
+
+    "personal_timetable_data.js",
+
+    "class_selection.js",
+
+    "manifest.json",
+
+    "version.js",
+
+    "images/default.png",
+
+    "icon-192.png"
+
+];
 
 
 /* ========================================
@@ -13,7 +71,57 @@ self.addEventListener(
     event => {
 
         event.waitUntil(
-            self.skipWaiting()
+            (
+                async () => {
+
+                    const cache =
+                        await caches.open(
+                            STATIC_CACHE
+                        );
+
+
+                    /*
+                    addAll()では、
+                    1個404になると全部失敗するため
+                    個別にキャッシュする。
+                    */
+                    await Promise.allSettled(
+
+                        CORE_ASSETS.map(
+                            async asset => {
+
+                                try {
+
+                                    await cache.add(
+                                        new Request(
+                                            asset,
+                                            {
+                                                cache:
+                                                    "reload"
+                                            }
+                                        )
+                                    );
+
+                                } catch (error) {
+
+                                    console.warn(
+                                        "事前キャッシュ失敗:",
+                                        asset,
+                                        error
+                                    );
+
+                                }
+
+                            }
+                        )
+
+                    );
+
+
+                    await self.skipWaiting();
+
+                }
+            )()
         );
 
     }
@@ -25,11 +133,429 @@ self.addEventListener(
     event => {
 
         event.waitUntil(
-            self.clients.claim()
+            (
+                async () => {
+
+                    /*
+                    古いCareMateキャッシュを削除。
+                    */
+                    const cacheKeys =
+                        await caches.keys();
+
+
+                    await Promise.all(
+
+                        cacheKeys.map(
+                            cacheName => {
+
+                                const isCareMateCache =
+                                    cacheName.startsWith(
+                                        "caremate-"
+                                    );
+
+
+                                const isCurrentCache =
+                                    CACHE_NAMES.includes(
+                                        cacheName
+                                    );
+
+
+                                if (
+                                    isCareMateCache &&
+                                    !isCurrentCache
+                                ) {
+
+                                    return caches.delete(
+                                        cacheName
+                                    );
+
+                                }
+
+
+                                return Promise.resolve();
+
+                            }
+                        )
+
+                    );
+
+
+                    /*
+                    navigation preload対応ブラウザでは
+                    Service Worker起動中にも
+                    HTML通信を先行させる。
+                    */
+                    if (
+                        self.registration
+                            .navigationPreload
+                    ) {
+
+                        try {
+
+                            await self.registration
+                                .navigationPreload
+                                .enable();
+
+                        } catch (error) {
+
+                            console.warn(
+                                "Navigation Preload有効化失敗:",
+                                error
+                            );
+
+                        }
+
+                    }
+
+
+                    await self.clients.claim();
+
+                }
+            )()
         );
 
     }
 );
+
+
+/* ========================================
+   高速キャッシュ
+======================================== */
+
+self.addEventListener(
+    "fetch",
+    event => {
+
+        const request =
+            event.request;
+
+
+        /*
+        GET以外は絶対に触らない。
+
+        Firestore更新
+        ログイン
+        POST
+        Functions
+        などを壊さないため。
+        */
+        if (
+            request.method !== "GET"
+        ) {
+
+            return;
+
+        }
+
+
+        const url =
+            new URL(
+                request.url
+            );
+
+
+        /*
+        CareMateと同じorigin以外は
+        Service Workerキャッシュ対象外。
+
+        Firebase
+        Open-Meteo
+        Google
+        などは常に本来の通信を使う。
+        */
+        if (
+            url.origin !==
+            self.location.origin
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+        HTMLページ遷移。
+        最新版を最優先する。
+        */
+        if (
+            request.mode === "navigate"
+        ) {
+
+            event.respondWith(
+                handleNavigationRequest(
+                    event
+                )
+            );
+
+            return;
+
+        }
+
+
+        /*
+        CSS / JS / 画像 / manifest等。
+
+        まずキャッシュを即表示し、
+        裏で最新版を取得する。
+        */
+        if (
+            isStaticAsset(
+                request,
+                url
+            )
+        ) {
+
+            event.respondWith(
+                handleStaticRequest(
+                    request
+                )
+            );
+
+        }
+
+    }
+);
+
+
+/*
+HTMLは
+
+最新ネットワーク
+↓
+失敗した時だけキャッシュ
+
+にする。
+
+古い時間割や画面を
+通常時に優先表示しない。
+*/
+async function handleNavigationRequest(
+    event
+) {
+
+    const request =
+        event.request;
+
+
+    try {
+
+        /*
+        activateでNavigation Preloadが
+        有効なら先に始まっている通信を使用。
+        */
+        const preloadResponse =
+            await event.preloadResponse;
+
+
+        if (preloadResponse) {
+
+            const cache =
+                await caches.open(
+                    RUNTIME_CACHE
+                );
+
+
+            cache.put(
+                request,
+                preloadResponse.clone()
+            );
+
+
+            return preloadResponse;
+
+        }
+
+
+        const networkResponse =
+            await fetch(
+                request
+            );
+
+
+        if (
+            networkResponse &&
+            networkResponse.ok
+        ) {
+
+            const cache =
+                await caches.open(
+                    RUNTIME_CACHE
+                );
+
+
+            cache.put(
+                request,
+                networkResponse.clone()
+            );
+
+        }
+
+
+        return networkResponse;
+
+
+    } catch (error) {
+
+        /*
+        オフライン等の場合だけ
+        保存済みHTMLを使う。
+        */
+        const cachedResponse =
+            await caches.match(
+                request
+            );
+
+
+        if (cachedResponse) {
+
+            return cachedResponse;
+
+        }
+
+
+        /*
+        URLパラメータ付きindex等で
+        完全一致しなかった時の保険。
+        */
+        const fallback =
+            await caches.match(
+                "index.html"
+            );
+
+
+        if (fallback) {
+
+            return fallback;
+
+        }
+
+
+        throw error;
+
+    }
+
+}
+
+
+/*
+JS/CSS/画像は
+
+キャッシュ即返却
+＋
+裏で最新版取得
+
+Stale While Revalidate方式。
+*/
+async function handleStaticRequest(
+    request
+) {
+
+    const cache =
+        await caches.open(
+            RUNTIME_CACHE
+        );
+
+
+    const cachedResponse =
+        await caches.match(
+            request
+        );
+
+
+    const networkPromise =
+        fetch(
+            request
+        )
+            .then(
+                response => {
+
+                    if (
+                        response &&
+                        response.ok
+                    ) {
+
+                        cache.put(
+                            request,
+                            response.clone()
+                        );
+
+                    }
+
+
+                    return response;
+
+                }
+            )
+            .catch(
+                error => {
+
+                    if (
+                        !cachedResponse
+                    ) {
+
+                        throw error;
+
+                    }
+
+
+                    return null;
+
+                }
+            );
+
+
+    /*
+    キャッシュがあるなら
+    ネットワークを待たず即返す。
+    */
+    if (cachedResponse) {
+
+        /*
+        Promise自体は走り続けるので
+        次回用キャッシュが更新される。
+        */
+        return cachedResponse;
+
+    }
+
+
+    return networkPromise;
+
+}
+
+
+/*
+キャッシュしてよい
+静的ファイルだけ判定。
+*/
+function isStaticAsset(
+    request,
+    url
+) {
+
+    if (
+        [
+            "script",
+            "style",
+            "image",
+            "font",
+            "manifest"
+        ].includes(
+            request.destination
+        )
+    ) {
+
+        return true;
+
+    }
+
+
+    return /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|json)$/i
+        .test(
+            url.pathname
+        );
+
+}
 
 
 /* ========================================
