@@ -18,81 +18,456 @@ function scheduleDocumentId(user){
     return "";
 }
 
-export async function loadPersonalTimetableData(){
-    if(!studentNumber) return {entries:[],enrolled:[],scheduleDocumentId:"",reason:"not_logged_in"};
-    const [userSnap,enrollmentSnap]=await Promise.all([
-        getDoc(doc(db,"users",studentNumber)),
-        getDocs(collection(db,"users",studentNumber,"enrolledSubjects"))
-    ]);
-    const user=userSnap.data()||{};
-    const enrolled=enrollmentSnap.docs.map(item=>({id:item.id,...item.data()})).filter(item=>item.status!=="removed");
-    const aliasToCourse=new Map();
-    for(const course of enrolled){
-        for(const alias of [course.name,course.subjectKey,course.subjectId,course.id]){
-            const normalized=normalizeCourseName(alias);
-            if(normalized) aliasToCourse.set(normalized,course);
-        }
-    }
-    const scheduleId=scheduleDocumentId(user);
-    if(!scheduleId) return {entries:[],enrolled,aliasToCourse,scheduleDocumentId:"",reason:"schedule_not_configured"};
-    const scheduleSnap=await getDoc(doc(db,"schedule",scheduleId));
-    if(!scheduleSnap.exists()) return {entries:[],enrolled,aliasToCourse,scheduleDocumentId:scheduleId,reason:"schedule_missing"};
-    const data=scheduleSnap.data();
-    const days=Array.isArray(data.allDays)&&data.allDays.length
-        ? data.allDays
-        : Array.isArray(data.days)&&data.days.length?data.days:[
-        {date:"",title:data.todayTitle||"今日",label:data.todayLabel||"",schedules:data.today||[]},
-        {date:"",title:data.nextTitle||"次回",label:data.nextLabel||"",schedules:data.next||[]}
-    ];
-    const grade=String(user.grade||localStorage.getItem("grade")||"").normalize("NFKC").replace("年","").trim();
-    const entries=[];
-    for(const day of days){
-        for(const item of Array.isArray(day.schedules)?day.schedules:[]){
+export async function loadPersonalTimetableData({
+    userData = null,
+    buildEntries = true
+} = {}) {
 
-            const itemGrade=
-                String(item.grade||"")
-                    .normalize("NFKC")
-                    .replace("年","")
+    if (!studentNumber) {
+
+        return {
+            entries: [],
+            enrolled: [],
+            aliasToCourse: new Map(),
+            scheduleDocumentId: "",
+            scheduleData: null,
+            reason: "not_logged_in"
+        };
+
+    }
+
+
+    let user =
+        userData;
+
+
+    /*
+    呼び出し元ですでにuserを取得済みなら
+    Firestoreをもう一度読まない。
+    */
+    if (!user) {
+
+        const userSnap =
+            await getDoc(
+                doc(
+                    db,
+                    "users",
+                    studentNumber
+                )
+            );
+
+
+        user =
+            userSnap.exists()
+                ? userSnap.data()
+                : {};
+
+    }
+
+
+    const scheduleId =
+        scheduleDocumentId(
+            user
+        );
+
+
+    /*
+    履修科目と大学時間割を
+    同時取得。
+    */
+    const [
+        enrollmentSnap,
+        scheduleSnap
+    ] = await Promise.all([
+
+        getDocs(
+            collection(
+                db,
+                "users",
+                studentNumber,
+                "enrolledSubjects"
+            )
+        ),
+
+        scheduleId
+            ? getDoc(
+                doc(
+                    db,
+                    "schedule",
+                    scheduleId
+                )
+            )
+            : Promise.resolve(
+                null
+            )
+
+    ]);
+
+
+    const enrolled =
+        enrollmentSnap.docs
+
+            .map(
+                item => ({
+                    id:
+                        item.id,
+
+                    ...item.data()
+                })
+            )
+
+            .filter(
+                item =>
+                    item.status !==
+                    "removed"
+            );
+
+
+    const aliasToCourse =
+        new Map();
+
+
+    for (
+        const course of enrolled
+    ) {
+
+        for (
+            const alias of [
+                course.name,
+                course.subjectKey,
+                course.subjectId,
+                course.id
+            ]
+        ) {
+
+            const normalized =
+                normalizeCourseName(
+                    alias
+                );
+
+
+            if (normalized) {
+
+                aliasToCourse.set(
+                    normalized,
+                    course
+                );
+
+            }
+
+        }
+
+    }
+
+
+    if (!scheduleId) {
+
+        return {
+            entries: [],
+            enrolled,
+            aliasToCourse,
+            scheduleDocumentId: "",
+            scheduleData: null,
+            reason:
+                "schedule_not_configured"
+        };
+
+    }
+
+
+    if (
+        !scheduleSnap ||
+        !scheduleSnap.exists()
+    ) {
+
+        return {
+            entries: [],
+            enrolled,
+            aliasToCourse,
+            scheduleDocumentId:
+                scheduleId,
+            scheduleData: null,
+            reason:
+                "schedule_missing"
+        };
+
+    }
+
+
+    const data =
+        scheduleSnap.data();
+
+
+    /*
+    ホームではentriesを作る必要がない。
+
+    aliasToCourseとscheduleDataだけ
+    必要なので重い全日程ループを省略。
+    */
+    if (!buildEntries) {
+
+        return {
+            entries: [],
+            enrolled,
+            aliasToCourse,
+            scheduleDocumentId:
+                scheduleId,
+            scheduleData:
+                data,
+            reason:
+                "ok"
+        };
+
+    }
+
+
+    const days =
+
+        Array.isArray(
+            data.allDays
+        ) &&
+        data.allDays.length
+
+            ? data.allDays
+
+            : Array.isArray(
+                data.days
+            ) &&
+            data.days.length
+
+                ? data.days
+
+                : [
+
+                    {
+                        date: "",
+                        title:
+                            data.todayTitle ||
+                            "今日",
+                        label:
+                            data.todayLabel ||
+                            "",
+                        schedules:
+                            data.today ||
+                            []
+                    },
+
+                    {
+                        date: "",
+                        title:
+                            data.nextTitle ||
+                            "次回",
+                        label:
+                            data.nextLabel ||
+                            "",
+                        schedules:
+                            data.next ||
+                            []
+                    }
+
+                ];
+
+
+    const grade =
+        String(
+            user.grade ||
+            localStorage.getItem(
+                "grade"
+            ) ||
+            ""
+        )
+            .normalize(
+                "NFKC"
+            )
+            .replace(
+                "年",
+                ""
+            )
+            .trim();
+
+
+    const entries =
+        [];
+
+
+    for (
+        const day of days
+    ) {
+
+        for (
+            const item of
+            Array.isArray(
+                day.schedules
+            )
+                ? day.schedules
+                : []
+        ) {
+
+            const itemGrade =
+                String(
+                    item.grade || ""
+                )
+                    .normalize(
+                        "NFKC"
+                    )
+                    .replace(
+                        "年",
+                        ""
+                    )
                     .trim();
 
-            if(
+
+            if (
                 grade &&
                 itemGrade &&
-                itemGrade!==grade
-            ){
+                itemGrade !== grade
+            ) {
                 continue;
             }
 
-            const course=aliasToCourse.get(normalizeCourseName(item.subject));
-            if(!course) continue;
-            entries.push({
-                entryId:`${scheduleId}_${day.date||day.title||"day"}_${item.period||"0"}_${course.id}`,
-                sourceScheduleDocumentId:scheduleId,
-                date:day.date||"",
-                dayTitle:day.title||day.label||"講義日",
-                dayLabel:day.label||"",
-                period:Number.parseInt(item.period,10)||0,
-                startTime:item.startTime||PERIOD_TIMES[Number.parseInt(item.period,10)]?.startTime||"",
-                endTime:item.endTime||PERIOD_TIMES[Number.parseInt(item.period,10)]?.endTime||"",
-                subjectId:course.subjectId||course.id,
-                subjectKey:course.subjectKey||course.name||course.id,
-                subject:course.name||item.subject,
-                scheduleSubject:item.subject||"",
-                classGroup:item.classGroup||"",
-                teacher:item.teacher||"",
-                building:item.building||"",
-                room:item.room||"",
-                isPractical:course.isPractical===true,
-                isRetake:course.isRetake===true || course.creditStatus==="not_earned",
-                lectureCount:Number(course.lectureCount||0),
-                credits:Number(course.credits||0)
-            });
-        }
-    }
-    entries.sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.period-b.period);
-    return {entries,enrolled,aliasToCourse,scheduleDocumentId:scheduleId,reason:entries.length?"ok":"no_matches"};
-}
 
-export function isEnrolledScheduleItem(item,aliasToCourse){
-    return Boolean(aliasToCourse?.get(normalizeCourseName(item?.subject)));
+            const course =
+                aliasToCourse.get(
+                    normalizeCourseName(
+                        item.subject
+                    )
+                );
+
+
+            if (!course) {
+                continue;
+            }
+
+
+            const period =
+                Number.parseInt(
+                    item.period,
+                    10
+                ) || 0;
+
+
+            entries.push({
+
+                entryId:
+                    `${scheduleId}_${day.date || day.title || "day"}_${item.period || "0"}_${course.id}`,
+
+                sourceScheduleDocumentId:
+                    scheduleId,
+
+                date:
+                    day.date || "",
+
+                dayTitle:
+                    day.title ||
+                    day.label ||
+                    "講義日",
+
+                dayLabel:
+                    day.label || "",
+
+                period,
+
+                startTime:
+                    item.startTime ||
+                    PERIOD_TIMES[
+                        period
+                    ]?.startTime ||
+                    "",
+
+                endTime:
+                    item.endTime ||
+                    PERIOD_TIMES[
+                        period
+                    ]?.endTime ||
+                    "",
+
+                subjectId:
+                    course.subjectId ||
+                    course.id,
+
+                subjectKey:
+                    course.subjectKey ||
+                    course.name ||
+                    course.id,
+
+                subject:
+                    course.name ||
+                    item.subject,
+
+                scheduleSubject:
+                    item.subject || "",
+
+                classGroup:
+                    item.classGroup || "",
+
+                teacher:
+                    item.teacher || "",
+
+                building:
+                    item.building || "",
+
+                room:
+                    item.room || "",
+
+                isPractical:
+                    course.isPractical ===
+                    true,
+
+                isRetake:
+                    course.isRetake ===
+                    true ||
+                    course.creditStatus ===
+                    "not_earned",
+
+                lectureCount:
+                    Number(
+                        course.lectureCount ||
+                        0
+                    ),
+
+                credits:
+                    Number(
+                        course.credits ||
+                        0
+                    )
+
+            });
+
+        }
+
+    }
+
+
+    entries.sort(
+        (a, b) =>
+            (a.date || "")
+                .localeCompare(
+                    b.date || ""
+                ) ||
+            a.period -
+            b.period
+    );
+
+
+    return {
+
+        entries,
+
+        enrolled,
+
+        aliasToCourse,
+
+        scheduleDocumentId:
+            scheduleId,
+
+        scheduleData:
+            data,
+
+        reason:
+            entries.length
+                ? "ok"
+                : "no_matches"
+
+    };
+
 }

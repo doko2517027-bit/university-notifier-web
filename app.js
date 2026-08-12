@@ -159,6 +159,10 @@ const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
 
 let courses = {};
+
+let currentHomeUser =
+    null;
+
 let lectureSchedules = [];
 let lectureScheduleIndex = 0;
 
@@ -231,6 +235,54 @@ async function checkMaintenance(
     return true;
 
 }
+
+
+window.addEventListener(
+    "caremate:classSelectionsUpdated",
+    async event => {
+
+        const selections =
+            event.detail
+                ?.selections ||
+            {};
+
+
+        currentHomeUser = {
+
+            ...(
+                currentHomeUser ||
+                {}
+            ),
+
+            classSelections:
+                selections
+
+        };
+
+
+        try {
+
+            /*
+            HTML/CSS/JS全部をreloadせず、
+            必要な時間割だけ最新版に更新。
+            */
+            await loadTodaySchedule(
+                currentHomeUser
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "クラス選択後の時間割更新エラー:",
+                error
+            );
+
+        }
+
+    }
+);
+
 
 async function startApp() {
 
@@ -342,6 +394,10 @@ async function startApp() {
 
         user =
             userSnap.data();
+
+
+        currentHomeUser =
+            user;
 
 
         applyManabaFeatureVisibility(
@@ -492,7 +548,9 @@ async function startApp() {
 
     await todayScheduleTask;
 
-    await checkClassSelectionRequired();
+    await checkClassSelectionRequired(
+        user
+    );
 
 
     void backgroundTasks;
@@ -1616,90 +1674,36 @@ async function loadTodaySchedule(
     userData = null
 ) {
 
-    const department =
-        localStorage.getItem(
-            "department"
-        );
-
-    const major =
-        localStorage.getItem(
-            "major"
-        );
-
     const grade =
         String(
+            userData?.grade ||
             localStorage.getItem(
                 "grade"
-            ) || ""
+            ) ||
+            ""
         )
-            .normalize("NFKC")
-            .replace("年", "")
+            .normalize(
+                "NFKC"
+            )
+            .replace(
+                "年",
+                ""
+            )
             .trim();
 
 
-    let docId = "";
-
-
-    if (
-        department ===
-        "看護学科"
-    ) {
-
-        docId =
-            "ns_yamate";
-
-    } else if (
-        major ===
-        "理学療法学専攻"
-    ) {
-
-        docId =
-            "pt";
-
-    } else if (
-        major ===
-        "作業療法学専攻"
-    ) {
-
-        docId =
-            "ot";
-
-    }
-
-
-    if (!docId) {
-
-        lectureScheduleLabel.textContent =
-            "講義予定";
-
-        lectureScheduleList.innerHTML =
-            `<p class="empty-text">時間割がありません。</p>`;
-
-        return;
-
-    }
-
-
     /*
-    履修情報と大学時間割を
-    同時取得。
+    userはstartAppで取得済み。
+
+    personal_timetable_data.js側で
+    履修科目＋大学時間割を並列取得し、
+    そのscheduleDataをそのままホームでも使う。
     */
-    const [
-        personalTimetable,
-        snap
-    ] = await Promise.all([
-
-        loadPersonalTimetableData(),
-
-        getDoc(
-            doc(
-                db,
-                "schedule",
-                docId
-            )
-        )
-
-    ]);
+    const personalTimetable =
+        await loadPersonalTimetableData({
+            userData,
+            buildEntries: false
+        });
 
 
     const enrolledAliases =
@@ -1708,21 +1712,25 @@ async function loadTodaySchedule(
         new Map();
 
 
-    if (!snap.exists()) {
+    const data =
+        personalTimetable
+            ?.scheduleData ||
+        null;
 
-        lectureScheduleLabel.textContent =
+
+    if (!data) {
+
+        lectureScheduleLabel
+            .textContent =
             "講義予定";
 
-        lectureScheduleList.innerHTML =
+        lectureScheduleList
+            .innerHTML =
             `<p class="empty-text">時間割がありません。</p>`;
 
         return;
 
     }
-
-
-    const data =
-        snap.data();
 
     if (
         lectureSchedulePdfLink &&

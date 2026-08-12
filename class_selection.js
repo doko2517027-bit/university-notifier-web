@@ -48,7 +48,9 @@ export function setClassSelectionSchedule(
    クラス選択確認
 ======================================== */
 
-export async function checkClassSelectionRequired() {
+export async function checkClassSelectionRequired(
+    currentUserData = null
+) {
 
     if (!studentNumber) {
         return;
@@ -60,27 +62,47 @@ export async function checkClassSelectionRequired() {
         injectClassSelectionStyles();
 
 
-        const userSnapshot =
-            await getDoc(
-                doc(
-                    db,
-                    "users",
-                    studentNumber
-                )
-            );
+        let userData =
+            currentUserData;
 
 
-        if (!userSnapshot.exists()) {
-            return;
+        /*
+        app.jsから最新userが渡されていれば
+        Firestoreを再取得しない。
+
+        他ページなどから単独で呼ばれた場合だけ
+        従来どおり取得する。
+        */
+        if (!userData) {
+
+            const userSnapshot =
+                await getDoc(
+                    doc(
+                        db,
+                        "users",
+                        studentNumber
+                    )
+                );
+
+
+            if (
+                !userSnapshot.exists()
+            ) {
+                return;
+            }
+
+
+            userData =
+                userSnapshot.data() ||
+                {};
+
         }
 
 
-        const userData =
-            userSnapshot.data() || {};
-
-
         const selections =
-            userData.classSelections || {};
+            userData
+                .classSelections ||
+            {};
 
 
         /*
@@ -335,154 +357,167 @@ function showClassSelectionPopup(
     }
 
 
-    list.innerHTML = "";
+    const classSelectionHtml =
+        targets
+            .map(
+                target => {
+
+                    const buttons = [
+
+                        ...target.options.map(
+                            value => ({
+                                value,
+
+                                label:
+                                    formatClassLabel(
+                                        value
+                                    )
+                            })
+                        ),
+
+                        {
+                            value:
+                                CLASS_SELECTION_NONE,
+
+                            label:
+                                "クラスなし"
+                        }
+
+                    ];
 
 
-    for (const target of targets) {
+                    return `
 
-        const box =
-            document.createElement(
-                "div"
-            );
+                        <div class="class-select-box">
 
+                            <div class="class-select-heading">
 
-        box.className =
-            "class-select-box";
+                                <strong>
+                                    ${escapeHtml(
+                                        target.subject
+                                    )}
+                                </strong>
 
+                                <span>
+                                    ${escapeHtml(
+                                        `${target.period}限`
+                                    )}
+                                </span>
 
-        const buttons = [
-
-            ...target.options.map(
-                value => ({
-                    value,
-                    label:
-                        formatClassLabel(
-                            value
-                        )
-                })
-            ),
-
-            {
-                value:
-                    CLASS_SELECTION_NONE,
-
-                label:
-                    "クラスなし"
-            }
-
-        ];
+                            </div>
 
 
-        box.innerHTML = `
-
-            <div class="class-select-heading">
-
-                <strong>
-                    ${escapeHtml(
-                        target.subject
-                    )}
-                </strong>
-
-                <span>
-                    ${escapeHtml(
-                        `${target.period}限`
-                    )}
-                </span>
-
-            </div>
-
-
-            <p class="class-select-message">
-
-                ${escapeHtml(
-                    target.subject
-                )}でクラス分けがあります。<br>
-
-                クラスを選択してください。
-
-            </p>
-
-
-            <div class="class-buttons">
-
-                ${
-                    buttons.map(
-                        option => `
-
-                            <button
-                                type="button"
-                                class="main-button class-choice"
-                                data-key="${escapeAttribute(
-                                    target.key
-                                )}"
-                                data-value="${escapeAttribute(
-                                    option.value
-                                )}">
+                            <p class="class-select-message">
 
                                 ${escapeHtml(
-                                    option.label
-                                )}
+                                    target.subject
+                                )}でクラス分けがあります。<br>
 
-                            </button>
+                                クラスを選択してください。
 
-                        `
-                    ).join("")
-                }
-
-            </div>
-
-        `;
+                            </p>
 
 
-        list.appendChild(
-            box
-        );
+                            <div class="class-buttons">
 
-    }
+                                ${
+                                    buttons
+                                        .map(
+                                            option => `
 
+                                                <button
+                                                    type="button"
+                                                    class="main-button class-choice"
+                                                    data-key="${escapeAttribute(
+                                                        target.key
+                                                    )}"
+                                                    data-value="${escapeAttribute(
+                                                        option.value
+                                                    )}">
 
-    list.querySelectorAll(
-        ".class-choice"
-    )
-    .forEach(
-        button => {
+                                                    ${escapeHtml(
+                                                        option.label
+                                                    )}
 
-            button.addEventListener(
-                "click",
-                () => {
+                                                </button>
 
-                    const box =
-                        button.closest(
-                            ".class-select-box"
-                        );
+                                            `
+                                        )
+                                        .join("")
+                                }
 
+                            </div>
 
-                    if (!box) {
-                        return;
-                    }
+                        </div>
 
-
-                    box.querySelectorAll(
-                        ".class-choice"
-                    )
-                    .forEach(
-                        item =>
-                            item.classList
-                                .remove(
-                                    "selected"
-                                )
-                    );
-
-
-                    button.classList.add(
-                        "selected"
-                    );
+                    `;
 
                 }
+            )
+            .join("");
+
+
+    /*
+    DOM更新は1回だけ。
+    */
+    list.innerHTML =
+        classSelectionHtml;
+
+
+    /*
+    ボタン1個ずつではなく
+    リスト全体にイベントを1個だけ付ける。
+    */
+    list.onclick =
+        event => {
+
+            const button =
+                event.target.closest(
+                    ".class-choice"
+                );
+
+
+            if (
+                !button ||
+                !list.contains(
+                    button
+                )
+            ) {
+                return;
+            }
+
+
+            const box =
+                button.closest(
+                    ".class-select-box"
+                );
+
+
+            if (!box) {
+                return;
+            }
+
+
+            const previous =
+                box.querySelector(
+                    ".class-choice.selected"
+                );
+
+
+            if (previous) {
+
+                previous.classList.remove(
+                    "selected"
+                );
+
+            }
+
+
+            button.classList.add(
+                "selected"
             );
 
-        }
-    );
+        };
 
 
     saveButton.onclick =
@@ -576,10 +611,22 @@ function showClassSelectionPopup(
 
 
                 /*
-                時間割を選択結果で再描画させるため
-                現状はreload。
+                ページ全体reloadはしない。
+
+                app.jsへ保存結果だけ通知して
+                時間割部分だけ更新する。
                 */
-                location.reload();
+                window.dispatchEvent(
+                    new CustomEvent(
+                        "caremate:classSelectionsUpdated",
+                        {
+                            detail: {
+                                selections:
+                                    mergedSelections
+                            }
+                        }
+                    )
+                );
 
 
             } catch (error) {
