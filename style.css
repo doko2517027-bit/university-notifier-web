@@ -410,13 +410,39 @@ select:focus{
 }
 
 .bottom-nav a{
+
     flex:1;
+
+    min-width:0;
+
     display:flex;
+
     flex-direction:column;
+
     justify-content:center;
+
     align-items:center;
+
     color:var(--subtext);
+
     font-size:13px;
+
+    touch-action:
+        manipulation;
+
+    -webkit-tap-highlight-color:
+        transparent;
+
+    transition:
+        transform .12s ease,
+        color .14s ease,
+        background-color .14s ease;
+
+}
+
+.bottom-nav a:active{
+    transform:
+        scale(.93);
 }
 
 .bottom-nav a.active{
@@ -549,12 +575,33 @@ select:focus{
 
 .lesson-card{
     cursor:pointer;
-    transition:0.2s;
+
     position:relative;
+
     display:flex;
+
     gap:14px;
+
     padding:14px 0;
-    border-bottom:1px solid var(--border);
+
+    border-bottom:
+        1px solid var(--border);
+
+    touch-action:
+        manipulation;
+
+    -webkit-tap-highlight-color:
+        transparent;
+
+    transition:
+        transform .12s ease,
+        box-shadow .14s ease;
+
+}
+
+.lesson-card:active{
+    transform:
+        scale(.985);
 }
 
 .lesson-card:hover{
@@ -1932,10 +1979,16 @@ white-space:pre-wrap;
 
     cursor:pointer;
 
-    box-shadow:
-        0 3px 10px rgba(15,23,42,.08);
+    touch-action:manipulation;
 
-    transition:.2s;
+    -webkit-tap-highlight-color:
+        transparent;
+
+    transition:
+        transform .12s ease,
+        background-color .14s ease,
+        color .14s ease,
+        box-shadow .14s ease;
 
 }
 
@@ -11580,7 +11633,7 @@ input[type="checkbox"] {
    配置・大きさ・余白は変更しない
 ======================================== */
 
-body:has(#weatherCard) {
+.home-page {
     --home-success: #16a34a;
     --home-success-soft: rgba(34, 197, 94, 0.10);
 
@@ -11602,7 +11655,7 @@ body:has(#weatherCard) {
    ページ背景・区切り
 ======================================== */
 
-body:has(#weatherCard) {
+.home-page {
     background:
         linear-gradient(
             180deg,
@@ -12534,7 +12587,7 @@ body:has(#weatherCard)
    ダークモード
 ======================================== */
 
-.dark body:has(#weatherCard) {
+.dark .home-page {
     background:
         linear-gradient(
             180deg,
@@ -18928,3 +18981,90 @@ course-tagが付いたspanには適用しない。
 .course-history-status {
     color: #fca5a5;
 }
+
+.schedule-content.schedule-slide-prev {
+    animation:
+        scheduleSlidePrev
+        .18s
+        cubic-bezier(.22,.8,.3,1);
+}
+
+
+.schedule-content.schedule-slide-next {
+    animation:
+        scheduleSlideNext
+        .18s
+        cubic-bezier(.22,.8,.3,1);
+}
+
+
+@keyframes scheduleSlidePrev {
+
+    from {
+        opacity:.55;
+        transform:
+            translate3d(-14px,0,0);
+    }
+
+    to {
+        opacity:1;
+        transform:
+            translate3d(0,0,0);
+    }
+
+}
+
+
+@keyframes scheduleSlideNext {
+
+    from {
+        opacity:.55;
+        transform:
+            translate3d(14px,0,0);
+    }
+
+    to {
+        opacity:1;
+        transform:
+            translate3d(0,0,0);
+    }
+
+}
+
+.home-page #newsList,
+.home-page #homeCourseNews,
+.home-page #homeSystemNews {
+
+    content-visibility:
+        auto;
+
+    contain-intrinsic-size:
+        auto 320px;
+
+}
+
+@media (
+    prefers-reduced-motion:
+    reduce
+) {
+
+    .schedule-content.schedule-slide-prev,
+    .schedule-content.schedule-slide-next {
+
+        animation:
+            none;
+
+    }
+
+    .lesson-card,
+    .bottom-nav a,
+    .schedule-switch-button,
+    .home-card {
+
+        transition:
+            none;
+
+    }
+
+}
+

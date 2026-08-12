@@ -2315,27 +2315,28 @@ function renderCurrentLectureSchedule(
      「次回講義日」表示を作らない。
     */
 
-    lectureScheduleList.innerHTML =
-        badgeText
-            ? `
-                <div class="schedule-day-badge">
-                    ${badgeText}
-                </div>
-            `
-            : "";
+    const scheduleHtml =
+        buildScheduleHtml(
+            current.schedules || [],
+            grade
+        );
 
 
-    renderSchedule(
+    lectureScheduleList.innerHTML = `
 
-        "lectureScheduleList",
+        ${
+            badgeText
+                ? `
+                    <div class="schedule-day-badge">
+                        ${badgeText}
+                    </div>
+                `
+                : ""
+        }
 
-        current.schedules || [],
+        ${scheduleHtml}
 
-        grade,
-
-        true
-
-    );
+    `;
 
 
     /*
@@ -2389,11 +2390,9 @@ function splitLectureScheduleLabel(schedule) {
     };
 }
 
-function renderSchedule(
-    targetId,
+function buildScheduleHtml(
     schedules,
-    grade,
-    append = false
+    grade
 ) {
 
     const normalizedGrade =
@@ -2405,93 +2404,159 @@ function renderSchedule(
             .trim();
 
 
-    const list = schedules
+    const list =
+        schedules
 
-        .filter(
-            item => {
+            .filter(
+                item => {
 
-                const itemGrade =
-                    String(
-                        item.grade || ""
-                    )
-                        .normalize("NFKC")
-                        .replace("年", "")
-                        .trim();
+                    const itemGrade =
+                        String(
+                            item.grade || ""
+                        )
+                            .normalize("NFKC")
+                            .replace("年", "")
+                            .trim();
 
 
-                return (
-                    !normalizedGrade ||
-                    !itemGrade ||
-                    itemGrade ===
-                        normalizedGrade
-                );
+                    return (
+                        !normalizedGrade ||
+                        !itemGrade ||
+                        itemGrade ===
+                            normalizedGrade
+                    );
 
-            }
-        )
+                }
+            )
 
-        .sort(
-            (a, b) =>
-                parseInt(a.period) -
-                parseInt(b.period)
-        );
-
-    if (list.length === 0) {
-
-        const target =
-            document.getElementById(targetId);
-
-        const emptyHtml =
-            `<p class="empty-text">授業はありません</p>`;
-
-        if (append) {
-            target.insertAdjacentHTML(
-                "beforeend",
-                emptyHtml
+            .sort(
+                (a, b) =>
+                    parseInt(a.period) -
+                    parseInt(b.period)
             );
-        } else {
-            target.innerHTML = emptyHtml;
-        }
 
-        return;
+
+    if (
+        list.length === 0
+    ) {
+
+        return `
+            <p class="empty-text">
+                授業はありません
+            </p>
+        `;
+
     }
 
-    const target =
-        document.getElementById(targetId);
 
-    const scheduleHtml =
-        list.map(item => `
-            <div class="lesson-card" onclick="openCourse('${item.subject}')">
-                <div class="lesson-period">${item.period}</div>
-                <div>
-                    <div class="lesson-subject">
-                        ${item.subject}
-                        ${item.classGroup ? `<span class="lesson-class-group">${item.classGroup}</span>` : ""}
+    return list
+        .map(
+            item => `
+
+                <div
+                    class="lesson-card"
+                    onclick="openCourse('${item.subject}')">
+
+                    <div class="lesson-period">
+                        ${item.period}
                     </div>
-                    <div class="lesson-room">
-                        ${item.building} ${item.room}
+
+                    <div>
+
+                        <div class="lesson-subject">
+
+                            ${item.subject}
+
+                            ${
+                                item.classGroup
+                                    ? `
+                                        <span class="lesson-class-group">
+                                            ${item.classGroup}
+                                        </span>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                        <div class="lesson-room">
+                            ${item.building || ""}
+                            ${item.room || ""}
+                        </div>
+
+                        <div class="lesson-teacher">
+                            ${item.teacher || ""}
+                        </div>
+
                     </div>
-                    <div class="lesson-teacher">
-                        ${item.teacher}
-                    </div>
+
                 </div>
-            </div>
-        `).join("");
-    
-    if (append) {
 
-        target.insertAdjacentHTML(
-            "beforeend",
-            scheduleHtml
-        );
-
-    } else {
-
-        target.innerHTML =
-            scheduleHtml;
-
-    }
+            `
+        )
+        .join("");
 
 }
+
+function renderLectureScheduleWithMotion(
+    grade,
+    direction
+) {
+
+    if (
+        !lectureScheduleList
+    ) {
+
+        renderCurrentLectureSchedule(
+            grade
+        );
+
+        return;
+
+    }
+
+
+    lectureScheduleList.classList.remove(
+        "schedule-slide-prev",
+        "schedule-slide-next"
+    );
+
+
+    renderCurrentLectureSchedule(
+        grade
+    );
+
+
+    requestAnimationFrame(
+        () => {
+
+            lectureScheduleList.classList.add(
+
+                direction === "prev"
+                    ? "schedule-slide-prev"
+                    : "schedule-slide-next"
+
+            );
+
+
+            setTimeout(
+                () => {
+
+                    lectureScheduleList
+                        .classList.remove(
+                            "schedule-slide-prev",
+                            "schedule-slide-next"
+                        );
+
+                },
+                180
+            );
+
+        }
+    );
+
+}
+
 
 async function openCourse(subject) {
 
@@ -3977,8 +4042,11 @@ if (lecturePrev) {
         lectureCalendarMonthIndex =
             date.getMonth();
 
-        renderCurrentLectureSchedule(
-            localStorage.getItem("grade")
+        renderLectureScheduleWithMotion(
+            localStorage.getItem(
+                "grade"
+            ),
+            "prev"
         );
 
     };
@@ -4041,8 +4109,11 @@ if (lectureNext) {
         lectureCalendarMonthIndex =
             date.getMonth();
 
-        renderCurrentLectureSchedule(
-            localStorage.getItem("grade")
+        renderLectureScheduleWithMotion(
+            localStorage.getItem(
+                "grade"
+            ),
+            "next"
         );
 
     };
