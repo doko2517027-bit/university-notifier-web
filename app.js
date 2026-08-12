@@ -1176,36 +1176,47 @@ async function loadNews() {
             return;
         }
 
-        newsList.innerHTML = "";
+        const newsHtml =
+            notices
+                .slice(0, 3)
+                .map(notice => {
 
-        notices.slice(0, 3).forEach((notice) => {
+                    const posted =
+                        notice.postedAt.toDate();
 
-            const posted = notice.postedAt.toDate();
+                    const postedText =
+                        formatDateTime(posted);
 
-            const postedText = formatDateTime(posted);
+                    return `
+                        <div
+                            class="card news-card"
+                            onclick="location.href='news.html'">
 
-            newsList.innerHTML += `
-                <div class="card news-card"
-                    onclick="location.href='news.html'">
+                            <div class="news-date">
+                                ${postedText}
+                            </div>
 
-                    <div class="news-date">
-                        ${postedText}
-                    </div>
+                            <div class="news-body">
+                                ${(notice.body || "")
+                                    .split("\n")[0]
+                                    .substring(0, 40)}...
+                            </div>
 
-                    <div class="news-body">
+                        </div>
+                    `;
 
-                        ${notice.body
-                            .split("\n")[0]
-                            .substring(0, 40)}...
+                })
+                .join("");
 
-                    </div>
 
-                </div>
-            `;
-        });
+        newsList.innerHTML = `
+            ${newsHtml}
 
-        newsList.innerHTML += `
-            <div style="text-align:center; margin-top:20px;">
+            <div
+                style="
+                    text-align:center;
+                    margin-top:20px;
+                ">
                 <a href="news.html">
                     もっと見る →
                 </a>
@@ -1309,35 +1320,43 @@ async function loadHomeCourseNews() {
 
     });
 
-    homeCourseNews.innerHTML = "";
+    const courseNewsHtml =
+        notices
+            .slice(0, 3)
+            .map(notice => `
 
-    notices.slice(0, 3).forEach(notice => {
+                <div
+                    class="card news-card"
+                    onclick="location.href='news.html?tab=course'">
 
-        homeCourseNews.innerHTML += `
+                    <div class="news-title">
+                        📘 ${notice.course}
+                    </div>
 
-            <div class="card news-card"
-                onclick="location.href='news.html?tab=course'">
+                    <div class="news-body">
+                        ${notice.title}
+                    </div>
 
-                <div class="news-title">
-                    📘 ${notice.course}
+                    <div class="news-date">
+                        ${formatCourseNewsDate(
+                            notice.posted
+                        )}
+                    </div>
+
                 </div>
 
-                <div class="news-body">
-                    ${notice.title}
-                </div>
+            `)
+            .join("");
 
-                <div class="news-date">
-                    ${formatCourseNewsDate(notice.posted)}
-                </div>
 
-            </div>
+    homeCourseNews.innerHTML = `
+        ${courseNewsHtml}
 
-        `;
-
-    });
-
-    homeCourseNews.innerHTML += `
-        <div style="text-align:center; margin-top:20px;">
+        <div
+            style="
+                text-align:center;
+                margin-top:20px;
+            ">
             <a href="news.html?tab=course">
                 もっと見る →
             </a>
@@ -1347,8 +1366,26 @@ async function loadHomeCourseNews() {
 }
 
 async function loadHomeSystemNews() {
-    const targetedSnapshot = await getDocs(collection(db, "users", studentNumber, "targetedSystemNews"));
-    const targetedDocs = targetedSnapshot.docs;
+    const targetedSnapshot =
+        await getDocs(
+            query(
+                collection(
+                    db,
+                    "users",
+                    studentNumber,
+                    "targetedSystemNews"
+                ),
+                orderBy(
+                    "createdAt",
+                    "desc"
+                ),
+                limit(3)
+            )
+        );
+
+
+    const targetedDocs =
+        targetedSnapshot.docs;
 
     const q = query(
         collection(
@@ -1374,46 +1411,58 @@ async function loadHomeSystemNews() {
 
         }
 
-        homeSystemNews.innerHTML = "";
+        const systemNewsHtml =
+            allDocs
+                .slice(0, 3)
+                .map(newsDoc => {
 
-        allDocs.slice(0, 3).forEach(newsDoc => {
+                    const notice =
+                        newsDoc.data();
 
-            const notice = newsDoc.data();
+                    const created =
+                        notice.createdAt
+                            ?.toDate?.() ||
+                        null;
 
-            const created =
-                notice.createdAt
-                    ? notice.createdAt.toDate()
-                    : null;
+                    const dateText =
+                        formatDateTime(
+                            created
+                        );
 
-            const dateText = formatDateTime(created);
+                    return `
+                        <div
+                            class="card news-card"
+                            onclick="location.href='news.html'">
 
-            homeSystemNews.innerHTML += `
+                            <div class="news-title">
+                                💙 ${notice.title}
+                            </div>
 
-            <div class="card news-card"
-                onclick="location.href='news.html'">
+                            <div class="news-body">
+                                ${(notice.body || "")
+                                    .split("\n")[0]
+                                    .substring(0, 40)}...
+                            </div>
 
-                <div class="news-title">
-                    💙 ${notice.title}
-                </div>
+                            <div class="news-date">
+                                ${dateText}
+                            </div>
 
-                <div class="news-body">
-                    ${(notice.body || "")
-                        .split("\n")[0]
-                        .substring(0, 40)}...
-                </div>
+                        </div>
+                    `;
 
-                <div class="news-date">
-                    ${dateText}
-                </div>
+                })
+                .join("");
 
-            </div>
 
-            `;
+        homeSystemNews.innerHTML = `
+            ${systemNewsHtml}
 
-        });
-
-        homeSystemNews.innerHTML += `
-            <div style="text-align:center; margin-top:20px;">
+            <div
+                style="
+                    text-align:center;
+                    margin-top:20px;
+                ">
                 <a href="news.html">
                     もっと見る →
                 </a>
@@ -3040,76 +3089,93 @@ async function loadRanking(){
         }
 
 
-        rankingList.innerHTML = "";
+        const rankingRows =
+            await Promise.all(
+
+                snapshot.docs.map(
+                    async (
+                        rankingDoc,
+                        index
+                    ) => {
+
+                        const data =
+                            rankingDoc.data();
+
+                        const studentId =
+                            rankingDoc.id;
 
 
-        let rank = 1;
+                        const totalSnap =
+                            await getDoc(
+                                doc(
+                                    db,
+                                    "totalRanking",
+                                    studentId
+                                )
+                            );
 
 
-        for (const rankingDoc of snapshot.docs) {
-
-            const data = rankingDoc.data();
-
-            const studentId = rankingDoc.id;
-
-            //累計ポイント取得
-            let totalPoint = 0;
-
-            const totalSnap =
-                await getDoc(
-                    doc(
-                        db,
-                        "totalRanking",
-                        studentId
-                    )
-                );
-
-            if(totalSnap.exists()){
-
-                totalPoint =
-                    totalSnap.data().point || 0;
-
-            }
-
-            const mark =
-                getRankMark(totalPoint);
-
-            rankingList.innerHTML += `
-
-                <div class="ranking-item">
-
-                    <div class="ranking-rank">
-
-                        ${
-                            rank === 1 ? "🥇" :
-                            rank === 2 ? "🥈" :
-                            rank === 3 ? "🥉" :
-                            rank
-                        }
-
-                    </div>
+                        const totalPoint =
+                            totalSnap.exists()
+                                ? (
+                                    totalSnap.data()
+                                        .point ||
+                                    0
+                                )
+                                : 0;
 
 
-                    <div class="ranking-user">
-
-                        <div class="ranking-name">
-                            ${mark}${getAnonymousRankingName(studentId, studentId === studentNumber)}
-                        </div>
-
-
-                        <div class="ranking-score">
-                            ${data.point || 0}pt
-                        </div>
-
-                    </div>
-
-                </div>
-
-            `;
+                        const mark =
+                            getRankMark(
+                                totalPoint
+                            );
 
 
-            rank++;
-        }
+                        const rank =
+                            index + 1;
+
+
+                        return `
+                            <div class="ranking-item">
+
+                                <div class="ranking-rank">
+                                    ${
+                                        rank === 1
+                                            ? "🥇"
+                                            : rank === 2
+                                                ? "🥈"
+                                                : rank === 3
+                                                    ? "🥉"
+                                                    : rank
+                                    }
+                                </div>
+
+                                <div class="ranking-user">
+
+                                    <div class="ranking-name">
+                                        ${mark}${getAnonymousRankingName(
+                                            studentId,
+                                            studentId === studentNumber
+                                        )}
+                                    </div>
+
+                                    <div class="ranking-score">
+                                        ${data.point || 0}pt
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        `;
+
+                    }
+                )
+
+            );
+
+
+        rankingList.innerHTML =
+            rankingRows.join("");
 
 
         if(rankingDate){

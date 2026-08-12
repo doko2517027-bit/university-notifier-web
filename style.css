@@ -1162,6 +1162,12 @@ white-space:pre-wrap;
 
 }
 
+.home-page.page-loading{
+
+    visibility:visible;
+
+}
+
 .page-loaded{
 
     visibility:visible;

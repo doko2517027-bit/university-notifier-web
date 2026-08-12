@@ -42,6 +42,13 @@
 <link rel="stylesheet" href="style.css">
 
 <script>
+if (
+    localStorage.getItem("loggedIn") !== "true" ||
+    !localStorage.getItem("studentNumber")
+) {
+    location.replace("login.html");
+}
+
 if(localStorage.getItem("theme")==="dark"){
     document.documentElement.classList.add("dark");
 }
@@ -55,7 +62,7 @@ if ("serviceWorker" in navigator) {
 </script>
 
 </head>
-<body class="page-loading">
+<body class="home-page page-loading">
 
 <div id="splash">
     <div class="splash-content">

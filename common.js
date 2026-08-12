@@ -1757,41 +1757,41 @@ export async function updateNewsNavBadge() {
             "newsNavBadge"
         );
 
-    if (!badge || !studentNumber) {
+
+    if (
+        !badge ||
+        !studentNumber
+    ) {
         return;
     }
 
+
     try {
 
-        const readSnapshot =
-            await getDocs(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "readNews"
-                )
-            );
-
-        const readNewsIds =
-            new Set(
-                readSnapshot.docs.map(
-                    readDoc => readDoc.id
-                )
-            );
-
         const department =
-            localStorage.getItem("department") || "";
+            localStorage.getItem(
+                "department"
+            ) || "";
 
         const major =
-            localStorage.getItem("major") || "";
+            localStorage.getItem(
+                "major"
+            ) || "";
 
         const grade =
             (
-                localStorage.getItem("grade") || ""
-            ).replace("年", "");
+                localStorage.getItem(
+                    "grade"
+                ) || ""
+            ).replace(
+                "年",
+                ""
+            );
 
-        let universityUnreadCount = 0;
+
+        let universityQuery =
+            null;
+
 
         if (
             grade &&
@@ -1801,130 +1801,196 @@ export async function updateNewsNavBadge() {
             )
         ) {
 
-            let universityQuery;
-
             if (department) {
 
-                universityQuery = query(
-                    collection(db, "news"),
-                    where(
-                        "department",
-                        "==",
-                        department
-                    ),
-                    where(
-                        "grade",
-                        "==",
-                        grade
-                    )
-                );
+                universityQuery =
+                    query(
+                        collection(
+                            db,
+                            "news"
+                        ),
+                        where(
+                            "department",
+                            "==",
+                            department
+                        ),
+                        where(
+                            "grade",
+                            "==",
+                            grade
+                        )
+                    );
 
             } else {
 
-                universityQuery = query(
-                    collection(db, "news"),
-                    where(
-                        "major",
-                        "==",
-                        major
-                    ),
-                    where(
-                        "grade",
-                        "==",
-                        grade
-                    )
-                );
+                universityQuery =
+                    query(
+                        collection(
+                            db,
+                            "news"
+                        ),
+                        where(
+                            "major",
+                            "==",
+                            major
+                        ),
+                        where(
+                            "grade",
+                            "==",
+                            grade
+                        )
+                    );
 
             }
 
-            const universitySnapshot =
-                await getDocs(
-                    universityQuery
-                );
-
-            universitySnapshot.forEach(
-                newsDoc => {
-
-                    const readId =
-                        `university_${newsDoc.id}`;
-
-                    if (!readNewsIds.has(readId)) {
-                        universityUnreadCount++;
-                    }
-
-                }
-            );
-
         }
 
-        const courseSnapshot =
-            await getDocs(
+
+        /*
+        4種類を全部同時取得
+        */
+        const [
+            readSnapshot,
+            universitySnapshot,
+            courseSnapshot,
+            systemSnapshot
+        ] = await Promise.all([
+
+            getDocs(
+                collection(
+                    db,
+                    "users",
+                    studentNumber,
+                    "readNews"
+                )
+            ),
+
+            universityQuery
+                ? getDocs(
+                    universityQuery
+                )
+                : Promise.resolve(
+                    null
+                ),
+
+            getDocs(
                 collection(
                     db,
                     "courseNews",
                     studentNumber,
                     "news"
                 )
-            );
+            ),
 
-        let courseUnreadCount = 0;
-
-        courseSnapshot.forEach(
-            newsDoc => {
-
-                const readId =
-                    `course_${newsDoc.id}`;
-
-                if (!readNewsIds.has(readId)) {
-                    courseUnreadCount++;
-                }
-
-            }
-        );
-
-        const systemSnapshot =
-            await getDocs(
+            getDocs(
                 collection(
                     db,
                     "systemNews"
                 )
+            )
+
+        ]);
+
+
+        const readNewsIds =
+            new Set(
+                readSnapshot.docs.map(
+                    readDoc =>
+                        readDoc.id
+                )
             );
 
-        let systemUnreadCount = 0;
 
-        systemSnapshot.forEach(
+        let universityUnreadCount =
+            0;
+
+        let courseUnreadCount =
+            0;
+
+        let systemUnreadCount =
+            0;
+
+
+        universitySnapshot?.forEach(
             newsDoc => {
 
-                const readId =
-                    `system_${newsDoc.id}`;
+                if (
+                    !readNewsIds.has(
+                        `university_${newsDoc.id}`
+                    )
+                ) {
 
-                if (!readNewsIds.has(readId)) {
-                    systemUnreadCount++;
+                    universityUnreadCount++;
+
                 }
 
             }
         );
+
+
+        courseSnapshot.forEach(
+            newsDoc => {
+
+                if (
+                    !readNewsIds.has(
+                        `course_${newsDoc.id}`
+                    )
+                ) {
+
+                    courseUnreadCount++;
+
+                }
+
+            }
+        );
+
+
+        systemSnapshot.forEach(
+            newsDoc => {
+
+                if (
+                    !readNewsIds.has(
+                        `system_${newsDoc.id}`
+                    )
+                ) {
+
+                    systemUnreadCount++;
+
+                }
+
+            }
+        );
+
 
         const totalCount =
             universityUnreadCount +
             courseUnreadCount +
             systemUnreadCount;
 
+
         if (totalCount <= 0) {
 
-            badge.hidden = true;
-            badge.textContent = "0";
+            badge.hidden =
+                true;
+
+            badge.textContent =
+                "0";
 
             return;
 
         }
 
-        badge.hidden = false;
+
+        badge.hidden =
+            false;
 
         badge.textContent =
             totalCount > 99
                 ? "99+"
-                : String(totalCount);
+                : String(
+                    totalCount
+                );
+
 
     } catch (error) {
 
@@ -1933,7 +1999,8 @@ export async function updateNewsNavBadge() {
             error
         );
 
-        badge.hidden = true;
+        badge.hidden =
+            true;
 
     }
 
