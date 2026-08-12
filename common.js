@@ -22,6 +22,7 @@ import {
     where,
     getDocs,
     onSnapshot,
+    orderBy,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
@@ -968,58 +969,87 @@ function showRankingNicknamePrompt(
 
 }
 
-export async function loadUserName(element, user = null){
+export async function loadUserName(
+    element,
+    user = null
+) {
 
-    if(!studentNumber){
+    if (
+        !element ||
+        !studentNumber
+    ) {
 
-        element.textContent="Unknownさん";
+        if (element) {
+            element.textContent =
+                "Unknownさん";
+        }
+
         return;
 
     }
 
 
-    const userSnap = await cachedGetDoc(
-        `publicUsers/${studentNumber}`,
-        doc(db,"publicUsers",studentNumber)
-    );
+    /*
+    名前と累計ポイントを
+    同時取得する。
+    */
+    const [
+        userSnap,
+        userPointSnap
+    ] = await Promise.all([
+
+        cachedGetDoc(
+            `publicUsers/${studentNumber}`,
+            doc(
+                db,
+                "publicUsers",
+                studentNumber
+            )
+        ),
+
+        cachedGetDoc(
+            `totalRanking/${studentNumber}`,
+            doc(
+                db,
+                "totalRanking",
+                studentNumber
+            )
+        )
+
+    ]);
 
 
-    if(!userSnap.exists()){
+    if (
+        !userSnap.exists()
+    ) {
 
-        element.textContent="Unknownさん";
+        element.textContent =
+            "Unknownさん";
+
         return;
 
     }
 
 
     const name =
-        userSnap.data().name;
+        userSnap.data().name ||
+        "Unknown";
 
 
-    let point = 0;
-
-
-    const userPointSnap =
-            await cachedGetDoc(
-                `totalRanking/${studentNumber}`,
-            doc(
-                db,
-                "totalRanking",
-                studentNumber
+    const point =
+        userPointSnap.exists()
+            ? (
+                userPointSnap.data()
+                    .point ||
+                0
             )
-        );
-
-
-    if(userPointSnap.exists()){
-
-        point =
-            userPointSnap.data().point || 0;
-
-    }
+            : 0;
 
 
     const mark =
-        getRankMark(point);
+        getRankMark(
+            point
+        );
 
 
     element.textContent =
@@ -1027,120 +1057,203 @@ export async function loadUserName(element, user = null){
 
 }
 
-export async function loadMyRanking(){
+let myRankingUnsubscribe =
+    null;
+
+
+export async function loadMyRanking() {
 
     const element =
-        document.getElementById("myRanking");
+        document.getElementById(
+            "myRanking"
+        );
 
 
-    if (studentNumber) {
-
-        await setupRankingNicknamePrompt();
-
-    }
-
-
-    if(!element || !studentNumber){
+    if (
+        !element ||
+        !studentNumber
+    ) {
         return;
     }
 
 
-    try{
+    /*
+    ランキング表示を
+    ニックネーム確認処理で待たせない。
+    */
+    void setupRankingNicknamePrompt();
 
-        const now = new Date();
-        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+    const userInfo =
+        element.closest(
+            ".top-user-info"
+        );
 
 
-        const rankingRef = collection(
+    if (userInfo) {
+
+        userInfo.classList.add(
+            "is-clickable"
+        );
+
+        userInfo.title =
+            "ポイントとランキングを見る";
+
+        userInfo.onclick =
+            () => {
+
+                location.href =
+                    "points.html";
+
+            };
+
+    }
+
+
+    try {
+
+        const now =
+            new Date();
+
+
+        const today =
+            `${now.getFullYear()}-` +
+            `${String(
+                now.getMonth() + 1
+            ).padStart(2,"0")}-` +
+            `${String(
+                now.getDate()
+            ).padStart(2,"0")}`;
+
+
+        /*
+        Firestore側ですでに
+        ポイント降順に並べる。
+        */
+        const rankingQuery =
+            query(
+                collection(
                     db,
                     "dailyRanking",
                     today,
                     "users"
-                );
-
-        onSnapshot(rankingRef, rankingSnap => {
-
-        const userInfo = element.closest(".top-user-info");
-        if (userInfo) {
-            userInfo.classList.add("is-clickable");
-            userInfo.title = "ポイントとランキングを見る";
-            userInfo.onclick = () => location.href = "points.html";
-        }
-
-        let ranking = [];
-
-
-        rankingSnap.forEach(doc=>{
-
-            ranking.push({
-
-                studentNumber: doc.id,
-
-                point:
-                    doc.data().point || 0
-
-            });
-
-        });
-
-
-        // ポイント順
-        ranking.sort(
-            (a,b)=>b.point-a.point
-        );
-
-
-        const myIndex =
-            ranking.findIndex(
-                item =>
-                item.studentNumber === studentNumber
+                ),
+                orderBy(
+                    "point",
+                    "desc"
+                )
             );
 
 
-        if(myIndex === -1){
+        /*
+        万一もう一度呼ばれても
+        listenerを二重登録しない。
+        */
+        if (
+            myRankingUnsubscribe
+        ) {
 
-            element.innerHTML = `<span class="my-ranking">順位なし 0pt</span>`;
+            myRankingUnsubscribe();
 
-            return;
+            myRankingUnsubscribe =
+                null;
 
         }
 
 
-        const rank =
-            myIndex + 1;
+        myRankingUnsubscribe =
+            onSnapshot(
+
+                rankingQuery,
+
+                rankingSnap => {
+
+                    const docs =
+                        rankingSnap.docs;
 
 
-        const point =
-            ranking[myIndex].point;
+                    const myIndex =
+                        docs.findIndex(
+                            rankingDoc =>
+                                rankingDoc.id ===
+                                studentNumber
+                        );
 
 
-        let medal = "";
+                    if (
+                        myIndex === -1
+                    ) {
+
+                        element.innerHTML = `
+                            <span class="my-ranking">
+                                順位なし 0pt
+                            </span>
+                        `;
+
+                        return;
+
+                    }
 
 
-        if(rank === 1){
-            medal = "🥇";
-        }
-        else if(rank === 2){
-            medal = "🥈";
-        }
-        else if(rank === 3){
-            medal = "🥉";
-        }
+                    const rank =
+                        myIndex + 1;
 
 
-        element.innerHTML = `
-
-            <span class="my-ranking">
-                ${medal}
-                ${rank}位 ${point}pt
-            </span>
-
-        `;
-
-        }, error => console.error("順位リアルタイム取得エラー", error));
+                    const point =
+                        docs[
+                            myIndex
+                        ].data()
+                            .point ||
+                        0;
 
 
-    }catch(error){
+                    let medal = "";
+
+
+                    if (rank === 1) {
+
+                        medal =
+                            "🥇";
+
+                    } else if (
+                        rank === 2
+                    ) {
+
+                        medal =
+                            "🥈";
+
+                    } else if (
+                        rank === 3
+                    ) {
+
+                        medal =
+                            "🥉";
+
+                    }
+
+
+                    element.innerHTML = `
+                        <span class="my-ranking">
+                            ${medal}
+                            ${rank}位 ${point}pt
+                        </span>
+                    `;
+
+                },
+
+                error => {
+
+                    console.error(
+                        "順位リアルタイム取得エラー",
+                        error
+                    );
+
+                }
+
+            );
+
+
+    } catch (error) {
 
         console.error(
             "順位取得エラー",

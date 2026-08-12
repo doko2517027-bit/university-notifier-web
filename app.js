@@ -1010,7 +1010,41 @@ setupTheme(themeButton);
 setupOfflineAlert();
 
 // 5分ごと
-setInterval(updateLastActive, 5 * 60 * 1000);
+const runLastActiveWhenIdle =
+    window.requestIdleCallback ||
+    (
+        callback =>
+            setTimeout(
+                callback,
+                1000
+            )
+    );
+
+
+runLastActiveWhenIdle(
+    () => {
+
+        void updateLastActive();
+
+    }
+);
+
+
+// 5分ごと
+setInterval(
+    () => {
+
+        if (
+            !document.hidden
+        ) {
+
+            void updateLastActive();
+
+        }
+
+    },
+    5 * 60 * 1000
+);
 
 // アプリへ戻った時
 document.addEventListener("visibilitychange", () => {
@@ -1366,110 +1400,215 @@ async function loadHomeCourseNews() {
 }
 
 async function loadHomeSystemNews() {
-    const targetedSnapshot =
-        await getDocs(
-            query(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "targetedSystemNews"
-                ),
-                orderBy(
-                    "createdAt",
-                    "desc"
-                ),
-                limit(3)
-            )
+
+    let systemDocs =
+        [];
+
+    let targetedDocs =
+        [];
+
+
+    const render =
+        () => {
+
+            const allDocs =
+                [
+                    ...systemDocs,
+                    ...targetedDocs
+                ]
+                    .sort(
+                        (a, b) => {
+
+                            const bTime =
+                                b.data()
+                                    .createdAt
+                                    ?.toMillis?.() ||
+                                0;
+
+                            const aTime =
+                                a.data()
+                                    .createdAt
+                                    ?.toMillis?.() ||
+                                0;
+
+                            return (
+                                bTime -
+                                aTime
+                            );
+
+                        }
+                    )
+                    .slice(
+                        0,
+                        3
+                    );
+
+
+            if (
+                allDocs.length === 0
+            ) {
+
+                homeSystemNews
+                    .textContent =
+                    "CareMateからのお知らせはありません。";
+
+                return;
+
+            }
+
+
+            const systemNewsHtml =
+                allDocs
+                    .map(
+                        newsDoc => {
+
+                            const notice =
+                                newsDoc.data();
+
+
+                            const created =
+                                notice.createdAt
+                                    ?.toDate?.() ||
+                                null;
+
+
+                            const dateText =
+                                formatDateTime(
+                                    created
+                                );
+
+
+                            return `
+                                <div
+                                    class="card news-card"
+                                    onclick="location.href='news.html'">
+
+                                    <div class="news-title">
+                                        💙 ${notice.title || ""}
+                                    </div>
+
+                                    <div class="news-body">
+                                        ${(notice.body || "")
+                                            .split("\n")[0]
+                                            .substring(0,40)}...
+                                    </div>
+
+                                    <div class="news-date">
+                                        ${dateText}
+                                    </div>
+
+                                </div>
+                            `;
+
+                        }
+                    )
+                    .join("");
+
+
+            homeSystemNews.innerHTML = `
+
+                ${systemNewsHtml}
+
+                <div
+                    style="
+                        text-align:center;
+                        margin-top:20px;
+                    ">
+
+                    <a href="news.html">
+                        もっと見る →
+                    </a>
+
+                </div>
+
+            `;
+
+        };
+
+
+    /*
+    一般向けCareMateお知らせは
+    個人宛取得を待たず、
+    即listener開始。
+    */
+    const systemQuery =
+        query(
+            collection(
+                db,
+                "systemNews"
+            ),
+            orderBy(
+                "createdAt",
+                "desc"
+            ),
+            limit(3)
         );
 
 
-    const targetedDocs =
-        targetedSnapshot.docs;
+    onSnapshot(
 
-    const q = query(
-        collection(
-            db,
-            "systemNews"
-        ),
-        orderBy(
-            "createdAt",
-            "desc"
-        ),
-        limit(3)
-    );
+        systemQuery,
 
-    onSnapshot(q, (snapshot) => {
+        snapshot => {
 
-        const allDocs = [...snapshot.docs, ...targetedDocs].sort((a, b) => (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0));
-        if (allDocs.length === 0) {
+            systemDocs =
+                snapshot.docs;
 
-            homeSystemNews.innerHTML =
-                "CareMateからのお知らせはありません。";
+            render();
 
-            return;
+        },
+
+        error => {
+
+            console.error(
+                "CareMateお知らせ取得エラー:",
+                error
+            );
 
         }
 
-        const systemNewsHtml =
-            allDocs
-                .slice(0, 3)
-                .map(newsDoc => {
-
-                    const notice =
-                        newsDoc.data();
-
-                    const created =
-                        notice.createdAt
-                            ?.toDate?.() ||
-                        null;
-
-                    const dateText =
-                        formatDateTime(
-                            created
-                        );
-
-                    return `
-                        <div
-                            class="card news-card"
-                            onclick="location.href='news.html'">
-
-                            <div class="news-title">
-                                💙 ${notice.title}
-                            </div>
-
-                            <div class="news-body">
-                                ${(notice.body || "")
-                                    .split("\n")[0]
-                                    .substring(0, 40)}...
-                            </div>
-
-                            <div class="news-date">
-                                ${dateText}
-                            </div>
-
-                        </div>
-                    `;
-
-                })
-                .join("");
+    );
 
 
-        homeSystemNews.innerHTML = `
-            ${systemNewsHtml}
+    /*
+    個人宛は同時に別通信。
+    取得できたら混ぜて再描画。
+    */
+    try {
 
-            <div
-                style="
-                    text-align:center;
-                    margin-top:20px;
-                ">
-                <a href="news.html">
-                    もっと見る →
-                </a>
-            </div>
-        `;
+        const targetedSnapshot =
+            await getDocs(
+                query(
+                    collection(
+                        db,
+                        "users",
+                        studentNumber,
+                        "targetedSystemNews"
+                    ),
+                    orderBy(
+                        "createdAt",
+                        "desc"
+                    ),
+                    limit(3)
+                )
+            );
 
-    });
+
+        targetedDocs =
+            targetedSnapshot.docs;
+
+
+        render();
+
+
+    } catch (error) {
+
+        console.error(
+            "個人向けCareMateお知らせ取得エラー:",
+            error
+        );
+
+    }
 
 }
 
@@ -2651,22 +2790,72 @@ document
 
 };
 
+let lastActiveWriteAt =
+    0;
+
+
 async function updateLastActive() {
 
-    if (!studentNumber) return;
+    if (!studentNumber) {
+        return;
+    }
+
+
+    const now =
+        Date.now();
+
+
+    /*
+    1分以内にすでに更新済みなら
+    再書き込みしない。
+    */
+    if (
+        now -
+        lastActiveWriteAt <
+        60 * 1000
+    ) {
+        return;
+    }
+
+
+    /*
+    通信完了を待たず、
+    先に時刻を記録して
+    多重実行を防止。
+    */
+    lastActiveWriteAt =
+        now;
+
 
     try {
 
         await updateDoc(
-            doc(db, "users", studentNumber),
+            doc(
+                db,
+                "users",
+                studentNumber
+            ),
             {
-                lastActiveAt: serverTimestamp()
+                lastActiveAt:
+                    serverTimestamp()
             }
         );
 
-    } catch (e) {
 
-        console.error(e);
+    } catch (error) {
+
+        /*
+        失敗した場合は
+        次回再試行可能にする。
+        */
+        lastActiveWriteAt =
+            0;
+
+
+        console.error(
+            "最終アクティブ更新エラー:",
+            error
+        );
 
     }
 
@@ -2695,9 +2884,10 @@ async function loadWeather(user) {
             "https://api.open-meteo.com/v1/forecast" +
             `?latitude=${latitude}` +
             `&longitude=${longitude}` +
-            "&current=temperature_2m,apparent_temperature,weather_code" +
+            "&current=temperature_2m,weather_code" +
             "&hourly=precipitation_probability" +
             "&daily=temperature_2m_max,temperature_2m_min" +
+            "&forecast_days=1" +
             "&timezone=Asia%2FTokyo";
 
         const response = await fetch(url);
@@ -2713,11 +2903,6 @@ async function loadWeather(user) {
 
         const temp =
             Math.round(data.current.temperature_2m);
-
-        const apparent =
-            Math.round(
-                data.current.apparent_temperature
-            );
 
         const max =
             Math.round(data.daily.temperature_2m_max[0]);
