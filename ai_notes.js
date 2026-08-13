@@ -4,30 +4,31 @@ import {collection,doc,addDoc,deleteDoc,onSnapshot,orderBy,query,serverTimestamp
 const $=id=>document.getElementById(id);
 
 const state={
+
     notes:[],
+
     selected:null,
 
     recognition:null,
 
     isListening:false,
 
-    /*
-    ユーザーが明示的に停止するまで
-    音声認識を継続する。
-    */
     keepListening:false,
 
-    /*
-    確定済み文字列と
-    聞き取り途中文字列を分離する。
-    */
     finalTranscript:"",
+
     interim:"",
 
     drawing:false,
+
     lastPoint:null,
+
     drawTool:"pen",
-    paper:"blank"
+
+    paper:"blank",
+
+    inkMode:false
+
 };
 
 const escapeHtml=value=>String(value??"").replace(
@@ -137,10 +138,17 @@ if(
             await addDoc(
                 notesRef,
                 {
+
                     title:
                         "新しいノート",
 
                     body:
+                        "",
+
+                    bodyHtml:
+                        "",
+
+                    transcript:
                         "",
 
                     maskTerms:
@@ -149,11 +157,18 @@ if(
                     todos:
                         [],
 
+                    images:
+                        [],
+
+                    placedImages:
+                        [],
+
                     createdAt:
                         serverTimestamp(),
 
                     updatedAt:
                         serverTimestamp()
+
                 }
             );
 
@@ -218,6 +233,12 @@ if(
         toggleVoice;
 
 
+    $("copyTranscript")?.addEventListener(
+        "click",
+        copyTranscript
+    );
+
+
     $("openSummary").onclick=
         ()=>openChatGPT(
             "要約"
@@ -267,10 +288,10 @@ if(
         );
 
 
-    $("penSize").oninput=
-        ()=>
-            $("penSizeValue").textContent=
-                `${$("penSize").value}px`;
+    /*
+    ペン太さは setupToolControls() 側で
+    バー・つまみ・数値をまとめて同期する。
+    */
 
 
     document
@@ -464,12 +485,30 @@ function render(){
 
         $("noteDocument").innerHTML="";
 
-        $("liveTranscript").textContent=
-            "まだ文字起こしは始まっていません。";
+
+        const imageLayer=
+            $("noteImageLayer");
+
+
+        if(imageLayer){
+
+            imageLayer.innerHTML="";
+
+        }
+
+
+        state.finalTranscript="";
+
+        state.interim="";
+
+
+        renderLiveTranscript();
+
 
         $("maskTerms").value="";
 
         $("todoList").innerHTML="";
+
 
         renderImages();
 
@@ -477,9 +516,19 @@ function render(){
 
         clearInkOverlay();
 
+
         return;
 
     }
+
+
+    /*
+    旧方式で本文内へ保存されていた画像を
+    新しい自由配置画像へ移行する。
+    */
+    migrateLegacyInlineImages(
+        note
+    );
 
 
     $("noteTitle").value=
@@ -494,9 +543,32 @@ function render(){
     );
 
 
-    $("liveTranscript").textContent=
-        note.transcript||
-        "まだ文字起こしは始まっていません。";
+    /*
+    音声認識中にsnapshotが来ても
+    認識中の文章を巻き戻さない。
+    */
+    if(
+        !state.keepListening
+    ){
+
+        state.finalTranscript=
+            String(
+                note.transcript||
+                ""
+            )
+                .replace(
+                    /\s+/g,
+                    " "
+                )
+                .trim();
+
+
+        state.interim="";
+
+    }
+
+
+    renderLiveTranscript();
 
 
     $("maskTerms").value=
@@ -509,6 +581,8 @@ function render(){
     renderTodos();
 
     renderImages();
+
+    renderPlacedImages();
 
     renderPreview();
 
@@ -701,79 +775,123 @@ function todoChange(
 
 function setupImages(){
 
-    $("noteImageInput").onchange=
-        uploadNoteImage;
+    const input=
+        $("noteImageInput");
 
 
-    const documentArea=
+    const editor=
         $("noteDocument");
 
 
-    documentArea.addEventListener(
+    if(input){
+
+        input.onchange=
+            uploadNoteImage;
+
+    }
+
+
+    if(!editor){
+
+        return;
+
+    }
+
+
+    /*
+    contenteditable内へ
+    ファイルを直接ドロップさせない。
+    */
+    editor.addEventListener(
         "dragover",
-        event=>
-            event.preventDefault()
-    );
-
-
-    documentArea.addEventListener(
-        "drop",
         event=>{
 
-            event.preventDefault();
+            if(
+                event.dataTransfer
+                    ?.types
+                    ?.includes(
+                        "Files"
+                    )
+            ){
 
-
-            const url=
-                event.dataTransfer.getData(
-                    "text/caremate-note-image"
-                );
-
-
-            const imageId=
-                event.dataTransfer.getData(
-                    "text/caremate-document-image"
-                );
-
-
-            if(url){
-
-                insertImageAtPoint(
-                    url,
-                    event.clientX,
-                    event.clientY
-                );
+                event.preventDefault();
 
             }
 
-
-            if(imageId){
-
-                const image=
-                    document.getElementById(
-                        imageId
-                    );
+        }
+    );
 
 
-                if(image){
+    editor.addEventListener(
+        "drop",
+        event=>{
 
-                    const range=
-                        document.caretRangeFromPoint?.(
-                            event.clientX,
-                            event.clientY
-                        );
+            if(
+                event.dataTransfer
+                    ?.files
+                    ?.length
+            ){
+
+                event.preventDefault();
+
+            }
+
+        }
+    );
 
 
-                    if(range){
+    /*
+    クリップボードから画像だけを
+    contenteditableへ直接貼り付ける処理も禁止。
 
-                        range.insertNode(
-                            image
-                        );
+    普通の文字コピー＆ペーストはそのまま使える。
+    */
+    editor.addEventListener(
+        "paste",
+        event=>{
 
-                        syncPlainBody();
+            const items=
+                [
+                    ...(
+                        event.clipboardData
+                            ?.items||
+                        []
+                    )
+                ];
 
-                    }
 
-                }
+            const hasImageFile=
+                items.some(
+                    item=>
+                        String(
+                            item.type||
+                            ""
+                        ).startsWith(
+                            "image/"
+                        )
+                );
+
+
+            const html=
+                event.clipboardData
+                    ?.getData(
+                        "text/html"
+                    )||
+                "";
+
+
+            const hasHtmlImage=
+                /<img[\s>]/i.test(
+                    html
+                );
+
+
+            if(
+                hasImageFile||
+                hasHtmlImage
+            ){
+
+                event.preventDefault();
 
             }
 
@@ -792,7 +910,8 @@ async function uploadNoteImage(
 
 
     const file=
-        event.target.files?.[0];
+        event.target
+            .files?.[0];
 
 
     const stateLabel=
@@ -801,15 +920,19 @@ async function uploadNoteImage(
 
     if(!note){
 
-        return alert(
+        alert(
             "先にノートを作成してください。"
         );
+
+        return;
 
     }
 
 
     if(!file){
+
         return;
+
     }
 
 
@@ -819,21 +942,27 @@ async function uploadNoteImage(
         )
     ){
 
-        return alert(
+        alert(
             "画像ファイルを選んでください。"
         );
+
+        return;
 
     }
 
 
     if(
-        file.size >
-        50*1024*1024
+        file.size>
+        50*
+        1024*
+        1024
     ){
 
-        return alert(
+        alert(
             "50MB以下の画像を選んでください。"
         );
+
+        return;
 
     }
 
@@ -842,8 +971,12 @@ async function uploadNoteImage(
         true;
 
 
-    stateLabel.textContent=
-        "画像をノートへ追加しています…";
+    if(stateLabel){
+
+        stateLabel.textContent=
+            "画像を追加しています…";
+
+    }
 
 
     try{
@@ -868,8 +1001,11 @@ async function uploadNoteImage(
             await fetch(
                 "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
                 {
-                    method:"POST",
-                    body:form
+                    method:
+                        "POST",
+
+                    body:
+                        form
                 }
             );
 
@@ -879,16 +1015,79 @@ async function uploadNoteImage(
 
 
         if(
-            !response.ok ||
+            !response.ok||
             !data.secure_url
         ){
 
             throw new Error(
-                data.error?.message||
+                data.error
+                    ?.message||
                 "アップロードに失敗しました。"
             );
 
         }
+
+
+        const asset={
+
+            id:
+                createImageId(),
+
+            url:
+                data.secure_url,
+
+            publicId:
+                data.public_id||
+                "",
+
+            width:
+                Number(
+                    data.width||
+                    0
+                ),
+
+            height:
+                Number(
+                    data.height||
+                    0
+                )
+
+        };
+
+
+        const nextImages=[
+            ...(
+                note.images||
+                []
+            ),
+            asset
+        ];
+
+
+        const nextPlacedImages=[
+            ...getPlacedImages(
+                note
+            ),
+            createDefaultPlacement(
+                asset,
+                getPlacedImages(
+                    note
+                ).length
+            )
+        ];
+
+
+        note.images=
+            nextImages;
+
+
+        note.placedImages=
+            nextPlacedImages;
+
+
+        renderImages();
+
+        renderPlacedImages();
 
 
         await updateDoc(
@@ -900,25 +1099,26 @@ async function uploadNoteImage(
                 note.id
             ),
             {
-                images:[
-                    ...(note.images||[]),
-                    {
-                        url:
-                            data.secure_url,
 
-                        publicId:
-                            data.public_id
-                    }
-                ],
+                images:
+                    nextImages,
+
+                placedImages:
+                    nextPlacedImages,
 
                 updatedAt:
                     serverTimestamp()
+
             }
         );
 
 
-        stateLabel.textContent=
-            "講義メモに画像を追加しました。ドラッグで並べ替えできます。";
+        if(stateLabel){
+
+            stateLabel.textContent=
+                "画像を追加しました。ドラッグで自由に移動、周囲の8個の丸で大きさを変更できます。";
+
+        }
 
 
     }catch(error){
@@ -928,12 +1128,16 @@ async function uploadNoteImage(
         );
 
 
-        stateLabel.textContent=
-            "画像を追加できませんでした。";
+        if(stateLabel){
+
+            stateLabel.textContent=
+                "画像を追加できませんでした。";
+
+        }
 
 
         alert(
-            `写真を講義メモに追加できませんでした。\n${
+            `写真を追加できませんでした。\n${
                 error.message||
                 "通信を確認して、もう一度お試しください。"
             }`
@@ -959,7 +1163,9 @@ function renderImages(){
 
 
     if(!list){
+
         return;
+
     }
 
 
@@ -968,30 +1174,52 @@ function renderImages(){
 
 
     const images=
-        note?.images||[];
+        note?.images||
+        [];
+
+
+    if(
+        !images.length
+    ){
+
+        list.innerHTML="";
+
+        return;
+
+    }
 
 
     list.innerHTML=
-        images.map(
-            (image,index)=>`
-                <div
-                    class="note-image-card"
-                    draggable="true"
-                    data-image-index="${index}">
+        images
+            .map(
+                (
+                    image,
+                    index
+                )=>`
 
-                    <img
-                        src="${escapeHtml(image.url)}"
-                        alt="添付画像">
+                    <div
+                        class="note-image-card"
+                        data-image-index="${index}">
 
-                    <button
-                        data-image-delete="${index}"
-                        aria-label="画像を外す">
-                        ×
-                    </button>
+                        <img
+                            src="${escapeHtml(
+                                image.url
+                            )}"
+                            alt="添付画像"
+                            draggable="false">
 
-                </div>
-            `
-        ).join("");
+                        <button
+                            type="button"
+                            data-image-delete="${index}"
+                            aria-label="画像を削除">
+                            ×
+                        </button>
+
+                    </div>
+
+                `
+            )
+            .join("");
 
 
     list
@@ -999,68 +1227,1557 @@ function renderImages(){
             "[data-image-delete]"
         )
         .forEach(
-            button=>
+            button=>{
+
                 button.onclick=
-                    async()=>{
-
-                        const next=[
-                            ...(current()?.images||[])
-                        ];
-
-
-                        next.splice(
-                            Number(
-                                button.dataset.imageDelete
-                            ),
-                            1
-                        );
-
-
-                        await updateDoc(
-                            doc(
-                                db,
-                                "digitalNotes",
-                                "2510044",
-                                "notes",
-                                current().id
-                            ),
-                            {
-                                images:
-                                    next,
-
-                                updatedAt:
-                                    serverTimestamp()
-                            }
-                        );
-
-                    }
-        );
-
-
-    list
-        .querySelectorAll(
-            ".note-image-card"
-        )
-        .forEach(
-            card=>
-                card.ondragstart=
                     event=>{
 
-                        event.dataTransfer.effectAllowed=
-                            "copy";
+                        event.preventDefault();
+
+                        event.stopPropagation();
 
 
-                        event.dataTransfer.setData(
-                            "text/caremate-note-image",
-                            images[
-                                Number(
-                                    card.dataset.imageIndex
-                                )
-                            ].url
+                        removeAttachmentImage(
+                            Number(
+                                button.dataset
+                                    .imageDelete
+                            )
+                        );
+
+                    };
+
+            }
+        );
+
+
+    /*
+    長押し画像メニューを出さない。
+    */
+    list.oncontextmenu=
+        event=>
+            event.preventDefault();
+
+}
+
+
+function createImageId(){
+
+    if(
+        window.crypto
+            ?.randomUUID
+    ){
+
+        return crypto.randomUUID();
+
+    }
+
+
+    return (
+        `note-image-${Date.now()}-`+
+        Math.random()
+            .toString(36)
+            .slice(2)
+    );
+
+}
+
+
+function getPlacedImages(
+    note
+){
+
+    if(!note){
+
+        return [];
+
+    }
+
+
+    if(
+        !Array.isArray(
+            note.placedImages
+        )
+    ){
+
+        note.placedImages=[];
+
+    }
+
+
+    return note.placedImages;
+
+}
+
+
+function createDefaultPlacement(
+    asset,
+    index=0
+){
+
+    const layer=
+        $("noteImageLayer");
+
+
+    const layerWidth=
+        layer?.clientWidth||
+        700;
+
+
+    const layerHeight=
+        layer?.clientHeight||
+        560;
+
+
+    const imageWidth=
+        Number(
+            asset.width||
+            0
+        );
+
+
+    const imageHeight=
+        Number(
+            asset.height||
+            0
+        );
+
+
+    const ratio=
+        imageWidth>0&&
+        imageHeight>0
+            ? imageWidth/
+              imageHeight
+            : 4/3;
+
+
+    const widthPercent=
+        42;
+
+
+    const pixelWidth=
+        layerWidth*
+        widthPercent/
+        100;
+
+
+    const pixelHeight=
+        pixelWidth/
+        ratio;
+
+
+    const heightPercent=
+        Math.min(
+            70,
+            Math.max(
+                15,
+                pixelHeight/
+                layerHeight*
+                100
+            )
+        );
+
+
+    return{
+
+        id:
+            createImageId(),
+
+        assetId:
+            asset.id||
+            "",
+
+        url:
+            asset.url,
+
+        publicId:
+            asset.publicId||
+            "",
+
+        x:
+            Math.min(
+                10+
+                index*
+                4,
+                45
+            ),
+
+        y:
+            Math.min(
+                8+
+                index*
+                5,
+                55
+            ),
+
+        width:
+            widthPercent,
+
+        height:
+            heightPercent
+
+    };
+
+}
+
+
+/*
+旧bodyHtmlの中にある画像を
+contenteditable外へ移行する。
+*/
+function migrateLegacyInlineImages(
+    note
+){
+
+    if(
+        !note||
+        !note.bodyHtml
+    ){
+
+        return;
+
+    }
+
+
+    const container=
+        document.createElement(
+            "div"
+        );
+
+
+    container.innerHTML=
+        note.bodyHtml;
+
+
+    const oldImages=[
+        ...container
+            .querySelectorAll(
+                "img"
+            )
+    ];
+
+
+    if(
+        !oldImages.length
+    ){
+
+        return;
+
+    }
+
+
+    const assets=[
+        ...(
+            note.images||
+            []
+        )
+    ];
+
+
+    const placements=[
+        ...getPlacedImages(
+            note
+        )
+    ];
+
+
+    oldImages.forEach(
+        (
+            image,
+            index
+        )=>{
+
+            const url=
+                image.getAttribute(
+                    "src"
+                )||
+                image.src;
+
+
+            if(!url){
+
+                image.remove();
+
+                return;
+
+            }
+
+
+            let asset=
+                assets.find(
+                    item=>
+                        item.url===
+                        url
+                );
+
+
+            if(!asset){
+
+                asset={
+
+                    id:
+                        createImageId(),
+
+                    url,
+
+                    publicId:
+                        "",
+
+                    width:
+                        0,
+
+                    height:
+                        0
+
+                };
+
+
+                assets.push(
+                    asset
+                );
+
+            }
+
+
+            const alreadyPlaced=
+                placements.some(
+                    item=>
+                        item.assetId===
+                        asset.id||
+                        item.url===
+                        url
+                );
+
+
+            if(
+                !alreadyPlaced
+            ){
+
+                placements.push(
+                    createDefaultPlacement(
+                        asset,
+                        index
+                    )
+                );
+
+            }
+
+
+            /*
+            旧画像を本文から完全に外す。
+            */
+            image.remove();
+
+        }
+    );
+
+
+    note.images=
+        assets;
+
+
+    note.placedImages=
+        placements;
+
+
+    note.bodyHtml=
+        container.innerHTML;
+
+}
+
+
+function renderPlacedImages(){
+
+    const layer=
+        $("noteImageLayer");
+
+
+    const note=
+        current();
+
+
+    if(
+        !layer||
+        !note
+    ){
+
+        return;
+
+    }
+
+
+    const placements=
+        getPlacedImages(
+            note
+        );
+
+
+    layer.innerHTML=
+        placements
+            .map(
+                placement=>{
+
+                    const x=
+                        clampNumber(
+                            placement.x,
+                            0,
+                            95
+                        );
+
+
+                    const y=
+                        clampNumber(
+                            placement.y,
+                            0,
+                            95
+                        );
+
+
+                    const width=
+                        clampNumber(
+                            placement.width,
+                            10,
+                            95
+                        );
+
+
+                    const height=
+                        clampNumber(
+                            placement.height,
+                            10,
+                            95
+                        );
+
+
+                    return`
+
+                        <div
+                            class="placed-note-image"
+                            data-placement-id="${escapeHtml(
+                                placement.id
+                            )}"
+                            style="
+                                left:${x}%;
+                                top:${y}%;
+                                width:${width}%;
+                                height:${height}%;
+                            ">
+
+                            <img
+                                src="${escapeHtml(
+                                    placement.url
+                                )}"
+                                alt="ノート画像"
+                                draggable="false">
+
+                            <button
+                                type="button"
+                                class="placed-image-remove"
+                                aria-label="画像を削除">
+                                ×
+                            </button>
+
+                            ${renderResizeHandles()}
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    const nodes=[
+        ...layer.querySelectorAll(
+            ".placed-note-image"
+        )
+    ];
+
+
+    placements.forEach(
+        placement=>{
+
+            const node=
+                nodes.find(
+                    element=>
+                        element.dataset
+                            .placementId===
+                        placement.id
+                );
+
+
+            if(!node){
+
+                return;
+
+            }
+
+
+            setupPlacedImageInteraction(
+                node,
+                placement
+            );
+
+        }
+    );
+
+
+    layer.oncontextmenu=
+        event=>
+            event.preventDefault();
+
+}
+
+
+function renderResizeHandles(){
+
+    return[
+        "nw",
+        "n",
+        "ne",
+        "e",
+        "se",
+        "s",
+        "sw",
+        "w"
+    ]
+        .map(
+            direction=>`
+
+                <span
+                    class="image-resize-handle"
+                    data-direction="${direction}">
+                </span>
+
+            `
+        )
+        .join("");
+
+}
+
+
+function setupPlacedImageInteraction(
+    node,
+    placement
+){
+
+    const removeButton=
+        node.querySelector(
+            ".placed-image-remove"
+        );
+
+
+    removeButton?.addEventListener(
+        "pointerdown",
+        event=>{
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+        }
+    );
+
+
+    removeButton?.addEventListener(
+        "click",
+        event=>{
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            removePlacedImage(
+                placement.id
+            );
+
+        }
+    );
+
+
+    /*
+    ブラウザ標準の画像ドラッグや選択を禁止。
+    */
+    node.addEventListener(
+        "dragstart",
+        event=>
+            event.preventDefault()
+    );
+
+
+    node.addEventListener(
+        "selectstart",
+        event=>
+            event.preventDefault()
+    );
+
+
+    node.addEventListener(
+        "contextmenu",
+        event=>
+            event.preventDefault()
+    );
+
+
+    /*
+    画像本体ドラッグ = 移動
+    */
+    node.addEventListener(
+        "pointerdown",
+        event=>{
+
+            if(
+                event.target.closest(
+                    ".placed-image-remove"
+                )||
+                event.target.closest(
+                    ".image-resize-handle"
+                )
+            ){
+
+                return;
+
+            }
+
+
+            startImageMove(
+                event,
+                node,
+                placement
+            );
+
+        }
+    );
+
+
+    /*
+    8方向リサイズ
+    */
+    node
+        .querySelectorAll(
+            ".image-resize-handle"
+        )
+        .forEach(
+            handle=>{
+
+                handle.addEventListener(
+                    "pointerdown",
+                    event=>{
+
+                        event.preventDefault();
+
+                        event.stopPropagation();
+
+
+                        startImageResize(
+                            event,
+                            node,
+                            placement,
+                            handle.dataset
+                                .direction
                         );
 
                     }
+                );
+
+            }
         );
+
+}
+
+
+function startImageMove(
+    event,
+    node,
+    placement
+){
+
+    event.preventDefault();
+
+
+    const layer=
+        $("noteImageLayer");
+
+
+    if(!layer){
+
+        return;
+
+    }
+
+
+    const startPointerX=
+        event.clientX;
+
+
+    const startPointerY=
+        event.clientY;
+
+
+    const startLeft=
+        node.offsetLeft;
+
+
+    const startTop=
+        node.offsetTop;
+
+
+    node.classList.add(
+        "is-moving"
+    );
+
+
+    const move=
+        moveEvent=>{
+
+            moveEvent.preventDefault();
+
+
+            const deltaX=
+                moveEvent.clientX-
+                startPointerX;
+
+
+            const deltaY=
+                moveEvent.clientY-
+                startPointerY;
+
+
+            const maxLeft=
+                Math.max(
+                    0,
+                    layer.clientWidth-
+                    node.offsetWidth
+                );
+
+
+            const maxTop=
+                Math.max(
+                    0,
+                    layer.clientHeight-
+                    node.offsetHeight
+                );
+
+
+            const left=
+                clampNumber(
+                    startLeft+
+                    deltaX,
+                    0,
+                    maxLeft
+                );
+
+
+            const top=
+                clampNumber(
+                    startTop+
+                    deltaY,
+                    0,
+                    maxTop
+                );
+
+
+            node.style.left=
+                `${left}px`;
+
+
+            node.style.top=
+                `${top}px`;
+
+
+            placement.x=
+                layer.clientWidth
+                    ? left/
+                      layer.clientWidth*
+                      100
+                    : 0;
+
+
+            placement.y=
+                layer.clientHeight
+                    ? top/
+                      layer.clientHeight*
+                      100
+                    : 0;
+
+        };
+
+
+    const finish=
+        ()=>{
+
+            node.classList.remove(
+                "is-moving"
+            );
+
+
+            window.removeEventListener(
+                "pointermove",
+                move
+            );
+
+
+            window.removeEventListener(
+                "pointerup",
+                finish
+            );
+
+
+            window.removeEventListener(
+                "pointercancel",
+                finish
+            );
+
+
+            const note=
+                current();
+
+
+            if(note){
+
+                persistImageState(
+                    note
+                );
+
+            }
+
+        };
+
+
+    window.addEventListener(
+        "pointermove",
+        move,
+        {
+            passive:false
+        }
+    );
+
+
+    window.addEventListener(
+        "pointerup",
+        finish,
+        {
+            once:true
+        }
+    );
+
+
+    window.addEventListener(
+        "pointercancel",
+        finish,
+        {
+            once:true
+        }
+    );
+
+}
+
+
+function startImageResize(
+    event,
+    node,
+    placement,
+    direction
+){
+
+    event.preventDefault();
+
+
+    const layer=
+        $("noteImageLayer");
+
+
+    if(!layer){
+
+        return;
+
+    }
+
+
+    const startPointerX=
+        event.clientX;
+
+
+    const startPointerY=
+        event.clientY;
+
+
+    const startLeft=
+        node.offsetLeft;
+
+
+    const startTop=
+        node.offsetTop;
+
+
+    const startWidth=
+        node.offsetWidth;
+
+
+    const startHeight=
+        node.offsetHeight;
+
+
+    const minimumWidth=
+        72;
+
+
+    const minimumHeight=
+        60;
+
+
+    node.classList.add(
+        "is-resizing"
+    );
+
+
+    const move=
+        moveEvent=>{
+
+            moveEvent.preventDefault();
+
+
+            const dx=
+                moveEvent.clientX-
+                startPointerX;
+
+
+            const dy=
+                moveEvent.clientY-
+                startPointerY;
+
+
+            let left=
+                startLeft;
+
+
+            let top=
+                startTop;
+
+
+            let width=
+                startWidth;
+
+
+            let height=
+                startHeight;
+
+
+            /*
+            右
+            */
+            if(
+                direction.includes(
+                    "e"
+                )
+            ){
+
+                width=
+                    startWidth+
+                    dx;
+
+            }
+
+
+            /*
+            左
+            */
+            if(
+                direction.includes(
+                    "w"
+                )
+            ){
+
+                width=
+                    startWidth-
+                    dx;
+
+
+                left=
+                    startLeft+
+                    dx;
+
+            }
+
+
+            /*
+            下
+            */
+            if(
+                direction.includes(
+                    "s"
+                )
+            ){
+
+                height=
+                    startHeight+
+                    dy;
+
+            }
+
+
+            /*
+            上
+            */
+            if(
+                direction.includes(
+                    "n"
+                )
+            ){
+
+                height=
+                    startHeight-
+                    dy;
+
+
+                top=
+                    startTop+
+                    dy;
+
+            }
+
+
+            /*
+            最小サイズ
+            */
+            if(
+                width<
+                minimumWidth
+            ){
+
+                if(
+                    direction.includes(
+                        "w"
+                    )
+                ){
+
+                    left=
+                        startLeft+
+                        startWidth-
+                        minimumWidth;
+
+                }
+
+
+                width=
+                    minimumWidth;
+
+            }
+
+
+            if(
+                height<
+                minimumHeight
+            ){
+
+                if(
+                    direction.includes(
+                        "n"
+                    )
+                ){
+
+                    top=
+                        startTop+
+                        startHeight-
+                        minimumHeight;
+
+                }
+
+
+                height=
+                    minimumHeight;
+
+            }
+
+
+            /*
+            左上を領域内へ。
+            */
+            if(
+                left<0
+            ){
+
+                if(
+                    direction.includes(
+                        "w"
+                    )
+                ){
+
+                    width+=
+                        left;
+
+                }
+
+
+                left=0;
+
+            }
+
+
+            if(
+                top<0
+            ){
+
+                if(
+                    direction.includes(
+                        "n"
+                    )
+                ){
+
+                    height+=
+                        top;
+
+                }
+
+
+                top=0;
+
+            }
+
+
+            /*
+            右端を超えない。
+            */
+            if(
+                left+
+                width>
+                layer.clientWidth
+            ){
+
+                width=
+                    layer.clientWidth-
+                    left;
+
+            }
+
+
+            /*
+            下端を超えない。
+            */
+            if(
+                top+
+                height>
+                layer.clientHeight
+            ){
+
+                height=
+                    layer.clientHeight-
+                    top;
+
+            }
+
+
+            width=
+                Math.max(
+                    minimumWidth,
+                    width
+                );
+
+
+            height=
+                Math.max(
+                    minimumHeight,
+                    height
+                );
+
+
+            node.style.left=
+                `${left}px`;
+
+
+            node.style.top=
+                `${top}px`;
+
+
+            node.style.width=
+                `${width}px`;
+
+
+            node.style.height=
+                `${height}px`;
+
+
+            placement.x=
+                layer.clientWidth
+                    ? left/
+                      layer.clientWidth*
+                      100
+                    : 0;
+
+
+            placement.y=
+                layer.clientHeight
+                    ? top/
+                      layer.clientHeight*
+                      100
+                    : 0;
+
+
+            placement.width=
+                layer.clientWidth
+                    ? width/
+                      layer.clientWidth*
+                      100
+                    : placement.width;
+
+
+            placement.height=
+                layer.clientHeight
+                    ? height/
+                      layer.clientHeight*
+                      100
+                    : placement.height;
+
+        };
+
+
+    const finish=
+        ()=>{
+
+            node.classList.remove(
+                "is-resizing"
+            );
+
+
+            window.removeEventListener(
+                "pointermove",
+                move
+            );
+
+
+            window.removeEventListener(
+                "pointerup",
+                finish
+            );
+
+
+            window.removeEventListener(
+                "pointercancel",
+                finish
+            );
+
+
+            const note=
+                current();
+
+
+            if(note){
+
+                persistImageState(
+                    note
+                );
+
+            }
+
+        };
+
+
+    window.addEventListener(
+        "pointermove",
+        move,
+        {
+            passive:false
+        }
+    );
+
+
+    window.addEventListener(
+        "pointerup",
+        finish,
+        {
+            once:true
+        }
+    );
+
+
+    window.addEventListener(
+        "pointercancel",
+        finish,
+        {
+            once:true
+        }
+    );
+
+}
+
+
+async function removePlacedImage(
+    placementId
+){
+
+    const note=
+        current();
+
+
+    if(!note){
+
+        return;
+
+    }
+
+
+    const placement=
+        getPlacedImages(
+            note
+        ).find(
+            item=>
+                item.id===
+                placementId
+        );
+
+
+    if(!placement){
+
+        return;
+
+    }
+
+
+    /*
+    ×を押した時だけ
+    画像を削除する。
+    */
+    note.placedImages=
+        getPlacedImages(
+            note
+        ).filter(
+            item=>
+                item.id!==
+                placementId
+        );
+
+
+    /*
+    同じ画像が他の配置で使われているか確認。
+    */
+    const stillUsed=
+        note.placedImages.some(
+            item=>
+                (
+                    placement.assetId&&
+                    item.assetId===
+                    placement.assetId
+                )||
+                item.url===
+                placement.url
+        );
+
+
+    if(
+        !stillUsed
+    ){
+
+        note.images=
+            (
+                note.images||
+                []
+            ).filter(
+                image=>{
+
+                    if(
+                        placement.assetId&&
+                        image.id===
+                        placement.assetId
+                    ){
+
+                        return false;
+
+                    }
+
+
+                    return (
+                        image.url!==
+                        placement.url
+                    );
+
+                }
+            );
+
+    }
+
+
+    renderPlacedImages();
+
+    renderImages();
+
+
+    await persistImageState(
+        note
+    );
+
+}
+
+
+async function removeAttachmentImage(
+    index
+){
+
+    const note=
+        current();
+
+
+    if(!note){
+
+        return;
+
+    }
+
+
+    const images=[
+        ...(
+            note.images||
+            []
+        )
+    ];
+
+
+    const asset=
+        images[index];
+
+
+    if(!asset){
+
+        return;
+
+    }
+
+
+    images.splice(
+        index,
+        1
+    );
+
+
+    note.images=
+        images;
+
+
+    /*
+    下の添付一覧の×を押した場合も
+    ノート上から同じ画像を削除。
+    */
+    note.placedImages=
+        getPlacedImages(
+            note
+        ).filter(
+            placement=>{
+
+                if(
+                    asset.id&&
+                    placement.assetId===
+                    asset.id
+                ){
+
+                    return false;
+
+                }
+
+
+                return (
+                    placement.url!==
+                    asset.url
+                );
+
+            }
+        );
+
+
+    renderImages();
+
+    renderPlacedImages();
+
+
+    await persistImageState(
+        note
+    );
+
+}
+
+
+async function persistImageState(
+    note
+){
+
+    if(
+        !note?.id
+    ){
+
+        return;
+
+    }
+
+
+    try{
+
+        await updateDoc(
+            doc(
+                db,
+                "digitalNotes",
+                "2510044",
+                "notes",
+                note.id
+            ),
+            {
+
+                images:
+                    note.images||
+                    [],
+
+                placedImages:
+                    getPlacedImages(
+                        note
+                    ),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
+        );
+
+
+    }catch(error){
+
+        console.error(
+            "画像位置の保存に失敗しました。",
+            error
+        );
+
+    }
+
+}
+
+
+function clampNumber(
+    value,
+    minimum,
+    maximum
+){
+
+    const number=
+        Number(
+            value
+        );
+
+
+    if(
+        !Number.isFinite(
+            number
+        )
+    ){
+
+        return minimum;
+
+    }
+
+
+    return Math.min(
+        maximum,
+        Math.max(
+            minimum,
+            number
+        )
+    );
 
 }
 
@@ -1144,30 +2861,30 @@ function selectPanel(
 ){
 
     const external=
-        [
-            "todoPanel",
-            "studyPanel"
-        ].includes(
-            id
+        id===
+        "todoPanel";
+
+
+    $("todoPanel")
+        ?.classList.toggle(
+            "active",
+            id===
+            "todoPanel"
         );
 
 
-    $("todoPanel").classList.toggle(
-        "active",
-        id==="todoPanel"
-    );
+    const shell=
+        document.querySelector(
+            ".note-shell"
+        );
 
 
-    $("studyPanel").classList.toggle(
-        "active",
-        id==="studyPanel"
-    );
+    if(shell){
 
+        shell.hidden=
+            external;
 
-    document.querySelector(
-        ".note-shell"
-    ).hidden=
-        external;
+    }
 
 
     document
@@ -1175,11 +2892,15 @@ function selectPanel(
             ".workspace-tab"
         )
         .forEach(
-            item=>
+            item=>{
+
                 item.classList.toggle(
                     "active",
-                    item.dataset.panel===id
-                )
+                    item.dataset.panel===
+                    id
+                );
+
+            }
         );
 
 
@@ -1188,11 +2909,15 @@ function selectPanel(
             ".workspace-panel"
         )
         .forEach(
-            item=>
+            item=>{
+
                 item.classList.toggle(
                     "active",
-                    item.id===id
-                )
+                    item.id===
+                    id
+                );
+
+            }
         );
 
 
@@ -1201,20 +2926,31 @@ function selectPanel(
             "[data-feature]"
         )
         .forEach(
-            item=>
+            item=>{
+
                 item.classList.toggle(
                     "active",
-                    item.dataset.feature===id
-                )
+                    item.dataset.feature===
+                    id
+                );
+
+            }
         );
 
 
     if(
-        id==="typedPanel"
+        id===
+        "typedPanel"
     ){
 
         requestAnimationFrame(
-            resizeBoard
+            ()=>{
+
+                resizeBoard();
+
+                renderPlacedImages();
+
+            }
         );
 
     }
@@ -1650,12 +3386,112 @@ function setDrawTool(
             "[data-draw-tool]"
         )
         .forEach(
-            item=>
+            item=>{
+
                 item.classList.toggle(
                     "active",
-                    item.dataset.drawTool===tool
-                )
+                    item.dataset.drawTool===
+                    tool
+                );
+
+            }
         );
+
+
+    updateToolSizeLabel();
+
+}
+
+
+function configureDrawingTool(
+    ctx,
+    tool,
+    base
+){
+
+    ctx.lineCap=
+        "round";
+
+
+    ctx.lineJoin=
+        "round";
+
+
+    /*
+    ibisPaintの消しゴムと同じ考え方。
+
+    白で塗るのではなく、
+    なぞった部分だけ透明にする。
+    */
+    if(
+        tool===
+        "eraser"
+    ){
+
+        ctx.lineWidth=
+            Math.max(
+                4,
+                base*2
+            );
+
+
+        ctx.globalCompositeOperation=
+            "destination-out";
+
+
+        ctx.globalAlpha=
+            1;
+
+
+        return;
+
+    }
+
+
+    ctx.globalCompositeOperation=
+        "source-over";
+
+
+    if(
+        tool===
+        "highlighter"
+    ){
+
+        ctx.lineWidth=
+            base*3;
+
+
+        ctx.globalAlpha=
+            .28;
+
+
+    }else if(
+        tool===
+        "marker"
+    ){
+
+        ctx.lineWidth=
+            base*1.7;
+
+
+        ctx.globalAlpha=
+            .58;
+
+
+    }else{
+
+        ctx.lineWidth=
+            base;
+
+
+        ctx.globalAlpha=
+            1;
+
+    }
+
+
+    ctx.strokeStyle=
+        $("penColor").value;
 
 }
 
@@ -1721,11 +3557,19 @@ function drawPointer(
         $("writingBoard");
 
 
+    if(!board){
+
+        return;
+
+    }
+
+
     const rect=
         board.getBoundingClientRect();
 
 
     const point={
+
         x:
             event.clientX-
             rect.left,
@@ -1733,6 +3577,7 @@ function drawPointer(
         y:
             event.clientY-
             rect.top
+
     };
 
 
@@ -1749,9 +3594,13 @@ function drawPointer(
             point;
 
 
-        board.setPointerCapture(
-            event.pointerId
-        );
+        try{
+
+            board.setPointerCapture(
+                event.pointerId
+            );
+
+        }catch{}
 
 
         return;
@@ -1785,42 +3634,11 @@ function drawPointer(
             );
 
 
-        const tool=
-            state.drawTool;
-
-
-        ctx.lineCap=
-            "round";
-
-
-        ctx.lineJoin=
-            "round";
-
-
-        ctx.lineWidth=
-            tool==="highlighter"
-                ? base*3
-                : tool==="marker"
-                    ? base*1.7
-                    : base;
-
-
-        ctx.globalCompositeOperation=
-            tool==="eraser"
-                ? "destination-out"
-                : "source-over";
-
-
-        ctx.globalAlpha=
-            tool==="highlighter"
-                ? .28
-                : tool==="marker"
-                    ? .58
-                    : 1;
-
-
-        ctx.strokeStyle=
-            $("penColor").value;
+        configureDrawingTool(
+            ctx,
+            state.drawTool,
+            base
+        );
 
 
         ctx.beginPath();
@@ -2131,7 +3949,9 @@ async function saveCurrent(){
 
 
     if(!note){
+
         return;
+
     }
 
 
@@ -2150,7 +3970,8 @@ async function saveCurrent(){
 
 
     const bodyHtml=
-        $("noteDocument").innerHTML;
+        $("noteDocument")
+            .innerHTML;
 
 
     const maskTerms=
@@ -2167,27 +3988,19 @@ async function saveCurrent(){
 
 
     /*
-    interimではなく
-    確定済み文字起こしを優先して保存する。
+    interimは保存しない。
+    確定文章だけ保存する。
     */
-    let transcript=
+    const transcript=
         String(
             state.finalTranscript||
             ""
-        ).trim();
-
-
-    if(
-        !transcript
-    ){
-
-        transcript=
-            $("liveTranscript").textContent===
-            "まだ文字起こしは始まっていません。"
-                ? ""
-                : $("liveTranscript").textContent.trim();
-
-    }
+        )
+            .replace(
+                /\s+/g,
+                " "
+            )
+            .trim();
 
 
     await updateDoc(
@@ -2199,6 +4012,7 @@ async function saveCurrent(){
             note.id
         ),
         {
+
             title,
 
             body,
@@ -2216,10 +4030,21 @@ async function saveCurrent(){
             maskTerms,
 
             todos:
-                note.todos||[],
+                note.todos||
+                [],
+
+            images:
+                note.images||
+                [],
+
+            placedImages:
+                getPlacedImages(
+                    note
+                ),
 
             updatedAt:
                 serverTimestamp()
+
         }
     );
 
@@ -2689,7 +4514,8 @@ function appendTranscriptText(
 
     const before=
         String(
-            current||""
+            current||
+            ""
         )
             .replace(
                 /\s+/g,
@@ -2700,7 +4526,8 @@ function appendTranscriptText(
 
     const next=
         String(
-            addition||""
+            addition||
+            ""
         )
             .replace(
                 /\s+/g,
@@ -2709,18 +4536,14 @@ function appendTranscriptText(
             .trim();
 
 
-    if(
-        !next
-    ){
+    if(!next){
 
         return before;
 
     }
 
 
-    if(
-        !before
-    ){
+    if(!before){
 
         return next;
 
@@ -2745,9 +4568,7 @@ function renderLiveTranscript(){
         $("liveTranscript");
 
 
-    if(
-        !element
-    ){
+    if(!element){
 
         return;
 
@@ -2779,7 +4600,7 @@ function renderLiveTranscript(){
 
 
     if(
-        !finalText &&
+        !finalText&&
         !interimText
     ){
 
@@ -2792,13 +4613,6 @@ function renderLiveTranscript(){
     }
 
 
-    /*
-    改行を入れず、
-    半角スペースだけで横へつなぐ。
-
-    横幅を超えれば
-    ブラウザが自動折り返しする。
-    */
     element.textContent=
         finalText+
         (
@@ -2810,6 +4624,133 @@ function renderLiveTranscript(){
                 }${interimText}`
                 : ""
         );
+
+}
+
+
+async function copyTranscript(){
+
+    const element=
+        $("liveTranscript");
+
+
+    const button=
+        $("copyTranscript");
+
+
+    if(
+        !element||
+        !button
+    ){
+
+        return;
+
+    }
+
+
+    const text=
+        String(
+            state.finalTranscript||
+            ""
+        )
+            .replace(
+                /\s+/g,
+                " "
+            )
+            .trim();
+
+
+    if(!text){
+
+        alert(
+            "コピーする文字起こしがありません。"
+        );
+
+        return;
+
+    }
+
+
+    /*
+    画面上でも全文選択する。
+    */
+    const selection=
+        window.getSelection();
+
+
+    const range=
+        document.createRange();
+
+
+    range.selectNodeContents(
+        element
+    );
+
+
+    selection.removeAllRanges();
+
+
+    selection.addRange(
+        range
+    );
+
+
+    try{
+
+        if(
+            navigator.clipboard
+                ?.writeText
+        ){
+
+            await navigator.clipboard.writeText(
+                text
+            );
+
+
+        }else{
+
+            document.execCommand(
+                "copy"
+            );
+
+        }
+
+
+        const before=
+            button.textContent;
+
+
+        button.textContent=
+            "✓ 全文コピーしました";
+
+
+        setTimeout(
+            ()=>{
+
+                button.textContent=
+                    before;
+
+            },
+            1500
+        );
+
+
+    }catch(error){
+
+        console.error(
+            error
+        );
+
+
+        /*
+        選択状態は残すので
+        手動コピーも可能。
+        */
+        alert(
+            "全文を選択しました。コピー操作をしてください。"
+        );
+
+    }
 
 }
 
@@ -2919,7 +4860,7 @@ function setupInkOverlay(){
 
 
     if(
-        !canvas ||
+        !canvas||
         !wrap
     ){
 
@@ -2932,19 +4873,12 @@ function setupInkOverlay(){
         ()=>{
 
             const rect=
-                wrap.getBoundingClientRect();
-
-
-            const old=
-                canvas.toDataURL();
-
-
-            const ratio=
-                window.devicePixelRatio||1;
+                wrap
+                    .getBoundingClientRect();
 
 
             if(
-                !rect.width ||
+                !rect.width||
                 !rect.height
             ){
 
@@ -2953,15 +4887,26 @@ function setupInkOverlay(){
             }
 
 
+            const previous=
+                canvas.toDataURL();
+
+
+            const ratio=
+                window.devicePixelRatio||
+                1;
+
+
             canvas.width=
                 Math.round(
-                    rect.width*ratio
+                    rect.width*
+                    ratio
                 );
 
 
             canvas.height=
                 Math.round(
-                    rect.height*ratio
+                    rect.height*
+                    ratio
                 );
 
 
@@ -2982,7 +4927,8 @@ function setupInkOverlay(){
 
 
             if(
-                old!=="data:,"
+                previous!==
+                "data:,"
             ){
 
                 const image=
@@ -2990,17 +4936,21 @@ function setupInkOverlay(){
 
 
                 image.onload=
-                    ()=>ctx.drawImage(
-                        image,
-                        0,
-                        0,
-                        rect.width,
-                        rect.height
-                    );
+                    ()=>{
+
+                        ctx.drawImage(
+                            image,
+                            0,
+                            0,
+                            rect.width,
+                            rect.height
+                        );
+
+                    };
 
 
                 image.src=
-                    old;
+                    previous;
 
             }
 
@@ -3020,17 +4970,20 @@ function setupInkOverlay(){
         false;
 
 
-    let last;
+    let last=
+        null;
 
 
-    const point=
+    const getPoint=
         event=>{
 
             const rect=
-                canvas.getBoundingClientRect();
+                canvas
+                    .getBoundingClientRect();
 
 
             return{
+
                 x:
                     event.clientX-
                     rect.left,
@@ -3038,6 +4991,7 @@ function setupInkOverlay(){
                 y:
                     event.clientY-
                     rect.top
+
             };
 
         };
@@ -3052,14 +5006,65 @@ function setupInkOverlay(){
 
 
             last=
-                point(
+                getPoint(
                     event
                 );
 
 
-            canvas.setPointerCapture(
-                event.pointerId
+            try{
+
+                canvas.setPointerCapture(
+                    event.pointerId
+                );
+
+            }catch{}
+
+
+            /*
+            タップしただけでも
+            ペン・消しゴムが反映されるように点を描く。
+            */
+            const ctx=
+                canvas.getContext(
+                    "2d"
+                );
+
+
+            const base=
+                Number(
+                    $("penSize").value
+                );
+
+
+            configureDrawingTool(
+                ctx,
+                state.drawTool,
+                base
             );
+
+
+            ctx.beginPath();
+
+
+            ctx.moveTo(
+                last.x,
+                last.y
+            );
+
+
+            ctx.lineTo(
+                last.x+
+                .01,
+                last.y+
+                .01
+            );
+
+
+            ctx.stroke();
+
+
+            ctx.globalAlpha=
+                1;
 
 
             event.preventDefault();
@@ -3073,7 +5078,8 @@ function setupInkOverlay(){
         event=>{
 
             if(
-                !drawing
+                !drawing||
+                !last
             ){
 
                 return;
@@ -3082,7 +5088,7 @@ function setupInkOverlay(){
 
 
             const next=
-                point(
+                getPoint(
                     event
                 );
 
@@ -3093,48 +5099,17 @@ function setupInkOverlay(){
                 );
 
 
-            const tool=
-                state.drawTool;
-
-
             const base=
                 Number(
                     $("penSize").value
                 );
 
 
-            ctx.lineCap=
-                "round";
-
-
-            ctx.lineJoin=
-                "round";
-
-
-            ctx.lineWidth=
-                tool==="highlighter"
-                    ? base*3
-                    : tool==="marker"
-                        ? base*1.7
-                        : base;
-
-
-            ctx.globalCompositeOperation=
-                tool==="eraser"
-                    ? "destination-out"
-                    : "source-over";
-
-
-            ctx.globalAlpha=
-                tool==="highlighter"
-                    ? .28
-                    : tool==="marker"
-                        ? .58
-                        : 1;
-
-
-            ctx.strokeStyle=
-                $("penColor").value;
+            configureDrawingTool(
+                ctx,
+                state.drawTool,
+                base
+            );
 
 
             ctx.beginPath();
@@ -3169,42 +5144,41 @@ function setupInkOverlay(){
     );
 
 
-    [
+    const finish=
+        ()=>{
+
+            drawing=
+                false;
+
+
+            last=
+                null;
+
+        };
+
+
+    canvas.addEventListener(
         "pointerup",
-        "pointercancel"
-    ].forEach(
-        type=>
-            canvas.addEventListener(
-                type,
-                ()=>drawing=false
-            )
+        finish
     );
 
 
-    $("eraseBoard")
-        ?.addEventListener(
-            "click",
-            ()=>{
-
-                const ctx=
-                    canvas.getContext(
-                        "2d"
-                    );
+    canvas.addEventListener(
+        "pointercancel",
+        finish
+    );
 
 
-                const rect=
-                    canvas.getBoundingClientRect();
+    /*
+    重要：
 
+    eraseBoardクリック時のclearRectは
+    一切入れない。
 
-                ctx.clearRect(
-                    0,
-                    0,
-                    rect.width,
-                    rect.height
-                );
-
-            }
-        );
+    eraseBoardは
+    data-draw-tool="eraser" によって
+    消しゴムを選択するだけ。
+    */
 
 }
 
@@ -3221,12 +5195,8 @@ function setupToolControls(){
         $("penSize");
 
 
-    const imageSize=
-        $("imageSize");
-
-
     if(
-        !tools ||
+        !tools||
         !pen
     ){
 
@@ -3235,98 +5205,218 @@ function setupToolControls(){
     }
 
 
+    pen.min=
+        "1";
+
+
     pen.max=
         "80";
 
 
-    const oldPenOutput=
-        $("penSizeValue");
-
-
-    const parent=
-        pen.parentNode;
-
-
-    const control=
-        document.createElement(
-            "label"
+    /*
+    すでにtool-controlへ移動済みなら
+    二重生成しない。
+    */
+    let control=
+        pen.closest(
+            ".tool-control"
         );
 
 
-    const penOutput=
-        document.createElement(
-            "output"
+    let label;
+
+
+    let output;
+
+
+    if(!control){
+
+        const oldOutput=
+            $("penSizeValue");
+
+
+        const parent=
+            pen.parentNode;
+
+
+        control=
+            document.createElement(
+                "label"
+            );
+
+
+        control.className=
+            "tool-control";
+
+
+        label=
+            document.createElement(
+                "span"
+            );
+
+
+        label.id=
+            "toolSizeLabel";
+
+
+        output=
+            document.createElement(
+                "output"
+            );
+
+
+        output.id=
+            "penSizeValue";
+
+
+        parent.insertBefore(
+            control,
+            pen
         );
 
 
-    control.className=
-        "tool-control";
+        control.append(
+            label,
+            pen,
+            output
+        );
 
 
-    control.append(
-        document.createTextNode(
-            "ペンの太さ"
-        )
-    );
+        oldOutput?.remove();
 
 
-    penOutput.id=
-        "penSizeValue";
+    }else{
+
+        label=
+            $("toolSizeLabel");
 
 
-    penOutput.textContent=
-        `${pen.value}px`;
+        if(!label){
+
+            label=
+                document.createElement(
+                    "span"
+                );
 
 
-    parent.insertBefore(
-        control,
-        pen
-    );
+            label.id=
+                "toolSizeLabel";
 
 
-    control.append(
-        pen,
-        penOutput
-    );
+            control.prepend(
+                label
+            );
+
+        }
 
 
-    oldPenOutput?.remove();
+        output=
+            $("penSizeValue");
 
 
-    pen.oninput=
+        if(!output){
+
+            output=
+                document.createElement(
+                    "output"
+                );
+
+
+            output.id=
+                "penSizeValue";
+
+
+            control.append(
+                output
+            );
+
+        }
+
+    }
+
+
+    const update=
         ()=>{
 
-            penOutput.textContent=
-                `${pen.value}px`;
+            const minimum=
+                Number(
+                    pen.min
+                );
+
+
+            const maximum=
+                Number(
+                    pen.max
+                );
+
+
+            const value=
+                Number(
+                    pen.value
+                );
+
+
+            const progress=
+                (
+                    (
+                        value-
+                        minimum
+                    )/
+                    (
+                        maximum-
+                        minimum
+                    )
+                )*
+                100;
+
+
+            /*
+            バーの塗りと
+            つまみの値を完全同期。
+            */
+            pen.style.setProperty(
+                "--range-progress",
+                `${progress}%`
+            );
+
+
+            output.textContent=
+                `${value}px`;
+
+
+            updateToolSizeLabel();
 
         };
 
 
-    imageSize
-        ?.closest(
-            "label"
-        )
-        ?.remove();
+    /*
+    以前のoninputを上書き。
+    */
+    pen.oninput=
+        update;
 
 
-    $("handwritingMode").textContent=
-        "手書きモード";
+    pen.onchange=
+        update;
 
 
-    $("handwritingMode").title=
-        "押すと手書き開始、もう一度押すと文字入力へ戻ります";
+    update();
 
 
-    document
-        .querySelector(
-            ".image-attach-button"
-        )
-        ?.replaceChildren(
-            document.createTextNode(
-                "画像を追加"
-            ),
-            $("noteImageInput")
-        );
+    const handwritingButton=
+        $("handwritingMode");
+
+
+    if(handwritingButton){
+
+        handwritingButton.textContent=
+            "手書きモード";
+
+
+        handwritingButton.title=
+            "押すと手書き開始、もう一度押すと文字入力へ戻ります";
+
+    }
 
 
     document
@@ -3336,8 +5426,7 @@ function setupToolControls(){
         .forEach(
             button=>{
 
-                button.textContent=
-                    "";
+                button.textContent="";
 
 
                 button.title=
@@ -3348,6 +5437,106 @@ function setupToolControls(){
 
             }
         );
+
+}
+
+
+function updateToolSizeLabel(){
+
+    const label=
+        $("toolSizeLabel");
+
+
+    if(!label){
+
+        return;
+
+    }
+
+
+    if(
+        state.drawTool===
+        "eraser"
+    ){
+
+        label.textContent=
+            "消しゴムの太さ";
+
+
+    }else if(
+        state.drawTool===
+        "highlighter"
+    ){
+
+        label.textContent=
+            "蛍光ペンの太さ";
+
+
+    }else if(
+        state.drawTool===
+        "marker"
+    ){
+
+        label.textContent=
+            "マーカーの太さ";
+
+
+    }else{
+
+        label.textContent=
+            "ペンの太さ";
+
+    }
+
+}
+
+
+function updateToolSizeLabel(){
+
+    const label=
+        $("toolSizeLabel");
+
+
+    if(!label){
+
+        return;
+
+    }
+
+
+    if(
+        state.drawTool===
+        "eraser"
+    ){
+
+        label.textContent=
+            "消しゴムの太さ";
+
+
+    }else if(
+        state.drawTool===
+        "highlighter"
+    ){
+
+        label.textContent=
+            "蛍光ペンの太さ";
+
+
+    }else if(
+        state.drawTool===
+        "marker"
+    ){
+
+        label.textContent=
+            "マーカーの太さ";
+
+
+    }else{
+
+        label.textContent=
+            "ペンの太さ";
+
+    }
 
 }
 
@@ -3534,268 +5723,13 @@ function insertTextAtCursor(
 }
 
 
-function insertImageAtPoint(
-    url,
-    x,
-    y
-){
-
-    const editor=
-        $("noteDocument");
-
-
-    const selection=
-        window.getSelection();
-
-
-    let range;
-
-
-    if(
-        document.caretRangeFromPoint
-    ){
-
-        range=
-            document.caretRangeFromPoint(
-                x,
-                y
-            );
-
-    }
-
-
-    if(
-        range &&
-        editor.contains(
-            range.startContainer
-        )
-    ){
-
-        selection.removeAllRanges();
-
-
-        selection.addRange(
-            range
-        );
-
-    }
-
-
-    const image=
-        document.createElement(
-            "img"
-        );
-
-
-    image.id=
-        `note-image-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-
-    image.src=
-        url;
-
-
-    image.alt=
-        "ノートに添付した画像";
-
-
-    image.className=
-        "note-image-left";
-
-
-    image.draggable=
-        true;
-
-
-    image.style.width=
-        "65%";
-
-
-    image.ondragstart=
-        event=>
-            event.dataTransfer.setData(
-                "text/caremate-document-image",
-                image.id
-            );
-
-
-    image.addEventListener(
-        "click",
-        ()=>selectNoteImage(
-            image
-        )
-    );
-
-
-    insertNodeAtCursor(
-        image
-    );
-
-
-    selectNoteImage(
-        image
-    );
-
-
-    syncPlainBody();
-
-
-    renderPreview();
-
-
-    $("noteImageState").textContent=
-        "画像をノートへ配置しました。光る枠の画像は四隅・辺をドラッグして大きさを変えられます。";
-
-}
-
-
-function selectNoteImage(
-    image
-){
-
-    $("noteDocument")
-        .querySelectorAll(
-            "img"
-        )
-        .forEach(
-            item=>
-                item.classList.toggle(
-                    "is-selected",
-                    item===image
-                )
-        );
-
-
-    state.selectedImage=
-        image;
-
-
-    let remove=
-        $("removeSelectedImage");
-
-
-    if(!remove){
-
-        remove=
-            document.createElement(
-                "button"
-            );
-
-
-        remove.id=
-            "removeSelectedImage";
-
-
-        remove.type=
-            "button";
-
-
-        remove.textContent=
-            "×";
-
-
-        remove.title=
-            "選択した画像を削除";
-
-
-        $("noteDocumentWrap")
-            .append(
-                remove
-            );
-
-
-        remove.onclick=
-            ()=>{
-
-                state.selectedImage
-                    ?.remove();
-
-
-                state.selectedImage=
-                    null;
-
-
-                remove.hidden=
-                    true;
-
-
-                syncPlainBody();
-
-
-                renderPreview();
-
-            };
-
-    }
-
-
-    remove.hidden=
-        false;
-
-
-    const imageRect=
-        image.getBoundingClientRect();
-
-
-    const wrapRect=
-        $("noteDocumentWrap")
-            .getBoundingClientRect();
-
-
-    remove.style.left=
-        `${
-            imageRect.right-
-            wrapRect.left-
-            18
-        }px`;
-
-
-    remove.style.top=
-        `${
-            imageRect.top-
-            wrapRect.top-
-            18
-        }px`;
-
-}
-
-
-function cycleImageLayout(
-    image
-){
-
-    const layouts=[
-        "note-image-left",
-        "note-image-right",
-        "note-image-center"
-    ];
-
-
-    const current=
-        layouts.findIndex(
-            item=>
-                image.classList.contains(
-                    item
-                )
-        );
-
-
-    image.classList.remove(
-        ...layouts
-    );
-
-
-    image.classList.add(
-        layouts[
-            (current+1)%
-            layouts.length
-        ]
-    );
-
-
-    syncPlainBody();
-
-}
+/*
+削除。
+
+画像は現在、
+noteImageLayer内の
+placed-note-imageとして管理する。
+*/
 
 
 function enableInlineDrawing(
@@ -4038,52 +5972,5 @@ function enableInlineDrawing(
                 ()=>drawing=false
             )
     );
-
-}
-
-
-function inlineCanvasesToImages(){
-
-    $("noteDocument")
-        .querySelectorAll(
-            "canvas.note-ink-canvas"
-        )
-        .forEach(
-            canvas=>{
-
-                const image=
-                    document.createElement(
-                        "img"
-                    );
-
-
-                image.src=
-                    canvas.toDataURL(
-                        "image/png"
-                    );
-
-
-                image.alt=
-                    "手書きメモ";
-
-
-                image.className=
-                    "note-image-left";
-
-
-                image.addEventListener(
-                    "click",
-                    ()=>cycleImageLayout(
-                        image
-                    )
-                );
-
-
-                canvas.replaceWith(
-                    image
-                );
-
-            }
-        );
 
 }
