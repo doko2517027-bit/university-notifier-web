@@ -501,29 +501,69 @@ if(
 
     user-select:none;
     -webkit-user-select:none;
-
     -webkit-touch-callout:none;
 
     cursor:grab;
 
     border:
         2px solid
-        color-mix(
-            in srgb,
-            var(--primary) 68%,
-            transparent
-        );
+        transparent;
 
     border-radius:12px;
 
-    background:
-        rgba(255,255,255,.05);
+    background:transparent;
+
+    box-shadow:none;
+}
+
+
+/*
+画像をタップした時だけ
+選択枠を表示
+*/
+.placed-note-image.is-selected{
+    border-color:
+        var(--primary);
 
     box-shadow:
         0
-        4px
-        18px
-        rgba(0,0,0,.18);
+        0
+        0
+        2px
+        color-mix(
+            in srgb,
+            var(--primary) 20%,
+            transparent
+        );
+}
+
+/*
+通常時は
+×ボタンとリサイズハンドルを隠す
+*/
+.placed-image-remove,
+.image-resize-handle{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+
+    transition:
+        opacity .12s ease,
+        visibility .12s ease;
+}
+
+
+/*
+画像をタップした時だけ表示
+*/
+.placed-note-image.is-selected
+.placed-image-remove,
+
+.placed-note-image.is-selected
+.image-resize-handle{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
 }
 
 .placed-note-image.is-moving,
@@ -2074,7 +2114,7 @@ JSから--range-progressを変更する。
 
         <label class="image-attach-button">
 
-            🖼️ 画像を追加
+            画像を追加
 
             <input
                 id="noteImageInput"

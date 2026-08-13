@@ -27,7 +27,9 @@ const state={
 
     paper:"blank",
 
-    inkMode:false
+    inkMode:false,
+
+    selectedPlacedImageId:null
 
 };
 
@@ -898,6 +900,38 @@ function setupImages(){
         }
     );
 
+    const wrap=
+        $("noteDocumentWrap");
+
+
+    wrap?.addEventListener(
+        "pointerdown",
+        event=>{
+
+            /*
+            画像本体・×・リサイズ丸を
+            タップした場合はそのまま。
+            */
+            if(
+                event.target.closest(
+                    ".placed-note-image"
+                )
+            ){
+
+                return;
+
+            }
+
+
+            /*
+            ノートの余白や文字部分を
+            タップしたら選択解除。
+            */
+            deselectPlacedImages();
+
+        }
+    );
+
 }
 
 
@@ -1648,10 +1682,19 @@ function renderPlacedImages(){
                         );
 
 
+                    const selected=
+                        state.selectedPlacedImageId===
+                        placement.id;
+
+
                     return`
 
                         <div
-                            class="placed-note-image"
+                            class="placed-note-image ${
+                                selected
+                                    ? "is-selected"
+                                    : ""
+                            }"
                             data-placement-id="${escapeHtml(
                                 placement.id
                             )}"
@@ -1725,6 +1768,57 @@ function renderPlacedImages(){
     layer.oncontextmenu=
         event=>
             event.preventDefault();
+
+}
+
+
+function selectPlacedImage(
+    placementId
+){
+
+    state.selectedPlacedImageId=
+        placementId;
+
+
+    document
+        .querySelectorAll(
+            ".placed-note-image"
+        )
+        .forEach(
+            element=>{
+
+                element.classList.toggle(
+                    "is-selected",
+                    element.dataset
+                        .placementId===
+                    placementId
+                );
+
+            }
+        );
+
+}
+
+
+function deselectPlacedImages(){
+
+    state.selectedPlacedImageId=
+        null;
+
+
+    document
+        .querySelectorAll(
+            ".placed-note-image"
+        )
+        .forEach(
+            element=>{
+
+                element.classList.remove(
+                    "is-selected"
+                );
+
+            }
+        );
 
 }
 
@@ -1826,6 +1920,15 @@ function setupPlacedImageInteraction(
     node.addEventListener(
         "pointerdown",
         event=>{
+
+            /*
+            まず画像を選択。
+            ×とリサイズ丸を表示する。
+            */
+            selectPlacedImage(
+                placement.id
+            );
+
 
             if(
                 event.target.closest(
@@ -2530,6 +2633,17 @@ async function removePlacedImage(
     if(!placement){
 
         return;
+
+    }
+
+
+    if(
+        state.selectedPlacedImageId===
+        placementId
+    ){
+
+        state.selectedPlacedImageId=
+            null;
 
     }
 
