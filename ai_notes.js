@@ -5491,56 +5491,6 @@ function updateToolSizeLabel(){
 }
 
 
-function updateToolSizeLabel(){
-
-    const label=
-        $("toolSizeLabel");
-
-
-    if(!label){
-
-        return;
-
-    }
-
-
-    if(
-        state.drawTool===
-        "eraser"
-    ){
-
-        label.textContent=
-            "消しゴムの太さ";
-
-
-    }else if(
-        state.drawTool===
-        "highlighter"
-    ){
-
-        label.textContent=
-            "蛍光ペンの太さ";
-
-
-    }else if(
-        state.drawTool===
-        "marker"
-    ){
-
-        label.textContent=
-            "マーカーの太さ";
-
-
-    }else{
-
-        label.textContent=
-            "ペンの太さ";
-
-    }
-
-}
-
-
 function clearInkOverlay(){
 
     const canvas=
