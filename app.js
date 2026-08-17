@@ -33,6 +33,7 @@ import {
 import {
     doc,
     getDoc,
+    getDocFromServer,
     updateDoc,
     setDoc,
     serverTimestamp,
@@ -350,7 +351,12 @@ async function startApp() {
                 )
             ),
 
-            getDoc(
+            /*
+            ログイン直後・タブ復帰時にFirestoreのローカルキャッシュが
+            古い「未登録」状態を返すことがあるため、ホーム用の本人情報は
+            必ずサーバーの最新値を読む。
+            */
+            getDocFromServer(
                 doc(
                     db,
                     "users",
