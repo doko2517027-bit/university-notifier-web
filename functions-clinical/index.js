@@ -43,6 +43,14 @@ function requireClinicalOwner(request) {
   }
 }
 
+function requireCareMateRegistrant(request) {
+  const staffId = String(request.auth?.token?.studentNumber || "");
+  if (!request.auth || !/^\d{7}$/.test(staffId)) {
+    throw new HttpsError("unauthenticated", "CareMateへログインしてから病院登録を行ってください。");
+  }
+  return staffId;
+}
+
 async function requireHospitalAdministrator(request, hospitalId) {
   const actor = request.auth?.token || {};
   const systemOwner = actor.admin === true && actor.studentNumber === "2510044";
@@ -54,12 +62,11 @@ async function requireHospitalAdministrator(request, hospitalId) {
 }
 
 exports.createClinicalHospital = onCall({ region: "asia-northeast1" }, async request => {
-  requireClinicalOwner(request);
+  const administratorId = requireCareMateRegistrant(request);
   const hospitalId = String(request.data?.hospitalId || "").trim();
   const hospitalName = String(request.data?.hospitalName || "").trim();
-  const administratorId = String(request.data?.administratorId || "").trim();
-  if (!/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId) || !hospitalName || !/^\d{7}$/.test(administratorId)) {
-    throw new HttpsError("invalid-argument", "病院情報または管理者IDが正しくありません。");
+  if (!/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId) || !hospitalName) {
+    throw new HttpsError("invalid-argument", "病院名または病院IDが正しくありません。");
   }
   const configRef = db.doc("clinicalControl/config");
   if ((await configRef.get()).exists) {
@@ -74,9 +81,9 @@ exports.createClinicalHospital = onCall({ region: "asia-northeast1" }, async req
   }
   await auth.setCustomUserClaims(administrator.uid, { ...(administrator.customClaims || {}), clinical: true, clinicalRole: "administrator", clinicalHospitalId: hospitalId });
   const now = FieldValue.serverTimestamp();
-  await db.doc(`clinicalHospitals/${hospitalId}`).set({ hospitalId, hospitalName, administratorId, administratorUid: administrator.uid, status: "active", createdAt: now, createdBy: "2510044", updatedAt: now });
-  await db.doc(`clinicalHospitals/${hospitalId}/staff/${administrator.uid}`).set({ uid: administrator.uid, staffId: administratorId, role: "administrator", active: true, updatedAt: now, updatedBy: "2510044" });
-  await db.doc(`clinicalHospitals/${hospitalId}/audit/hospital_created`).set({ action: "hospital_created", hospitalName, administratorId, occurredAt: now, actorStudentNumber: "2510044" });
+  await db.doc(`clinicalHospitals/${hospitalId}`).set({ hospitalId, hospitalName, administratorId, administratorUid: administrator.uid, status: "active", createdAt: now, createdBy: administratorId, updatedAt: now });
+  await db.doc(`clinicalHospitals/${hospitalId}/staff/${administrator.uid}`).set({ uid: administrator.uid, staffId: administratorId, role: "administrator", active: true, updatedAt: now, updatedBy: administratorId });
+  await db.doc(`clinicalHospitals/${hospitalId}/audit/hospital_created`).set({ action: "hospital_created", hospitalName, administratorId, occurredAt: now, actorStudentNumber: administratorId });
   await configRef.set({ hospitalId, hospitalName, createdAt: now, status: "active" });
   return { ok: true, hospitalId };
 });
