@@ -9,6 +9,10 @@ document.head.insertAdjacentHTML("beforeend",`<style>
   .clinical-workspace{width:100%;max-width:none;padding:0 0 112px}.clinical-layout{grid-template-columns:320px minmax(0,1fr);gap:24px;align-items:start}.clinical-sidebar{top:18px;padding:18px}.clinical-sidebar h2{margin:0 0 12px;font-size:1.18rem}.clinical-patient{padding:13px 14px;margin:9px 0;font-size:.98rem}.clinical-patient:hover{border-color:#0f766e}.clinical-tabs{gap:9px;margin:18px 0 14px}.clinical-tabs button{padding:0 16px;min-height:44px;font-weight:700}.clinical-patient-head{padding-bottom:4px}.clinical-patient-head h2{font-size:1.45rem}.clinical-data-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.clinical-data-grid .card{padding:14px}.clinical-notice{padding:11px 15px;margin-bottom:14px;font-size:.9rem}.clinical-notice b{font-size:1rem}.clinical-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}.clinical-editor{display:grid;gap:14px;max-width:none}.clinical-editor h3{margin:0}.clinical-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.clinical-form-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.clinical-editor label{display:grid;gap:7px;font-weight:700}.clinical-editor input,.clinical-editor textarea,.clinical-editor select{box-sizing:border-box;width:100%;font:inherit;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:inherit}.clinical-editor textarea{resize:vertical;min-height:108px;line-height:1.6}.clinical-role-chip{padding:6px 11px;border-radius:999px;background:#e0f2fe;color:#075985;font-weight:700;font-size:.85rem}.clinical-record-type{border:1px solid var(--border);border-radius:14px;padding:16px;background:color-mix(in srgb,#0f766e 4%,var(--card))}.clinical-chart-values{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:var(--subtext);font-size:.85rem}@media(max-width:1100px){.clinical-layout{grid-template-columns:250px minmax(0,1fr);gap:14px}.clinical-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:780px){.clinical-workspace{padding-bottom:92px}.clinical-layout{grid-template-columns:1fr;gap:12px}.clinical-sidebar{position:static;padding:14px}.clinical-form-grid,.clinical-form-grid.two{grid-template-columns:1fr}.clinical-toolbar{align-items:stretch}.clinical-toolbar .btn,.clinical-toolbar select{width:100%}.clinical-tabs{margin-inline:-2px}.clinical-tabs button{padding:0 13px}.clinical-record-type{padding:13px}.clinical-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>`);
 
+document.head.insertAdjacentHTML("beforeend",`<style>
+  .clinical-calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px}.clinical-calendar-toolbar h3{margin:0}.clinical-calendar-controls{display:flex;gap:8px;align-items:center}.clinical-calendar-controls button{min-height:38px;border:1px solid var(--border);border-radius:9px;background:var(--card);padding:0 12px;font:inherit;cursor:pointer}.clinical-calendar-weekdays,.clinical-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.clinical-calendar-weekdays span{padding:0 6px;color:var(--subtext);font-size:.82rem;font-weight:700}.clinical-calendar-day{position:relative;min-height:118px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-align:left;cursor:pointer}.clinical-calendar-day:hover,.clinical-calendar-day.selected{border-color:#0f766e;box-shadow:0 0 0 2px rgba(15,118,110,.12)}.clinical-calendar-day.empty{visibility:hidden}.clinical-calendar-day time{font-weight:800}.clinical-calendar-events{display:grid;gap:4px;margin-top:7px}.clinical-calendar-event{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:999px;padding:3px 6px;font-size:.72rem;font-weight:700}.clinical-calendar-event.nurse{background:#dbeafe;color:#1d4ed8}.clinical-calendar-event.doctor{background:#fee2e2;color:#b91c1c}.clinical-calendar-event.pharmacist{background:#f3e8ff;color:#7e22ce}.clinical-calendar-event.rehab{background:#dcfce7;color:#15803d}.clinical-calendar-event.schedule{background:#fef3c7;color:#92400e}.clinical-day-detail{margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,#0f766e 4%,var(--card))}.clinical-day-detail h4{margin:0 0 8px}.clinical-timeline-line{border-left:3px solid #0f766e;padding:4px 0 4px 12px;margin-top:9px}.clinical-timeline-line small{color:var(--subtext)}@media(max-width:780px){.clinical-calendar-weekdays,.clinical-calendar-grid{gap:4px}.clinical-calendar-weekdays span{padding:0;text-align:center;font-size:.7rem}.clinical-calendar-day{min-height:72px;padding:6px}.clinical-calendar-event{padding:2px 4px;font-size:.62rem}.clinical-calendar-toolbar{align-items:flex-start;flex-direction:column}.clinical-calendar-controls{width:100%;justify-content:space-between}.clinical-calendar-controls button{flex:1;padding:0 8px}}
+</style>`);
+
 setupTheme($("themeButton"));
 await initializePage([setupAdminTab(),loadUserName($("userName")),loadProfileImage($("topProfileImage"))]);
 
@@ -28,6 +32,8 @@ if(canManage)$("addPatient").classList.remove("hidden");
 let editorRole=currentRole==="administrator"?"nurse":currentRole;
 let tab="overview";
 let selectedId="CASE-001";
+let calendarMonth=new Date(2026,7,1);
+let calendarDay="2026-08-17";
 let patients=[
   {id:"CASE-001",label:"検証ケース 001",department:"内科",status:"入院中",summary:"検証用の患者サマリーです。",vitals:[36.4,36.6,36.5,36.7],records:[{role:"nurse",title:"看護記録",body:"観察・ケア記録（検証用）",time:"本日 09:00",details:"S：体調変化なし\nO：安静時、呼吸状態安定"}],orders:"点滴・検査・処置の指示は医師または病院管理者のみ編集できます。",schedule:"10:00 検査予定\n14:00 リハビリ予定"},
   {id:"CASE-002",label:"検証ケース 002",department:"整形外科",status:"外来",summary:"検証用の患者サマリーです。",vitals:[36.2,36.4,36.3,36.5],records:[],orders:"指示は未登録です。",schedule:"予定は未登録です。"}
@@ -44,7 +50,7 @@ function renderPatients(){
 }
 
 function tabButtons(){
-  return `<div class="clinical-tabs">${[["overview","患者サマリー"],["entry","職種別入力"],["records","多職種カルテ"],["orders","指示・予定"],["charts","グラフ・データ"],["audit","監査・書き出し"]].map(([id,label])=>`<button class="${tab===id?"active":""}" data-tab="${id}">${label}</button>`).join("")}</div>`;
+  return `<div class="clinical-tabs">${[["overview","患者サマリー"],["calendar","時系列カレンダー"],["entry","職種別入力"],["records","多職種カルテ"],["orders","指示・予定"],["charts","グラフ・データ"],["audit","監査・書き出し"]].map(([id,label])=>`<button class="${tab===id?"active":""}" data-tab="${id}">${label}</button>`).join("")}</div>`;
 }
 
 function overview(patient){
@@ -98,12 +104,37 @@ function chartsPanel(patient){
   return `<h3>グラフ・データ</h3><p class="clinical-note">検証ケースの体温推移</p>${patient.vitals.length?`<div class="clinical-chart">${patient.vitals.map(value=>`<i style="height:${Math.max(8,Math.min(100,(value-34)*20))}%" title="${value}℃"></i>`).join("")}</div><div class="clinical-chart-values">${patient.vitals.map(value=>`<span>${value}℃</span>`).join("")}</div>`:'<div class="clinical-empty">バイタル記録を保存すると推移を表示します。</div>'}`;
 }
 
+function dateKey(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
+function patientEvents(patient){
+  const base=patient.id==="CASE-001"?[
+    {date:"2026-08-15",type:"nurse",label:"看護：バイタル記録",detail:"体温・脈拍・SpO₂・S/Oを記録"},
+    {date:"2026-08-16",type:"doctor",label:"医師：診療記録",detail:"診察・評価・治療計画"},
+    {date:"2026-08-17",type:"schedule",label:"10:00 検査予定",detail:"検査・処置の予定"},
+    {date:"2026-08-17",type:"rehab",label:"14:00 リハビリ",detail:"PTによる評価・訓練予定"},
+    {date:"2026-08-18",type:"pharmacist",label:"薬剤：持参薬確認",detail:"薬剤師による薬学的評価"}
+  ]:[
+    {date:"2026-08-16",type:"schedule",label:"初診予定",detail:"外来受付・診察予定"},
+    {date:"2026-08-17",type:"nurse",label:"看護：問診",detail:"来院時の観察・問診"}
+  ];
+  return [...base,...patient.records.slice(0,6).map((record,index)=>({date:`2026-08-${String(17-index).padStart(2,"0")}`,type:["pt","ot","st"].includes(record.role)?"rehab":record.role,label:`${roleName[record.role]||"職員"}：${record.title}`,detail:record.body}))];
+}
+function calendarPanel(patient){
+  const monthStart=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1);
+  const gridStart=new Date(monthStart);gridStart.setDate(1-monthStart.getDay());
+  const events=patientEvents(patient);
+  const days=Array.from({length:42},(_,offset)=>{const date=new Date(gridStart);date.setDate(gridStart.getDate()+offset);const key=dateKey(date);const inside=date.getMonth()===monthStart.getMonth();const items=events.filter(item=>item.date===key);return `<button class="clinical-calendar-day ${inside?"":"empty"} ${calendarDay===key?"selected":""}" data-calendar-day="${key}" ${inside?"":"tabindex=-1"}><time>${date.getDate()}</time><span class="clinical-calendar-events">${items.slice(0,3).map(item=>`<span class="clinical-calendar-event ${esc(item.type)}">${esc(item.label)}</span>`).join("")}${items.length>3?`<small>+${items.length-3}件</small>`:""}</span></button>`}).join("");
+  const selected=events.filter(item=>item.date===calendarDay);
+  const selectedLabel=new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date(`${calendarDay}T00:00:00`));
+  return `<div class="clinical-calendar-toolbar"><h3>時系列カレンダー</h3><div class="clinical-calendar-controls"><button data-calendar-nav="-1">前月</button><b>${calendarMonth.getFullYear()}年 ${calendarMonth.getMonth()+1}月</b><button data-calendar-nav="1">翌月</button></div></div><p class="clinical-note">職種別の記録・指示・予定を日付単位で確認します。</p><div class="clinical-calendar-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div><div class="clinical-calendar-grid">${days}</div><section class="clinical-day-detail"><h4>${selectedLabel}</h4>${selected.length?selected.map(item=>`<div class="clinical-timeline-line"><b>${esc(item.label)}</b><br><small>${esc(item.detail)}</small></div>`).join(""):'<p>この日の記録・予定はありません。</p>'}</section>`;
+}
+
 function auditPanel(){
   return `<h3>監査・書き出し</h3><p>本番運用では、記録の閲覧・変更・確定・出力を、利用者ID・日時・対象・操作内容とともに監査します。</p><button class="btn btn-secondary" disabled>書き出しは安全基盤の整備後に有効化</button>`;
 }
 
 function panel(patient){
   if(tab==="overview")return overview(patient);
+  if(tab==="calendar")return calendarPanel(patient);
   if(tab==="entry")return entryPanel();
   if(tab==="records")return recordsPanel(patient);
   if(tab==="orders")return ordersPanel(patient);
@@ -147,8 +178,12 @@ document.addEventListener("change",event=>{if(event.target.id==="editorRole"){ed
 document.addEventListener("click",event=>{
   const patientButton=event.target.closest("[data-patient]");
   const tabButton=event.target.closest("[data-tab]");
+  const calendarDayButton=event.target.closest("[data-calendar-day]");
+  const calendarNavButton=event.target.closest("[data-calendar-nav]");
   if(patientButton){selectedId=patientButton.dataset.patient;render();return}
   if(tabButton){tab=tabButton.dataset.tab;render();return}
+  if(calendarDayButton){calendarDay=calendarDayButton.dataset.calendarDay;render();return}
+  if(calendarNavButton){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+Number(calendarNavButton.dataset.calendarNav),1);calendarDay=dateKey(calendarMonth);render();return}
   const patient=currentPatient();
   if(event.target.id==="saveRoleEntry")saveRoleEntry();
   if(event.target.id==="saveOrders"){patient.orders=value("ordersText");render()}
