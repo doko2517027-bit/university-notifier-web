@@ -36,6 +36,7 @@ let tab="overview";
 let selectedId="";
 let calendarMonth=new Date(2026,7,1);
 let calendarDay="2026-08-17";
+let editingRecordIndex=null;
 let patients=[];
 let clinicalFileHandle=null;
 
@@ -106,6 +107,11 @@ function entryPanel(){
 }
 
 function recordsPanel(patient){
+  if(editingRecordIndex!==null){
+    const record=patient.records[editingRecordIndex];
+    if(!record){editingRecordIndex=null;return recordsPanel(patient)}
+    return `<div class="clinical-editor"><div class="clinical-toolbar"><h3>記録を編集</h3><span class="clinical-role-chip">${esc(roleName[record.role]||record.role)}</span></div><label>記録タイトル<input id="recordEditTitle" value="${esc(record.title)}"></label><label>記録内容<textarea id="recordEditBody">${esc(record.body)}</textarea></label><label>補足・詳細<textarea id="recordEditDetails">${esc(record.details||"")}</textarea></label><label>記録日<input id="recordEditDate" type="date" value="${esc(record.date||calendarDay)}"></label><div class="clinical-toolbar"><button id="saveRecordEdit" class="btn btn-primary">変更を保存</button><button id="cancelRecordEdit" class="btn btn-secondary">一覧へ戻る</button></div></div>`;
+  }
   const lines=patient.records.map((record,index)=>`<article class="clinical-entry"><small>${esc(roleName[record.role]||record.role)} ・ ${esc(record.time)}</small><br><b>${esc(record.title)}</b><p>${esc(record.body).replace(/\n/g,"<br>")}</p>${record.details?`<small>${esc(record.details).replace(/\n/g,"<br>")}</small>`:""}${(currentRole==="administrator"||currentRole===record.role)?`<p><button class="btn btn-secondary" data-edit-record="${index}">記録を編集</button></p>`:""}</article>`).join("");
   return `<h3>多職種カルテ</h3>${lines||"<p>記録はありません。</p>"}`;
 }
@@ -195,7 +201,7 @@ document.addEventListener("click",event=>{
   const calendarDayButton=event.target.closest("[data-calendar-day]");
   const calendarNavButton=event.target.closest("[data-calendar-nav]");
   if(patientButton){selectedId=patientButton.dataset.patient;render();return}
-  if(tabButton){tab=tabButton.dataset.tab;render();return}
+  if(tabButton){tab=tabButton.dataset.tab;editingRecordIndex=null;render();return}
   if(calendarDayButton){calendarDay=calendarDayButton.dataset.calendarDay;render();return}
   if(calendarNavButton){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+Number(calendarNavButton.dataset.calendarNav),1);calendarDay=dateKey(calendarMonth);render();return}
   const patient=currentPatient();
@@ -203,7 +209,9 @@ document.addEventListener("click",event=>{
   if(!patient)return;
   if(event.target.id==="saveSummary"){patient.summary=value("summaryText");patient.status=value("patientStatusEdit");patient.department=value("patientDepartmentEdit");patient.chiefComplaint=value("patientChiefComplaintEdit");patient.history=value("patientHistoryEdit");saveToICloud();render();return}
   const editRecordButton=event.target.closest("[data-edit-record]");
-  if(editRecordButton){const record=patient.records[Number(editRecordButton.dataset.editRecord)];const title=prompt("記録タイトル",record.title);if(title===null)return;const body=prompt("記録内容",record.body);if(body===null)return;record.title=title;record.body=body;record.time="編集済み";saveToICloud();render();return}
+  if(editRecordButton){editingRecordIndex=Number(editRecordButton.dataset.editRecord);tab="records";render();return}
+  if(event.target.id==="cancelRecordEdit"){editingRecordIndex=null;render();return}
+  if(event.target.id==="saveRecordEdit"){const record=patient.records[editingRecordIndex];record.title=value("recordEditTitle");record.body=value("recordEditBody");record.details=value("recordEditDetails");record.date=value("recordEditDate");record.time="編集済み";editingRecordIndex=null;saveToICloud();render();return}
   if(event.target.id==="saveRoleEntry")saveRoleEntry();
   if(event.target.id==="saveOrders"){patient.orders=value("ordersText");saveToICloud();render()}
   if(event.target.id==="saveSchedule"){patient.schedule=value("scheduleText");saveToICloud();render()}
