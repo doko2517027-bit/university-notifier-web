@@ -17,14 +17,23 @@ function requireClinicalOwner(request) {
 
 exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async request => {
   requireClinicalOwner(request);
-  const uid = String(request.data?.uid || "").trim();
+  const staffId = String(request.data?.staffId || request.data?.uid || "").trim();
+  const uid = /^\d{7}$/.test(staffId) ? `caremate-${staffId}` : staffId;
   const hospitalId = String(request.data?.hospitalId || "").trim();
   const role = String(request.data?.role || "").trim();
   const active = request.data?.active !== false;
   if (!uid || !/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId) || !ROLES.has(role)) {
     throw new HttpsError("invalid-argument", "職員・施設・職種の指定が正しくありません。");
   }
-  const user = await auth.getUser(uid);
+  let user;
+  try {
+    user = await auth.getUser(uid);
+  } catch (error) {
+    if (error?.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "指定した職員IDのCareMateアカウントが見つかりません。");
+    }
+    throw error;
+  }
   const claims = { ...(user.customClaims || {}) };
   claims.clinical = Boolean(active);
   claims.clinicalHospitalId = active ? hospitalId : null;
