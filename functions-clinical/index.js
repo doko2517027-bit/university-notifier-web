@@ -53,9 +53,8 @@ function requireCareMateRegistrant(request) {
 
 async function requireHospitalAdministrator(request, hospitalId) {
   const actor = request.auth?.token || {};
-  const systemOwner = actor.admin === true && actor.studentNumber === "2510044";
   const hospitalOwner = actor.clinical === true && actor.clinicalRole === "administrator" && actor.clinicalHospitalId === hospitalId;
-  if (!systemOwner && !hospitalOwner) {
+  if (!hospitalOwner) {
     throw new HttpsError("permission-denied", "この病院の管理者ではありません。");
   }
   return String(actor.studentNumber || "");
@@ -123,6 +122,21 @@ exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async req
     occurredAt: FieldValue.serverTimestamp(), actorStudentNumber
   });
   return { ok: true };
+});
+
+exports.listClinicalStaff = onCall({ region: "asia-northeast1" }, async request => {
+  const hospitalId = String(request.data?.hospitalId || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId)) {
+    throw new HttpsError("invalid-argument", "病院IDが正しくありません。");
+  }
+  await requireHospitalAdministrator(request, hospitalId);
+  const snapshot = await db.collection(`clinicalHospitals/${hospitalId}/staff`).get();
+  return {
+    staff: snapshot.docs.map(item => {
+      const data = item.data();
+      return { staffId: String(data.staffId || ""), role: String(data.role || ""), active: data.active !== false };
+    }).sort((a, b) => a.staffId.localeCompare(b.staffId))
+  };
 });
 
 exports.resetClinicalFoundation = onCall({ region: "asia-northeast1" }, async request => {
