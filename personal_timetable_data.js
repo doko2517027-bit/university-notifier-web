@@ -11,6 +11,24 @@ export function normalizeCourseName(value){
         .replace(/[()（）「」『』]/g,"");
 }
 
+// ホーム・出席管理で共通に使う、履修済み科目との照合。
+export function isEnrolledScheduleItem(item, aliasToCourse){
+    if (!aliasToCourse || typeof aliasToCourse.has !== "function") {
+        return false;
+    }
+
+    return [
+        item?.subject,
+        item?.scheduleSubject,
+        item?.subjectKey,
+        item?.subjectId,
+        item?.id
+    ].some(value => {
+        const key = normalizeCourseName(value);
+        return key && aliasToCourse.has(key);
+    });
+}
+
 function scheduleDocumentId(user){
     if(String(user.department||"").trim()==="看護学科") return "ns_yamate";
     if(String(user.major||"").includes("理学療法")) return "pt";
