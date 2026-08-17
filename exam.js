@@ -1372,6 +1372,11 @@ async function buildUnitData(
             publishedData
         );
 
+    const qaQuestions =
+        getValidQaQuestions(
+            publishedData
+        );
+
 
     const hasDailyQuestion =
         hasValidDailyQuestion(
@@ -1388,6 +1393,7 @@ async function buildUnitData(
     if (
         fillBlankQuestions.length === 0 &&
         quizQuestions.length === 0 &&
+        qaQuestions.length === 0 &&
         !hasDailyQuestion &&
         !hasImportantPoints
     ) {
@@ -1510,6 +1516,38 @@ async function buildUnitData(
 
                 questionCount:
                     quizQuestions.length
+
+            })
+        );
+
+    }
+
+    if (
+        qaQuestions.length > 0
+    ) {
+
+        formats.push(
+            createPracticeFormat({
+
+                type:
+                    "qa",
+
+                title:
+                    "一問一答",
+
+                icon:
+                    "💬",
+
+                file:
+                    "qa.html",
+
+                subjectId,
+
+                unitId:
+                    unitDocument.id,
+
+                questionCount:
+                    qaQuestions.length
 
             })
         );
@@ -3429,6 +3467,24 @@ function getValidQuizQuestions(
             );
 
         }
+    );
+
+}
+
+function getValidQaQuestions(
+    data
+) {
+
+    if (!Array.isArray(data.qa)) {
+        return [];
+    }
+
+    return data.qa.filter(question =>
+        question &&
+        typeof question.question === "string" &&
+        question.question.trim() !== "" &&
+        typeof question.answer === "string" &&
+        question.answer.trim() !== ""
     );
 
 }

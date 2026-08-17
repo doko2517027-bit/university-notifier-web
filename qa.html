@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>一問一答 | CareMate</title>
+<link rel="stylesheet" href="style.css">
+<script>
+if(localStorage.getItem("theme")==="dark"){
+    document.documentElement.classList.add("dark");
+}
+</script>
+</head>
+<body class="page-loading">
+<div class="top-buttons">
+    <button id="backButton" class="circle-button">←</button>
+    <h2>💬 一問一答</h2>
+    <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
+        <button id="profileButton" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image"></button>
+    </div>
+</div>
+<div id="qaArea"></div>
+<script type="module" src="qa.js"></script>
+</body>
+</html>
