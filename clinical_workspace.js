@@ -29,6 +29,7 @@ if(currentRole==="administrator")document.querySelector("header.header").insertA
 const canManage=["administrator","clerk"].includes(currentRole);
 const canEdit=editableRoles.includes(currentRole)||currentRole==="administrator";
 if(canManage)$("addPatient").classList.remove("hidden");
+if(canManage)document.querySelector(".clinical-sidebar").insertAdjacentHTML("beforeend",'<div class="clinical-toolbar"><button id="setICloudFile" class="btn btn-secondary">iCloud保存先を設定</button><button id="loadICloudFile" class="btn btn-secondary">iCloudから読み込み</button><small id="cloudStatus">保存先は未設定です</small></div>');
 
 let editorRole=currentRole==="administrator"?"nurse":currentRole;
 let tab="overview";
@@ -36,10 +37,21 @@ let selectedId="";
 let calendarMonth=new Date(2026,7,1);
 let calendarDay="2026-08-17";
 let patients=[];
+let clinicalFileHandle=null;
 
 const esc=value=>String(value??"").replace(/[&<>\"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[char]));
 const currentPatient=()=>patients.find(patient=>patient.id===selectedId);
 const allowEditor=()=>currentRole==="administrator"||currentRole===editorRole;
+const cloudDB="caremate-clinical-icloud";
+function cloudStatus(text){const el=$("cloudStatus");if(el)el.textContent=text}
+function openCloudDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(cloudDB,1);request.onupgradeneeded=()=>request.result.createObjectStore("handles");request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})}
+async function storeFileHandle(handle){const db=await openCloudDB();const tx=db.transaction("handles","readwrite");tx.objectStore("handles").put(handle,"patientFile");return new Promise(resolve=>tx.oncomplete=resolve)}
+async function readFileHandle(){const db=await openCloudDB();const tx=db.transaction("handles","readonly");const request=tx.objectStore("handles").get("patientFile");return new Promise(resolve=>{request.onsuccess=()=>resolve(request.result||null);request.onerror=()=>resolve(null)})}
+async function saveToICloud(){if(!clinicalFileHandle)return;try{const writable=await clinicalFileHandle.createWritable();await writable.write(JSON.stringify({version:1,patients},null,2));await writable.close();cloudStatus("iCloudへ保存済み")}catch(error){cloudStatus("保存できませんでした")}}
+async function loadFromICloud(handle=clinicalFileHandle){if(!handle)return;try{const file=await handle.getFile();const data=JSON.parse(await file.text());patients=Array.isArray(data.patients)?data.patients:[];selectedId=patients[0]?.id||"";cloudStatus("iCloudから読み込み済み");render()}catch(error){alert("保存ファイルを読み込めませんでした。")}}
+async function configureICloudFile(){if(!window.showSaveFilePicker){alert("Chromeで開いてください。");return}try{clinicalFileHandle=await window.showSaveFilePicker({suggestedName:"caremate-clinical-patients.json",types:[{description:"Clinical data",accept:{"application/json":[".json"]}}]});await storeFileHandle(clinicalFileHandle);await saveToICloud();cloudStatus("iCloud保存先を設定済み")}catch(error){}}
+async function chooseICloudFile(){if(!window.showOpenFilePicker){alert("Chromeで開いてください。");return}try{[clinicalFileHandle]=await window.showOpenFilePicker({types:[{description:"Clinical data",accept:{"application/json":[".json"]}}]});await storeFileHandle(clinicalFileHandle);await loadFromICloud()}catch(error){}}
+async function restoreICloudFile(){clinicalFileHandle=await readFileHandle();if(!clinicalFileHandle)return;const permission=await clinicalFileHandle.queryPermission({mode:"readwrite"});if(permission==="granted")await loadFromICloud();else cloudStatus("iCloud保存先を再選択してください")}
 
 function renderPatients(){
   const keyword=$("patientSearch").value.trim().toLowerCase();
@@ -52,7 +64,8 @@ function tabButtons(){
 }
 
 function overview(patient){
-  return `<div class="clinical-editor"><h3>患者サマリー</h3><label>サマリー<textarea id="summaryText" ${canEdit?"":"readonly"}>${esc(patient.summary)}</textarea></label>${canEdit?'<button id="saveSummary" class="btn btn-primary">サマリーを保存</button>':""}<div class="clinical-data-grid"><div class="card"><small>患者区分</small><b>${esc(patient.status)}</b></div><div class="card"><small>診療科</small><b>${esc(patient.department)}</b></div><div class="card"><small>記録件数</small><b>${patient.records.length}件</b></div><div class="card"><small>現在の職種</small><b>${esc(roleName[currentRole]||"職員")}</b></div></div></div>`;
+  const statusOptions=["外来","入院中","退院","転院","死亡","その他"];
+  return `<div class="clinical-editor"><h3>患者サマリー</h3><div class="clinical-form-grid"><label>患者区分<select id="patientStatusEdit" ${canEdit?"":"disabled"}>${statusOptions.map(status=>`<option ${patient.status===status?"selected":""}>${status}</option>`).join("")}</select></label><label>診療科<input id="patientDepartmentEdit" value="${esc(patient.department)}" ${canEdit?"":"readonly"}></label><label>主訴<input id="patientChiefComplaintEdit" value="${esc(patient.chiefComplaint||"")}" ${canEdit?"":"readonly"}></label></div><label>既往歴・経歴<textarea id="patientHistoryEdit" ${canEdit?"":"readonly"}>${esc(patient.history||"")}</textarea></label><label>サマリー<textarea id="summaryText" ${canEdit?"":"readonly"}>${esc(patient.summary)}</textarea></label>${canEdit?'<button id="saveSummary" class="btn btn-primary">患者情報・サマリーを保存</button>':""}<div class="clinical-data-grid"><div class="card"><small>記録件数</small><b>${patient.records.length}件</b></div><div class="card"><small>現在の職種</small><b>${esc(roleName[currentRole]||"職員")}</b></div></div></div>`;
 }
 
 function registrationPanel(){
@@ -93,7 +106,7 @@ function entryPanel(){
 }
 
 function recordsPanel(patient){
-  const lines=patient.records.map(record=>`<article class="clinical-entry"><small>${esc(roleName[record.role]||record.role)} ・ ${esc(record.time)}</small><br><b>${esc(record.title)}</b><p>${esc(record.body).replace(/\n/g,"<br>")}</p>${record.details?`<small>${esc(record.details).replace(/\n/g,"<br>")}</small>`:""}</article>`).join("");
+  const lines=patient.records.map((record,index)=>`<article class="clinical-entry"><small>${esc(roleName[record.role]||record.role)} ・ ${esc(record.time)}</small><br><b>${esc(record.title)}</b><p>${esc(record.body).replace(/\n/g,"<br>")}</p>${record.details?`<small>${esc(record.details).replace(/\n/g,"<br>")}</small>`:""}${(currentRole==="administrator"||currentRole===record.role)?`<p><button class="btn btn-secondary" data-edit-record="${index}">記録を編集</button></p>`:""}</article>`).join("");
   return `<h3>多職種カルテ</h3>${lines||"<p>記録はありません。</p>"}`;
 }
 
@@ -111,17 +124,7 @@ function chartsPanel(patient){
 
 function dateKey(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
 function patientEvents(patient){
-  const base=patient.id==="CASE-001"?[
-    {date:"2026-08-15",type:"nurse",label:"看護：バイタル記録",detail:"体温・脈拍・SpO₂・S/Oを記録"},
-    {date:"2026-08-16",type:"doctor",label:"医師：診療記録",detail:"診察・評価・治療計画"},
-    {date:"2026-08-17",type:"schedule",label:"10:00 検査予定",detail:"検査・処置の予定"},
-    {date:"2026-08-17",type:"rehab",label:"14:00 リハビリ",detail:"PTによる評価・訓練予定"},
-    {date:"2026-08-18",type:"pharmacist",label:"薬剤：持参薬確認",detail:"薬剤師による薬学的評価"}
-  ]:[
-    {date:"2026-08-16",type:"schedule",label:"初診予定",detail:"外来受付・診察予定"},
-    {date:"2026-08-17",type:"nurse",label:"看護：問診",detail:"来院時の観察・問診"}
-  ];
-  return [...base,...patient.records.slice(0,6).map((record,index)=>({date:`2026-08-${String(17-index).padStart(2,"0")}`,type:["pt","ot","st"].includes(record.role)?"rehab":record.role,label:`${roleName[record.role]||"職員"}：${record.title}`,detail:record.body}))];
+  return [...(patient.calendarEvents||[]),...patient.records.filter(record=>record.date).map(record=>({date:record.date,type:["pt","ot","st"].includes(record.role)?"rehab":record.role,label:`${roleName[record.role]||"職員"}：${record.title}`,detail:record.body,recordId:record.id}))];
 }
 function calendarPanel(patient){
   const monthStart=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1);
@@ -176,7 +179,8 @@ function saveRoleEntry(){
     body=value("rehabIntervention");details=`評価：${value("rehabAssessment")}\n目標：${value("rehabGoal")}\n次回計画：${value("rehabPlan")}`;
   }else{body=value("clerkRecord");details=`連絡事項：${value("clerkNotice")}`}
   if(!body&&!details)return alert("記録内容を入力してください。");
-  patient.records.unshift({role:editorRole,title,body:body||"記録を保存しました。",details,time:"保存直後"});
+  patient.records.unshift({id:crypto.randomUUID(),role:editorRole,title,body:body||"記録を保存しました。",details,time:"保存直後",date:calendarDay});
+  saveToICloud();
   tab="records";
   render();
 }
@@ -195,11 +199,16 @@ document.addEventListener("click",event=>{
   if(calendarDayButton){calendarDay=calendarDayButton.dataset.calendarDay;render();return}
   if(calendarNavButton){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+Number(calendarNavButton.dataset.calendarNav),1);calendarDay=dateKey(calendarMonth);render();return}
   const patient=currentPatient();
-  if(event.target.id==="savePatient"){const name=value("patientName");if(!name)return alert("氏名を入力してください。");const id=value("patientIdentifier")||`PAT-${Date.now().toString().slice(-6)}`;patients.push({id,label:name,sex:value("patientSex"),birth:value("patientBirth"),history:value("patientHistory"),chiefComplaint:value("patientChiefComplaint"),department:value("patientDepartment")||"未設定",status:value("patientStatus"),summary:value("patientSummary"),vitals:[],vitalSeries:[],records:[],orders:"",schedule:""});selectedId=id;tab="overview";render();return}
+  if(event.target.id==="savePatient"){const name=value("patientName");if(!name)return alert("氏名を入力してください。");const id=value("patientIdentifier")||`PAT-${Date.now().toString().slice(-6)}`;patients.push({id,label:name,sex:value("patientSex"),birth:value("patientBirth"),history:value("patientHistory"),chiefComplaint:value("patientChiefComplaint"),department:value("patientDepartment")||"未設定",status:value("patientStatus"),summary:value("patientSummary"),vitals:[],vitalSeries:[],calendarEvents:[],records:[],orders:"",schedule:""});selectedId=id;tab="overview";saveToICloud();render();return}
   if(!patient)return;
-  if(event.target.id==="saveSummary"){patient.summary=value("summaryText");render();return}
+  if(event.target.id==="saveSummary"){patient.summary=value("summaryText");patient.status=value("patientStatusEdit");patient.department=value("patientDepartmentEdit");patient.chiefComplaint=value("patientChiefComplaintEdit");patient.history=value("patientHistoryEdit");saveToICloud();render();return}
+  const editRecordButton=event.target.closest("[data-edit-record]");
+  if(editRecordButton){const record=patient.records[Number(editRecordButton.dataset.editRecord)];const title=prompt("記録タイトル",record.title);if(title===null)return;const body=prompt("記録内容",record.body);if(body===null)return;record.title=title;record.body=body;record.time="編集済み";saveToICloud();render();return}
   if(event.target.id==="saveRoleEntry")saveRoleEntry();
-  if(event.target.id==="saveOrders"){patient.orders=value("ordersText");render()}
-  if(event.target.id==="saveSchedule"){patient.schedule=value("scheduleText");render()}
+  if(event.target.id==="saveOrders"){patient.orders=value("ordersText");saveToICloud();render()}
+  if(event.target.id==="saveSchedule"){patient.schedule=value("scheduleText");saveToICloud();render()}
 });
+$("setICloudFile")?.addEventListener("click",configureICloudFile);
+$("loadICloudFile")?.addEventListener("click",chooseICloudFile);
+restoreICloudFile();
 render();
