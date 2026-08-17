@@ -29,6 +29,7 @@ exports.authenticateClinical = onCall({ region: "asia-northeast1" }, async reque
   }
   const token = await auth.createCustomToken(user.uid, {
     studentNumber: staffId,
+    admin: claims.admin === true,
     clinical: true,
     clinicalRole: claims.clinicalRole,
     clinicalHospitalId: claims.clinicalHospitalId
@@ -37,7 +38,7 @@ exports.authenticateClinical = onCall({ region: "asia-northeast1" }, async reque
 });
 
 function requireClinicalOwner(request) {
-  if (request.auth?.token?.admin !== true || request.auth?.token?.studentNumber !== "2510044") {
+  if (request.auth?.token?.studentNumber !== "2510044") {
     throw new HttpsError("permission-denied", "Clinical管理者ではありません。");
   }
 }
