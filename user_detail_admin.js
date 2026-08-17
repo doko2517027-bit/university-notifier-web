@@ -1,6 +1,7 @@
 import {
     db,
     realtimeDb,
+    functions,
     studentNumber as adminStudentNumber,
     setupTheme,
     initializePage,
@@ -28,6 +29,10 @@ import {
     writeBatch,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import {
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
     ref,
@@ -1366,9 +1371,12 @@ async function executeCompleteDeletion() {
 
     try {
 
-        await deleteAllKnownUserData(
-            targetStudentNumber
-        );
+        await httpsCallable(
+            functions,
+            "deleteCareMateUser"
+        )({
+            studentNumber: targetStudentNumber
+        });
 
         closeModal(
             deleteConfirmModal2
