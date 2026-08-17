@@ -73,9 +73,9 @@ exports.createClinicalHospital = onCall({ region: "asia-northeast1" }, async req
   }
   await auth.setCustomUserClaims(administrator.uid, { ...(administrator.customClaims || {}), clinical: true, clinicalRole: "administrator", clinicalHospitalId: hospitalId });
   const now = FieldValue.serverTimestamp();
-  await db.doc(`clinicalControl/hospitals/${hospitalId}`).set({ hospitalId, hospitalName, administratorId, administratorUid: administrator.uid, status: "active", createdAt: now, createdBy: "2510044", updatedAt: now });
-  await db.doc(`clinicalControl/${hospitalId}/staff/${administrator.uid}`).set({ uid: administrator.uid, staffId: administratorId, role: "administrator", active: true, updatedAt: now, updatedBy: "2510044" });
-  await db.doc(`clinicalControl/${hospitalId}/audit/hospital_created`).set({ action: "hospital_created", hospitalName, administratorId, occurredAt: now, actorStudentNumber: "2510044" });
+  await db.doc(`clinicalHospitals/${hospitalId}`).set({ hospitalId, hospitalName, administratorId, administratorUid: administrator.uid, status: "active", createdAt: now, createdBy: "2510044", updatedAt: now });
+  await db.doc(`clinicalHospitals/${hospitalId}/staff/${administrator.uid}`).set({ uid: administrator.uid, staffId: administratorId, role: "administrator", active: true, updatedAt: now, updatedBy: "2510044" });
+  await db.doc(`clinicalHospitals/${hospitalId}/audit/hospital_created`).set({ action: "hospital_created", hospitalName, administratorId, occurredAt: now, actorStudentNumber: "2510044" });
   await configRef.set({ hospitalId, hospitalName, createdAt: now, status: "active" });
   return { ok: true, hospitalId };
 });
@@ -107,12 +107,44 @@ exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async req
   claims.clinicalHospitalId = active ? hospitalId : null;
   claims.clinicalRole = active ? role : null;
   await auth.setCustomUserClaims(uid, claims);
-  await db.doc(`clinicalControl/${hospitalId}/staff/${uid}`).set({
+  await db.doc(`clinicalHospitals/${hospitalId}/staff/${uid}`).set({
     uid, staffId, role, active, updatedAt: FieldValue.serverTimestamp(), updatedBy: actorStudentNumber
   }, { merge: true });
-  await db.collection(`clinicalControl/${hospitalId}/audit`).add({
+  await db.collection(`clinicalHospitals/${hospitalId}/audit`).add({
     action: active ? "staff_granted" : "staff_revoked", targetUid: uid, role,
     occurredAt: FieldValue.serverTimestamp(), actorStudentNumber
   });
   return { ok: true };
+});
+
+exports.resetClinicalFoundation = onCall({ region: "asia-northeast1" }, async request => {
+  requireClinicalOwner(request);
+  const configRef = db.doc("clinicalControl/config");
+  const config = await configRef.get();
+  if (!config.exists) return { ok: true, reset: false };
+
+  const hospitalId = String(config.data()?.hospitalId || "");
+  if (!hospitalId) {
+    await configRef.delete();
+    return { ok: true, reset: true };
+  }
+
+  const hospitalRef = db.doc(`clinicalHospitals/${hospitalId}`);
+  const staffSnapshot = await hospitalRef.collection("staff").get();
+  for (const staff of staffSnapshot.docs) {
+    const uid = String(staff.data()?.uid || staff.id);
+    try {
+      const user = await auth.getUser(uid);
+      const claims = { ...(user.customClaims || {}) };
+      delete claims.clinical;
+      delete claims.clinicalRole;
+      delete claims.clinicalHospitalId;
+      await auth.setCustomUserClaims(uid, claims);
+    } catch (error) {
+      if (error?.code !== "auth/user-not-found") throw error;
+    }
+  }
+  await db.recursiveDelete(hospitalRef);
+  await configRef.delete();
+  return { ok: true, reset: true };
 });
