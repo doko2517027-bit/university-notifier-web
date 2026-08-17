@@ -314,6 +314,14 @@ async function startApp() {
 
 
         /*
+        初期データの取得が遅い学生でも、ホーム全体を
+        ローディング状態のまま隠さない。
+        各カードは取得できた順に内容を表示する。
+        */
+        showPage();
+
+
+        /*
         ユーザー情報とsystem/appを
         同時に取得する。
 
@@ -508,7 +516,20 @@ async function startApp() {
     const todayScheduleTask =
         loadTodaySchedule(
             user
-        );
+        )
+            .catch(error => {
+
+                console.error(
+                    "ホーム時間割読み込みエラー:",
+                    error
+                );
+
+                lectureScheduleLabel.textContent = "講義予定";
+                lectureScheduleDetail.textContent = "時間割を読み込めませんでした。";
+                lectureScheduleList.innerHTML =
+                    '<p class="empty-text">時間割の設定を確認してください。</p>';
+
+            });
 
 
     /*
