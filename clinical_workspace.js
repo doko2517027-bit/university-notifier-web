@@ -184,10 +184,10 @@ function saveRoleEntry(){
   const patient=currentPatient();
   if(event.target.id==="startPatientRegistration"){tab="register";render();return}
   const title=value("entryTitle")||`${roleName[editorRole]}記録`;
-  let body="",details="";
+  let body="",details="",vitals=null;
   if(editorRole==="nurse"){
     body=`S：${value("subjective")}\nO：${value("objective")}`;
-    const vitals={temp:value("vitalTemp"),pulse:value("vitalPulse"),respiratory:value("vitalRespiratory"),spo2:value("vitalSpo2"),sys:value("vitalSys"),dia:value("vitalDia"),height:value("vitalHeight"),weight:value("vitalWeight"),pain:value("painScale"),consciousness:value("consciousness"),intake:value("intake"),output:value("output"),menstrualLast:value("menstrualLast"),menstrualEnd:value("menstrualEnd"),menstrualCycle:value("menstrualCycle"),menstrualFlow:value("menstrualFlow"),menstrualPain:value("menstrualPain"),menstrualSymptoms:value("menstrualSymptoms"),menstrualNote:value("menstrualNote")};
+    vitals={temp:value("vitalTemp"),pulse:value("vitalPulse"),respiratory:value("vitalRespiratory"),spo2:value("vitalSpo2"),sys:value("vitalSys"),dia:value("vitalDia"),height:value("vitalHeight"),weight:value("vitalWeight"),pain:value("painScale"),consciousness:value("consciousness"),intake:value("intake"),output:value("output"),menstrualLast:value("menstrualLast"),menstrualEnd:value("menstrualEnd"),menstrualCycle:value("menstrualCycle"),menstrualFlow:value("menstrualFlow"),menstrualPain:value("menstrualPain"),menstrualSymptoms:value("menstrualSymptoms"),menstrualNote:value("menstrualNote")};
     details=`体温 ${vitals.temp||"—"}℃ ／ 脈拍 ${vitals.pulse||"—"} ／ 呼吸 ${vitals.respiratory||"—"} ／ SpO₂ ${vitals.spo2||"—"}% ／ BP ${vitals.sys||"—"}/${vitals.dia||"—"} ／ 身長 ${vitals.height||"—"}cm ／ 体重 ${vitals.weight||"—"}kg ／ 摂取/排出 ${vitals.intake||"—"}/${vitals.output||"—"}mL ／ 疼痛 ${vitals.pain||"—"}`;
     if(Number(vitals.temp)>0)patient.vitals.push(Number(vitals.temp));
     patient.vitalSeries=patient.vitalSeries||[];
