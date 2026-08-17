@@ -1,0 +1,5 @@
+import { studentNumber, functions, setupTheme, initializePage, loadProfileImage, loadUserName, setupAdminTab } from "./common.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+const $=id=>document.getElementById(id);setupTheme($("themeButton"));await initializePage([setupAdminTab(),loadUserName($("userName")),loadProfileImage($("topProfileImage"))]);
+if(studentNumber!=="2510044"){document.querySelector("main").innerHTML='<section class="card setting-card">この画面はClinical管理者だけが利用できます。</section>';throw new Error("Clinical admin only");}
+$("staffForm").onsubmit=async e=>{e.preventDefault();const status=$("staffStatus"),button=e.submitter;button.disabled=true;status.textContent="権限を設定中…";try{await httpsCallable(functions,"configureClinicalStaff")({hospitalId:$("hospitalId").value.trim(),uid:$("staffUid").value.trim(),role:$("staffRole").value,active:true});status.textContent="職員権限を設定しました。対象職員は次回ログイン時から有効になります。"}catch(error){console.error(error);status.textContent="設定できませんでした。UID・施設ID・管理者ログインを確認してください。"}finally{button.disabled=false}};
