@@ -1,5 +1,6 @@
 import {
     db,
+    auth,
     studentNumber,
     setupTheme,
     loadProfileImage,
@@ -46,6 +47,11 @@ import {
     limit,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import {
+    getIdTokenResult,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import { VERSION } from "./version.js";
 
@@ -285,6 +291,65 @@ window.addEventListener(
 );
 
 
+async function getVerifiedHomeStudentNumber() {
+
+    const authenticatedUser =
+        auth.currentUser ||
+        await new Promise(resolve => {
+
+            let completed = false;
+            let stop = () => {};
+
+            const finish = value => {
+                if (completed) return;
+                completed = true;
+                stop();
+                resolve(value);
+            };
+
+            stop = onAuthStateChanged(
+                auth,
+                user => finish(user)
+            );
+
+            setTimeout(
+                () => finish(null),
+                1500
+            );
+
+        });
+
+    if (!authenticatedUser) return "";
+
+    try {
+
+        const token =
+            await getIdTokenResult(
+                authenticatedUser
+            );
+
+        const verifiedStudentNumber =
+            String(
+                token.claims?.studentNumber || ""
+            ).trim();
+
+        return /^\d{7}$/.test(verifiedStudentNumber)
+            ? verifiedStudentNumber
+            : "";
+
+    } catch (error) {
+
+        console.warn(
+            "ログイン済みユーザーの確認に失敗しました。",
+            error
+        );
+
+        return "";
+
+    }
+
+}
+
 async function startApp() {
 
     console.log(
@@ -386,28 +451,50 @@ async function startApp() {
 
         if (!userSnap.exists()) {
 
-            localStorage.removeItem(
-                "loggedIn"
+            /*
+            認証済み本人の情報が登録直後などに一時取得できなくても、
+            ホームを開くたびにログアウトさせない。端末の保存値だけでは
+            継続させず、Firebaseトークンの学籍番号が一致する場合だけ
+            最小限のホーム表示を続ける。
+            */
+            const verifiedStudentNumber =
+                await getVerifiedHomeStudentNumber();
+
+            if (verifiedStudentNumber !== studentNumber) {
+
+                localStorage.removeItem(
+                    "loggedIn"
+                );
+
+                localStorage.removeItem(
+                    "studentNumber"
+                );
+
+                alert(
+                    "ログイン情報を確認できませんでした。もう一度ログインしてください。"
+                );
+
+                location.href =
+                    "login.html";
+
+                return;
+
+            }
+
+            console.warn(
+                "本人確認済みですが、ホーム用ユーザー情報は準備中です。"
             );
 
-            localStorage.removeItem(
-                "studentNumber"
-            );
+            user = {
+                studentNumber: verifiedStudentNumber
+            };
 
-            alert(
-                "ユーザー情報を取得できませんでした。もう一度ログインしてください。"
-            );
+        } else {
 
-            location.href =
-                "login.html";
-
-            return;
+            user =
+                userSnap.data();
 
         }
-
-
-        user =
-            userSnap.data();
 
 
         currentHomeUser =
