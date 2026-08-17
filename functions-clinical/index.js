@@ -42,8 +42,45 @@ function requireClinicalOwner(request) {
   }
 }
 
-exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async request => {
+async function requireHospitalAdministrator(request, hospitalId) {
+  const actor = request.auth?.token || {};
+  const systemOwner = actor.admin === true && actor.studentNumber === "2510044";
+  const hospitalOwner = actor.clinical === true && actor.clinicalRole === "administrator" && actor.clinicalHospitalId === hospitalId;
+  if (!systemOwner && !hospitalOwner) {
+    throw new HttpsError("permission-denied", "この病院の管理者ではありません。");
+  }
+  return String(actor.studentNumber || "");
+}
+
+exports.createClinicalHospital = onCall({ region: "asia-northeast1" }, async request => {
   requireClinicalOwner(request);
+  const hospitalId = String(request.data?.hospitalId || "").trim();
+  const hospitalName = String(request.data?.hospitalName || "").trim();
+  const administratorId = String(request.data?.administratorId || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId) || !hospitalName || !/^\d{7}$/.test(administratorId)) {
+    throw new HttpsError("invalid-argument", "病院情報または管理者IDが正しくありません。");
+  }
+  const configRef = db.doc("clinicalControl/config");
+  if ((await configRef.get()).exists) {
+    throw new HttpsError("already-exists", "病院アカウントはすでに作成されています。");
+  }
+  let administrator;
+  try {
+    administrator = await auth.getUser(`caremate-${administratorId}`);
+  } catch (error) {
+    if (error?.code === "auth/user-not-found") throw new HttpsError("not-found", "病院管理者のCareMateアカウントが見つかりません。");
+    throw error;
+  }
+  await auth.setCustomUserClaims(administrator.uid, { ...(administrator.customClaims || {}), clinical: true, clinicalRole: "administrator", clinicalHospitalId: hospitalId });
+  const now = FieldValue.serverTimestamp();
+  await db.doc(`clinicalControl/hospitals/${hospitalId}`).set({ hospitalId, hospitalName, administratorId, administratorUid: administrator.uid, status: "active", createdAt: now, createdBy: "2510044", updatedAt: now });
+  await db.doc(`clinicalControl/${hospitalId}/staff/${administrator.uid}`).set({ uid: administrator.uid, staffId: administratorId, role: "administrator", active: true, updatedAt: now, updatedBy: "2510044" });
+  await db.doc(`clinicalControl/${hospitalId}/audit/hospital_created`).set({ action: "hospital_created", hospitalName, administratorId, occurredAt: now, actorStudentNumber: "2510044" });
+  await configRef.set({ hospitalId, hospitalName, createdAt: now, status: "active" });
+  return { ok: true, hospitalId };
+});
+
+exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async request => {
   const staffId = String(request.data?.staffId || request.data?.uid || "").trim();
   const uid = /^\d{7}$/.test(staffId) ? `caremate-${staffId}` : staffId;
   const hospitalId = String(request.data?.hospitalId || "").trim();
@@ -52,6 +89,10 @@ exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async req
   if (!uid || !/^[A-Za-z0-9_-]{3,80}$/.test(hospitalId) || !ROLES.has(role)) {
     throw new HttpsError("invalid-argument", "職員・施設・職種の指定が正しくありません。");
   }
+  if (role === "administrator") {
+    throw new HttpsError("failed-precondition", "病院管理者は病院作成時に設定した一人だけです。");
+  }
+  const actorStudentNumber = await requireHospitalAdministrator(request, hospitalId);
   let user;
   try {
     user = await auth.getUser(uid);
@@ -67,11 +108,11 @@ exports.configureClinicalStaff = onCall({ region: "asia-northeast1" }, async req
   claims.clinicalRole = active ? role : null;
   await auth.setCustomUserClaims(uid, claims);
   await db.doc(`clinicalControl/${hospitalId}/staff/${uid}`).set({
-    uid, role, active, updatedAt: FieldValue.serverTimestamp(), updatedBy: "2510044"
+    uid, staffId, role, active, updatedAt: FieldValue.serverTimestamp(), updatedBy: actorStudentNumber
   }, { merge: true });
   await db.collection(`clinicalControl/${hospitalId}/audit`).add({
     action: active ? "staff_granted" : "staff_revoked", targetUid: uid, role,
-    occurredAt: FieldValue.serverTimestamp(), actorStudentNumber: "2510044"
+    occurredAt: FieldValue.serverTimestamp(), actorStudentNumber
   });
   return { ok: true };
 });
