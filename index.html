@@ -1,739 +1,500 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CareMateApp</title>
 
-<title>CareMateApp</title>
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="manifest.json" />
 
-<meta name="theme-color" content="#2563eb">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
 
-<link
-    rel="preconnect"
-    href="https://www.gstatic.com"
-    crossorigin>
+    <link rel="preconnect" href="https://api.open-meteo.com" />
 
-<link
-    rel="preconnect"
-    href="https://api.open-meteo.com">
+    <link rel="modulepreload" href="app.js" />
 
-<link
-    rel="modulepreload"
-    href="app.js">
+    <link rel="modulepreload" href="common.js" />
 
-<link
-    rel="modulepreload"
-    href="common.js">
+    <link rel="modulepreload" href="personal_timetable_data.js" />
 
-<link
-    rel="modulepreload"
-    href="personal_timetable_data.js">
+    <link rel="modulepreload" href="class_selection.js" />
 
-<link
-    rel="modulepreload"
-    href="class_selection.js">
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script>
+      if (
+        localStorage.getItem("loggedIn") !== "true" ||
+        !localStorage.getItem("studentNumber")
+      ) {
+        location.replace("login.html");
+      }
 
-<script>
-if (
-    localStorage.getItem("loggedIn") !== "true" ||
-    !localStorage.getItem("studentNumber")
-) {
-    location.replace("login.html");
-}
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
 
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-
-if (
-    "serviceWorker" in navigator
-) {
-
-    navigator.serviceWorker
-        .register(
-            "sw.js",
-            {
-                updateViaCache:
-                    "none"
-            }
-        )
-        .catch(
-            error => {
-
-                console.warn(
-                    "Service Worker の登録に失敗しました。",
-                    error
-                );
-
-            }
-        );
-
-}
-</script>
-
-</head>
-<body class="home-page page-loading">
-
-<div id="splash">
-    <div class="splash-content">
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js", {
+            updateViaCache: "none",
+          })
+          .catch((error) => {
+            console.warn("Service Worker の登録に失敗しました。", error);
+          });
+      }
+    </script>
+  </head>
+  <body class="home-page page-loading">
+    <div id="splash">
+      <div class="splash-content">
         <div class="logo">🎓</div>
         <h1>CareMateApp</h1>
-    </div>
-</div>
-
-<div id="examPopupOverlay" class="exam-popup-overlay">
-
-    <div class="exam-popup-card">
-
-        <button
-            id="closeExamPopup"
-            class="exam-popup-close"
-            type="button">
-            ×
-        </button>
-
-        <div class="exam-popup-icon">
-            📚
-        </div>
-
-        <p id="examPopupLabel" class="exam-popup-label">
-            テストのお知らせ
-        </p>
-
-        <h2 id="examPopupTitle">
-            試験情報
-        </h2>
-
-        <p id="examPopupCountdown" class="exam-popup-countdown">
-        </p>
-
-        <p id="examPopupPeriod" class="exam-popup-period">
-        </p>
-
-        <button
-            id="openExamFromPopup"
-            class="btn btn-primary">
-            テスト対策を開く
-        </button>
-
+      </div>
     </div>
 
-</div>
-
-<div id="attendancePopupOverlay" class="exam-popup-overlay">
-
-    <div class="exam-popup-card">
-
-        <button
-            id="closeAttendancePopup"
-            class="exam-popup-close"
-            type="button">
-            ×
+    <div id="examPopupOverlay" class="exam-popup-overlay">
+      <div class="exam-popup-card">
+        <button id="closeExamPopup" class="exam-popup-close" type="button">
+          ×
         </button>
 
+        <div class="exam-popup-icon">📚</div>
 
-        <div class="exam-popup-icon">
-            📝
-        </div>
+        <p id="examPopupLabel" class="exam-popup-label">テストのお知らせ</p>
 
+        <h2 id="examPopupTitle">試験情報</h2>
 
-        <p class="exam-popup-label">
-            出席確認
-        </p>
+        <p id="examPopupCountdown" class="exam-popup-countdown"></p>
 
+        <p id="examPopupPeriod" class="exam-popup-period"></p>
 
-        <h2 id="attendanceSubject">
-            成人看護学
-        </h2>
-
-
-        <p>
-            打刻可能時間です
-        </p>
-
-
-        <div
-            style="
-                display:flex;
-                gap:10px;
-                margin-top:20px;
-            ">
-
-
-            <button
-                id="attendanceYes"
-                class="btn btn-primary"
-                style="flex:1;">
-                ✅ 出席
-            </button>
-
-
-            <button
-                id="attendanceNo"
-                class="btn"
-                style="flex:1;">
-                ❌ 欠席
-            </button>
-
-
-        </div>
-
-
+        <button id="openExamFromPopup" class="btn btn-primary">
+          テスト対策を開く
+        </button>
+      </div>
     </div>
 
-</div>
-
-<div id="rankingPopupOverlay" class="exam-popup-overlay">
-
-    <div class="exam-popup-card">
-
+    <div id="attendancePopupOverlay" class="exam-popup-overlay">
+      <div class="exam-popup-card">
         <button
-            id="closeRankingPopup"
-            class="exam-popup-close"
-            type="button">
-            ×
+          id="closeAttendancePopup"
+          class="exam-popup-close"
+          type="button"
+        >
+          ×
         </button>
 
+        <div class="exam-popup-icon">📝</div>
 
-        <div class="exam-popup-icon">
-            🏆
+        <p class="exam-popup-label">出席確認</p>
+
+        <h2 id="attendanceSubject">成人看護学</h2>
+
+        <p>打刻可能時間です</p>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button id="attendanceYes" class="btn btn-primary" style="flex: 1">
+            ✅ 出席
+          </button>
+
+          <button id="attendanceNo" class="btn" style="flex: 1">❌ 欠席</button>
         </div>
-        
+      </div>
+    </div>
 
-        <p class="exam-popup-label">
-		    昨日のランキング
-		</p>
-		
-		<h2 id="rankingPopupTitle">
-		    🏆 昨日のランキング
-		</h2>
+    <div id="rankingPopupOverlay" class="exam-popup-overlay">
+      <div class="exam-popup-card">
+        <button id="closeRankingPopup" class="exam-popup-close" type="button">
+          ×
+        </button>
 
-        <p id="rankingPopupDate">
-            日付
-        </p>
+        <div class="exam-popup-icon">🏆</div>
+
+        <p class="exam-popup-label">昨日のランキング</p>
+
+        <h2 id="rankingPopupTitle">🏆 昨日のランキング</h2>
+
+        <p id="rankingPopupDate">日付</p>
 
         <div id="rankingPopupList">
+          <div id="rankingDate"></div>
 
-            <div id="rankingDate"></div>
-
-            <div id="rankingList">
-                読み込み中...
-            </div>
-
+          <div id="rankingList">読み込み中...</div>
         </div>
-
+      </div>
     </div>
 
-</div>
+    <!-- クラス選択 -->
+    <div id="classSelectionOverlay" class="exam-popup-overlay" hidden>
+      <div class="exam-popup-card">
+        <div class="exam-popup-icon">🏫</div>
 
-<!-- クラス選択 -->
-<div id="classSelectionOverlay" class="exam-popup-overlay" hidden>
+        <p class="exam-popup-label">クラス確認</p>
 
-    <div class="exam-popup-card">
+        <h2>今日の授業クラス</h2>
 
-        <div class="exam-popup-icon">
-            🏫
-        </div>
+        <div id="classSelectionList">読み込み中...</div>
 
-        <p class="exam-popup-label">
-            クラス確認
-        </p>
-
-        <h2>
-            今日の授業クラス
-        </h2>
-
-
-        <div id="classSelectionList">
-            読み込み中...
-        </div>
-
-
-        <button
-            id="saveClassSelection"
-            class="btn btn-primary">
-
-            保存
-
-        </button>
-
+        <button id="saveClassSelection" class="btn btn-primary">保存</button>
+      </div>
     </div>
 
-</div>
-
-<div id="annualTransitionOverlay" class="exam-popup-overlay" hidden>
-    <div class="exam-popup-card">
+    <div id="annualTransitionOverlay" class="exam-popup-overlay" hidden>
+      <div class="exam-popup-card">
         <div class="exam-popup-icon">🎓</div>
         <p class="exam-popup-label">年度末の確認</p>
         <h2 id="annualTransitionTitle">次年度の予定を確認</h2>
         <p id="annualTransitionMessage"></p>
-        <div id="annualTransitionActions" class="annual-transition-actions"></div>
-        <p class="annual-transition-note">回答後も、反映予定日までは現在の学年・画面のまま利用できます。</p>
+        <div
+          id="annualTransitionActions"
+          class="annual-transition-actions"
+        ></div>
+        <p class="annual-transition-note">
+          回答後も、反映予定日までは現在の学年・画面のまま利用できます。
+        </p>
+      </div>
     </div>
-</div>
 
-<div id="creditConfirmationOverlay" class="exam-popup-overlay" hidden>
-    <div class="exam-popup-card credit-confirmation-card">
+    <div id="creditConfirmationOverlay" class="exam-popup-overlay" hidden>
+      <div class="exam-popup-card credit-confirmation-card">
         <div class="exam-popup-icon">💳</div>
         <p class="exam-popup-label">単位取得の確認</p>
         <h2 id="creditConfirmationTitle">履修科目の単位を確認</h2>
-        <p id="creditConfirmationMessage">各科目について、単位を取得できたか選択してください。</p>
+        <p id="creditConfirmationMessage">
+          各科目について、単位を取得できたか選択してください。
+        </p>
         <div id="creditConfirmationList" class="credit-confirmation-list"></div>
-        <button id="saveCreditConfirmation" class="btn btn-primary" type="button">回答を保存</button>
-        <p class="annual-transition-note">取得できなかった科目は、履修科目に「再履修」として残ります。</p>
+        <button
+          id="saveCreditConfirmation"
+          class="btn btn-primary"
+          type="button"
+        >
+          回答を保存
+        </button>
+        <p class="annual-transition-note">
+          取得できなかった科目は、履修科目に「再履修」として残ります。
+        </p>
+      </div>
     </div>
-</div>
 
-<div class="top-buttons">
-
-    <div class="top-user-info">
-
-        <span id="userName">
-            Unknownさん
-        </span>
+    <div class="top-buttons">
+      <div class="top-user-info">
+        <span id="userName"> Unknownさん </span>
 
         <span id="myRanking"></span>
+      </div>
 
-    </div>
-
-    <div class="top-right">
-
-        <button
-            id="activeMailButton"
-            class="circle-button icon-button">
-
-            💌
-            <span
-                id="activeMailBadge"
-                class="notification-badge"
-                hidden>
-                0
-            </span>
-
+      <div class="top-right">
+        <button id="activeMailButton" class="circle-button icon-button">
+          💌
+          <span id="activeMailBadge" class="notification-badge" hidden>
+            0
+          </span>
         </button>
 
-        <button id="themeButton" class="circle-button">
-            🌙
-        </button>
+        <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
-
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-
+      </div>
     </div>
 
-</div>
-
-<button id="courseRegistrationBanner" class="course-registration-banner" type="button" hidden>
-    <span class="course-registration-banner-track">
+    <button
+      id="courseRegistrationBanner"
+      class="course-registration-banner"
+      type="button"
+      hidden
+    >
+      <span class="course-registration-banner-track">
         <span id="courseRegistrationBannerText">履修登録期間中！！</span>
-    </span>
-</button>
+      </span>
+    </button>
 
-<div class="home-weather-search-row">
-    <button id="weatherCard" class="home-weather-compact" type="button">
+    <div class="home-weather-search-row">
+      <button id="weatherCard" class="home-weather-compact" type="button">
         <span id="weatherLocation" class="home-weather-location">地域</span>
         <span id="weatherMain" class="home-weather-main">読み込み中...</span>
         <span id="weatherDetail" class="home-weather-detail"></span>
         <span id="weatherDate" hidden></span>
         <span id="weatherUpdated" hidden></span>
-    </button>
-    <form id="homeSearchForm" class="home-search-form">
-        <input id="homeSearchInput" type="search" placeholder="Googleで検索" aria-label="Googleで検索">
+      </button>
+      <form id="homeSearchForm" class="home-search-form">
+        <input
+          id="homeSearchInput"
+          type="search"
+          placeholder="Googleで検索"
+          aria-label="Googleで検索"
+        />
         <button type="submit" aria-label="検索">⌕</button>
-    </form>
-</div>
+      </form>
+    </div>
 
-<div
-    id="examStatusCard"
-    class="card setting-card"
-    style="display:none;">
-    <div
+    <div id="examStatusCard" class="card setting-card" style="display: none">
+      <div
         id="examStatusLabel"
         style="
-            font-size:13px;
-            font-weight:bold;
-            color:var(--primary);
-            margin-bottom:6px;
-        ">
-    </div>
-    <div
+          font-size: 13px;
+          font-weight: bold;
+          color: var(--primary);
+          margin-bottom: 6px;
+        "
+      ></div>
+      <div
         id="examStatusText"
-        style="
-            font-size:24px;
-            font-weight:800;
-            color:var(--text);
-        ">
-    </div>
-    <div
+        style="font-size: 24px; font-weight: 800; color: var(--text)"
+      ></div>
+      <div
         id="examStatusTitle"
-        style="
-            margin-top:6px;
-            font-size:14px;
-            color:var(--subtext);
-        ">
+        style="margin-top: 6px; font-size: 14px; color: var(--subtext)"
+      ></div>
     </div>
-</div>
 
-<div id="authSetupCards"></div>
+    <div id="authSetupCards"></div>
 
-<header class="header">
-    <div class="logo">🎓</div>
-    <h1>CareMateApp</h1>
-    <p>大学時間割変更通知アプリ</p>
-</header>
+    <header class="header">
+      <div class="logo">🎓</div>
+      <h1>CareMateApp</h1>
+      <p>大学時間割変更通知アプリ</p>
+    </header>
 
-<hr>
+    <hr />
 
-<h2>📅 講義・試験予定</h2>
+    <h2>📅 講義・試験予定</h2>
 
-<div class="schedule-scroll home-schedule-grid">
-
-    <!-- 講義予定 -->
-    <div
-        id="lectureScheduleCard"
-        class="card day-card">
-
+    <div class="schedule-scroll home-schedule-grid">
+      <!-- 講義予定 -->
+      <div id="lectureScheduleCard" class="card day-card">
         <div class="schedule-card-title schedule-title-row">
+          <span> 📅 講義予定 </span>
 
-            <span>
-                📅 講義予定
+          <a
+            id="lectureSchedulePdfLink"
+            class="schedule-pdf-link"
+            href="https://sums.ac.jp/students/html/sums/pdf/syllabus/syllabus_ft01.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="大学の時間割PDFを開く"
+          >
+            📄 PDF
+          </a>
+        </div>
+
+        <div class="schedule-switcher">
+          <button id="lecturePrev" class="schedule-switch-button" type="button">
+            ◀
+          </button>
+
+          <button
+            id="lectureDatePickerButton"
+            class="schedule-date-picker"
+            type="button"
+            aria-expanded="false"
+          >
+            <span id="lectureScheduleLabel" class="schedule-switch-label">
+              今日
             </span>
 
-            <a
-                id="lectureSchedulePdfLink"
-                class="schedule-pdf-link"
-                href="https://sums.ac.jp/students/html/sums/pdf/syllabus/syllabus_ft01.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="大学の時間割PDFを開く">
+            <span
+              id="lectureScheduleDetail"
+              class="schedule-switch-detail"
+              hidden
+            >
+            </span>
 
-                📄 PDF
+            <span class="schedule-calendar-hint">
+              📅 タップして日付を選択
+            </span>
+          </button>
 
-            </a>
-
+          <button id="lectureNext" class="schedule-switch-button" type="button">
+            ▶
+          </button>
         </div>
+
+        <div id="lectureCalendarPopup" class="lecture-calendar-popup" hidden>
+          <div class="lecture-calendar-header">
+            <button
+              id="lectureCalendarPrevMonth"
+              class="lecture-calendar-nav"
+              type="button"
+            >
+              ◀
+            </button>
+
+            <div id="lectureCalendarMonth" class="lecture-calendar-month">
+              2026年7月
+            </div>
+
+            <button
+              id="lectureCalendarNextMonth"
+              class="lecture-calendar-nav"
+              type="button"
+            >
+              ▶
+            </button>
+          </div>
+
+          <div class="lecture-calendar-weekdays">
+            <span>日</span>
+            <span>月</span>
+            <span>火</span>
+            <span>水</span>
+            <span>木</span>
+            <span>金</span>
+            <span>土</span>
+          </div>
+
+          <div id="lectureCalendarDays" class="lecture-calendar-days"></div>
+        </div>
+
+        <div id="lectureScheduleList" class="schedule-content">取得中...</div>
+      </div>
+
+      <!-- 試験日程 -->
+      <div id="examScheduleCard" class="card day-card" style="display: none">
+        <div class="schedule-card-title">📚 試験日程</div>
 
         <div class="schedule-switcher">
+          <button id="examPrev" class="schedule-switch-button" type="button">
+            ◀
+          </button>
 
-            <button
-                id="lecturePrev"
-                class="schedule-switch-button"
-                type="button">
-                ◀
-            </button>
+          <div id="examPage" class="schedule-switch-label">日付</div>
 
-            <button
-                id="lectureDatePickerButton"
-                class="schedule-date-picker"
-                type="button"
-                aria-expanded="false">
-
-                <span
-                    id="lectureScheduleLabel"
-                    class="schedule-switch-label">
-                    今日
-                </span>
-
-                <span
-                    id="lectureScheduleDetail"
-                    class="schedule-switch-detail"
-                    hidden>
-                </span>
-
-                <span class="schedule-calendar-hint">
-                    📅 タップして日付を選択
-                </span>
-
-            </button>
-
-            <button
-                id="lectureNext"
-                class="schedule-switch-button"
-                type="button">
-                ▶
-            </button>
-
+          <button id="examNext" class="schedule-switch-button" type="button">
+            ▶
+          </button>
         </div>
 
-        <div
-            id="lectureCalendarPopup"
-            class="lecture-calendar-popup"
-            hidden>
-
-            <div class="lecture-calendar-header">
-
-                <button
-                    id="lectureCalendarPrevMonth"
-                    class="lecture-calendar-nav"
-                    type="button">
-                    ◀
-                </button>
-
-                <div
-                    id="lectureCalendarMonth"
-                    class="lecture-calendar-month">
-                    2026年7月
-                </div>
-
-                <button
-                    id="lectureCalendarNextMonth"
-                    class="lecture-calendar-nav"
-                    type="button">
-                    ▶
-                </button>
-
-            </div>
-
-            <div class="lecture-calendar-weekdays">
-                <span>日</span>
-                <span>月</span>
-                <span>火</span>
-                <span>水</span>
-                <span>木</span>
-                <span>金</span>
-                <span>土</span>
-            </div>
-
-            <div
-                id="lectureCalendarDays"
-                class="lecture-calendar-days">
-            </div>
-
-        </div>
-
-        <div
-            id="lectureScheduleList"
-            class="schedule-content">
-            取得中...
-        </div>
-
+        <div id="examScheduleList" class="schedule-content">読み込み中...</div>
+      </div>
     </div>
 
-    <!-- 試験日程 -->
-    <div
-        id="examScheduleCard"
-        class="card day-card"
-        style="display:none;">
+    <h2>📝 便利タブ ☀️</h2>
 
-        <div class="schedule-card-title">
-            📚 試験日程
-        </div>
-
-        <div class="schedule-switcher">
-
-            <button
-                id="examPrev"
-                class="schedule-switch-button"
-                type="button">
-                ◀
-            </button>
-
-            <div
-                id="examPage"
-                class="schedule-switch-label">
-                日付
-            </div>
-
-            <button
-                id="examNext"
-                class="schedule-switch-button"
-                type="button">
-                ▶
-            </button>
-
-        </div>
-
+    <div class="home-slider home-feature-grid">
+      <div class="home-slide">
         <div
-            id="examScheduleList"
-            class="schedule-content">
-            読み込み中...
+          id="examCard"
+          class="card setting-card home-card"
+          style="display: none"
+        >
+          <h2>📚 テスト対策</h2>
+          <p>AI穴埋め・四択・今日の1問</p>
         </div>
+      </div>
 
-    </div>
+      <div class="home-slide">
+        <div id="attendanceCard" class="card setting-card home-card">
+          <h2>📝 出席管理</h2>
 
-</div>
-
-<h2>📝 便利タブ ☀️</h2>
-
-<div class="home-slider home-feature-grid">
-
-    <div class="home-slide">
-        <div
-            id="examCard"
-            class="card setting-card home-card"
-            style="display:none;">
-
-            <h2>📚 テスト対策</h2>
-            <p>AI穴埋め・四択・今日の1問</p>
-
+          <p>出席状況・欠席回数・試験資格を確認</p>
         </div>
-    </div>
+      </div>
 
-    <div class="home-slide">
-
-		        <div
-		            id="attendanceCard"
-		            class="card setting-card home-card">
-		
-		            <h2>📝 出席管理</h2>
-		
-		            <p>
-		                出席状況・欠席回数・試験資格を確認
-		            </p>
-		
-		        </div>
-		
-    </div>
-
-    <div id="courseRegistrationSlide" class="home-slide" hidden>
+      <div id="courseRegistrationSlide" class="home-slide" hidden>
         <div id="courseRegistrationCard" class="card setting-card home-card">
-            <h2>📘 履修登録</h2>
-            <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
+          <h2>📘 履修登録</h2>
+          <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
         </div>
+      </div>
     </div>
 
-</div>
+    <hr />
 
-<hr>
+    <h2>🔔 お知らせ</h2>
 
-<h2>🔔 お知らせ</h2>
+    <h3 class="news-section-title">📢 大学</h3>
+    <div id="newsList">まだお知らせはありません</div>
 
-<h3 class="news-section-title">📢 大学</h3>
-<div id="newsList">
-    まだお知らせはありません
-</div>
+    <h3 class="news-section-title">📘 コース</h3>
+    <div id="homeCourseNews">読み込み中...</div>
 
-<h3 class="news-section-title">📘 コース</h3>
-<div id="homeCourseNews">
-    読み込み中...
-</div>
+    <h3 class="news-section-title">💙 CareMate</h3>
+    <div id="homeSystemNews">読み込み中...</div>
 
-<h3 class="news-section-title">💙 CareMate</h3>
-<div id="homeSystemNews">
-    読み込み中...
-</div>
+    <footer id="version"></footer>
 
-<footer id="version"></footer>
-
-<nav class="bottom-nav">
-
-    <a href="index.html" class="active">
-
+    <nav class="bottom-nav">
+      <a href="index.html" class="active">
         <span class="nav-icon-wrap">
-            <span class="nav-icon">🏠</span>
+          <span class="nav-icon">🏠</span>
         </span>
 
         <span>ホーム</span>
+      </a>
 
-    </a>
-
-    <a href="assignments.html">
-
+      <a href="assignments.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📚</span>
 
-            <span class="nav-icon">📚</span>
-
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>課題</span>
+      </a>
 
-    </a>
-
-    <a href="requests.html">
-
+      <a href="requests.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">💡</span>
 
-            <span class="nav-icon">💡</span>
-
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="shareNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>リクエスト</span>
+      </a>
 
-    </a>
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📢</span>
 
-            <span class="nav-icon">📢</span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a
-        id="settingsTab"
-        href="settings.html">
-
+      <a id="settingsTab" href="settings.html">
         <span class="nav-icon-wrap">
-            <span class="nav-icon">⚙️</span>
+          <span class="nav-icon">⚙️</span>
         </span>
 
         <span>設定</span>
+      </a>
+    </nav>
 
-    </a>
+    <script>
+      window.pendingPopups = [];
 
-</nav>
+      window.showNextPopup = function () {
+        if (window.pendingPopups.length === 0) {
+          return;
+        }
 
-<script>
+        const next = window.pendingPopups.shift();
 
-window.pendingPopups = [];
+        next();
+      };
+    </script>
 
-window.showNextPopup = function(){
-
-    if(window.pendingPopups.length === 0){
-        return;
-    }
-
-
-    const next =
-        window.pendingPopups.shift();
-
-
-    next();
-
-};
-
-</script>
-
-<script type="module" src="app.js"></script>
-
-</body>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

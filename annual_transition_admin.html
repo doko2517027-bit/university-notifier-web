@@ -1,41 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>年度末判定 | CareMate</title>
-  <link rel="stylesheet" href="style.css">
-  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
-</head>
-<body class="page-loading">
-  <div class="top-buttons">
-    <button id="backButton" class="circle-button" aria-label="戻る">←</button>
-    <h2>年度末判定</h2>
-    <div class="top-right"><button id="themeButton" class="circle-button">🌙</button></div>
-  </div>
-
-  <main class="attendance-admin-page">
-    <p id="annualScopeLabel" class="attendance-admin-help"></p>
-    <section class="card setting-card attendance-admin-section">
-      <h3>年度末確認の設定</h3>
-      <p id="annualTransitionHelp" class="attendance-admin-help">年度末確認を開始すると、対象学生は次回アプリを開いた時に必ず回答します。回答後も反映予定日までは、現在の学年・画面のままです。</p>
-      <label>新しい状態を反映する日<input id="annualTransitionActivationDate" type="date"></label>
-      <div class="report-actions">
-        <button id="startAnnualTransition" class="btn btn-primary" type="button">年度末確認を開始</button>
-        <button id="stopAnnualTransition" class="btn" type="button" hidden>年度末確認を停止</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>年度末判定 | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" aria-label="戻る">←</button>
+      <h2>年度末判定</h2>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
       </div>
-    </section>
+    </div>
 
-    <section class="card setting-card attendance-admin-section">
-      <h3>学生の回答状況</h3>
-      <p class="attendance-admin-help">進級・留年・卒業・退学の回答は、反映予定日の午前2時に一度だけ反映されます。</p>
-      <div id="annualTransitionList"><p>読み込み中...</p></div>
-    </section>
-  </main>
+    <main class="attendance-admin-page">
+      <p id="annualScopeLabel" class="attendance-admin-help"></p>
+      <section class="card setting-card attendance-admin-section">
+        <h3>年度末確認の設定</h3>
+        <p id="annualTransitionHelp" class="attendance-admin-help">
+          年度末確認を開始すると、対象学生は次回アプリを開いた時に必ず回答します。回答後も反映予定日までは、現在の学年・画面のままです。
+        </p>
+        <label
+          >新しい状態を反映する日<input
+            id="annualTransitionActivationDate"
+            type="date"
+        /></label>
+        <div class="report-actions">
+          <button
+            id="startAnnualTransition"
+            class="btn btn-primary"
+            type="button"
+          >
+            年度末確認を開始
+          </button>
+          <button id="stopAnnualTransition" class="btn" type="button" hidden>
+            年度末確認を停止
+          </button>
+        </div>
+      </section>
 
-  <nav class="bottom-nav">
-    <a href="index.html">🏠<br><span>ホーム</span></a><a href="assignments.html">📚<br><span>課題</span></a><a href="requests.html">💡<br><span>リクエスト</span></a><a href="news.html">📢<br><span>お知らせ</span></a><a id="settingsTab" href="admin.html" class="active">👑<br><span>管理</span></a>
-  </nav>
-  <script type="module" src="annual_transition_admin.js"></script>
-</body>
+      <section class="card setting-card attendance-admin-section">
+        <h3>学生の回答状況</h3>
+        <p class="attendance-admin-help">
+          進級・留年・卒業・退学の回答は、反映予定日の午前2時に一度だけ反映されます。
+        </p>
+        <div id="annualTransitionList"><p>読み込み中...</p></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="index.html">🏠<br /><span>ホーム</span></a
+      ><a href="assignments.html">📚<br /><span>課題</span></a
+      ><a href="requests.html">💡<br /><span>リクエスト</span></a
+      ><a href="news.html">📢<br /><span>お知らせ</span></a
+      ><a id="settingsTab" href="admin.html" class="active"
+        >👑<br /><span>管理</span></a
+      >
+    </nav>
+    <script type="module" src="annual_transition_admin.js"></script>
+  </body>
 </html>

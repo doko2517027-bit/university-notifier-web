@@ -1,186 +1,132 @@
 import {
-    db,
-    setupTheme,
-    initializePage,
-    loadProfileImage,
-    isAdmin,
-    updateAssignmentNavBadge,
-    updateShareNavBadge,
-    updateNewsNavBadge
+  db,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  isAdmin,
+  updateAssignmentNavBadge,
+  updateShareNavBadge,
+  updateNewsNavBadge,
 } from "./common.js";
 
 import {
-    doc,
-    getDoc,
-    collection,
-    getDocs
+  doc,
+  getDoc,
+  collection,
+  getDocs,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
 
 /* ========================================
    HTML要素
 ======================================== */
 
 const elements = {
+  themeButton: document.getElementById("themeButton"),
 
-    themeButton:
-        document.getElementById("themeButton"),
+  profileButton: document.getElementById("profileButton"),
 
-    profileButton:
-        document.getElementById("profileButton"),
+  profileImage: document.getElementById("topProfileImage"),
 
-    profileImage:
-        document.getElementById("topProfileImage"),
+  backButton: document.getElementById("backButton"),
 
-    backButton:
-        document.getElementById("backButton"),
+  examTitle: document.getElementById("examTitle"),
 
+  examStateBadge: document.getElementById("examStateBadge"),
 
-    examTitle:
-        document.getElementById("examTitle"),
+  examCountdown: document.getElementById("examCountdown"),
 
-    examStateBadge:
-        document.getElementById("examStateBadge"),
+  examStartDate: document.getElementById("examStartDateText"),
 
-    examCountdown:
-        document.getElementById("examCountdown"),
+  examEndDate: document.getElementById("examEndDateText"),
 
-    examStartDate:
-        document.getElementById("examStartDateText"),
+  overallStatusBadge: document.getElementById("overallStatusBadge"),
 
-    examEndDate:
-        document.getElementById("examEndDateText"),
+  overallProgressRing: document.getElementById("overallProgressRing"),
 
+  overallProgressPercent: document.getElementById("overallProgressPercent"),
 
-    overallStatusBadge:
-        document.getElementById("overallStatusBadge"),
+  overallProgressBar: document.getElementById("overallProgressBar"),
 
-    overallProgressRing:
-        document.getElementById("overallProgressRing"),
+  overallProgressMessage: document.getElementById("overallProgressMessage"),
 
-    overallProgressPercent:
-        document.getElementById("overallProgressPercent"),
+  completedFormatCount: document.getElementById("completedFormatCount"),
 
-    overallProgressBar:
-        document.getElementById("overallProgressBar"),
+  inProgressFormatCount: document.getElementById("inProgressFormatCount"),
 
-    overallProgressMessage:
-        document.getElementById("overallProgressMessage"),
+  unstartedFormatCount: document.getElementById("unstartedFormatCount"),
 
-    completedFormatCount:
-        document.getElementById("completedFormatCount"),
+  completedSubjectCount: document.getElementById("completedSubjectCount"),
 
-    inProgressFormatCount:
-        document.getElementById("inProgressFormatCount"),
+  continueSection: document.getElementById("continueLearningSection"),
 
-    unstartedFormatCount:
-        document.getElementById("unstartedFormatCount"),
+  continueButton: document.getElementById("continueLearningButton"),
 
-    completedSubjectCount:
-        document.getElementById("completedSubjectCount"),
+  continueIcon: document.getElementById("continueLearningIcon"),
 
+  continueSubject: document.getElementById("continueLearningSubject"),
 
-    continueSection:
-        document.getElementById("continueLearningSection"),
+  continueTitle: document.getElementById("continueLearningTitle"),
 
-    continueButton:
-        document.getElementById("continueLearningButton"),
+  continueDetail: document.getElementById("continueLearningDetail"),
 
-    continueIcon:
-        document.getElementById("continueLearningIcon"),
+  todayDailyCount: document.getElementById("todayDailyCount"),
 
-    continueSubject:
-        document.getElementById("continueLearningSubject"),
+  todayDailyProgressBar: document.getElementById("todayDailyProgressBar"),
 
-    continueTitle:
-        document.getElementById("continueLearningTitle"),
+  todayDailyMessage: document.getElementById("todayDailyMessage"),
 
-    continueDetail:
-        document.getElementById("continueLearningDetail"),
+  searchInput: document.getElementById("examSubjectSearch"),
 
+  clearSearchButton: document.getElementById("clearExamSearchButton"),
 
-    todayDailyCount:
-        document.getElementById("todayDailyCount"),
+  statusFilters: document.getElementById("examStatusFilters"),
 
-    todayDailyProgressBar:
-        document.getElementById("todayDailyProgressBar"),
+  allSubjectFilterCount: document.getElementById("allSubjectFilterCount"),
 
-    todayDailyMessage:
-        document.getElementById("todayDailyMessage"),
+  unstartedSubjectFilterCount: document.getElementById(
+    "unstartedSubjectFilterCount",
+  ),
 
+  inProgressSubjectFilterCount: document.getElementById(
+    "inProgressSubjectFilterCount",
+  ),
 
-    searchInput:
-        document.getElementById("examSubjectSearch"),
+  completedSubjectFilterCount: document.getElementById(
+    "completedSubjectFilterCount",
+  ),
 
-    clearSearchButton:
-        document.getElementById("clearExamSearchButton"),
+  visibleSubjectCount: document.getElementById("visibleExamSubjectCount"),
 
-    statusFilters:
-        document.getElementById("examStatusFilters"),
+  toggleAllSubjectsButton: document.getElementById("toggleAllSubjectsButton"),
 
-    allSubjectFilterCount:
-        document.getElementById("allSubjectFilterCount"),
+  totalSubjectCount: document.getElementById("totalSubjectCount"),
 
-    unstartedSubjectFilterCount:
-        document.getElementById("unstartedSubjectFilterCount"),
+  subjectUnitList: document.getElementById("subjectUnitList"),
 
-    inProgressSubjectFilterCount:
-        document.getElementById("inProgressSubjectFilterCount"),
+  helpModal: document.getElementById("examHelpModal"),
 
-    completedSubjectFilterCount:
-        document.getElementById("completedSubjectFilterCount"),
+  openHelpButton: document.getElementById("openExamHelpButton"),
 
-    visibleSubjectCount:
-        document.getElementById("visibleExamSubjectCount"),
+  closeHelpButton: document.getElementById("closeExamHelpButton"),
 
-    toggleAllSubjectsButton:
-        document.getElementById("toggleAllSubjectsButton"),
+  confirmHelpButton: document.getElementById("confirmExamHelpButton"),
 
-    totalSubjectCount:
-        document.getElementById("totalSubjectCount"),
+  settingsTab: document.getElementById("settingsTab"),
 
-    subjectUnitList:
-        document.getElementById("subjectUnitList"),
-
-
-    helpModal:
-        document.getElementById("examHelpModal"),
-
-    openHelpButton:
-        document.getElementById("openExamHelpButton"),
-
-    closeHelpButton:
-        document.getElementById("closeExamHelpButton"),
-
-    confirmHelpButton:
-        document.getElementById("confirmExamHelpButton"),
-
-
-    settingsTab:
-        document.getElementById("settingsTab"),
-
-    adminTab:
-        document.getElementById("adminTab")
-
+  adminTab: document.getElementById("adminTab"),
 };
-
 
 /* ========================================
    基本情報
 ======================================== */
 
-const studentNumber =
-    localStorage.getItem("studentNumber") || "";
+const studentNumber = localStorage.getItem("studentNumber") || "";
 
-const todayKey =
-    createLocalDateKey(new Date());
+const todayKey = createLocalDateKey(new Date());
 
-const todayCompactKey =
-    todayKey.replaceAll("-", "");
+const todayCompactKey = todayKey.replaceAll("-", "");
 
-const openSubjectsStorageKey =
-    `caremateExamOpenSubjects_${studentNumber || "guest"}`;
-
+const openSubjectsStorageKey = `caremateExamOpenSubjects_${studentNumber || "guest"}`;
 
 /* ========================================
    状態
@@ -190,448 +136,226 @@ let examInformation = null;
 
 let subjects = [];
 
-let progressMap =
-    new Map();
+let progressMap = new Map();
 
-let dailyCompletionKeys =
-    new Set();
+let dailyCompletionKeys = new Set();
 
 let dailyRecordTexts = [];
 
-let currentStatusFilter =
-    "all";
+let currentStatusFilter = "all";
 
-let openSubjectIds =
-    loadOpenSubjectIds();
+let openSubjectIds = loadOpenSubjectIds();
 
 let continueTarget = null;
-
 
 /* ========================================
    初期設定
 ======================================== */
 
-setupTheme(
-    elements.themeButton
-);
+setupTheme(elements.themeButton);
 
 setupEvents();
 
-
 await initializePage([
+  loadProfileImage(elements.profileImage),
 
-    loadProfileImage(
-        elements.profileImage
-    ),
+  setupRoleTabs(),
 
-    setupRoleTabs(),
+  updateAssignmentNavBadge(),
 
-    updateAssignmentNavBadge(),
+  updateShareNavBadge(),
 
-    updateShareNavBadge(),
+  updateNewsNavBadge(),
 
-    updateNewsNavBadge(),
-
-    loadExamDashboard()
-
+  loadExamDashboard(),
 ]);
-
 
 /* ========================================
    イベント登録
 ======================================== */
 
 function setupEvents() {
+  elements.backButton?.addEventListener("click", () => {
+    location.href = "index.html";
+  });
 
-    elements.backButton?.addEventListener(
-        "click",
-        () => {
+  elements.profileButton?.addEventListener("click", () => {
+    location.href = "profile.html";
+  });
 
-            location.href =
-                "index.html";
+  elements.searchInput?.addEventListener("input", () => {
+    elements.clearSearchButton.hidden = elements.searchInput.value === "";
 
-        }
-    );
+    renderSubjectList();
+  });
 
+  elements.clearSearchButton?.addEventListener("click", () => {
+    elements.searchInput.value = "";
 
-    elements.profileButton?.addEventListener(
-        "click",
-        () => {
+    elements.clearSearchButton.hidden = true;
 
-            location.href =
-                "profile.html";
+    elements.searchInput.focus();
 
-        }
-    );
+    renderSubjectList();
+  });
 
+  elements.statusFilters?.addEventListener("click", (event) => {
+    const button = event.target.closest(".exam-filter-button");
 
-    elements.searchInput?.addEventListener(
-        "input",
-        () => {
+    if (!button) {
+      return;
+    }
 
-            elements.clearSearchButton.hidden =
-                elements.searchInput.value === "";
+    currentStatusFilter = button.dataset.status || "all";
 
-            renderSubjectList();
+    elements.statusFilters
+      .querySelectorAll(".exam-filter-button")
+      .forEach((filterButton) => {
+        filterButton.classList.toggle("is-active", filterButton === button);
+      });
 
-        }
-    );
+    renderSubjectList();
+  });
 
+  elements.toggleAllSubjectsButton?.addEventListener(
+    "click",
+    toggleAllVisibleSubjects,
+  );
 
-    elements.clearSearchButton?.addEventListener(
-        "click",
-        () => {
+  elements.subjectUnitList?.addEventListener("click", (event) => {
+    const subjectToggle = event.target.closest(".exam-subject-toggle");
 
-            elements.searchInput.value =
-                "";
+    if (subjectToggle) {
+      toggleSubject(subjectToggle.dataset.subjectId);
 
-            elements.clearSearchButton.hidden =
-                true;
+      return;
+    }
 
-            elements.searchInput.focus();
+    const learningButton = event.target.closest("[data-learning-url]");
 
-            renderSubjectList();
+    if (learningButton) {
+      const url = learningButton.dataset.learningUrl;
 
-        }
-    );
+      if (url) {
+        location.href = url;
+      }
+    }
+  });
 
+  elements.continueButton?.addEventListener("click", () => {
+    if (!continueTarget?.url) {
+      return;
+    }
 
-    elements.statusFilters?.addEventListener(
-        "click",
-        event => {
+    location.href = continueTarget.url;
+  });
 
-            const button =
-                event.target.closest(
-                    ".exam-filter-button"
-                );
+  elements.openHelpButton?.addEventListener("click", openHelpModal);
 
-            if (!button) {
-                return;
-            }
+  elements.closeHelpButton?.addEventListener("click", closeHelpModal);
 
-            currentStatusFilter =
-                button.dataset.status ||
-                "all";
+  elements.confirmHelpButton?.addEventListener("click", closeHelpModal);
 
-            elements.statusFilters
-                .querySelectorAll(
-                    ".exam-filter-button"
-                )
-                .forEach(
-                    filterButton => {
+  elements.helpModal?.addEventListener("click", (event) => {
+    if (event.target === elements.helpModal) {
+      closeHelpModal();
+    }
+  });
 
-                        filterButton.classList.toggle(
-                            "is-active",
-                            filterButton === button
-                        );
-
-                    }
-                );
-
-            renderSubjectList();
-
-        }
-    );
-
-
-    elements.toggleAllSubjectsButton?.addEventListener(
-        "click",
-        toggleAllVisibleSubjects
-    );
-
-
-    elements.subjectUnitList?.addEventListener(
-        "click",
-        event => {
-
-            const subjectToggle =
-                event.target.closest(
-                    ".exam-subject-toggle"
-                );
-
-            if (subjectToggle) {
-
-                toggleSubject(
-                    subjectToggle.dataset.subjectId
-                );
-
-                return;
-
-            }
-
-
-            const learningButton =
-                event.target.closest(
-                    "[data-learning-url]"
-                );
-
-            if (learningButton) {
-
-                const url =
-                    learningButton.dataset.learningUrl;
-
-                if (url) {
-
-                    location.href =
-                        url;
-
-                }
-
-            }
-
-        }
-    );
-
-
-    elements.continueButton?.addEventListener(
-        "click",
-        () => {
-
-            if (!continueTarget?.url) {
-                return;
-            }
-
-            location.href =
-                continueTarget.url;
-
-        }
-    );
-
-
-    elements.openHelpButton?.addEventListener(
-        "click",
-        openHelpModal
-    );
-
-
-    elements.closeHelpButton?.addEventListener(
-        "click",
-        closeHelpModal
-    );
-
-
-    elements.confirmHelpButton?.addEventListener(
-        "click",
-        closeHelpModal
-    );
-
-
-    elements.helpModal?.addEventListener(
-        "click",
-        event => {
-
-            if (
-                event.target ===
-                elements.helpModal
-            ) {
-
-                closeHelpModal();
-
-            }
-
-        }
-    );
-
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            if (event.key === "Escape") {
-
-                closeHelpModal();
-
-            }
-
-        }
-    );
-
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeHelpModal();
+    }
+  });
 }
-
 
 /* ========================================
    管理・設定タブの仕分け
 ======================================== */
 
 async function setupRoleTabs() {
+  try {
+    const administrator = await isAdmin();
 
-    try {
+    if (administrator) {
+      if (elements.settingsTab) {
+        elements.settingsTab.style.display = "none";
+      }
 
-        const administrator =
-            await isAdmin();
+      if (elements.adminTab) {
+        elements.adminTab.style.display = "flex";
+      }
+    } else {
+      if (elements.settingsTab) {
+        elements.settingsTab.style.display = "flex";
+      }
 
+      if (elements.adminTab) {
+        elements.adminTab.style.display = "none";
+      }
+    }
+  } catch (error) {
+    console.error("管理者判定エラー:", error);
 
-        if (administrator) {
-
-            if (elements.settingsTab) {
-
-                elements.settingsTab.style.display =
-                    "none";
-
-            }
-
-
-            if (elements.adminTab) {
-
-                elements.adminTab.style.display =
-                    "flex";
-
-            }
-
-        } else {
-
-            if (elements.settingsTab) {
-
-                elements.settingsTab.style.display =
-                    "flex";
-
-            }
-
-
-            if (elements.adminTab) {
-
-                elements.adminTab.style.display =
-                    "none";
-
-            }
-
-        }
-
-    } catch (error) {
-
-        console.error(
-            "管理者判定エラー:",
-            error
-        );
-
-
-        if (elements.settingsTab) {
-
-            elements.settingsTab.style.display =
-                "flex";
-
-        }
-
-
-        if (elements.adminTab) {
-
-            elements.adminTab.style.display =
-                "none";
-
-        }
-
+    if (elements.settingsTab) {
+      elements.settingsTab.style.display = "flex";
     }
 
+    if (elements.adminTab) {
+      elements.adminTab.style.display = "none";
+    }
+  }
 }
-
 
 /* ========================================
    全データ読込
 ======================================== */
 
 async function loadExamDashboard() {
+  try {
+    const [
+      examSnapshot,
+      subjectSnapshot,
+      progressSnapshot,
+      pointHistorySnapshot,
+      subjectPointSnapshot,
+    ] = await Promise.all([
+      getDoc(doc(db, "system", "exam")),
 
-    try {
+      getDocs(collection(db, "examSubjects")),
 
-        const [
-            examSnapshot,
-            subjectSnapshot,
-            progressSnapshot,
-            pointHistorySnapshot,
-            subjectPointSnapshot
-        ] = await Promise.all([
+      studentNumber
+        ? safeGetDocs(collection(db, "users", studentNumber, "examProgress"))
+        : Promise.resolve(null),
 
-            getDoc(
-                doc(
-                    db,
-                    "system",
-                    "exam"
-                )
-            ),
+      studentNumber
+        ? safeGetDocs(
+            collection(db, "users", studentNumber, "subjectPointHistory"),
+          )
+        : Promise.resolve(null),
 
-            getDocs(
-                collection(
-                    db,
-                    "examSubjects"
-                )
-            ),
+      studentNumber
+        ? safeGetDocs(collection(db, "users", studentNumber, "subjectPoints"))
+        : Promise.resolve(null),
+    ]);
 
-            studentNumber
-                ? safeGetDocs(
-                    collection(
-                        db,
-                        "users",
-                        studentNumber,
-                        "examProgress"
-                    )
-                )
-                : Promise.resolve(null),
+    renderExamInformation(examSnapshot);
 
-            studentNumber
-                ? safeGetDocs(
-                    collection(
-                        db,
-                        "users",
-                        studentNumber,
-                        "subjectPointHistory"
-                    )
-                )
-                : Promise.resolve(null),
+    buildProgressMap(progressSnapshot);
 
-            studentNumber
-                ? safeGetDocs(
-                    collection(
-                        db,
-                        "users",
-                        studentNumber,
-                        "subjectPoints"
-                    )
-                )
-                : Promise.resolve(null)
+    buildDailyCompletionData(pointHistorySnapshot, subjectPointSnapshot);
 
-        ]);
+    subjects = await buildSubjectData(subjectSnapshot);
 
+    subjects.sort(compareSubjects);
 
-        renderExamInformation(
-            examSnapshot
-        );
+    prepareInitialOpenSubject();
 
+    updateDashboard();
+  } catch (error) {
+    console.error("テスト対策画面読込エラー:", error);
 
-        buildProgressMap(
-            progressSnapshot
-        );
-
-
-        buildDailyCompletionData(
-            pointHistorySnapshot,
-            subjectPointSnapshot
-        );
-
-
-        subjects =
-            await buildSubjectData(
-                subjectSnapshot
-            );
-
-
-        subjects.sort(
-            compareSubjects
-        );
-
-
-        prepareInitialOpenSubject();
-
-        updateDashboard();
-
-    } catch (error) {
-
-        console.error(
-            "テスト対策画面読込エラー:",
-            error
-        );
-
-
-        elements.subjectUnitList.innerHTML = `
+    elements.subjectUnitList.innerHTML = `
 
             <div class="exam-empty-state">
 
@@ -660,1880 +384,928 @@ async function loadExamDashboard() {
 
         `;
 
-
-        updateEmptyDashboard();
-
-    }
-
+    updateEmptyDashboard();
+  }
 }
-
 
 /* ========================================
    試験情報
 ======================================== */
 
-function renderExamInformation(
-    snapshot
-) {
+function renderExamInformation(snapshot) {
+  if (!snapshot.exists()) {
+    examInformation = null;
 
-    if (!snapshot.exists()) {
+    elements.examTitle.textContent = "テスト対策";
 
-        examInformation =
-            null;
+    elements.examStateBadge.textContent = "情報未登録";
 
-        elements.examTitle.textContent =
-            "テスト対策";
+    elements.examStateBadge.className = "exam-state-badge is-off";
 
-        elements.examStateBadge.textContent =
-            "情報未登録";
+    elements.examCountdown.textContent = "テスト情報はまだ登録されていません。";
 
-        elements.examStateBadge.className =
-            "exam-state-badge is-off";
+    elements.examStartDate.textContent = "----";
 
-        elements.examCountdown.textContent =
-            "テスト情報はまだ登録されていません。";
+    elements.examEndDate.textContent = "----";
 
-        elements.examStartDate.textContent =
-            "----";
+    return;
+  }
 
-        elements.examEndDate.textContent =
-            "----";
+  examInformation = snapshot.data() || {};
 
-        return;
+  elements.examTitle.textContent = examInformation.title || "テスト対策";
 
-    }
+  elements.examStartDate.textContent = formatExamDate(
+    examInformation.startDate,
+  );
 
+  elements.examEndDate.textContent = formatExamDate(examInformation.endDate);
 
-    examInformation =
-        snapshot.data() || {};
+  if (examInformation.enabled !== true) {
+    elements.examStateBadge.textContent = "テストモードOFF";
 
+    elements.examStateBadge.className = "exam-state-badge is-off";
 
-    elements.examTitle.textContent =
-        examInformation.title ||
-        "テスト対策";
+    elements.examCountdown.textContent = "問題は復習用として利用できます。";
 
+    return;
+  }
 
-    elements.examStartDate.textContent =
-        formatExamDate(
-            examInformation.startDate
-        );
+  const today = startOfLocalDay(new Date());
 
+  const startDate = parseLocalDate(examInformation.startDate);
 
-    elements.examEndDate.textContent =
-        formatExamDate(
-            examInformation.endDate
-        );
+  const endDate = parseLocalDate(examInformation.endDate);
 
+  if (!startDate || !endDate) {
+    elements.examStateBadge.textContent = "期間未設定";
 
-    if (
-        examInformation.enabled !== true
-    ) {
-
-        elements.examStateBadge.textContent =
-            "テストモードOFF";
-
-        elements.examStateBadge.className =
-            "exam-state-badge is-off";
-
-        elements.examCountdown.textContent =
-            "問題は復習用として利用できます。";
-
-        return;
-
-    }
-
-
-    const today =
-        startOfLocalDay(
-            new Date()
-        );
-
-    const startDate =
-        parseLocalDate(
-            examInformation.startDate
-        );
-
-    const endDate =
-        parseLocalDate(
-            examInformation.endDate
-        );
-
-
-    if (
-        !startDate ||
-        !endDate
-    ) {
-
-        elements.examStateBadge.textContent =
-            "期間未設定";
-
-        elements.examStateBadge.className =
-            "exam-state-badge is-off";
-
-        elements.examCountdown.textContent =
-            "テスト期間が正しく設定されていません。";
-
-        return;
-
-    }
-
-
-    if (today < startDate) {
-
-        const days =
-            differenceInDays(
-                today,
-                startDate
-            );
-
-        elements.examStateBadge.textContent =
-            "テスト前";
-
-        elements.examStateBadge.className =
-            "exam-state-badge is-before";
-
-        elements.examCountdown.textContent =
-            `開始まであと${days}日です。`;
-
-        return;
-
-    }
-
-
-    if (today <= endDate) {
-
-        const days =
-            differenceInDays(
-                today,
-                endDate
-            );
-
-        elements.examStateBadge.textContent =
-            "テスト期間中";
-
-        elements.examStateBadge.className =
-            "exam-state-badge is-active";
-
-        elements.examCountdown.textContent =
-            days === 0
-                ? "テスト期間は今日までです。"
-                : `終了まであと${days}日です。`;
-
-        return;
-
-    }
-
-
-    elements.examStateBadge.textContent =
-        "期間終了";
-
-    elements.examStateBadge.className =
-        "exam-state-badge is-ended";
+    elements.examStateBadge.className = "exam-state-badge is-off";
 
     elements.examCountdown.textContent =
-        "テスト期間は終了しました。復習に利用できます。";
+      "テスト期間が正しく設定されていません。";
 
+    return;
+  }
+
+  if (today < startDate) {
+    const days = differenceInDays(today, startDate);
+
+    elements.examStateBadge.textContent = "テスト前";
+
+    elements.examStateBadge.className = "exam-state-badge is-before";
+
+    elements.examCountdown.textContent = `開始まであと${days}日です。`;
+
+    return;
+  }
+
+  if (today <= endDate) {
+    const days = differenceInDays(today, endDate);
+
+    elements.examStateBadge.textContent = "テスト期間中";
+
+    elements.examStateBadge.className = "exam-state-badge is-active";
+
+    elements.examCountdown.textContent =
+      days === 0 ? "テスト期間は今日までです。" : `終了まであと${days}日です。`;
+
+    return;
+  }
+
+  elements.examStateBadge.textContent = "期間終了";
+
+  elements.examStateBadge.className = "exam-state-badge is-ended";
+
+  elements.examCountdown.textContent =
+    "テスト期間は終了しました。復習に利用できます。";
 }
-
 
 /* ========================================
    学習進捗
 ======================================== */
 
-function buildProgressMap(
-    snapshot
-) {
+function buildProgressMap(snapshot) {
+  progressMap = new Map();
 
-    progressMap =
-        new Map();
+  if (!snapshot) {
+    return;
+  }
 
+  snapshot.docs.forEach((progressDocument) => {
+    const data = progressDocument.data() || {};
 
-    if (!snapshot) {
-        return;
+    const type = normalizeProgressType(data.type);
+
+    const subjectId = String(data.subjectId || "");
+
+    const unitId = String(data.unitId || "");
+
+    if (!type || !subjectId || !unitId) {
+      return;
     }
 
+    const key = createProgressKey(type, subjectId, unitId);
 
-    snapshot.docs.forEach(
-        progressDocument => {
+    const normalized = {
+      id: progressDocument.id,
 
-            const data =
-                progressDocument.data() || {};
+      type,
 
+      subjectId,
 
-            const type =
-                normalizeProgressType(
-                    data.type
-                );
+      unitId,
 
+      subjectName: String(data.subjectName || ""),
 
-            const subjectId =
-                String(
-                    data.subjectId ||
-                    ""
-                );
+      completed: data.completed === true,
 
+      currentIndex: nonNegativeNumber(data.currentIndex),
 
-            const unitId =
-                String(
-                    data.unitId ||
-                    ""
-                );
+      totalQuestions: nonNegativeNumber(data.totalQuestions),
 
+      updatedAt: toMilliseconds(
+        data.updatedAt || data.savedAt || data.completedAt || data.createdAt,
+      ),
 
-            if (
-                !type ||
-                !subjectId ||
-                !unitId
-            ) {
+      raw: data,
+    };
 
-                return;
+    const previous = progressMap.get(key);
 
-            }
-
-
-            const key =
-                createProgressKey(
-                    type,
-                    subjectId,
-                    unitId
-                );
-
-
-            const normalized = {
-
-                id:
-                    progressDocument.id,
-
-                type,
-
-                subjectId,
-
-                unitId,
-
-                subjectName:
-                    String(
-                        data.subjectName ||
-                        ""
-                    ),
-
-                completed:
-                    data.completed === true,
-
-                currentIndex:
-                    nonNegativeNumber(
-                        data.currentIndex
-                    ),
-
-                totalQuestions:
-                    nonNegativeNumber(
-                        data.totalQuestions
-                    ),
-
-                updatedAt:
-                    toMilliseconds(
-                        data.updatedAt ||
-                        data.savedAt ||
-                        data.completedAt ||
-                        data.createdAt
-                    ),
-
-                raw:
-                    data
-
-            };
-
-
-            const previous =
-                progressMap.get(key);
-
-
-            if (
-                !previous ||
-                normalized.updatedAt >=
-                    previous.updatedAt
-            ) {
-
-                progressMap.set(
-                    key,
-                    normalized
-                );
-
-            }
-
-        }
-    );
-
+    if (!previous || normalized.updatedAt >= previous.updatedAt) {
+      progressMap.set(key, normalized);
+    }
+  });
 }
-
 
 /* ========================================
    今日の1問達成情報
 ======================================== */
 
-function buildDailyCompletionData(
-    historySnapshot,
-    subjectPointSnapshot
-) {
+function buildDailyCompletionData(historySnapshot, subjectPointSnapshot) {
+  dailyCompletionKeys = new Set();
 
-    dailyCompletionKeys =
-        new Set();
+  dailyRecordTexts = [];
 
-    dailyRecordTexts =
-        [];
+  const snapshots = [historySnapshot, subjectPointSnapshot].filter(Boolean);
 
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((pointDocument) => {
+      const data = pointDocument.data() || {};
 
-    const snapshots = [
-
-        historySnapshot,
-        subjectPointSnapshot
-
-    ].filter(Boolean);
-
-
-    snapshots.forEach(
-        snapshot => {
-
-            snapshot.docs.forEach(
-                pointDocument => {
-
-                    const data =
-                        pointDocument.data() || {};
-
-
-                    collectDailyRecord(
-                        pointDocument.id,
-                        data
-                    );
-
-                }
-            );
-
-        }
-    );
-
+      collectDailyRecord(pointDocument.id, data);
+    });
+  });
 }
 
+function collectDailyRecord(documentId, data) {
+  let serialized = "";
 
-function collectDailyRecord(
-    documentId,
-    data
-) {
+  try {
+    serialized = JSON.stringify(data, (key, value) => {
+      if (value && typeof value.toDate === "function") {
+        return value.toDate().toISOString();
+      }
 
-    let serialized = "";
+      return value;
+    });
+  } catch {
+    serialized = String(data);
+  }
 
+  const searchableText = `${documentId}|${serialized}`.toLowerCase();
 
-    try {
+  const appearsToBeToday =
+    searchableText.includes(todayKey.toLowerCase()) ||
+    searchableText.includes(todayCompactKey.toLowerCase()) ||
+    valueIsToday(data.date) ||
+    valueIsToday(data.dateKey) ||
+    valueIsToday(data.localDate) ||
+    valueIsToday(data.dayKey) ||
+    valueIsToday(data.createdAt) ||
+    valueIsToday(data.updatedAt);
 
-        serialized =
-            JSON.stringify(
-                data,
-                (
-                    key,
-                    value
-                ) => {
+  const appearsToBeDaily =
+    String(data.type || data.questionType || data.pointType || "")
+      .toLowerCase()
+      .includes("daily") || searchableText.includes("daily");
 
-                    if (
-                        value &&
-                        typeof value.toDate ===
-                            "function"
-                    ) {
+  if (appearsToBeToday && appearsToBeDaily) {
+    dailyRecordTexts.push(searchableText);
+  }
 
-                        return value
-                            .toDate()
-                            .toISOString();
+  const type = String(
+    data.type || data.questionType || data.pointType || "",
+  ).toLowerCase();
 
-                    }
+  if (
+    type.includes("daily") &&
+    appearsToBeToday &&
+    data.subjectId &&
+    data.unitId
+  ) {
+    dailyCompletionKeys.add(createDailyKey(data.subjectId, data.unitId));
+  }
 
-                    return value;
+  const possibleArrays = [
+    data.records,
+    data.items,
+    data.awards,
+    data.questions,
+    data.history,
+  ];
 
-                }
-            );
-
-    } catch {
-
-        serialized =
-            String(data);
-
+  possibleArrays.forEach((possibleArray) => {
+    if (!Array.isArray(possibleArray)) {
+      return;
     }
 
-
-    const searchableText =
-        `${documentId}|${serialized}`
-            .toLowerCase();
-
-
-    const appearsToBeToday =
-        searchableText.includes(
-            todayKey.toLowerCase()
-        ) ||
-        searchableText.includes(
-            todayCompactKey.toLowerCase()
-        ) ||
-        valueIsToday(
-            data.date
-        ) ||
-        valueIsToday(
-            data.dateKey
-        ) ||
-        valueIsToday(
-            data.localDate
-        ) ||
-        valueIsToday(
-            data.dayKey
-        ) ||
-        valueIsToday(
-            data.createdAt
-        ) ||
-        valueIsToday(
-            data.updatedAt
-        );
-
-
-    const appearsToBeDaily =
-        String(
-            data.type ||
-            data.questionType ||
-            data.pointType ||
-            ""
-        )
-        .toLowerCase()
-        .includes("daily") ||
-        searchableText.includes(
-            "daily"
-        );
-
-
-    if (
-        appearsToBeToday &&
-        appearsToBeDaily
-    ) {
-
-        dailyRecordTexts.push(
-            searchableText
-        );
-
-    }
-
-
-    const type =
-        String(
-            data.type ||
-            data.questionType ||
-            data.pointType ||
-            ""
-        ).toLowerCase();
-
-
-    if (
-        type.includes("daily") &&
-        appearsToBeToday &&
-        data.subjectId &&
-        data.unitId
-    ) {
-
-        dailyCompletionKeys.add(
-            createDailyKey(
-                data.subjectId,
-                data.unitId
-            )
-        );
-
-    }
-
-
-    const possibleArrays = [
-
-        data.records,
-        data.items,
-        data.awards,
-        data.questions,
-        data.history
-
-    ];
-
-
-    possibleArrays.forEach(
-        possibleArray => {
-
-            if (!Array.isArray(possibleArray)) {
-                return;
-            }
-
-
-            possibleArray.forEach(
-                (
-                    item,
-                    index
-                ) => {
-
-                    if (
-                        item &&
-                        typeof item === "object"
-                    ) {
-
-                        collectDailyRecord(
-                            `${documentId}_${index}`,
-                            item
-                        );
-
-                    }
-
-                }
-            );
-
-        }
-    );
-
+    possibleArray.forEach((item, index) => {
+      if (item && typeof item === "object") {
+        collectDailyRecord(`${documentId}_${index}`, item);
+      }
+    });
+  });
 }
-
 
 /* ========================================
    科目データ作成
 ======================================== */
 
-async function buildSubjectData(
-    subjectSnapshot
-) {
+async function buildSubjectData(subjectSnapshot) {
+  if (subjectSnapshot.empty) {
+    return [];
+  }
 
-    if (subjectSnapshot.empty) {
-        return [];
+  const subjectPromises = subjectSnapshot.docs.map(async (subjectDocument) => {
+    const subjectData = subjectDocument.data() || {};
+
+    const unitSnapshot = await safeGetDocs(
+      collection(db, "examSubjects", subjectDocument.id, "units"),
+    );
+
+    if (!unitSnapshot || unitSnapshot.empty) {
+      return null;
     }
 
+    const units = await Promise.all(
+      unitSnapshot.docs.map((unitDocument) =>
+        buildUnitData(subjectDocument.id, unitDocument),
+      ),
+    );
 
-    const subjectPromises =
-        subjectSnapshot.docs.map(
-            async subjectDocument => {
+    const availableUnits = units.filter(Boolean).sort(compareUnits);
 
-                const subjectData =
-                    subjectDocument.data() || {};
+    if (availableUnits.length === 0) {
+      return null;
+    }
 
+    const subject = {
+      id: subjectDocument.id,
 
-                const unitSnapshot =
-                    await safeGetDocs(
-                        collection(
-                            db,
-                            "examSubjects",
-                            subjectDocument.id,
-                            "units"
-                        )
-                    );
+      name: String(subjectData.name || subjectData.subjectName || "名称未設定"),
 
+      completedExam: subjectData.completed === true,
 
-                if (
-                    !unitSnapshot ||
-                    unitSnapshot.empty
-                ) {
+      completedDate: String(subjectData.completedDate || ""),
 
-                    return null;
+      completedPeriod: String(subjectData.completedPeriod || ""),
 
-                }
+      createdAt: toMilliseconds(subjectData.createdAt),
 
+      units: availableUnits,
+    };
 
-                const units =
-                    await Promise.all(
+    calculateSubjectProgress(subject);
 
-                        unitSnapshot.docs.map(
-                            unitDocument =>
-                                buildUnitData(
-                                    subjectDocument.id,
-                                    unitDocument
-                                )
-                        )
+    return subject;
+  });
 
-                    );
+  const result = await Promise.all(subjectPromises);
 
-
-                const availableUnits =
-                    units
-                        .filter(Boolean)
-                        .sort(
-                            compareUnits
-                        );
-
-
-                if (
-                    availableUnits.length === 0
-                ) {
-
-                    return null;
-
-                }
-
-
-                const subject = {
-
-                    id:
-                        subjectDocument.id,
-
-                    name:
-                        String(
-                            subjectData.name ||
-                            subjectData.subjectName ||
-                            "名称未設定"
-                        ),
-
-                    completedExam:
-                        subjectData.completed === true,
-
-                    completedDate:
-                        String(
-                            subjectData.completedDate ||
-                            ""
-                        ),
-
-                    completedPeriod:
-                        String(
-                            subjectData.completedPeriod ||
-                            ""
-                        ),
-
-                    createdAt:
-                        toMilliseconds(
-                            subjectData.createdAt
-                        ),
-
-                    units:
-                        availableUnits
-
-                };
-
-
-                calculateSubjectProgress(
-                    subject
-                );
-
-
-                return subject;
-
-            }
-        );
-
-
-    const result =
-        await Promise.all(
-            subjectPromises
-        );
-
-
-    return result.filter(Boolean);
-
+  return result.filter(Boolean);
 }
-
 
 /* ========================================
    テーマデータ作成
 ======================================== */
 
-async function buildUnitData(
-    subjectId,
-    unitDocument
-) {
+async function buildUnitData(subjectId, unitDocument) {
+  const unitData = unitDocument.data() || {};
 
-    const unitData =
-        unitDocument.data() || {};
+  const publishedSnapshot = await safeGetDoc(
+    doc(
+      db,
+      "examSubjects",
+      subjectId,
+      "units",
+      unitDocument.id,
+      "publishedQuestions",
+      "published",
+    ),
+  );
 
+  if (!publishedSnapshot || !publishedSnapshot.exists()) {
+    return null;
+  }
 
-    const publishedSnapshot =
-        await safeGetDoc(
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitDocument.id,
-                "publishedQuestions",
-                "published"
-            )
-        );
+  const publishedData = publishedSnapshot.data() || {};
 
+  const fillBlankQuestions = getValidFillBlankQuestions(publishedData);
 
-    if (
-        !publishedSnapshot ||
-        !publishedSnapshot.exists()
-    ) {
+  const quizQuestions = getValidQuizQuestions(publishedData);
 
-        return null;
+  const qaQuestions = getValidQaQuestions(publishedData);
 
-    }
+  const hasDailyQuestion = hasValidDailyQuestion(publishedData);
 
+  const hasImportantPoints = hasValidImportantPoints(publishedData);
 
-    const publishedData =
-        publishedSnapshot.data() || {};
+  if (
+    fillBlankQuestions.length === 0 &&
+    quizQuestions.length === 0 &&
+    qaQuestions.length === 0 &&
+    !hasDailyQuestion &&
+    !hasImportantPoints
+  ) {
+    return null;
+  }
 
+  const formats = [];
 
-    const fillBlankQuestions =
-        getValidFillBlankQuestions(
-            publishedData
-        );
+  if (hasDailyQuestion) {
+    const completedToday = isDailyCompleted(subjectId, unitDocument.id);
 
+    formats.push({
+      type: "daily",
 
-    const quizQuestions =
-        getValidQuizQuestions(
-            publishedData
-        );
+      title: "今日の1問",
 
-    const qaQuestions =
-        getValidQaQuestions(
-            publishedData
-        );
+      icon: "🎯",
 
+      status: completedToday ? "today-completed" : "today-unstarted",
 
-    const hasDailyQuestion =
-        hasValidDailyQuestion(
-            publishedData
-        );
+      completed: completedToday,
 
+      progressText: completedToday ? "本日は達成済み" : "今日の問題に挑戦",
 
-    const hasImportantPoints =
-        hasValidImportantPoints(
-            publishedData
-        );
+      url: createLearningUrl("daily_question.html", subjectId, unitDocument.id),
 
+      questionCount: 1,
 
-    if (
-        fillBlankQuestions.length === 0 &&
-        quizQuestions.length === 0 &&
-        qaQuestions.length === 0 &&
-        !hasDailyQuestion &&
-        !hasImportantPoints
-    ) {
+      countsForAchievement: false,
+    });
+  }
 
-        return null;
+  if (fillBlankQuestions.length > 0) {
+    formats.push(
+      createPracticeFormat({
+        type: "fillBlank",
 
-    }
+        title: "穴埋め問題",
 
+        icon: "📝",
 
-    const formats = [];
-
-
-    if (hasDailyQuestion) {
-
-        const completedToday =
-            isDailyCompleted(
-                subjectId,
-                unitDocument.id
-            );
-
-
-        formats.push({
-
-            type:
-                "daily",
-
-            title:
-                "今日の1問",
-
-            icon:
-                "🎯",
-
-            status:
-                completedToday
-                    ? "today-completed"
-                    : "today-unstarted",
-
-            completed:
-                completedToday,
-
-            progressText:
-                completedToday
-                    ? "本日は達成済み"
-                    : "今日の問題に挑戦",
-
-            url:
-                createLearningUrl(
-                    "daily_question.html",
-                    subjectId,
-                    unitDocument.id
-                ),
-
-            questionCount:
-                1,
-
-            countsForAchievement:
-                false
-
-        });
-
-    }
-
-
-    if (
-        fillBlankQuestions.length > 0
-    ) {
-
-        formats.push(
-            createPracticeFormat({
-
-                type:
-                    "fillBlank",
-
-                title:
-                    "穴埋め問題",
-
-                icon:
-                    "📝",
-
-                file:
-                    "fill_blank.html",
-
-                subjectId,
-
-                unitId:
-                    unitDocument.id,
-
-                questionCount:
-                    fillBlankQuestions.length
-
-            })
-        );
-
-    }
-
-
-    if (
-        quizQuestions.length > 0
-    ) {
-
-        formats.push(
-            createPracticeFormat({
-
-                type:
-                    "quiz",
-
-                title:
-                    "四択問題",
-
-                icon:
-                    "🧠",
-
-                file:
-                    "quiz.html",
-
-                subjectId,
-
-                unitId:
-                    unitDocument.id,
-
-                questionCount:
-                    quizQuestions.length
-
-            })
-        );
-
-    }
-
-    if (
-        qaQuestions.length > 0
-    ) {
-
-        formats.push(
-            createPracticeFormat({
-
-                type:
-                    "qa",
-
-                title:
-                    "一問一答",
-
-                icon:
-                    "💬",
-
-                file:
-                    "qa.html",
-
-                subjectId,
-
-                unitId:
-                    unitDocument.id,
-
-                questionCount:
-                    qaQuestions.length
-
-            })
-        );
-
-    }
-
-
-    if (hasImportantPoints) {
-
-        formats.push({
-
-            type:
-                "important",
-
-            title:
-                "ここだけ覚えろ",
-
-            icon:
-                "⭐",
-
-            status:
-                "reference",
-
-            completed:
-                false,
-
-            progressText:
-                "重要ポイントを確認",
-
-            url:
-                createLearningUrl(
-                    "must_remember.html",
-                    subjectId,
-                    unitDocument.id
-                ),
-
-            questionCount:
-                0,
-
-            countsForAchievement:
-                false
-
-        });
-
-    }
-
-
-    const unit = {
-
-        id:
-            unitDocument.id,
+        file: "fill_blank.html",
 
         subjectId,
 
-        name:
-            String(
-                unitData.name ||
-                unitData.title ||
-                "名称未設定"
-            ),
+        unitId: unitDocument.id,
 
-        range:
-            String(
-                unitData.range ||
-                unitData.description ||
-                ""
-            ),
-
-        createdAt:
-            toMilliseconds(
-                unitData.createdAt
-            ),
-
-        formats
-
-    };
-
-
-    calculateUnitProgress(
-        unit
+        questionCount: fillBlankQuestions.length,
+      }),
     );
+  }
 
+  if (quizQuestions.length > 0) {
+    formats.push(
+      createPracticeFormat({
+        type: "quiz",
 
-    return unit;
+        title: "四択問題",
 
+        icon: "🧠",
+
+        file: "quiz.html",
+
+        subjectId,
+
+        unitId: unitDocument.id,
+
+        questionCount: quizQuestions.length,
+      }),
+    );
+  }
+
+  if (qaQuestions.length > 0) {
+    formats.push(
+      createPracticeFormat({
+        type: "qa",
+
+        title: "一問一答",
+
+        icon: "💬",
+
+        file: "qa.html",
+
+        subjectId,
+
+        unitId: unitDocument.id,
+
+        questionCount: qaQuestions.length,
+      }),
+    );
+  }
+
+  if (hasImportantPoints) {
+    formats.push({
+      type: "important",
+
+      title: "ここだけ覚えろ",
+
+      icon: "⭐",
+
+      status: "reference",
+
+      completed: false,
+
+      progressText: "重要ポイントを確認",
+
+      url: createLearningUrl("must_remember.html", subjectId, unitDocument.id),
+
+      questionCount: 0,
+
+      countsForAchievement: false,
+    });
+  }
+
+  const unit = {
+    id: unitDocument.id,
+
+    subjectId,
+
+    name: String(unitData.name || unitData.title || "名称未設定"),
+
+    range: String(unitData.range || unitData.description || ""),
+
+    createdAt: toMilliseconds(unitData.createdAt),
+
+    formats,
+  };
+
+  calculateUnitProgress(unit);
+
+  return unit;
 }
-
 
 /* ========================================
    問題形式作成
 ======================================== */
 
 function createPracticeFormat({
-
-    type,
-    title,
-    icon,
-    file,
-    subjectId,
-    unitId,
-    questionCount
-
+  type,
+  title,
+  icon,
+  file,
+  subjectId,
+  unitId,
+  questionCount,
 }) {
+  const progress =
+    progressMap.get(createProgressKey(type, subjectId, unitId)) || null;
 
-    const progress =
-        progressMap.get(
-            createProgressKey(
-                type,
-                subjectId,
-                unitId
-            )
-        ) || null;
+  let status = "unstarted";
 
+  if (progress?.completed === true) {
+    status = "completed";
+  } else if (progress) {
+    status = "in-progress";
+  }
 
-    let status =
-        "unstarted";
+  let progressText = `${questionCount}問に挑戦`;
 
+  if (status === "completed") {
+    progressText = `${questionCount}問を最後まで完了`;
+  } else if (status === "in-progress") {
+    const totalQuestions = progress.totalQuestions || questionCount;
 
-    if (progress?.completed === true) {
+    const displayIndex = Math.min(totalQuestions, progress.currentIndex + 1);
 
-        status =
-            "completed";
+    progressText = `問題 ${displayIndex} / ${totalQuestions} から再開`;
+  }
 
-    } else if (progress) {
+  return {
+    type,
 
-        status =
-            "in-progress";
+    title,
 
-    }
+    icon,
 
+    status,
 
-    let progressText =
-        `${questionCount}問に挑戦`;
+    completed: status === "completed",
 
+    progressText,
 
-    if (
-        status === "completed"
-    ) {
+    url: createLearningUrl(file, subjectId, unitId),
 
-        progressText =
-            `${questionCount}問を最後まで完了`;
+    questionCount,
 
-    } else if (
-        status === "in-progress"
-    ) {
+    countsForAchievement: true,
 
-        const totalQuestions =
-            progress.totalQuestions ||
-            questionCount;
-
-
-        const displayIndex =
-            Math.min(
-                totalQuestions,
-                progress.currentIndex + 1
-            );
-
-
-        progressText =
-            `問題 ${displayIndex} / ${totalQuestions} から再開`;
-
-    }
-
-
-    return {
-
-        type,
-
-        title,
-
-        icon,
-
-        status,
-
-        completed:
-            status === "completed",
-
-        progressText,
-
-        url:
-            createLearningUrl(
-                file,
-                subjectId,
-                unitId
-            ),
-
-        questionCount,
-
-        countsForAchievement:
-            true,
-
-        progress
-
-    };
-
+    progress,
+  };
 }
-
 
 /* ========================================
    テーマ達成度
 ======================================== */
 
-function calculateUnitProgress(
-    unit
-) {
+function calculateUnitProgress(unit) {
+  const achievementFormats = unit.formats.filter(
+    (format) => format.countsForAchievement,
+  );
 
-    const achievementFormats =
-        unit.formats.filter(
-            format =>
-                format.countsForAchievement
-        );
+  unit.totalFormats = achievementFormats.length;
 
+  unit.completedFormats = achievementFormats.filter(
+    (format) => format.status === "completed",
+  ).length;
 
-    unit.totalFormats =
-        achievementFormats.length;
+  unit.inProgressFormats = achievementFormats.filter(
+    (format) => format.status === "in-progress",
+  ).length;
 
+  unit.unstartedFormats = achievementFormats.filter(
+    (format) => format.status === "unstarted",
+  ).length;
 
-    unit.completedFormats =
-        achievementFormats.filter(
-            format =>
-                format.status ===
-                "completed"
-        ).length;
+  unit.progressPercent =
+    unit.totalFormats > 0
+      ? Math.round((unit.completedFormats / unit.totalFormats) * 100)
+      : 0;
 
+  if (unit.totalFormats > 0 && unit.completedFormats === unit.totalFormats) {
+    unit.status = "completed";
+  } else if (unit.completedFormats > 0 || unit.inProgressFormats > 0) {
+    unit.status = "in-progress";
+  } else {
+    unit.status = "unstarted";
+  }
 
-    unit.inProgressFormats =
-        achievementFormats.filter(
-            format =>
-                format.status ===
-                "in-progress"
-        ).length;
+  unit.hasDaily = unit.formats.some((format) => format.type === "daily");
 
-
-    unit.unstartedFormats =
-        achievementFormats.filter(
-            format =>
-                format.status ===
-                "unstarted"
-        ).length;
-
-
-    unit.progressPercent =
-        unit.totalFormats > 0
-            ? Math.round(
-                unit.completedFormats /
-                unit.totalFormats *
-                100
-            )
-            : 0;
-
-
-    if (
-        unit.totalFormats > 0 &&
-        unit.completedFormats ===
-            unit.totalFormats
-    ) {
-
-        unit.status =
-            "completed";
-
-    } else if (
-        unit.completedFormats > 0 ||
-        unit.inProgressFormats > 0
-    ) {
-
-        unit.status =
-            "in-progress";
-
-    } else {
-
-        unit.status =
-            "unstarted";
-
-    }
-
-
-    unit.hasDaily =
-        unit.formats.some(
-            format =>
-                format.type === "daily"
-        );
-
-
-    unit.dailyCompleted =
-        unit.formats.some(
-            format =>
-                format.type === "daily" &&
-                format.completed
-        );
-
+  unit.dailyCompleted = unit.formats.some(
+    (format) => format.type === "daily" && format.completed,
+  );
 }
-
 
 /* ========================================
    科目達成度
 ======================================== */
 
-function calculateSubjectProgress(
-    subject
-) {
+function calculateSubjectProgress(subject) {
+  subject.totalFormats = subject.units.reduce(
+    (total, unit) => total + unit.totalFormats,
+    0,
+  );
 
-    subject.totalFormats =
-        subject.units.reduce(
-            (
-                total,
-                unit
-            ) =>
-                total +
-                unit.totalFormats,
-            0
-        );
+  subject.completedFormats = subject.units.reduce(
+    (total, unit) => total + unit.completedFormats,
+    0,
+  );
 
+  subject.inProgressFormats = subject.units.reduce(
+    (total, unit) => total + unit.inProgressFormats,
+    0,
+  );
 
-    subject.completedFormats =
-        subject.units.reduce(
-            (
-                total,
-                unit
-            ) =>
-                total +
-                unit.completedFormats,
-            0
-        );
+  subject.unstartedFormats = subject.units.reduce(
+    (total, unit) => total + unit.unstartedFormats,
+    0,
+  );
 
+  subject.progressPercent =
+    subject.totalFormats > 0
+      ? Math.round((subject.completedFormats / subject.totalFormats) * 100)
+      : 0;
 
-    subject.inProgressFormats =
-        subject.units.reduce(
-            (
-                total,
-                unit
-            ) =>
-                total +
-                unit.inProgressFormats,
-            0
-        );
+  if (
+    subject.totalFormats > 0 &&
+    subject.completedFormats === subject.totalFormats
+  ) {
+    subject.status = "completed";
+  } else if (subject.completedFormats > 0 || subject.inProgressFormats > 0) {
+    subject.status = "in-progress";
+  } else {
+    subject.status = "unstarted";
+  }
 
+  subject.dailyTotal = subject.units.filter((unit) => unit.hasDaily).length;
 
-    subject.unstartedFormats =
-        subject.units.reduce(
-            (
-                total,
-                unit
-            ) =>
-                total +
-                unit.unstartedFormats,
-            0
-        );
-
-
-    subject.progressPercent =
-        subject.totalFormats > 0
-            ? Math.round(
-                subject.completedFormats /
-                subject.totalFormats *
-                100
-            )
-            : 0;
-
-
-    if (
-        subject.totalFormats > 0 &&
-        subject.completedFormats ===
-            subject.totalFormats
-    ) {
-
-        subject.status =
-            "completed";
-
-    } else if (
-        subject.completedFormats > 0 ||
-        subject.inProgressFormats > 0
-    ) {
-
-        subject.status =
-            "in-progress";
-
-    } else {
-
-        subject.status =
-            "unstarted";
-
-    }
-
-
-    subject.dailyTotal =
-        subject.units.filter(
-            unit =>
-                unit.hasDaily
-        ).length;
-
-
-    subject.dailyCompleted =
-        subject.units.filter(
-            unit =>
-                unit.dailyCompleted
-        ).length;
-
+  subject.dailyCompleted = subject.units.filter(
+    (unit) => unit.dailyCompleted,
+  ).length;
 }
-
 
 /* ========================================
    ダッシュボード更新
 ======================================== */
 
 function updateDashboard() {
+  updateOverallProgress();
 
-    updateOverallProgress();
+  updateDailyProgress();
 
-    updateDailyProgress();
+  updateContinueLearning();
 
-    updateContinueLearning();
+  updateFilterCounts();
 
-    updateFilterCounts();
-
-    renderSubjectList();
-
+  renderSubjectList();
 }
-
 
 /* ========================================
    全体達成度
 ======================================== */
 
 function updateOverallProgress() {
+  const totalFormats = subjects.reduce(
+    (total, subject) => total + subject.totalFormats,
+    0,
+  );
 
-    const totalFormats =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.totalFormats,
-            0
-        );
+  const completedFormats = subjects.reduce(
+    (total, subject) => total + subject.completedFormats,
+    0,
+  );
 
+  const inProgressFormats = subjects.reduce(
+    (total, subject) => total + subject.inProgressFormats,
+    0,
+  );
 
-    const completedFormats =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.completedFormats,
-            0
-        );
+  const unstartedFormats = subjects.reduce(
+    (total, subject) => total + subject.unstartedFormats,
+    0,
+  );
 
+  const completedSubjects = subjects.filter(
+    (subject) => subject.status === "completed",
+  ).length;
 
-    const inProgressFormats =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.inProgressFormats,
-            0
-        );
+  const percentage =
+    totalFormats > 0 ? Math.round((completedFormats / totalFormats) * 100) : 0;
 
+  elements.overallProgressPercent.textContent = String(percentage);
 
-    const unstartedFormats =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.unstartedFormats,
-            0
-        );
+  elements.overallProgressRing.style.setProperty("--progress", percentage);
 
+  elements.overallProgressBar.style.setProperty(
+    "width",
+    `${percentage}%`,
+    "important",
+  );
 
-    const completedSubjects =
-        subjects.filter(
-            subject =>
-                subject.status ===
-                "completed"
-        ).length;
+  elements.completedFormatCount.textContent = String(completedFormats);
 
+  elements.inProgressFormatCount.textContent = String(inProgressFormats);
 
-    const percentage =
-        totalFormats > 0
-            ? Math.round(
-                completedFormats /
-                totalFormats *
-                100
-            )
-            : 0;
+  elements.unstartedFormatCount.textContent = String(unstartedFormats);
 
+  elements.completedSubjectCount.textContent = String(completedSubjects);
 
-    elements.overallProgressPercent.textContent =
-        String(percentage);
+  let status = "unstarted";
 
+  if (totalFormats > 0 && completedFormats === totalFormats) {
+    status = "completed";
+  } else if (completedFormats > 0 || inProgressFormats > 0) {
+    status = "in-progress";
+  }
 
-    elements.overallProgressRing.style.setProperty(
-        "--progress",
-        percentage
-    );
+  elements.overallStatusBadge.className = `exam-achievement-badge is-${status}`;
 
+  elements.overallStatusBadge.textContent = statusLabel(status);
 
-    elements.overallProgressBar.style.setProperty(
-        "width",
-        `${percentage}%`,
-        "important"
-    );
-
-
-    elements.completedFormatCount.textContent =
-        String(completedFormats);
-
-
-    elements.inProgressFormatCount.textContent =
-        String(inProgressFormats);
-
-
-    elements.unstartedFormatCount.textContent =
-        String(unstartedFormats);
-
-
-    elements.completedSubjectCount.textContent =
-        String(completedSubjects);
-
-
-    let status =
-        "unstarted";
-
-
-    if (
-        totalFormats > 0 &&
-        completedFormats === totalFormats
-    ) {
-
-        status =
-            "completed";
-
-    } else if (
-        completedFormats > 0 ||
-        inProgressFormats > 0
-    ) {
-
-        status =
-            "in-progress";
-
-    }
-
-
-    elements.overallStatusBadge.className =
-        `exam-achievement-badge is-${status}`;
-
-
-    elements.overallStatusBadge.textContent =
-        statusLabel(status);
-
-
-    if (totalFormats === 0) {
-
-        elements.overallProgressMessage.textContent =
-            "挑戦できる穴埋め・四択問題はまだありません。";
-
-    } else if (percentage === 100) {
-
-        elements.overallProgressMessage.textContent =
-            `全${totalFormats}形式を達成しました。復習して定着させよう。`;
-
-    } else if (
-        inProgressFormats > 0
-    ) {
-
-        elements.overallProgressMessage.textContent =
-            `${completedFormats} / ${totalFormats}形式を達成。学習中の問題が${inProgressFormats}形式あります。`;
-
-    } else {
-
-        elements.overallProgressMessage.textContent =
-            `${completedFormats} / ${totalFormats}形式を達成しています。`;
-
-    }
-
+  if (totalFormats === 0) {
+    elements.overallProgressMessage.textContent =
+      "挑戦できる穴埋め・四択問題はまだありません。";
+  } else if (percentage === 100) {
+    elements.overallProgressMessage.textContent = `全${totalFormats}形式を達成しました。復習して定着させよう。`;
+  } else if (inProgressFormats > 0) {
+    elements.overallProgressMessage.textContent = `${completedFormats} / ${totalFormats}形式を達成。学習中の問題が${inProgressFormats}形式あります。`;
+  } else {
+    elements.overallProgressMessage.textContent = `${completedFormats} / ${totalFormats}形式を達成しています。`;
+  }
 }
-
 
 /* ========================================
    今日の1問進捗
 ======================================== */
 
 function updateDailyProgress() {
+  const dailyTotal = subjects.reduce(
+    (total, subject) => total + subject.dailyTotal,
+    0,
+  );
 
-    const dailyTotal =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.dailyTotal,
-            0
-        );
+  const dailyCompleted = subjects.reduce(
+    (total, subject) => total + subject.dailyCompleted,
+    0,
+  );
 
+  const percentage =
+    dailyTotal > 0 ? Math.round((dailyCompleted / dailyTotal) * 100) : 0;
 
-    const dailyCompleted =
-        subjects.reduce(
-            (
-                total,
-                subject
-            ) =>
-                total +
-                subject.dailyCompleted,
-            0
-        );
+  elements.todayDailyCount.textContent = `${dailyCompleted} / ${dailyTotal}達成`;
 
+  elements.todayDailyProgressBar.style.setProperty(
+    "width",
+    `${percentage}%`,
+    "important",
+  );
 
-    const percentage =
-        dailyTotal > 0
-            ? Math.round(
-                dailyCompleted /
-                dailyTotal *
-                100
-            )
-            : 0;
-
-
-    elements.todayDailyCount.textContent =
-        `${dailyCompleted} / ${dailyTotal}達成`;
-
-
-    elements.todayDailyProgressBar.style.setProperty(
-        "width",
-        `${percentage}%`,
-        "important"
-    );
-
-
-    if (dailyTotal === 0) {
-
-        elements.todayDailyMessage.textContent =
-            "今日の1問はまだ公開されていません。";
-
-    } else if (
-        dailyCompleted === dailyTotal
-    ) {
-
-        elements.todayDailyMessage.textContent =
-            "今日の1問をすべて達成しました。おつかれさま！";
-
-    } else if (
-        dailyCompleted > 0
-    ) {
-
-        elements.todayDailyMessage.textContent =
-            `あと${dailyTotal - dailyCompleted}テーマで今日の1問を達成できます。`;
-
-    } else {
-
-        elements.todayDailyMessage.textContent =
-            `今日は${dailyTotal}テーマの問題に挑戦できます。`;
-
-    }
-
+  if (dailyTotal === 0) {
+    elements.todayDailyMessage.textContent =
+      "今日の1問はまだ公開されていません。";
+  } else if (dailyCompleted === dailyTotal) {
+    elements.todayDailyMessage.textContent =
+      "今日の1問をすべて達成しました。おつかれさま！";
+  } else if (dailyCompleted > 0) {
+    elements.todayDailyMessage.textContent = `あと${dailyTotal - dailyCompleted}テーマで今日の1問を達成できます。`;
+  } else {
+    elements.todayDailyMessage.textContent = `今日は${dailyTotal}テーマの問題に挑戦できます。`;
+  }
 }
-
 
 /* ========================================
    続きから
 ======================================== */
 
 function updateContinueLearning() {
+  const candidates = [];
 
-    const candidates = [];
-
-
-    subjects.forEach(
-        subject => {
-
-            subject.units.forEach(
-                unit => {
-
-                    unit.formats.forEach(
-                        format => {
-
-                            if (
-                                format.status !==
-                                "in-progress"
-                            ) {
-
-                                return;
-
-                            }
-
-
-                            candidates.push({
-
-                                subjectId:
-                                    subject.id,
-
-                                subjectName:
-                                    subject.name,
-
-                                unitId:
-                                    unit.id,
-
-                                unitName:
-                                    unit.name,
-
-                                format,
-
-                                updatedAt:
-                                    format.progress
-                                        ?.updatedAt || 0,
-
-                                url:
-                                    format.url
-
-                            });
-
-                        }
-                    );
-
-                }
-            );
-
+  subjects.forEach((subject) => {
+    subject.units.forEach((unit) => {
+      unit.formats.forEach((format) => {
+        if (format.status !== "in-progress") {
+          return;
         }
-    );
 
+        candidates.push({
+          subjectId: subject.id,
 
-    candidates.sort(
-        (
-            candidateA,
-            candidateB
-        ) =>
-            candidateB.updatedAt -
-            candidateA.updatedAt
-    );
+          subjectName: subject.name,
 
+          unitId: unit.id,
 
-    continueTarget =
-        candidates[0] || null;
+          unitName: unit.name,
 
+          format,
 
-    if (!continueTarget) {
+          updatedAt: format.progress?.updatedAt || 0,
 
-        continueTarget =
-            findFirstUnstartedFormat();
+          url: format.url,
+        });
+      });
+    });
+  });
 
-    }
+  candidates.sort(
+    (candidateA, candidateB) => candidateB.updatedAt - candidateA.updatedAt,
+  );
 
+  continueTarget = candidates[0] || null;
 
-    if (!continueTarget) {
+  if (!continueTarget) {
+    continueTarget = findFirstUnstartedFormat();
+  }
 
-        elements.continueSection.hidden =
-            true;
+  if (!continueTarget) {
+    elements.continueSection.hidden = true;
 
-        return;
+    return;
+  }
 
-    }
+  elements.continueSection.hidden = false;
 
+  elements.continueIcon.textContent = continueTarget.format.icon;
 
-    elements.continueSection.hidden =
-        false;
+  elements.continueSubject.textContent = continueTarget.subjectName;
 
+  elements.continueTitle.textContent = `${continueTarget.unitName}・${continueTarget.format.title}`;
 
-    elements.continueIcon.textContent =
-        continueTarget.format.icon;
-
-
-    elements.continueSubject.textContent =
-        continueTarget.subjectName;
-
-
-    elements.continueTitle.textContent =
-        `${continueTarget.unitName}・${continueTarget.format.title}`;
-
-
-    if (
-        continueTarget.format.status ===
-        "in-progress"
-    ) {
-
-        elements.continueDetail.textContent =
-            continueTarget.format.progressText;
-
-    } else {
-
-        elements.continueDetail.textContent =
-            "まだ始めていない問題に挑戦";
-
-    }
-
+  if (continueTarget.format.status === "in-progress") {
+    elements.continueDetail.textContent = continueTarget.format.progressText;
+  } else {
+    elements.continueDetail.textContent = "まだ始めていない問題に挑戦";
+  }
 }
-
 
 function findFirstUnstartedFormat() {
+  for (const subject of subjects) {
+    for (const unit of subject.units) {
+      const format = unit.formats.find(
+        (item) => item.countsForAchievement && item.status === "unstarted",
+      );
 
-    for (const subject of subjects) {
+      if (format) {
+        return {
+          subjectId: subject.id,
 
-        for (const unit of subject.units) {
+          subjectName: subject.name,
 
-            const format =
-                unit.formats.find(
-                    item =>
-                        item.countsForAchievement &&
-                        item.status ===
-                            "unstarted"
-                );
+          unitId: unit.id,
 
+          unitName: unit.name,
 
-            if (format) {
+          format,
 
-                return {
+          updatedAt: 0,
 
-                    subjectId:
-                        subject.id,
-
-                    subjectName:
-                        subject.name,
-
-                    unitId:
-                        unit.id,
-
-                    unitName:
-                        unit.name,
-
-                    format,
-
-                    updatedAt:
-                        0,
-
-                    url:
-                        format.url
-
-                };
-
-            }
-
-        }
-
+          url: format.url,
+        };
+      }
     }
+  }
 
-
-    return null;
-
+  return null;
 }
-
 
 /* ========================================
    絞り込み件数
 ======================================== */
 
 function updateFilterCounts() {
+  const unstartedSubjects = subjects.filter(
+    (subject) => subject.status === "unstarted",
+  ).length;
 
-    const unstartedSubjects =
-        subjects.filter(
-            subject =>
-                subject.status ===
-                "unstarted"
-        ).length;
+  const inProgressSubjects = subjects.filter(
+    (subject) => subject.status === "in-progress",
+  ).length;
 
+  const completedSubjects = subjects.filter(
+    (subject) => subject.status === "completed",
+  ).length;
 
-    const inProgressSubjects =
-        subjects.filter(
-            subject =>
-                subject.status ===
-                "in-progress"
-        ).length;
+  elements.allSubjectFilterCount.textContent = String(subjects.length);
 
+  elements.unstartedSubjectFilterCount.textContent = String(unstartedSubjects);
 
-    const completedSubjects =
-        subjects.filter(
-            subject =>
-                subject.status ===
-                "completed"
-        ).length;
+  elements.inProgressSubjectFilterCount.textContent =
+    String(inProgressSubjects);
 
+  elements.completedSubjectFilterCount.textContent = String(completedSubjects);
 
-    elements.allSubjectFilterCount.textContent =
-        String(subjects.length);
-
-
-    elements.unstartedSubjectFilterCount.textContent =
-        String(unstartedSubjects);
-
-
-    elements.inProgressSubjectFilterCount.textContent =
-        String(inProgressSubjects);
-
-
-    elements.completedSubjectFilterCount.textContent =
-        String(completedSubjects);
-
-
-    elements.totalSubjectCount.textContent =
-        `${subjects.length}科目`;
-
+  elements.totalSubjectCount.textContent = `${subjects.length}科目`;
 }
-
 
 /* ========================================
    科目一覧表示
 ======================================== */
 
 function renderSubjectList() {
+  const keyword = normalizeSearchText(elements.searchInput.value);
 
-    const keyword =
-        normalizeSearchText(
-            elements.searchInput.value
-        );
+  const filteredSubjects = subjects
+    .filter(
+      (subject) =>
+        currentStatusFilter === "all" || subject.status === currentStatusFilter,
+    )
+    .map((subject) => {
+      if (!keyword) {
+        return {
+          subject,
 
+          units: subject.units,
+        };
+      }
 
-    const filteredSubjects =
-        subjects
-            .filter(
-                subject =>
-                    currentStatusFilter ===
-                        "all" ||
-                    subject.status ===
-                        currentStatusFilter
-            )
-            .map(
-                subject => {
+      const subjectMatches = normalizeSearchText(subject.name).includes(
+        keyword,
+      );
 
-                    if (!keyword) {
+      const matchingUnits = subjectMatches
+        ? subject.units
+        : subject.units.filter((unit) => {
+            const text = normalizeSearchText(`${unit.name} ${unit.range}`);
 
-                        return {
+            return text.includes(keyword);
+          });
 
-                            subject,
+      return {
+        subject,
 
-                            units:
-                                subject.units
+        units: matchingUnits,
+      };
+    })
+    .filter((item) => item.units.length > 0);
 
-                        };
+  elements.visibleSubjectCount.textContent = `${filteredSubjects.length}科目を表示`;
 
-                    }
-
-
-                    const subjectMatches =
-                        normalizeSearchText(
-                            subject.name
-                        ).includes(keyword);
-
-
-                    const matchingUnits =
-                        subjectMatches
-                            ? subject.units
-                            : subject.units.filter(
-                                unit => {
-
-                                    const text =
-                                        normalizeSearchText(
-                                            `${unit.name} ${unit.range}`
-                                        );
-
-
-                                    return text.includes(
-                                        keyword
-                                    );
-
-                                }
-                            );
-
-
-                    return {
-
-                        subject,
-
-                        units:
-                            matchingUnits
-
-                    };
-
-                }
-            )
-            .filter(
-                item =>
-                    item.units.length > 0
-            );
-
-
-    elements.visibleSubjectCount.textContent =
-        `${filteredSubjects.length}科目を表示`;
-
-
-    if (
-        filteredSubjects.length === 0
-    ) {
-
-        elements.subjectUnitList.innerHTML = `
+  if (filteredSubjects.length === 0) {
+    elements.subjectUnitList.innerHTML = `
 
             <div class="exam-empty-state">
 
@@ -2562,123 +1334,65 @@ function renderSubjectList() {
 
         `;
 
+    document
+      .getElementById("resetExamFiltersButton")
+      ?.addEventListener("click", resetFilters);
 
-        document
-            .getElementById(
-                "resetExamFiltersButton"
-            )
-            ?.addEventListener(
-                "click",
-                resetFilters
-            );
+    updateToggleAllButton([]);
 
+    return;
+  }
 
-        updateToggleAllButton(
-            []
-        );
+  elements.subjectUnitList.innerHTML = filteredSubjects
+    .map((item) => createSubjectHtml(item.subject, item.units, keyword !== ""))
+    .join("");
 
-        return;
-
-    }
-
-
-    elements.subjectUnitList.innerHTML =
-        filteredSubjects
-            .map(
-                item =>
-                    createSubjectHtml(
-                        item.subject,
-                        item.units,
-                        keyword !== ""
-                    )
-            )
-            .join("");
-
-
-    updateToggleAllButton(
-        filteredSubjects.map(
-            item =>
-                item.subject.id
-        )
-    );
-
+  updateToggleAllButton(filteredSubjects.map((item) => item.subject.id));
 }
-
 
 /* ========================================
    科目HTML
 ======================================== */
 
-function createSubjectHtml(
-    subject,
-    displayedUnits,
-    searchActive
-) {
+function createSubjectHtml(subject, displayedUnits, searchActive) {
+  const isOpen = searchActive || openSubjectIds.has(subject.id);
 
-    const isOpen =
-        searchActive ||
-        openSubjectIds.has(
-            subject.id
-        );
+  const completedExamInformation = subject.completedExam
+    ? createCompletedExamText(subject)
+    : "";
 
+  const achievementText =
+    subject.totalFormats > 0
+      ? `${subject.completedFormats} / ${subject.totalFormats}形式達成`
+      : "確認教材のみ";
 
-    const completedExamInformation =
-        subject.completedExam
-            ? createCompletedExamText(
-                subject
-            )
-            : "";
-
-
-    const achievementText =
-        subject.totalFormats > 0
-            ? `${subject.completedFormats} / ${subject.totalFormats}形式達成`
-            : "確認教材のみ";
-
-
-    return `
+  return `
 
         <article
             class="
                 exam-subject-card
-                is-${escapeAttribute(
-                    subject.status
-                )}
-                ${
-                    subject.completedExam
-                        ? "is-exam-completed"
-                        : ""
-                }
-                ${
-                    isOpen
-                        ? "is-open"
-                        : ""
-                }
+                is-${escapeAttribute(subject.status)}
+                ${subject.completedExam ? "is-exam-completed" : ""}
+                ${isOpen ? "is-open" : ""}
             "
-            data-subject-id="${escapeAttribute(
-                subject.id
-            )}">
+            data-subject-id="${escapeAttribute(subject.id)}">
 
 
             <button
                 type="button"
                 class="exam-subject-toggle"
-                data-subject-id="${escapeAttribute(
-                    subject.id
-                )}"
+                data-subject-id="${escapeAttribute(subject.id)}"
                 aria-expanded="${isOpen}">
 
 
                 <span class="exam-subject-icon">
 
                     ${
-                        subject.status ===
-                            "completed"
-                            ? "✅"
-                            : subject.status ===
-                                "in-progress"
-                                ? "📖"
-                                : "📚"
+                      subject.status === "completed"
+                        ? "✅"
+                        : subject.status === "in-progress"
+                          ? "📖"
+                          : "📚"
                     }
 
                 </span>
@@ -2691,9 +1405,7 @@ function createSubjectHtml(
 
                         <strong>
 
-                            ${escapeHtml(
-                                subject.name
-                            )}
+                            ${escapeHtml(subject.name)}
 
                         </strong>
 
@@ -2701,14 +1413,10 @@ function createSubjectHtml(
                         <span
                             class="
                                 exam-achievement-badge
-                                is-${escapeAttribute(
-                                    subject.status
-                                )}
+                                is-${escapeAttribute(subject.status)}
                             ">
 
-                            ${statusLabel(
-                                subject.status
-                            )}
+                            ${statusLabel(subject.status)}
 
                         </span>
 
@@ -2716,20 +1424,18 @@ function createSubjectHtml(
 
 
                     ${
-                        completedExamInformation
-                            ? `
+                      completedExamInformation
+                        ? `
 
                                 <span class="exam-completed-exam-label">
 
                                     🗓️
-                                    ${escapeHtml(
-                                        completedExamInformation
-                                    )}
+                                    ${escapeHtml(completedExamInformation)}
 
                                 </span>
 
                             `
-                            : ""
+                        : ""
                     }
 
 
@@ -2744,8 +1450,8 @@ function createSubjectHtml(
                         </span>
 
                         ${
-                            subject.dailyTotal > 0
-                                ? `
+                          subject.dailyTotal > 0
+                            ? `
 
                                     <span>
 
@@ -2757,7 +1463,7 @@ function createSubjectHtml(
                                     </span>
 
                                 `
-                                : ""
+                            : ""
                         }
 
                     </span>
@@ -2788,11 +1494,7 @@ function createSubjectHtml(
 
                 <span class="exam-subject-arrow">
 
-                    ${
-                        isOpen
-                            ? "▲"
-                            : "▼"
-                    }
+                    ${isOpen ? "▲" : "▼"}
 
                 </span>
 
@@ -2806,16 +1508,9 @@ function createSubjectHtml(
 
                 <div class="exam-unit-list">
 
-                    ${
-                        displayedUnits
-                            .map(
-                                unit =>
-                                    createUnitHtml(
-                                        unit
-                                    )
-                            )
-                            .join("")
-                    }
+                    ${displayedUnits
+                      .map((unit) => createUnitHtml(unit))
+                      .join("")}
 
                 </div>
 
@@ -2824,32 +1519,24 @@ function createSubjectHtml(
         </article>
 
     `;
-
 }
-
 
 /* ========================================
    テーマHTML
 ======================================== */
 
-function createUnitHtml(
-    unit
-) {
+function createUnitHtml(unit) {
+  const progressText =
+    unit.totalFormats > 0
+      ? `${unit.completedFormats} / ${unit.totalFormats}形式達成`
+      : "確認教材";
 
-    const progressText =
-        unit.totalFormats > 0
-            ? `${unit.completedFormats} / ${unit.totalFormats}形式達成`
-            : "確認教材";
-
-
-    return `
+  return `
 
         <section
             class="
                 exam-unit-card
-                is-${escapeAttribute(
-                    unit.status
-                )}
+                is-${escapeAttribute(unit.status)}
             ">
 
 
@@ -2871,9 +1558,7 @@ function createUnitHtml(
 
                             <h3>
 
-                                ${escapeHtml(
-                                    unit.name
-                                )}
+                                ${escapeHtml(unit.name)}
 
                             </h3>
 
@@ -2881,14 +1566,10 @@ function createUnitHtml(
                             <span
                                 class="
                                     exam-achievement-badge
-                                    is-${escapeAttribute(
-                                        unit.status
-                                    )}
+                                    is-${escapeAttribute(unit.status)}
                                 ">
 
-                                ${statusLabel(
-                                    unit.status
-                                )}
+                                ${statusLabel(unit.status)}
 
                             </span>
 
@@ -2896,17 +1577,15 @@ function createUnitHtml(
 
 
                         ${
-                            unit.range
-                                ? `
+                          unit.range
+                            ? `
 
                                     <p>
-                                        ${escapeHtml(
-                                            unit.range
-                                        )}
+                                        ${escapeHtml(unit.range)}
                                     </p>
 
                                 `
-                                : ""
+                            : ""
                         }
 
                     </div>
@@ -2944,41 +1623,25 @@ function createUnitHtml(
 
             <div class="exam-format-grid">
 
-                ${
-                    unit.formats
-                        .map(
-                            format =>
-                                createFormatHtml(
-                                    format
-                                )
-                        )
-                        .join("")
-                }
+                ${unit.formats
+                  .map((format) => createFormatHtml(format))
+                  .join("")}
 
             </div>
 
         </section>
 
     `;
-
 }
-
 
 /* ========================================
    問題形式HTML
 ======================================== */
 
-function createFormatHtml(
-    format
-) {
+function createFormatHtml(format) {
+  const appearance = getFormatAppearance(format.status);
 
-    const appearance =
-        getFormatAppearance(
-            format.status
-        );
-
-
-    return `
+  return `
 
         <button
             type="button"
@@ -2986,9 +1649,7 @@ function createFormatHtml(
                 exam-format-card
                 ${appearance.className}
             "
-            data-learning-url="${escapeAttribute(
-                format.url
-            )}">
+            data-learning-url="${escapeAttribute(format.url)}">
 
 
             <span class="exam-format-icon">
@@ -3004,9 +1665,7 @@ function createFormatHtml(
 
                     <strong>
 
-                        ${escapeHtml(
-                            format.title
-                        )}
+                        ${escapeHtml(format.title)}
 
                     </strong>
 
@@ -3023,17 +1682,14 @@ function createFormatHtml(
 
                 <span class="exam-format-description">
 
-                    ${escapeHtml(
-                        format.progressText
-                    )}
+                    ${escapeHtml(format.progressText)}
 
                 </span>
 
 
                 ${
-                    format.questionCount > 0 &&
-                    format.type !== "daily"
-                        ? `
+                  format.questionCount > 0 && format.type !== "daily"
+                    ? `
 
                             <span class="exam-format-question-count">
 
@@ -3042,7 +1698,7 @@ function createFormatHtml(
                             </span>
 
                         `
-                        : ""
+                    : ""
                 }
 
             </span>
@@ -3057,1575 +1713,715 @@ function createFormatHtml(
         </button>
 
     `;
-
 }
-
 
 /* ========================================
    科目開閉
 ======================================== */
 
-function toggleSubject(
-    subjectId
-) {
+function toggleSubject(subjectId) {
+  if (!subjectId) {
+    return;
+  }
 
-    if (!subjectId) {
-        return;
-    }
+  if (openSubjectIds.has(subjectId)) {
+    openSubjectIds.delete(subjectId);
+  } else {
+    openSubjectIds.add(subjectId);
+  }
 
+  saveOpenSubjectIds();
 
-    if (
-        openSubjectIds.has(
-            subjectId
-        )
-    ) {
-
-        openSubjectIds.delete(
-            subjectId
-        );
-
-    } else {
-
-        openSubjectIds.add(
-            subjectId
-        );
-
-    }
-
-
-    saveOpenSubjectIds();
-
-    renderSubjectList();
-
+  renderSubjectList();
 }
-
 
 function toggleAllVisibleSubjects() {
+  const visibleSubjectIds = Array.from(
+    elements.subjectUnitList.querySelectorAll(".exam-subject-card"),
+  )
+    .map((card) => card.dataset.subjectId)
+    .filter(Boolean);
 
-    const visibleSubjectIds =
-        Array.from(
-            elements.subjectUnitList
-                .querySelectorAll(
-                    ".exam-subject-card"
-                )
-        )
-        .map(
-            card =>
-                card.dataset.subjectId
-        )
-        .filter(Boolean);
+  if (visibleSubjectIds.length === 0) {
+    return;
+  }
 
+  const allOpen = visibleSubjectIds.every((subjectId) =>
+    openSubjectIds.has(subjectId),
+  );
 
-    if (
-        visibleSubjectIds.length === 0
-    ) {
-
-        return;
-
+  visibleSubjectIds.forEach((subjectId) => {
+    if (allOpen) {
+      openSubjectIds.delete(subjectId);
+    } else {
+      openSubjectIds.add(subjectId);
     }
+  });
 
+  saveOpenSubjectIds();
 
-    const allOpen =
-        visibleSubjectIds.every(
-            subjectId =>
-                openSubjectIds.has(
-                    subjectId
-                )
-        );
-
-
-    visibleSubjectIds.forEach(
-        subjectId => {
-
-            if (allOpen) {
-
-                openSubjectIds.delete(
-                    subjectId
-                );
-
-            } else {
-
-                openSubjectIds.add(
-                    subjectId
-                );
-
-            }
-
-        }
-    );
-
-
-    saveOpenSubjectIds();
-
-    renderSubjectList();
-
+  renderSubjectList();
 }
 
+function updateToggleAllButton(visibleSubjectIds) {
+  if (visibleSubjectIds.length === 0) {
+    elements.toggleAllSubjectsButton.disabled = true;
 
-function updateToggleAllButton(
-    visibleSubjectIds
-) {
+    elements.toggleAllSubjectsButton.textContent = "すべて開く";
 
-    if (
-        visibleSubjectIds.length === 0
-    ) {
+    return;
+  }
 
-        elements.toggleAllSubjectsButton.disabled =
-            true;
+  elements.toggleAllSubjectsButton.disabled = false;
 
-        elements.toggleAllSubjectsButton.textContent =
-            "すべて開く";
+  const allOpen = visibleSubjectIds.every((subjectId) =>
+    openSubjectIds.has(subjectId),
+  );
 
-        return;
-
-    }
-
-
-    elements.toggleAllSubjectsButton.disabled =
-        false;
-
-
-    const allOpen =
-        visibleSubjectIds.every(
-            subjectId =>
-                openSubjectIds.has(
-                    subjectId
-                )
-        );
-
-
-    elements.toggleAllSubjectsButton.textContent =
-        allOpen
-            ? "すべて閉じる"
-            : "すべて開く";
-
+  elements.toggleAllSubjectsButton.textContent = allOpen
+    ? "すべて閉じる"
+    : "すべて開く";
 }
-
 
 /* ========================================
    最初に開く科目
 ======================================== */
 
 function prepareInitialOpenSubject() {
+  if (openSubjectIds.size > 0) {
+    const existingSubjectIds = new Set(subjects.map((subject) => subject.id));
 
-    if (
-        openSubjectIds.size > 0
-    ) {
+    openSubjectIds = new Set(
+      [...openSubjectIds].filter((subjectId) =>
+        existingSubjectIds.has(subjectId),
+      ),
+    );
+  }
 
-        const existingSubjectIds =
-            new Set(
-                subjects.map(
-                    subject =>
-                        subject.id
-                )
-            );
+  if (openSubjectIds.size === 0) {
+    const initialSubject =
+      subjects.find((subject) => subject.status === "in-progress") ||
+      subjects.find((subject) => subject.status === "unstarted") ||
+      subjects[0];
 
-
-        openSubjectIds =
-            new Set(
-                [...openSubjectIds].filter(
-                    subjectId =>
-                        existingSubjectIds.has(
-                            subjectId
-                        )
-                )
-            );
-
+    if (initialSubject) {
+      openSubjectIds.add(initialSubject.id);
     }
+  }
 
-
-    if (
-        openSubjectIds.size === 0
-    ) {
-
-        const initialSubject =
-            subjects.find(
-                subject =>
-                    subject.status ===
-                    "in-progress"
-            ) ||
-            subjects.find(
-                subject =>
-                    subject.status ===
-                    "unstarted"
-            ) ||
-            subjects[0];
-
-
-        if (initialSubject) {
-
-            openSubjectIds.add(
-                initialSubject.id
-            );
-
-        }
-
-    }
-
-
-    saveOpenSubjectIds();
-
+  saveOpenSubjectIds();
 }
-
 
 /* ========================================
    絞り込み解除
 ======================================== */
 
 function resetFilters() {
+  currentStatusFilter = "all";
 
-    currentStatusFilter =
-        "all";
+  elements.searchInput.value = "";
 
+  elements.clearSearchButton.hidden = true;
 
-    elements.searchInput.value =
-        "";
+  elements.statusFilters
+    .querySelectorAll(".exam-filter-button")
+    .forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.status === "all");
+    });
 
-    elements.clearSearchButton.hidden =
-        true;
-
-
-    elements.statusFilters
-        .querySelectorAll(
-            ".exam-filter-button"
-        )
-        .forEach(
-            button => {
-
-                button.classList.toggle(
-                    "is-active",
-                    button.dataset.status ===
-                        "all"
-                );
-
-            }
-        );
-
-
-    renderSubjectList();
-
+  renderSubjectList();
 }
-
 
 /* ========================================
    ヘルプモーダル
 ======================================== */
 
 function openHelpModal() {
+  elements.helpModal.hidden = false;
 
-    elements.helpModal.hidden =
-        false;
-
-    document.body.classList.add(
-        "admin-modal-open"
-    );
-
+  document.body.classList.add("admin-modal-open");
 }
-
 
 function closeHelpModal() {
+  if (!elements.helpModal || elements.helpModal.hidden) {
+    return;
+  }
 
-    if (
-        !elements.helpModal ||
-        elements.helpModal.hidden
-    ) {
+  elements.helpModal.hidden = true;
 
-        return;
-
-    }
-
-
-    elements.helpModal.hidden =
-        true;
-
-    document.body.classList.remove(
-        "admin-modal-open"
-    );
-
+  document.body.classList.remove("admin-modal-open");
 }
-
 
 /* ========================================
    問題データ判定
 ======================================== */
 
-function getValidFillBlankQuestions(
-    data
-) {
+function getValidFillBlankQuestions(data) {
+  if (!Array.isArray(data.fill_blank)) {
+    return [];
+  }
+
+  return data.fill_blank.filter((question) => {
+    if (
+      !question ||
+      typeof question.question !== "string" ||
+      question.question.trim() === ""
+    ) {
+      return false;
+    }
+
+    const answers = Array.isArray(question.answers)
+      ? question.answers
+      : [question.answer];
+
+    return answers.some((answer) => String(answer || "").trim() !== "");
+  });
+}
+
+function getValidQuizQuestions(data) {
+  if (!Array.isArray(data.quiz)) {
+    return [];
+  }
+
+  return data.quiz.filter((question) => {
+    if (
+      !question ||
+      typeof question.question !== "string" ||
+      question.question.trim() === ""
+    ) {
+      return false;
+    }
+
+    if (!Array.isArray(question.choices) || question.choices.length === 0) {
+      return false;
+    }
 
     if (
-        !Array.isArray(
-            data.fill_blank
-        )
+      !question.choices.every((choice) => String(choice || "").trim() !== "")
     ) {
-
-        return [];
-
+      return false;
     }
 
-
-    return data.fill_blank.filter(
-        question => {
-
-            if (
-                !question ||
-                typeof question.question !==
-                    "string" ||
-                question.question.trim() ===
-                    ""
-            ) {
-
-                return false;
-
-            }
-
-
-            const answers =
-                Array.isArray(
-                    question.answers
-                )
-                    ? question.answers
-                    : [
-                        question.answer
-                    ];
-
-
-            return answers.some(
-                answer =>
-                    String(
-                        answer || ""
-                    ).trim() !== ""
-            );
-
-        }
-    );
-
+    return question.answer !== undefined && question.answer !== null;
+  });
 }
 
+function getValidQaQuestions(data) {
+  if (!Array.isArray(data.qa)) {
+    return [];
+  }
 
-function getValidQuizQuestions(
-    data
-) {
+  return data.qa.filter(
+    (question) =>
+      question &&
+      typeof question.question === "string" &&
+      question.question.trim() !== "" &&
+      typeof question.answer === "string" &&
+      question.answer.trim() !== "",
+  );
+}
 
-    if (
-        !Array.isArray(
-            data.quiz
-        )
-    ) {
+function hasValidDailyQuestion(data) {
+  if (getValidQuizQuestions(data).length > 0) {
+    return true;
+  }
 
-        return [];
+  const question = data.today_question;
 
+  return Boolean(
+    question &&
+      typeof question.question === "string" &&
+      question.question.trim() !== "" &&
+      Array.isArray(question.choices) &&
+      question.choices.length > 0,
+  );
+}
+
+function hasValidImportantPoints(data) {
+  if (!Array.isArray(data.important_points)) {
+    return false;
+  }
+
+  return data.important_points.some((point) => {
+    if (typeof point === "string") {
+      return point.trim() !== "";
     }
 
-
-    return data.quiz.filter(
-        question => {
-
-            if (
-                !question ||
-                typeof question.question !==
-                    "string" ||
-                question.question.trim() ===
-                    ""
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                !Array.isArray(
-                    question.choices
-                ) ||
-                question.choices.length ===
-                    0
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                !question.choices.every(
-                    choice =>
-                        String(
-                            choice || ""
-                        ).trim() !== ""
-                )
-            ) {
-
-                return false;
-
-            }
-
-
-            return (
-                question.answer !== undefined &&
-                question.answer !== null
-            );
-
-        }
-    );
-
-}
-
-function getValidQaQuestions(
-    data
-) {
-
-    if (!Array.isArray(data.qa)) {
-        return [];
+    if (point && typeof point === "object") {
+      return Boolean(
+        String(
+          point.text ||
+            point.point ||
+            point.title ||
+            point.body ||
+            point.imageUrl ||
+            "",
+        ).trim(),
+      );
     }
 
-    return data.qa.filter(question =>
-        question &&
-        typeof question.question === "string" &&
-        question.question.trim() !== "" &&
-        typeof question.answer === "string" &&
-        question.answer.trim() !== ""
-    );
-
+    return false;
+  });
 }
-
-
-function hasValidDailyQuestion(
-    data
-) {
-
-    if (
-        getValidQuizQuestions(
-            data
-        ).length > 0
-    ) {
-
-        return true;
-
-    }
-
-
-    const question =
-        data.today_question;
-
-
-    return Boolean(
-
-        question &&
-
-        typeof question.question ===
-            "string" &&
-
-        question.question.trim() !==
-            "" &&
-
-        Array.isArray(
-            question.choices
-        ) &&
-
-        question.choices.length > 0
-
-    );
-
-}
-
-
-function hasValidImportantPoints(
-    data
-) {
-
-    if (
-        !Array.isArray(
-            data.important_points
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    return data.important_points.some(
-        point => {
-
-            if (
-                typeof point ===
-                "string"
-            ) {
-
-                return point.trim() !== "";
-
-            }
-
-
-            if (
-                point &&
-                typeof point ===
-                    "object"
-            ) {
-
-                return Boolean(
-
-                    String(
-                        point.text ||
-                        point.point ||
-                        point.title ||
-                        point.body ||
-                        point.imageUrl ||
-                        ""
-                    ).trim()
-
-                );
-
-            }
-
-
-            return false;
-
-        }
-    );
-
-}
-
 
 /* ========================================
    今日の1問達成判定
 ======================================== */
 
-function isDailyCompleted(
-    subjectId,
-    unitId
-) {
+function isDailyCompleted(subjectId, unitId) {
+  const directKey = createDailyKey(subjectId, unitId);
 
-    const directKey =
-        createDailyKey(
-            subjectId,
-            unitId
-        );
+  if (dailyCompletionKeys.has(directKey)) {
+    return true;
+  }
 
+  const normalizedSubjectId = String(subjectId).toLowerCase();
 
-    if (
-        dailyCompletionKeys.has(
-            directKey
-        )
-    ) {
+  const normalizedUnitId = String(unitId).toLowerCase();
 
-        return true;
-
-    }
-
-
-    const normalizedSubjectId =
-        String(
-            subjectId
-        ).toLowerCase();
-
-
-    const normalizedUnitId =
-        String(
-            unitId
-        ).toLowerCase();
-
-
-    return dailyRecordTexts.some(
-        recordText =>
-
-            recordText.includes(
-                normalizedSubjectId
-            ) &&
-
-            recordText.includes(
-                normalizedUnitId
-            )
-
-    );
-
+  return dailyRecordTexts.some(
+    (recordText) =>
+      recordText.includes(normalizedSubjectId) &&
+      recordText.includes(normalizedUnitId),
+  );
 }
-
 
 /* ========================================
    表示情報
 ======================================== */
 
-function getFormatAppearance(
-    status
-) {
+function getFormatAppearance(status) {
+  const appearances = {
+    completed: {
+      className: "is-completed",
 
-    const appearances = {
+      icon: "✓",
 
-        completed: {
+      label: "達成",
+    },
 
-            className:
-                "is-completed",
+    "in-progress": {
+      className: "is-progress",
 
-            icon:
-                "✓",
+      icon: "▶",
 
-            label:
-                "達成"
+      label: "学習中",
+    },
 
-        },
+    unstarted: {
+      className: "is-unstarted",
 
-        "in-progress": {
+      icon: "○",
 
-            className:
-                "is-progress",
+      label: "未着手",
+    },
 
-            icon:
-                "▶",
+    "today-completed": {
+      className: "is-today-completed",
 
-            label:
-                "学習中"
+      icon: "✓",
 
-        },
+      label: "本日達成",
+    },
 
-        unstarted: {
+    "today-unstarted": {
+      className: "is-today-unstarted",
 
-            className:
-                "is-unstarted",
+      icon: "○",
 
-            icon:
-                "○",
+      label: "本日未達成",
+    },
 
-            label:
-                "未着手"
+    reference: {
+      className: "is-reference",
 
-        },
+      icon: "📖",
 
-        "today-completed": {
+      label: "確認教材",
+    },
+  };
 
-            className:
-                "is-today-completed",
-
-            icon:
-                "✓",
-
-            label:
-                "本日達成"
-
-        },
-
-        "today-unstarted": {
-
-            className:
-                "is-today-unstarted",
-
-            icon:
-                "○",
-
-            label:
-                "本日未達成"
-
-        },
-
-        reference: {
-
-            className:
-                "is-reference",
-
-            icon:
-                "📖",
-
-            label:
-                "確認教材"
-
-        }
-
-    };
-
-
-    return appearances[status] ||
-        appearances.unstarted;
-
+  return appearances[status] || appearances.unstarted;
 }
 
+function statusLabel(status) {
+  return (
+    {
+      completed: "達成",
 
-function statusLabel(
-    status
-) {
+      "in-progress": "学習中",
 
-    return {
-
-        completed:
-            "達成",
-
-        "in-progress":
-            "学習中",
-
-        unstarted:
-            "未着手"
-
-    }[status] || "未着手";
-
+      unstarted: "未着手",
+    }[status] || "未着手"
+  );
 }
-
 
 /* ========================================
    並び順
 ======================================== */
 
-function compareSubjects(
-    subjectA,
-    subjectB
-) {
+function compareSubjects(subjectA, subjectB) {
+  const statusOrder = {
+    "in-progress": 1,
 
-    const statusOrder = {
+    unstarted: 2,
 
-        "in-progress":
-            1,
+    completed: 3,
+  };
 
-        unstarted:
-            2,
+  const orderA = statusOrder[subjectA.status] || 99;
 
-        completed:
-            3
+  const orderB = statusOrder[subjectB.status] || 99;
 
-    };
+  if (orderA !== orderB) {
+    return orderA - orderB;
+  }
 
+  if (subjectA.completedExam !== subjectB.completedExam) {
+    return Number(subjectA.completedExam) - Number(subjectB.completedExam);
+  }
 
-    const orderA =
-        statusOrder[
-            subjectA.status
-        ] || 99;
+  if (subjectA.createdAt !== subjectB.createdAt) {
+    return subjectB.createdAt - subjectA.createdAt;
+  }
 
-
-    const orderB =
-        statusOrder[
-            subjectB.status
-        ] || 99;
-
-
-    if (
-        orderA !==
-        orderB
-    ) {
-
-        return orderA -
-            orderB;
-
-    }
-
-
-    if (
-        subjectA.completedExam !==
-        subjectB.completedExam
-    ) {
-
-        return Number(
-            subjectA.completedExam
-        ) -
-        Number(
-            subjectB.completedExam
-        );
-
-    }
-
-
-    if (
-        subjectA.createdAt !==
-        subjectB.createdAt
-    ) {
-
-        return subjectB.createdAt -
-            subjectA.createdAt;
-
-    }
-
-
-    return subjectA.name.localeCompare(
-        subjectB.name,
-        "ja"
-    );
-
+  return subjectA.name.localeCompare(subjectB.name, "ja");
 }
 
+function compareUnits(unitA, unitB) {
+  if (unitA.createdAt !== unitB.createdAt) {
+    return unitB.createdAt - unitA.createdAt;
+  }
 
-function compareUnits(
-    unitA,
-    unitB
-) {
-
-    if (
-        unitA.createdAt !==
-        unitB.createdAt
-    ) {
-
-        return unitB.createdAt -
-            unitA.createdAt;
-
-    }
-
-
-    return unitA.name.localeCompare(
-        unitB.name,
-        "ja"
-    );
-
+  return unitA.name.localeCompare(unitB.name, "ja");
 }
-
 
 /* ========================================
    空状態
 ======================================== */
 
 function updateEmptyDashboard() {
+  elements.overallProgressPercent.textContent = "0";
 
-    elements.overallProgressPercent.textContent =
-        "0";
+  elements.overallProgressRing.style.setProperty("--progress", 0);
 
-    elements.overallProgressRing.style.setProperty(
-        "--progress",
-        0
-    );
+  elements.overallProgressBar.style.width = "0%";
 
-    elements.overallProgressBar.style.width =
-        "0%";
+  elements.completedFormatCount.textContent = "0";
 
-    elements.completedFormatCount.textContent =
-        "0";
+  elements.inProgressFormatCount.textContent = "0";
 
-    elements.inProgressFormatCount.textContent =
-        "0";
+  elements.unstartedFormatCount.textContent = "0";
 
-    elements.unstartedFormatCount.textContent =
-        "0";
+  elements.completedSubjectCount.textContent = "0";
 
-    elements.completedSubjectCount.textContent =
-        "0";
+  elements.todayDailyCount.textContent = "0 / 0達成";
 
-    elements.todayDailyCount.textContent =
-        "0 / 0達成";
+  elements.todayDailyProgressBar.style.width = "0%";
 
-    elements.todayDailyProgressBar.style.width =
-        "0%";
-
-    elements.continueSection.hidden =
-        true;
-
+  elements.continueSection.hidden = true;
 }
-
 
 /* ========================================
    Firestore安全取得
 ======================================== */
 
-async function safeGetDocs(
-    reference
-) {
+async function safeGetDocs(reference) {
+  try {
+    return await getDocs(reference);
+  } catch (error) {
+    console.error("コレクション取得エラー:", error);
 
-    try {
-
-        return await getDocs(
-            reference
-        );
-
-    } catch (error) {
-
-        console.error(
-            "コレクション取得エラー:",
-            error
-        );
-
-        return null;
-
-    }
-
+    return null;
+  }
 }
 
+async function safeGetDoc(reference) {
+  try {
+    return await getDoc(reference);
+  } catch (error) {
+    console.error("ドキュメント取得エラー:", error);
 
-async function safeGetDoc(
-    reference
-) {
-
-    try {
-
-        return await getDoc(
-            reference
-        );
-
-    } catch (error) {
-
-        console.error(
-            "ドキュメント取得エラー:",
-            error
-        );
-
-        return null;
-
-    }
-
+    return null;
+  }
 }
-
 
 /* ========================================
    ローカル保存
 ======================================== */
 
 function loadOpenSubjectIds() {
+  try {
+    const storedValue = localStorage.getItem(openSubjectsStorageKey);
 
-    try {
-
-        const storedValue =
-            localStorage.getItem(
-                openSubjectsStorageKey
-            );
-
-
-        if (!storedValue) {
-
-            return new Set();
-
-        }
-
-
-        const parsed =
-            JSON.parse(
-                storedValue
-            );
-
-
-        if (!Array.isArray(parsed)) {
-
-            return new Set();
-
-        }
-
-
-        return new Set(
-            parsed.map(
-                value =>
-                    String(value)
-            )
-        );
-
-    } catch {
-
-        return new Set();
-
+    if (!storedValue) {
+      return new Set();
     }
 
-}
+    const parsed = JSON.parse(storedValue);
 
+    if (!Array.isArray(parsed)) {
+      return new Set();
+    }
+
+    return new Set(parsed.map((value) => String(value)));
+  } catch {
+    return new Set();
+  }
+}
 
 function saveOpenSubjectIds() {
-
-    try {
-
-        localStorage.setItem(
-            openSubjectsStorageKey,
-            JSON.stringify(
-                [...openSubjectIds]
-            )
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "開閉状態保存エラー:",
-            error
-        );
-
-    }
-
+  try {
+    localStorage.setItem(
+      openSubjectsStorageKey,
+      JSON.stringify([...openSubjectIds]),
+    );
+  } catch (error) {
+    console.warn("開閉状態保存エラー:", error);
+  }
 }
-
 
 /* ========================================
    日付
 ======================================== */
 
-function parseLocalDate(
-    value
-) {
+function parseLocalDate(value) {
+  if (!value) {
+    return null;
+  }
 
-    if (!value) {
-        return null;
-    }
+  if (value && typeof value.toDate === "function") {
+    return startOfLocalDay(value.toDate());
+  }
 
+  if (value instanceof Date) {
+    return startOfLocalDay(value);
+  }
 
-    if (
-        value &&
-        typeof value.toDate ===
-            "function"
-    ) {
+  const text = String(value);
 
-        return startOfLocalDay(
-            value.toDate()
-        );
+  const matched = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
 
-    }
+  if (matched) {
+    return new Date(
+      Number(matched[1]),
 
+      Number(matched[2]) - 1,
 
-    if (
-        value instanceof Date
-    ) {
+      Number(matched[3]),
 
-        return startOfLocalDay(
-            value
-        );
-
-    }
-
-
-    const text =
-        String(value);
-
-
-    const matched =
-        text.match(
-            /^(\d{4})-(\d{1,2})-(\d{1,2})/
-        );
-
-
-    if (matched) {
-
-        return new Date(
-
-            Number(matched[1]),
-
-            Number(matched[2]) - 1,
-
-            Number(matched[3]),
-
-            0,
-            0,
-            0,
-            0
-
-        );
-
-    }
-
-
-    const parsed =
-        new Date(value);
-
-
-    if (
-        Number.isNaN(
-            parsed.getTime()
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    return startOfLocalDay(
-        parsed
+      0,
+      0,
+      0,
+      0,
     );
+  }
 
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return startOfLocalDay(parsed);
 }
 
+function startOfLocalDay(date) {
+  const result = new Date(date);
 
-function startOfLocalDay(
-    date
-) {
+  result.setHours(0, 0, 0, 0);
 
-    const result =
-        new Date(date);
-
-
-    result.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-
-    return result;
-
+  return result;
 }
 
+function differenceInDays(fromDate, toDate) {
+  return Math.max(
+    0,
 
-function differenceInDays(
-    fromDate,
-    toDate
-) {
-
-    return Math.max(
-
-        0,
-
-        Math.ceil(
-
-            (
-                startOfLocalDay(toDate) -
-                startOfLocalDay(fromDate)
-            ) /
-
-            86400000
-
-        )
-
-    );
-
+    Math.ceil((startOfLocalDay(toDate) - startOfLocalDay(fromDate)) / 86400000),
+  );
 }
 
+function createLocalDateKey(date) {
+  return [
+    date.getFullYear(),
 
-function createLocalDateKey(
-    date
-) {
+    String(date.getMonth() + 1).padStart(2, "0"),
 
-    return [
-
-        date.getFullYear(),
-
-        String(
-            date.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        ),
-
-        String(
-            date.getDate()
-        ).padStart(
-            2,
-            "0"
-        )
-
-    ].join("-");
-
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
+function valueIsToday(value) {
+  if (!value) {
+    return false;
+  }
 
-function valueIsToday(
-    value
-) {
+  if (typeof value.toDate === "function") {
+    return createLocalDateKey(value.toDate()) === todayKey;
+  }
 
-    if (!value) {
-        return false;
-    }
+  if (value instanceof Date) {
+    return createLocalDateKey(value) === todayKey;
+  }
 
-
-    if (
-        typeof value.toDate ===
-        "function"
-    ) {
-
-        return (
-            createLocalDateKey(
-                value.toDate()
-            ) === todayKey
-        );
-
-    }
-
-
-    if (
-        value instanceof Date
-    ) {
-
-        return (
-            createLocalDateKey(
-                value
-            ) === todayKey
-        );
-
-    }
-
-
-    if (
-        typeof value ===
-            "number"
-    ) {
-
-        const date =
-            new Date(value);
-
-
-        return (
-            !Number.isNaN(
-                date.getTime()
-            ) &&
-            createLocalDateKey(
-                date
-            ) === todayKey
-        );
-
-    }
-
-
-    const text =
-        String(value);
-
-
-    if (
-        text.includes(
-            todayKey
-        ) ||
-        text.includes(
-            todayCompactKey
-        )
-    ) {
-
-        return true;
-
-    }
-
-
-    const date =
-        new Date(text);
-
+  if (typeof value === "number") {
+    const date = new Date(value);
 
     return (
-        !Number.isNaN(
-            date.getTime()
-        ) &&
-        createLocalDateKey(
-            date
-        ) === todayKey
+      !Number.isNaN(date.getTime()) && createLocalDateKey(date) === todayKey
     );
+  }
 
+  const text = String(value);
+
+  if (text.includes(todayKey) || text.includes(todayCompactKey)) {
+    return true;
+  }
+
+  const date = new Date(text);
+
+  return !Number.isNaN(date.getTime()) && createLocalDateKey(date) === todayKey;
 }
 
+function formatExamDate(value) {
+  const date = parseLocalDate(value);
 
-function formatExamDate(
-    value
-) {
+  if (!date) {
+    return "----";
+  }
 
-    const date =
-        parseLocalDate(
-            value
-        );
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
 
-
-    if (!date) {
-
-        return "----";
-
-    }
-
-
-    const weekdays = [
-
-        "日",
-        "月",
-        "火",
-        "水",
-        "木",
-        "金",
-        "土"
-
-    ];
-
-
-    return (
-
-        `${date.getMonth() + 1}/` +
-        `${date.getDate()}` +
-        `（${weekdays[date.getDay()]}）`
-
-    );
-
+  return (
+    `${date.getMonth() + 1}/` +
+    `${date.getDate()}` +
+    `（${weekdays[date.getDay()]}）`
+  );
 }
 
+function createCompletedExamText(subject) {
+  if (!subject.completedDate) {
+    return "試験実施済み";
+  }
 
-function createCompletedExamText(
-    subject
-) {
+  const dateText = formatExamDate(subject.completedDate);
 
-    if (!subject.completedDate) {
-
-        return "試験実施済み";
-
-    }
-
-
-    const dateText =
-        formatExamDate(
-            subject.completedDate
-        );
-
-
-    return (
-
-        `${dateText}` +
-
-        (
-            subject.completedPeriod
-                ? ` ${subject.completedPeriod}限目`
-                : ""
-        ) +
-
-        "・試験実施済み"
-
-    );
-
+  return (
+    `${dateText}` +
+    (subject.completedPeriod ? ` ${subject.completedPeriod}限目` : "") +
+    "・試験実施済み"
+  );
 }
-
 
 /* ========================================
    キー・URL
 ======================================== */
 
-function createProgressKey(
-    type,
-    subjectId,
-    unitId
-) {
-
-    return (
-
-        `${normalizeProgressType(type)}|` +
-        `${String(subjectId)}|` +
-        `${String(unitId)}`
-
-    );
-
+function createProgressKey(type, subjectId, unitId) {
+  return (
+    `${normalizeProgressType(type)}|` +
+    `${String(subjectId)}|` +
+    `${String(unitId)}`
+  );
 }
 
-
-function createDailyKey(
-    subjectId,
-    unitId
-) {
-
-    return (
-        `${String(subjectId)}|` +
-        `${String(unitId)}`
-    );
-
+function createDailyKey(subjectId, unitId) {
+  return `${String(subjectId)}|` + `${String(unitId)}`;
 }
 
+function createLearningUrl(file, subjectId, unitId) {
+  const parameters = new URLSearchParams({
+    subjectId: String(subjectId),
 
-function createLearningUrl(
-    file,
-    subjectId,
-    unitId
-) {
+    unitId: String(unitId),
+  });
 
-    const parameters =
-        new URLSearchParams({
-
-            subjectId:
-                String(subjectId),
-
-            unitId:
-                String(unitId)
-
-        });
-
-
-    return (
-        `${file}?${parameters.toString()}`
-    );
-
+  return `${file}?${parameters.toString()}`;
 }
 
+function normalizeProgressType(type) {
+  const value = String(type || "")
+    .trim()
+    .toLowerCase();
 
-function normalizeProgressType(
-    type
-) {
+  if (["fillblank", "fill_blank", "fill-blank"].includes(value)) {
+    return "fillBlank";
+  }
 
-    const value =
-        String(
-            type ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
+  if (["quiz", "multiplechoice", "multiple_choice"].includes(value)) {
+    return "quiz";
+  }
 
+  if (value === "daily") {
+    return "daily";
+  }
 
-    if (
-        [
-            "fillblank",
-            "fill_blank",
-            "fill-blank"
-        ].includes(value)
-    ) {
-
-        return "fillBlank";
-
-    }
-
-
-    if (
-        [
-            "quiz",
-            "multiplechoice",
-            "multiple_choice"
-        ].includes(value)
-    ) {
-
-        return "quiz";
-
-    }
-
-
-    if (
-        value === "daily"
-    ) {
-
-        return "daily";
-
-    }
-
-
-    return String(
-        type ||
-        ""
-    ).trim();
-
+  return String(type || "").trim();
 }
-
 
 /* ========================================
    数値・日時
 ======================================== */
 
-function nonNegativeNumber(
-    value
-) {
+function nonNegativeNumber(value) {
+  const number = Number(value);
 
-    const number =
-        Number(value);
+  if (!Number.isFinite(number) || number < 0) {
+    return 0;
+  }
 
+  return number;
+}
 
-    if (
-        !Number.isFinite(number) ||
-        number < 0
-    ) {
+function toMilliseconds(value) {
+  if (!value) {
+    return 0;
+  }
 
-        return 0;
+  if (typeof value.toMillis === "function") {
+    return value.toMillis();
+  }
 
-    }
+  if (typeof value.toDate === "function") {
+    return value.toDate().getTime();
+  }
 
+  if (value instanceof Date) {
+    return value.getTime();
+  }
 
+  const number = Number(value);
+
+  if (Number.isFinite(number) && number > 0) {
     return number;
+  }
 
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
-
-
-function toMilliseconds(
-    value
-) {
-
-    if (!value) {
-
-        return 0;
-
-    }
-
-
-    if (
-        typeof value.toMillis ===
-        "function"
-    ) {
-
-        return value.toMillis();
-
-    }
-
-
-    if (
-        typeof value.toDate ===
-        "function"
-    ) {
-
-        return value
-            .toDate()
-            .getTime();
-
-    }
-
-
-    if (
-        value instanceof Date
-    ) {
-
-        return value.getTime();
-
-    }
-
-
-    const number =
-        Number(value);
-
-
-    if (
-        Number.isFinite(number) &&
-        number > 0
-    ) {
-
-        return number;
-
-    }
-
-
-    const date =
-        new Date(value);
-
-
-    return Number.isNaN(
-        date.getTime()
-    )
-        ? 0
-        : date.getTime();
-
-}
-
 
 /* ========================================
    文字列処理
 ======================================== */
 
-function normalizeSearchText(
-    value
-) {
-
-    return String(
-        value ||
-        ""
-    )
+function normalizeSearchText(value) {
+  return String(value || "")
     .normalize("NFKC")
     .toLowerCase()
     .replace(/\s+/g, "");
-
 }
 
-
-function escapeHtml(
-    value
-) {
-
-    return String(
-        value ??
-        ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-
-function escapeAttribute(
-    value
-) {
-
-    return escapeHtml(
-        value
-    );
-
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }

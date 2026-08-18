@@ -1,98 +1,82 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<title>問題一覧 | CareMate</title>
+    <title>問題一覧 | CareMate</title>
 
-<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
-</head>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<body class="page-loading">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
-<div class="top-buttons">
+      <h2>📝 問題一覧</h2>
 
-    <button id="backButton" class="circle-button">←</button>
-
-    <h2>📝 問題一覧</h2>
-
-    <div class="top-right">
+      <div class="top-right">
         <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-            <img id="topProfileImage" src="images/default.png" class="header-profile-image">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
+      </div>
     </div>
 
-</div>
+    <div class="card setting-card">
+      <h2>📝 問題一覧</h2>
 
-<div class="card setting-card">
+      <p id="unitInfo">読み込み中...</p>
+    </div>
 
-    <h2>📝 問題一覧</h2>
+    <div class="card setting-card">
+      <h3>公開設定</h3>
 
-    <p id="unitInfo">
-        読み込み中...
-    </p>
-
-</div>
-
-<div class="card setting-card">
-
-    <h3>公開設定</h3>
-
-    <p>
+      <p>
         AI生成した問題の編集や、問題の手動作成ができます。
         保存後に「公開する」を押すと学生側へ反映されます。
-    </p>
+      </p>
 
-    <button id="saveEditedQuestions" class="btn btn-secondary">
+      <button id="saveEditedQuestions" class="btn btn-secondary">
         編集内容を保存
-    </button>
+      </button>
 
-    <br><br>
+      <br /><br />
 
-    <button id="publishQuestions" class="btn btn-primary">
-        公開する
-    </button>
+      <button id="publishQuestions" class="btn btn-primary">公開する</button>
+    </div>
 
-</div>
+    <h3>JSON一括インポート</h3>
 
-<h3>JSON一括インポート</h3>
+    <textarea
+      id="jsonImport"
+      rows="20"
+      style="width: 100%"
+      placeholder="ここにChatGPTのJSONを貼り付け"
+    ></textarea>
 
-<textarea
-    id="jsonImport"
-    rows="20"
-    style="width:100%;"
-    placeholder="ここにChatGPTのJSONを貼り付け"></textarea>
+    <button id="previewJson" class="btn">内容を確認</button>
 
-<button
-    id="previewJson"
-    class="btn">
-    内容を確認
-</button>
+    <button id="importJson" class="btn btn-primary">JSONを保存</button>
 
-<button
-    id="importJson"
-    class="btn btn-primary">
-    JSONを保存
-</button>
+    <div id="jsonPreview"></div>
 
-<div id="jsonPreview"></div>
+    <div id="questionList">読み込み中...</div>
 
-<div id="questionList">
-    読み込み中...
-</div>
-
-<script type="module" src="exam_questions_admin.js"></script>
-
-</body>
+    <script type="module" src="exam_questions_admin.js"></script>
+  </body>
 </html>

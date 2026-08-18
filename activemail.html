@@ -1,117 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Active!Mail</title>
 
-<title>Active!Mail</title>
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
+  <body>
+    <h1>📧 Active!Mail</h1>
 
-</head>
+    <div class="card setting-card">
+      <h3 id="mailCount">新着メールはありません</h3>
 
-<body>
+      <p>大学のActive!Mailで メールを確認してください。</p>
+    </div>
 
-<h1>📧 Active!Mail</h1>
+    <button id="openMailButton" class="btn btn-primary">
+      Active!Mailを開く
+    </button>
 
-<div class="card setting-card">
+    <br /><br />
 
-    <h3 id="mailCount">
-        新着メールはありません
-    </h3>
+    <button id="readButton" class="btn btn-secondary">確認しました</button>
 
-    <p>
+    <br /><br />
 
-        大学のActive!Mailで
-        メールを確認してください。
+    <button class="btn btn-secondary" onclick="history.back()">戻る</button>
 
-    </p>
-
-</div>
-
-<button
-    id="openMailButton"
-    class="btn btn-primary">
-
-    Active!Mailを開く
-
-</button>
-
-<br><br>
-
-<button
-    id="readButton"
-    class="btn btn-secondary">
-
-    確認しました
-
-</button>
-
-<br><br>
-
-<button
-    class="btn btn-secondary"
-    onclick="history.back()">
-
-    戻る
-
-</button>
-
-<nav class="bottom-nav">
-
-    <a href="index.html" class="active">
-        🏠<br>
+    <nav class="bottom-nav">
+      <a href="index.html" class="active">
+        🏠<br />
         <span>ホーム</span>
-    </a>
+      </a>
 
-    <a href="assignments.html">
-        📚<br>
+      <a href="assignments.html">
+        📚<br />
         <span>課題</span>
-    </a>
+      </a>
 
-    <a href="requests.html">
-        💡<br>
+      <a href="requests.html">
+        💡<br />
         <span>リクエスト</span>
-    </a>
+      </a>
 
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📢</span>
 
-            <span class="nav-icon">📢</span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a 
-	    id="settingsTab"
-	    href="settings.html">
-        ⚙️<br>
+      <a id="settingsTab" href="settings.html">
+        ⚙️<br />
         <span>設定</span>
-    </a>
+      </a>
+    </nav>
 
-</nav>
-
-<script type="module" src="activemail.js"></script>
-
-</body>
+    <script type="module" src="activemail.js"></script>
+  </body>
 </html>

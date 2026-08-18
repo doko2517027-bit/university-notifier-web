@@ -1,52 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <meta charset="UTF-8">
+  <head>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta charset="UTF-8" />
     <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>ログイン | CareMateApp</title>
-    <link rel="stylesheet" href="style.css">
-    <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo">🎓</div>
+      <h1>CareMateApp</h1>
+      <p>ログイン</p>
+    </header>
 
-<header class="header">
-    <div class="logo">🎓</div>
-    <h1>CareMateApp</h1>
-    <p>ログイン</p>
-</header>
-
-<div class="card setting-card">
-
-    <h3>学籍番号</h3>
-    <input
+    <div class="card setting-card">
+      <h3>学籍番号</h3>
+      <input
         id="studentNumber"
         type="text"
         maxlength="7"
-        placeholder="例：2510000">
+        placeholder="例：2510000"
+      />
 
-    <h3>アプリ用パスワード</h3>
-    <input
+      <h3>アプリ用パスワード</h3>
+      <input
         id="appPassword"
         type="password"
-        placeholder="登録したパスワード">
+        placeholder="登録したパスワード"
+      />
 
-    <button id="loginButton" class="btn btn-primary">
-    ログイン
-    </button>
+      <button id="loginButton" class="btn btn-primary">ログイン</button>
 
-    <br><br>
+      <br /><br />
 
-    <button id="registerButton" class="btn btn-primary">
-    初回登録はこちら
-    </button>
+      <button id="registerButton" class="btn btn-primary">
+        初回登録はこちら
+      </button>
+    </div>
 
-</div>
-
-<script type="module" src="login.js"></script>
-
-</body>
+    <script type="module" src="login.js"></script>
+  </body>
 </html>

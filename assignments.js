@@ -1,108 +1,87 @@
 import {
-    db,
-    studentNumber,
-    setupTheme,
-    loadProfileImage,
-    loadUserName,
-    loadMyRanking,
-    initializePage,
-    showAssignmentSkeleton,
-    setupAdminTab,
-    setupOfflineAlert,
-    updateAssignmentNavBadge,
-    updateShareNavBadge,
-    updateNewsNavBadge
+  db,
+  studentNumber,
+  setupTheme,
+  loadProfileImage,
+  loadUserName,
+  loadMyRanking,
+  initializePage,
+  showAssignmentSkeleton,
+  setupAdminTab,
+  setupOfflineAlert,
+  updateAssignmentNavBadge,
+  updateShareNavBadge,
+  updateNewsNavBadge,
 } from "./common.js";
 
 import {
-    doc,
-    getDoc
+  doc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const userName = document.getElementById("userName");
 const assignmentList = document.getElementById("assignmentList");
-if(assignmentList){
-    showAssignmentSkeleton(assignmentList);
+if (assignmentList) {
+  showAssignmentSkeleton(assignmentList);
 }
 const themeButton = document.getElementById("themeButton");
 const loggedIn = localStorage.getItem("loggedIn");
 const topProfileImage = document.getElementById("topProfileImage");
 
 if (loggedIn !== "true") {
-    location.href = "login.html";
+  location.href = "login.html";
 }
 
 await initializePage([
-    
-    setupAdminTab(),
-    loadUserName(userName),
-    loadProfileImage(topProfileImage),
-    loadMyRanking(),
-    loadAssignments(),
-    updateAssignmentNavBadge(),
-    updateShareNavBadge(),
-    updateNewsNavBadge()
-
+  setupAdminTab(),
+  loadUserName(userName),
+  loadProfileImage(topProfileImage),
+  loadMyRanking(),
+  loadAssignments(),
+  updateAssignmentNavBadge(),
+  updateShareNavBadge(),
+  updateNewsNavBadge(),
 ]);
 
 setupTheme(themeButton);
 
 async function loadAssignments() {
+  if (!studentNumber) {
+    assignmentList.innerHTML = "ログインしてください。";
+    return;
+  }
 
-    if (!studentNumber) {
-        assignmentList.innerHTML = "ログインしてください。";
-        return;
-    }
+  const snap = await getDoc(doc(db, "assignments", studentNumber));
 
-    const snap = await getDoc(
-        doc(db, "assignments", studentNumber)
-    );
+  if (!snap.exists()) {
+    assignmentList.innerHTML = "未提出課題はありません。";
+    return;
+  }
 
-    if (!snap.exists()) {
-        assignmentList.innerHTML = "未提出課題はありません。";
-        return;
-    }
+  const data = snap.data();
 
-    const data = snap.data();
+  const assignments = data.assignments || [];
 
-    const assignments = data.assignments || [];
+  if (assignments.length === 0) {
+    assignmentList.innerHTML = "未提出課題はありません。";
+    return;
+  }
 
-    if (assignments.length === 0) {
-        assignmentList.innerHTML = "未提出課題はありません。";
-        return;
-    }
+  let html = "";
 
-    let html = "";
+  assignments.forEach((item) => {
+    const course =
+      item.course || item.courseName || item.subject || "科目名なし";
 
-    assignments.forEach(item => {
+    const title = item.title || item.name || "課題名なし";
 
-        const course =
-            item.course ||
-            item.courseName ||
-            item.subject ||
-            "科目名なし";
+    const deadline = item.deadline || item.due || item.limit || "締切不明";
 
-        const title =
-            item.title ||
-            item.name ||
-            "課題名なし";
+    const rawCourseUrl = item.courseUrl || "";
 
-        const deadline =
-            item.deadline ||
-            item.due ||
-            item.limit ||
-            "締切不明";
+    const url = item.url ? "https://sums.manaba.jp/ct/" + item.url : "";
 
-        const rawCourseUrl =
-            item.courseUrl ||
-            "";
-
-        const url =
-            item.url
-                ? "https://sums.manaba.jp/ct/" + item.url
-                : "";
-
-        html += `
+    html += `
             <div class="switch-card">
                 <h3>📚 ${course}</h3>
 
@@ -117,24 +96,18 @@ async function loadAssignments() {
                 </p>
 
                 ${
-                    url
+                  url
                     ? `<div class="switch-card assignment-card"
                             onclick="location.href='${url}'">`
                     : `<p>リンクなし</p>`
                 }
             </div>
         `;
+  });
 
-    });
-
-    assignmentList.innerHTML = html;
-
+  assignmentList.innerHTML = html;
 }
 
-document
-.getElementById("profileButton")
-.onclick = () => {
-
-    location.href = "profile.html";
-
+document.getElementById("profileButton").onclick = () => {
+  location.href = "profile.html";
 };

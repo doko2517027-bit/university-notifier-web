@@ -1,277 +1,163 @@
 import {
-    db,
-    studentNumber,
-    setupTheme,
-    initializePage,
-    loadProfileImage,
-    isAdmin
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  isAdmin,
 } from "./common.js";
 
 import {
-    doc,
-    getDoc,
-    setDoc
+  doc,
+  getDoc,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const params =
-    new URLSearchParams(
-        location.search
-    );
+const params = new URLSearchParams(location.search);
 
-const subjectId =
-    params.get("subjectId");
+const subjectId = params.get("subjectId");
 
-const unitId =
-    params.get("unitId");
+const unitId = params.get("unitId");
 
-const themeButton =
-    document.getElementById(
-        "themeButton"
-    );
+const themeButton = document.getElementById("themeButton");
 
-const topProfileImage =
-    document.getElementById(
-        "topProfileImage"
-    );
+const topProfileImage = document.getElementById("topProfileImage");
 
-const unitInfo =
-    document.getElementById(
-        "unitInfo"
-    );
+const unitInfo = document.getElementById("unitInfo");
 
-const questionList =
-    document.getElementById(
-        "questionList"
-    );
+const questionList = document.getElementById("questionList");
 
-const publishQuestions =
-    document.getElementById(
-        "publishQuestions"
-    );
+const publishQuestions = document.getElementById("publishQuestions");
 
-const saveEditedQuestions =
-    document.getElementById(
-        "saveEditedQuestions"
-    );
+const saveEditedQuestions = document.getElementById("saveEditedQuestions");
 
 setupTheme(themeButton);
 
-const admin =
-    await isAdmin();
+const admin = await isAdmin();
 
 if (!admin) {
+  alert("管理者のみアクセスできます。");
 
-    alert(
-        "管理者のみアクセスできます。"
-    );
-
-    location.href =
-        "index.html";
+  location.href = "index.html";
 }
 
-await initializePage([
-    loadProfileImage(
-        topProfileImage
-    ),
-    loadQuestions()
-]);
+await initializePage([loadProfileImage(topProfileImage), loadQuestions()]);
 
-document
-    .getElementById("backButton")
-    .onclick = () => {
+document.getElementById("backButton").onclick = () => {
+  history.back();
+};
 
-        history.back();
-
-    };
-
-document
-    .getElementById("profileButton")
-    .onclick = () => {
-
-        location.href =
-            "profile.html";
-
-    };
+document.getElementById("profileButton").onclick = () => {
+  location.href = "profile.html";
+};
 
 async function loadQuestions() {
+  const subjectSnap = await getDoc(doc(db, "examSubjects", subjectId));
 
-    const subjectSnap =
-        await getDoc(
-            doc(
-                db,
-                "examSubjects",
-                subjectId
-            )
-        );
+  const unitSnap = await getDoc(
+    doc(db, "examSubjects", subjectId, "units", unitId),
+  );
 
-    const unitSnap =
-        await getDoc(
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId
-            )
-        );
+  if (!subjectSnap.exists() || !unitSnap.exists()) {
+    unitInfo.textContent = "科目または単元が見つかりません。";
 
-    if (
-        !subjectSnap.exists() ||
-        !unitSnap.exists()
-    ) {
+    questionList.innerHTML = "";
 
-        unitInfo.textContent =
-            "科目または単元が見つかりません。";
+    return;
+  }
 
-        questionList.innerHTML =
-            "";
+  unitInfo.textContent = `${subjectSnap.data().name} / ${unitSnap.data().name}`;
 
-        return;
-    }
+  const editedRef = doc(
+    db,
+    "examSubjects",
+    subjectId,
+    "units",
+    unitId,
+    "ai",
+    "edited",
+  );
 
-    unitInfo.textContent =
-        `${subjectSnap.data().name} / ${unitSnap.data().name}`;
+  const generatedRef = doc(
+    db,
+    "examSubjects",
+    subjectId,
+    "units",
+    unitId,
+    "ai",
+    "generated",
+  );
 
-    const editedRef =
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "edited"
-        );
+  const editedSnap = await getDoc(editedRef);
 
-    const generatedRef =
-        doc(
-            db,
-            "examSubjects",
-            subjectId,
-            "units",
-            unitId,
-            "ai",
-            "generated"
-        );
+  if (editedSnap.exists()) {
+    renderQuestions(editedSnap.data());
 
-    const editedSnap =
-        await getDoc(
-            editedRef
-        );
+    return;
+  }
 
-    if (editedSnap.exists()) {
+  const generatedSnap = await getDoc(generatedRef);
 
-        renderQuestions(
-            editedSnap.data()
-        );
+  if (generatedSnap.exists()) {
+    const editedData = {
+      ...generatedSnap.data(),
 
-        return;
-    }
+      editedCreatedAt: new Date(),
 
-    const generatedSnap =
-        await getDoc(
-            generatedRef
-        );
-
-    if (generatedSnap.exists()) {
-
-        const editedData = {
-            ...generatedSnap.data(),
-
-            editedCreatedAt:
-                new Date(),
-
-            editedCreatedBy:
-                studentNumber
-        };
-
-        await setDoc(
-            editedRef,
-            editedData
-        );
-
-        renderQuestions(
-            editedData
-        );
-
-        return;
-    }
-
-    const emptyData = {
-        summary: [],
-        important_points: [],
-        fill_blank: [],
-        quiz: [],
-        today_question: null,
-
-        manual_summary: [],
-        manual_important_points: [],
-
-        createdManually: true,
-
-        editedCreatedAt:
-            new Date(),
-
-        editedCreatedBy:
-            studentNumber
+      editedCreatedBy: studentNumber,
     };
 
-    await setDoc(
-        editedRef,
-        emptyData
-    );
+    await setDoc(editedRef, editedData);
 
-    renderQuestions(
-        emptyData
-    );
+    renderQuestions(editedData);
+
+    return;
+  }
+
+  const emptyData = {
+    summary: [],
+    important_points: [],
+    fill_blank: [],
+    quiz: [],
+    today_question: null,
+
+    manual_summary: [],
+    manual_important_points: [],
+
+    createdManually: true,
+
+    editedCreatedAt: new Date(),
+
+    editedCreatedBy: studentNumber,
+  };
+
+  await setDoc(editedRef, emptyData);
+
+  renderQuestions(emptyData);
 }
 
 function renderQuestions(data) {
+  const summary = Array.isArray(data.summary)
+    ? data.summary
+    : typeof data.summary === "string" && data.summary.trim() !== ""
+      ? [data.summary.trim()]
+      : [];
 
-    const summary =
-        Array.isArray(data.summary)
-            ? data.summary
-            : (
-                typeof data.summary ===
-                    "string" &&
-                data.summary.trim() !== ""
-            )
-                ? [
-                    data.summary.trim()
-                ]
-                : [];
+  const importantPoints = Array.isArray(data.important_points)
+    ? data.important_points
+    : [];
 
-    const importantPoints =
-        Array.isArray(
-            data.important_points
-        )
-            ? data.important_points
-            : [];
+  const importantPointImages = Array.isArray(data.important_point_images)
+    ? data.important_point_images
+    : [];
 
-    const importantPointImages =
-        Array.isArray(
-            data.important_point_images
-        )
-            ? data.important_point_images
-            : [];
+  const fillBlank = Array.isArray(data.fill_blank) ? data.fill_blank : [];
 
-    const fillBlank =
-        Array.isArray(
-            data.fill_blank
-        )
-            ? data.fill_blank
-            : [];
+  const quiz = Array.isArray(data.quiz) ? data.quiz : [];
 
-    const quiz =
-        Array.isArray(data.quiz)
-            ? data.quiz
-            : [];
+  const todayQuestion = data.today_question || null;
 
-    const todayQuestion =
-        data.today_question ||
-        null;
-
-    questionList.innerHTML = `
+  questionList.innerHTML = `
         <div class="card setting-card">
 
             <h3>📌 要約</h3>
@@ -311,17 +197,11 @@ function renderQuestions(data) {
 
             <div id="importantPointImageList">
 
-                ${
-                    importantPointImages
-                        .map(
-                            (item, index) =>
-                                renderImportantPointImageItem(
-                                    item,
-                                    index
-                                )
-                        )
-                        .join("")
-                }
+                ${importantPointImages
+                  .map((item, index) =>
+                    renderImportantPointImageItem(item, index),
+                  )
+                  .join("")}
 
             </div>
 
@@ -344,13 +224,9 @@ function renderQuestions(data) {
             <div id="todayQuestionArea">
 
                 ${
-                    todayQuestion
-                        ? renderQuizItem(
-                            todayQuestion,
-                            null,
-                            "today"
-                        )
-                        : `
+                  todayQuestion
+                    ? renderQuizItem(todayQuestion, null, "today")
+                    : `
                             <p id="noTodayQuestion">
                                 今日の1問はありません。
                             </p>
@@ -375,20 +251,11 @@ function renderQuestions(data) {
             <div id="fillBlankList">
 
                 ${
-                    fillBlank.length
-                        ? fillBlank
-                            .map(
-                                (
-                                    item,
-                                    index
-                                ) =>
-                                    renderFillBlankItem(
-                                        item,
-                                        index
-                                    )
-                            )
-                            .join("")
-                        : `
+                  fillBlank.length
+                    ? fillBlank
+                        .map((item, index) => renderFillBlankItem(item, index))
+                        .join("")
+                    : `
                             <p id="noFillBlank">
                                 穴埋め問題はありません。
                             </p>
@@ -415,21 +282,13 @@ function renderQuestions(data) {
             <div id="quizList">
 
                 ${
-                    quiz.length
-                        ? quiz
-                            .map(
-                                (
-                                    item,
-                                    index
-                                ) =>
-                                    renderQuizItem(
-                                        item,
-                                        index,
-                                        "quiz"
-                                    )
-                            )
-                            .join("")
-                        : `
+                  quiz.length
+                    ? quiz
+                        .map((item, index) =>
+                          renderQuizItem(item, index, "quiz"),
+                        )
+                        .join("")
+                    : `
                             <p id="noQuiz">
                                 選択問題はありません。
                             </p>
@@ -450,57 +309,24 @@ function renderQuestions(data) {
     `;
 }
 
-function renderQuizItem(
-    item,
-    index = null,
-    type = "quiz"
-) {
+function renderQuizItem(item, index = null, type = "quiz") {
+  const quizIndex = type === "today" ? "today" : index;
 
-    const quizIndex =
-        type === "today"
-            ? "today"
-            : index;
+  const choices = Array.isArray(item.choices) ? [...item.choices] : [];
 
-    const choices =
-        Array.isArray(
-            item.choices
-        )
-            ? [
-                ...item.choices
-            ]
-            : [];
+  while (choices.length < 4) {
+    choices.push("");
+  }
 
-    while (
-        choices.length < 4
-    ) {
-        choices.push("");
-    }
+  const sourceType = item.source_type || "ai";
 
-    const sourceType =
-        item.source_type ||
-        "ai";
+  const preserveOriginal = item.preserve_original === true;
 
-    const preserveOriginal =
-        item.preserve_original ===
-        true;
+  let answer = Number.isInteger(Number(item.answer)) ? Number(item.answer) : 0;
 
-    let answer =
-        Number.isInteger(
-            Number(item.answer)
-        )
-            ? Number(item.answer)
-            : 0;
+  answer = Math.max(0, Math.min(choices.length - 1, answer));
 
-    answer =
-        Math.max(
-            0,
-            Math.min(
-                choices.length - 1,
-                answer
-            )
-        );
-
-    return `
+  return `
         <div
             class="card setting-card quiz-edit-card"
             data-index="${quizIndex}"
@@ -509,15 +335,15 @@ function renderQuizItem(
             data-preserve-original="${preserveOriginal}">
 
             ${
-                type === "quiz"
-                    ? `
+              type === "quiz"
+                ? `
                         <p>
                             <b>
                                 問題 ${Number(index) + 1}
                             </b>
                         </p>
                     `
-                    : ""
+                : ""
             }
 
             <p>問題文</p>
@@ -533,13 +359,9 @@ function renderQuizItem(
 
             <div class="quiz-choices-area">
 
-                ${
-                    choices
-                        .map(
-                            (
-                                choice,
-                                choiceIndex
-                            ) => `
+                ${choices
+                  .map(
+                    (choice, choiceIndex) => `
                                 <div
                                     class="quiz-choice-row"
                                     data-choice-index="${choiceIndex}">
@@ -560,10 +382,9 @@ function renderQuizItem(
                                 </div>
 
                                 <br>
-                            `
-                        )
-                        .join("")
-                }
+                            `,
+                  )
+                  .join("")}
 
             </div>
 
@@ -594,15 +415,15 @@ function renderQuizItem(
             <br><br>
 
             ${
-                type === "today"
-                    ? `
+              type === "today"
+                ? `
                         <button
                             class="btn btn-danger"
                             id="deleteTodayQuestion">
                             🗑 今日の1問を削除
                         </button>
                     `
-                    : `
+                : `
                         <button
                             class="btn btn-danger delete-quiz"
                             data-index="${index}">
@@ -615,101 +436,47 @@ function renderQuizItem(
     `;
 }
 
-function updateQuizChoiceIndexes(
-    card
-) {
+function updateQuizChoiceIndexes(card) {
+  const rows = Array.from(card.querySelectorAll(".quiz-choice-row"));
 
-    const rows =
-        Array.from(
-            card.querySelectorAll(
-                ".quiz-choice-row"
-            )
-        );
+  rows.forEach((row, choiceIndex) => {
+    row.dataset.choiceIndex = choiceIndex;
 
-    rows.forEach(
-        (
-            row,
-            choiceIndex
-        ) => {
+    const input = row.querySelector(".edit-quiz-choice");
 
-            row.dataset.choiceIndex =
-                choiceIndex;
+    if (input) {
+      input.dataset.choiceIndex = choiceIndex;
 
-            const input =
-                row.querySelector(
-                    ".edit-quiz-choice"
-                );
-
-            if (input) {
-
-                input.dataset.choiceIndex =
-                    choiceIndex;
-
-                input.placeholder =
-                    `選択肢 ${choiceIndex + 1}`;
-            }
-        }
-    );
-
-    const answerInput =
-        card.querySelector(
-            ".edit-quiz-answer"
-        );
-
-    if (!answerInput) {
-        return;
+      input.placeholder = `選択肢 ${choiceIndex + 1}`;
     }
+  });
 
-    answerInput.max =
-        Math.max(
-            1,
-            rows.length
-        );
+  const answerInput = card.querySelector(".edit-quiz-answer");
 
-    let answer =
-        Number(
-            answerInput.value ||
-            1
-        );
+  if (!answerInput) {
+    return;
+  }
 
-    answer =
-        Math.max(
-            1,
-            Math.min(
-                rows.length,
-                answer
-            )
-        );
+  answerInput.max = Math.max(1, rows.length);
 
-    answerInput.value =
-        answer;
+  let answer = Number(answerInput.value || 1);
+
+  answer = Math.max(1, Math.min(rows.length, answer));
+
+  answerInput.value = answer;
 }
 
-function renderFillBlankItem(
-    item,
-    index
-) {
+function renderFillBlankItem(item, index) {
+  const answers =
+    Array.isArray(item.answers) && item.answers.length > 0
+      ? item.answers
+      : [item.answer || ""];
 
-    const answers =
-        Array.isArray(
-            item.answers
-        ) &&
-        item.answers.length > 0
-            ? item.answers
-            : [
-                item.answer ||
-                ""
-            ];
+  const sourceType = item.source_type || "ai";
 
-    const sourceType =
-        item.source_type ||
-        "ai";
+  const preserveOriginal = item.preserve_original === true;
 
-    const preserveOriginal =
-        item.preserve_original ===
-        true;
-
-    return `
+  return `
         <div
             class="card setting-card fill-edit-card"
             data-index="${index}"
@@ -745,13 +512,9 @@ function renderFillBlankItem(
                 class="fill-answers-area"
                 data-index="${index}">
 
-                ${
-                    answers
-                        .map(
-                            (
-                                answer,
-                                answerIndex
-                            ) => `
+                ${answers
+                  .map(
+                    (answer, answerIndex) => `
                                 <input
                                     class="edit-fill-answer-box"
                                     data-index="${index}"
@@ -760,10 +523,9 @@ function renderFillBlankItem(
                                     placeholder="解答 ${answerIndex + 1}">
 
                                 <br><br>
-                            `
-                        )
-                        .join("")
-                }
+                            `,
+                  )
+                  .join("")}
 
             </div>
 
@@ -786,39 +548,26 @@ function renderFillBlankItem(
 }
 
 function escapeAdminHtml(value) {
-
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function escapeAdminAttribute(value) {
-
-    return escapeAdminHtml(value);
-
+  return escapeAdminHtml(value);
 }
 
 function renderQuestionImageEditor(item = {}) {
+  const imageUrl = String(item.imageUrl || "");
 
-    const imageUrl =
-        String(
-            item.imageUrl || ""
-        );
+  const imagePublicId = String(item.imagePublicId || "");
 
-    const imagePublicId =
-        String(
-            item.imagePublicId || ""
-        );
+  const imageDescription = String(item.imageDescription || "");
 
-    const imageDescription =
-        String(
-            item.imageDescription || ""
-        );
-
-    return `
+  return `
         <div class="question-image-editor">
 
             <p>
@@ -848,13 +597,12 @@ function renderQuestionImageEditor(item = {}) {
             <div class="question-image-preview">
 
                 ${
-                    imageUrl
-                        ? `
+                  imageUrl
+                    ? `
                             <img
                                 src="${escapeAdminAttribute(imageUrl)}"
                                 alt="${escapeAdminAttribute(
-                                    imageDescription ||
-                                    "問題画像"
+                                  imageDescription || "問題画像",
                                 )}">
 
                             <button
@@ -865,7 +613,7 @@ function renderQuestionImageEditor(item = {}) {
 
                             </button>
                         `
-                        : `
+                    : `
                             <small>
                                 画像は登録されていません。
                             </small>
@@ -878,12 +626,8 @@ function renderQuestionImageEditor(item = {}) {
     `;
 }
 
-function renderImportantPointImageItem(
-    item = {},
-    index = 0
-) {
-
-    return `
+function renderImportantPointImageItem(item = {}, index = 0) {
+  return `
         <div
             class="card setting-card important-point-image-card"
             data-index="${index}">
@@ -893,14 +637,11 @@ function renderImportantPointImageItem(
             </p>
 
             ${renderQuestionImageEditor({
-                imageUrl:
-                    item.imageUrl || "",
+              imageUrl: item.imageUrl || "",
 
-                imagePublicId:
-                    item.imagePublicId || "",
+              imagePublicId: item.imagePublicId || "",
 
-                imageDescription:
-                    item.description || ""
+              imageDescription: item.description || "",
             })}
 
             <button
@@ -915,135 +656,82 @@ function renderImportantPointImageItem(
     `;
 }
 
-async function uploadQuestionImage(
-    file,
-    editor
-) {
+async function uploadQuestionImage(file, editor) {
+  if (!file) {
+    return;
+  }
 
-    if (!file) {
-        return;
+  if (!String(file.type).startsWith("image/")) {
+    alert("画像ファイルを選択してください。");
+
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert("画像は10MB以下にしてください。");
+
+    return;
+  }
+
+  const fileInput = editor.querySelector(".edit-question-image-file");
+
+  const urlInput = editor.querySelector(".edit-question-image-url");
+
+  const publicIdInput = editor.querySelector(".edit-question-image-public-id");
+
+  const descriptionInput = editor.querySelector(
+    ".edit-question-image-description",
+  );
+
+  const preview = editor.querySelector(".question-image-preview");
+
+  try {
+    if (fileInput) {
+      fileInput.disabled = true;
     }
 
-    if (
-        !String(file.type)
-            .startsWith("image/")
-    ) {
-
-        alert(
-            "画像ファイルを選択してください。"
-        );
-
-        return;
-    }
-
-    if (
-        file.size >
-        10 * 1024 * 1024
-    ) {
-
-        alert(
-            "画像は10MB以下にしてください。"
-        );
-
-        return;
-    }
-
-    const fileInput =
-        editor.querySelector(
-            ".edit-question-image-file"
-        );
-
-    const urlInput =
-        editor.querySelector(
-            ".edit-question-image-url"
-        );
-
-    const publicIdInput =
-        editor.querySelector(
-            ".edit-question-image-public-id"
-        );
-
-    const descriptionInput =
-        editor.querySelector(
-            ".edit-question-image-description"
-        );
-
-    const preview =
-        editor.querySelector(
-            ".question-image-preview"
-        );
-
-    try {
-
-        if (fileInput) {
-            fileInput.disabled = true;
-        }
-
-        if (preview) {
-
-            preview.innerHTML = `
+    if (preview) {
+      preview.innerHTML = `
                 <p>
                     画像をアップロード中...
                 </p>
             `;
-        }
+    }
 
-        const formData =
-            new FormData();
+    const formData = new FormData();
 
-        formData.append(
-            "file",
-            file
-        );
+    formData.append("file", file);
 
-        formData.append(
-            "upload_preset",
-            "caremate_upload"
-        );
+    formData.append("upload_preset", "caremate_upload");
 
-        const response =
-            await fetch(
-                "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
 
-        const data =
-            await response.json();
+    const data = await response.json();
 
-        if (
-            !response.ok ||
-            !data.secure_url
-        ) {
+    if (!response.ok || !data.secure_url) {
+      throw new Error(data.error?.message || "画像URLを取得できませんでした。");
+    }
 
-            throw new Error(
-                data.error?.message ||
-                "画像URLを取得できませんでした。"
-            );
-        }
+    if (urlInput) {
+      urlInput.value = data.secure_url;
+    }
 
-        if (urlInput) {
+    if (publicIdInput) {
+      publicIdInput.value = data.public_id || "";
+    }
 
-            urlInput.value =
-                data.secure_url;
-        }
-
-        if (publicIdInput) {
-
-            publicIdInput.value =
-                data.public_id || "";
-        }
-
-        if (preview) {
-
-            preview.innerHTML = `
+    if (preview) {
+      preview.innerHTML = `
                 <img
                     src="${escapeAdminAttribute(data.secure_url)}"
                     alt="${escapeAdminAttribute(
-                        descriptionInput?.value ||
-                        "問題画像"
+                      descriptionInput?.value || "問題画像",
                     )}">
 
                 <button
@@ -1054,748 +742,413 @@ async function uploadQuestionImage(
 
                 </button>
             `;
-        }
+    }
+  } catch (error) {
+    console.error("問題画像アップロードエラー:", error);
 
-    } catch (error) {
+    alert(`画像をアップロードできませんでした。\n${error.message}`);
 
-        console.error(
-            "問題画像アップロードエラー:",
-            error
-        );
-
-        alert(
-            `画像をアップロードできませんでした。\n${error.message}`
-        );
-
-        if (preview) {
-
-            preview.innerHTML = `
+    if (preview) {
+      preview.innerHTML = `
                 <small>
                     画像は登録されていません。
                 </small>
             `;
-        }
-
-    } finally {
-
-        if (fileInput) {
-
-            fileInput.disabled =
-                false;
-
-            fileInput.value =
-                "";
-        }
-
     }
+  } finally {
+    if (fileInput) {
+      fileInput.disabled = false;
+
+      fileInput.value = "";
+    }
+  }
 }
 
 function readImageData(card) {
+  return {
+    imageUrl:
+      card.querySelector(".edit-question-image-url")?.value.trim() || "",
 
-    return {
-        imageUrl:
-            card
-                .querySelector(
-                    ".edit-question-image-url"
-                )
-                ?.value
-                .trim() ||
-            "",
+    imagePublicId:
+      card.querySelector(".edit-question-image-public-id")?.value.trim() || "",
 
-        imagePublicId:
-            card
-                .querySelector(
-                    ".edit-question-image-public-id"
-                )
-                ?.value
-                .trim() ||
-            "",
-
-        imageDescription:
-            card
-                .querySelector(
-                    ".edit-question-image-description"
-                )
-                ?.value
-                .trim() ||
-            ""
-    };
+    imageDescription:
+      card.querySelector(".edit-question-image-description")?.value.trim() ||
+      "",
+  };
 }
 
-publishQuestions.onclick =
-    async () => {
-
-        if (
-            !confirm(
-                "この問題を学生へ公開しますか？"
-            )
-        ) {
-            return;
-        }
-
-        const editedRef =
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId,
-                "ai",
-                "edited"
-            );
-
-        const generatedRef =
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId,
-                "ai",
-                "generated"
-            );
-
-        let sourceSnap =
-            await getDoc(
-                editedRef
-            );
-
-        if (
-            !sourceSnap.exists()
-        ) {
-
-            sourceSnap =
-                await getDoc(
-                    generatedRef
-                );
-        }
-
-        if (
-            !sourceSnap.exists()
-        ) {
-
-            alert(
-                "AI生成結果がありません。"
-            );
-
-            return;
-        }
-
-        await setDoc(
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId,
-                "publishedQuestions",
-                "published"
-            ),
-            {
-                ...sourceSnap.data(),
-
-                publishedAt:
-                    new Date(),
-
-                publishedBy:
-                    studentNumber
-            }
-        );
-
-        alert(
-            "公開しました。"
-        );
-
-    };
-
-saveEditedQuestions.onclick =
-    async () => {
-
-        if (
-            !confirm(
-                "編集内容を保存しますか？"
-            )
-        ) {
-            return;
-        }
-
-        const editedRef =
-            doc(
-                db,
-                "examSubjects",
-                subjectId,
-                "units",
-                unitId,
-                "ai",
-                "edited"
-            );
-
-        const editedSnap =
-            await getDoc(
-                editedRef
-            );
-
-        const current =
-            editedSnap.exists()
-                ? editedSnap.data()
-                : {};
-
-        const summaryInput =
-            document.getElementById(
-                "editSummary"
-            );
-
-        const importantPointsInput =
-            document.getElementById(
-                "editImportantPoints"
-            );
-
-        if (
-            !summaryInput ||
-            !importantPointsInput
-        ) {
-
-            alert(
-                "問題入力欄を読み込めませんでした。"
-            );
-
-            return;
-        }
-
-        const summary =
-            summaryInput
-                .value
-                .split("\n")
-                .map(text =>
-                    text.trim()
-                )
-                .filter(text =>
-                    text !== ""
-                );
-
-        const important_points =
-            importantPointsInput
-                .value
-                .split("\n")
-                .map(text =>
-                    text.trim()
-                )
-                .filter(text =>
-                    text !== ""
-                );
-        
-        const important_point_images =
-            Array.from(
-                document.querySelectorAll(
-                    ".important-point-image-card"
-                )
-            )
-                .map(card => {
-
-                    const imageData =
-                        readImageData(card);
-
-                    return {
-                        imageUrl:
-                            imageData.imageUrl,
-
-                        imagePublicId:
-                            imageData.imagePublicId,
-
-                        description:
-                            imageData.imageDescription
-                    };
-
-                })
-                .filter(item =>
-                    item.imageUrl !== ""
-                );
-
-        const fill_blank =
-            Array.from(
-                document.querySelectorAll(
-                    ".fill-edit-card"
-                )
-            )
-                .map(card => {
-
-                    const question =
-                        card
-                            .querySelector(
-                                ".edit-fill-question"
-                            )
-                            ?.value
-                            .trim() ||
-                        "";
-
-                    const answer =
-                        card
-                            .querySelector(
-                                ".edit-fill-answer"
-                            )
-                            ?.value
-                            .trim() ||
-                        "";
-
-                    const answers =
-                        Array.from(
-                            card.querySelectorAll(
-                                ".edit-fill-answer-box"
-                            )
-                        )
-                            .map(input =>
-                                input.value.trim()
-                            )
-                            .filter(value =>
-                                value !== ""
-                            );
-
-                    const imageData =
-                        readImageData(card);
-
-                    return {
-                        question,
-                        answer,
-                        answers,
-
-                        ...imageData,
-
-                        source_type:
-                            "manual",
-
-                        preserve_original:
-                            true,
-
-                        edited_manually:
-                            true
-                    };
-
-                })
-                .filter(item =>
-                    item.question !== ""
-                );
-
-        const quiz =
-            Array.from(
-                document.querySelectorAll(
-                    `.quiz-edit-card[data-question-type="quiz"]`
-                )
-            )
-                .map(card => {
-
-                    const question =
-                        card
-                            .querySelector(
-                                ".edit-quiz-question"
-                            )
-                            ?.value
-                            .trim() ||
-                        "";
-
-                    const choices =
-                        Array.from(
-                            card.querySelectorAll(
-                                ".edit-quiz-choice"
-                            )
-                        )
-                            .map(input =>
-                                input.value.trim()
-                            );
-
-                    const answerInput =
-                        card.querySelector(
-                            ".edit-quiz-answer"
-                        );
-
-                    const explanation =
-                        card
-                            .querySelector(
-                                ".edit-quiz-explanation"
-                            )
-                            ?.value
-                            .trim() ||
-                        "";
-
-                    const answer =
-                        Math.max(
-                            0,
-                            Math.min(
-                                choices.length - 1,
-                                Number(
-                                    answerInput?.value ||
-                                    1
-                                ) - 1
-                            )
-                        );
-
-                    const imageData =
-                        readImageData(card);
-
-                    return {
-                        question,
-                        choices,
-                        answer,
-                        explanation,
-
-                        ...imageData,
-
-                        source_type:
-                            "manual",
-
-                        preserve_original:
-                            true,
-
-                        edited_manually:
-                            true
-                    };
-
-                })
-                .filter(item =>
-                    item.question !== ""
-                );
-
-        let today_question =
-            null;
-
-        const todayCard =
-            document.querySelector(
-                `.quiz-edit-card[data-question-type="today"]`
-            );
-
-        if (todayCard) {
-
-            const question =
-                todayCard
-                    .querySelector(
-                        ".edit-quiz-question"
-                    )
-                    ?.value
-                    .trim() ||
-                "";
-
-            const choices =
-                Array.from(
-                    todayCard.querySelectorAll(
-                        ".edit-quiz-choice"
-                    )
-                )
-                    .map(input =>
-                        input.value.trim()
-                    );
-
-            const answerInput =
-                todayCard.querySelector(
-                    ".edit-quiz-answer"
-                );
-
-            const answer =
-                Math.max(
-                    0,
-                    Math.min(
-                        choices.length - 1,
-                        Number(
-                            answerInput?.value ||
-                            1
-                        ) - 1
-                    )
-                );
-
-            const explanation =
-                todayCard
-                    .querySelector(
-                        ".edit-quiz-explanation"
-                    )
-                    ?.value
-                    .trim() ||
-                "";
-
-            const imageData =
-                readImageData(
-                    todayCard
-                );
-
-            if (
-                question !== ""
-            ) {
-
-                today_question = {
-                    question,
-                    choices,
-                    answer,
-                    explanation,
-
-                    ...imageData,
-
-                    source_type:
-                        "manual",
-
-                    preserve_original:
-                        true,
-
-                    edited_manually:
-                        true
-                };
-            }
-        }
-
-        const invalidFillBlank =
-            fill_blank.find(
-                item =>
-                    item.answers.length ===
-                        0 &&
-                    item.answer === ""
-            );
-
-        if (
-            invalidFillBlank
-        ) {
-
-            alert(
-                "穴埋め問題の解答を入力してください。"
-            );
-
-            return;
-        }
-
-        const invalidQuiz =
-            quiz.find(
-                item =>
-                    item.choices.length <
-                        4 ||
-                    item.choices.some(
-                        choice =>
-                            choice === ""
-                    ) ||
-                    item.answer < 0 ||
-                    item.answer >=
-                        item.choices.length
-            );
-
-        if (
-            invalidQuiz
-        ) {
-
-            alert(
-                "選択問題には4つ以上の選択肢を入力し、正解番号を正しく指定してください。"
-            );
-
-            return;
-        }
-
-        if (
-            today_question &&
-            (
-                today_question
-                    .choices
-                    .length < 4 ||
-                today_question
-                    .choices
-                    .some(
-                        choice =>
-                            choice === ""
-                    ) ||
-                today_question.answer <
-                    0 ||
-                today_question.answer >=
-                    today_question
-                        .choices
-                        .length
-            )
-        ) {
-
-            alert(
-                "今日の1問には4つ以上の選択肢を入力し、正解番号を正しく指定してください。"
-            );
-
-            return;
-        }
-
-        await setDoc(
-            editedRef,
-            {
-                ...current,
-
-                important_points,
-                important_point_images,
-                fill_blank,
-                quiz,
-                today_question,
-
-                manual_summary:
-                    summary,
-
-                manual_important_points:
-                    important_points,
-
-                hasManualContent:
-                    true,
-
-                editedAt:
-                    new Date(),
-
-                editedBy:
-                    studentNumber
-            }
-        );
-
-        alert(
-            "編集内容を保存しました。"
-        );
-
-        await loadQuestions();
-
-    };
-
-document.addEventListener(
-    "click",
-    e => {
-
-        if (
-            e.target.classList.contains(
-                "remove-question-image"
-            )
-        ) {
-
-            const editor =
-                e.target.closest(
-                    ".question-image-editor"
-                );
-
-            if (!editor) {
-                return;
-            }
-
-            editor.querySelector(
-                ".edit-question-image-url"
-            ).value = "";
-
-            editor.querySelector(
-                ".edit-question-image-public-id"
-            ).value = "";
-
-            editor.querySelector(
-                ".edit-question-image-file"
-            ).value = "";
-
-            editor.querySelector(
-                ".question-image-preview"
-            ).innerHTML = `
+publishQuestions.onclick = async () => {
+  if (!confirm("この問題を学生へ公開しますか？")) {
+    return;
+  }
+
+  const editedRef = doc(
+    db,
+    "examSubjects",
+    subjectId,
+    "units",
+    unitId,
+    "ai",
+    "edited",
+  );
+
+  const generatedRef = doc(
+    db,
+    "examSubjects",
+    subjectId,
+    "units",
+    unitId,
+    "ai",
+    "generated",
+  );
+
+  let sourceSnap = await getDoc(editedRef);
+
+  if (!sourceSnap.exists()) {
+    sourceSnap = await getDoc(generatedRef);
+  }
+
+  if (!sourceSnap.exists()) {
+    alert("AI生成結果がありません。");
+
+    return;
+  }
+
+  await setDoc(
+    doc(
+      db,
+      "examSubjects",
+      subjectId,
+      "units",
+      unitId,
+      "publishedQuestions",
+      "published",
+    ),
+    {
+      ...sourceSnap.data(),
+
+      publishedAt: new Date(),
+
+      publishedBy: studentNumber,
+    },
+  );
+
+  alert("公開しました。");
+};
+
+saveEditedQuestions.onclick = async () => {
+  if (!confirm("編集内容を保存しますか？")) {
+    return;
+  }
+
+  const editedRef = doc(
+    db,
+    "examSubjects",
+    subjectId,
+    "units",
+    unitId,
+    "ai",
+    "edited",
+  );
+
+  const editedSnap = await getDoc(editedRef);
+
+  const current = editedSnap.exists() ? editedSnap.data() : {};
+
+  const summaryInput = document.getElementById("editSummary");
+
+  const importantPointsInput = document.getElementById("editImportantPoints");
+
+  if (!summaryInput || !importantPointsInput) {
+    alert("問題入力欄を読み込めませんでした。");
+
+    return;
+  }
+
+  const summary = summaryInput.value
+    .split("\n")
+    .map((text) => text.trim())
+    .filter((text) => text !== "");
+
+  const important_points = importantPointsInput.value
+    .split("\n")
+    .map((text) => text.trim())
+    .filter((text) => text !== "");
+
+  const important_point_images = Array.from(
+    document.querySelectorAll(".important-point-image-card"),
+  )
+    .map((card) => {
+      const imageData = readImageData(card);
+
+      return {
+        imageUrl: imageData.imageUrl,
+
+        imagePublicId: imageData.imagePublicId,
+
+        description: imageData.imageDescription,
+      };
+    })
+    .filter((item) => item.imageUrl !== "");
+
+  const fill_blank = Array.from(document.querySelectorAll(".fill-edit-card"))
+    .map((card) => {
+      const question =
+        card.querySelector(".edit-fill-question")?.value.trim() || "";
+
+      const answer =
+        card.querySelector(".edit-fill-answer")?.value.trim() || "";
+
+      const answers = Array.from(card.querySelectorAll(".edit-fill-answer-box"))
+        .map((input) => input.value.trim())
+        .filter((value) => value !== "");
+
+      const imageData = readImageData(card);
+
+      return {
+        question,
+        answer,
+        answers,
+
+        ...imageData,
+
+        source_type: "manual",
+
+        preserve_original: true,
+
+        edited_manually: true,
+      };
+    })
+    .filter((item) => item.question !== "");
+
+  const quiz = Array.from(
+    document.querySelectorAll(`.quiz-edit-card[data-question-type="quiz"]`),
+  )
+    .map((card) => {
+      const question =
+        card.querySelector(".edit-quiz-question")?.value.trim() || "";
+
+      const choices = Array.from(
+        card.querySelectorAll(".edit-quiz-choice"),
+      ).map((input) => input.value.trim());
+
+      const answerInput = card.querySelector(".edit-quiz-answer");
+
+      const explanation =
+        card.querySelector(".edit-quiz-explanation")?.value.trim() || "";
+
+      const answer = Math.max(
+        0,
+        Math.min(choices.length - 1, Number(answerInput?.value || 1) - 1),
+      );
+
+      const imageData = readImageData(card);
+
+      return {
+        question,
+        choices,
+        answer,
+        explanation,
+
+        ...imageData,
+
+        source_type: "manual",
+
+        preserve_original: true,
+
+        edited_manually: true,
+      };
+    })
+    .filter((item) => item.question !== "");
+
+  let today_question = null;
+
+  const todayCard = document.querySelector(
+    `.quiz-edit-card[data-question-type="today"]`,
+  );
+
+  if (todayCard) {
+    const question =
+      todayCard.querySelector(".edit-quiz-question")?.value.trim() || "";
+
+    const choices = Array.from(
+      todayCard.querySelectorAll(".edit-quiz-choice"),
+    ).map((input) => input.value.trim());
+
+    const answerInput = todayCard.querySelector(".edit-quiz-answer");
+
+    const answer = Math.max(
+      0,
+      Math.min(choices.length - 1, Number(answerInput?.value || 1) - 1),
+    );
+
+    const explanation =
+      todayCard.querySelector(".edit-quiz-explanation")?.value.trim() || "";
+
+    const imageData = readImageData(todayCard);
+
+    if (question !== "") {
+      today_question = {
+        question,
+        choices,
+        answer,
+        explanation,
+
+        ...imageData,
+
+        source_type: "manual",
+
+        preserve_original: true,
+
+        edited_manually: true,
+      };
+    }
+  }
+
+  const invalidFillBlank = fill_blank.find(
+    (item) => item.answers.length === 0 && item.answer === "",
+  );
+
+  if (invalidFillBlank) {
+    alert("穴埋め問題の解答を入力してください。");
+
+    return;
+  }
+
+  const invalidQuiz = quiz.find(
+    (item) =>
+      item.choices.length < 4 ||
+      item.choices.some((choice) => choice === "") ||
+      item.answer < 0 ||
+      item.answer >= item.choices.length,
+  );
+
+  if (invalidQuiz) {
+    alert(
+      "選択問題には4つ以上の選択肢を入力し、正解番号を正しく指定してください。",
+    );
+
+    return;
+  }
+
+  if (
+    today_question &&
+    (today_question.choices.length < 4 ||
+      today_question.choices.some((choice) => choice === "") ||
+      today_question.answer < 0 ||
+      today_question.answer >= today_question.choices.length)
+  ) {
+    alert(
+      "今日の1問には4つ以上の選択肢を入力し、正解番号を正しく指定してください。",
+    );
+
+    return;
+  }
+
+  await setDoc(editedRef, {
+    ...current,
+
+    important_points,
+    important_point_images,
+    fill_blank,
+    quiz,
+    today_question,
+
+    manual_summary: summary,
+
+    manual_important_points: important_points,
+
+    hasManualContent: true,
+
+    editedAt: new Date(),
+
+    editedBy: studentNumber,
+  });
+
+  alert("編集内容を保存しました。");
+
+  await loadQuestions();
+};
+
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("remove-question-image")) {
+    const editor = e.target.closest(".question-image-editor");
+
+    if (!editor) {
+      return;
+    }
+
+    editor.querySelector(".edit-question-image-url").value = "";
+
+    editor.querySelector(".edit-question-image-public-id").value = "";
+
+    editor.querySelector(".edit-question-image-file").value = "";
+
+    editor.querySelector(".question-image-preview").innerHTML = `
                 <small>
                     画像は登録されていません。
                 </small>
             `;
 
-            return;
-        }
+    return;
+  }
 
-        if (
-            e.target.id ===
-            "addImportantPointImage"
-        ) {
+  if (e.target.id === "addImportantPointImage") {
+    const list = document.getElementById("importantPointImageList");
 
-            const list =
-                document.getElementById(
-                    "importantPointImageList"
-                );
+    const index = list.querySelectorAll(".important-point-image-card").length;
 
-            const index =
-                list.querySelectorAll(
-                    ".important-point-image-card"
-                ).length;
+    list.insertAdjacentHTML(
+      "beforeend",
+      renderImportantPointImageItem({}, index),
+    );
 
-            list.insertAdjacentHTML(
-                "beforeend",
-                renderImportantPointImageItem(
-                    {},
-                    index
-                )
-            );
+    return;
+  }
 
-            return;
-        }
+  if (e.target.classList.contains("delete-important-point-image")) {
+    if (!confirm("この重要ポイント画像を削除しますか？")) {
+      return;
+    }
 
-        if (
-            e.target.classList.contains(
-                "delete-important-point-image"
-            )
-        ) {
+    e.target.closest(".important-point-image-card")?.remove();
 
-            if (
-                !confirm(
-                    "この重要ポイント画像を削除しますか？"
-                )
-            ) {
-                return;
-            }
+    return;
+  }
 
-            e.target
-                .closest(
-                    ".important-point-image-card"
-                )
-                ?.remove();
+  if (e.target.id === "addTodayQuestion") {
+    const area = document.getElementById("todayQuestionArea");
 
-            return;
-        }
+    area.innerHTML = renderQuizItem(
+      {
+        question: "",
 
-        if (
-            e.target.id ===
-            "addTodayQuestion"
-        ) {
+        choices: ["", "", "", ""],
 
-            const area =
-                document.getElementById(
-                    "todayQuestionArea"
-                );
+        answer: 0,
 
-            area.innerHTML =
-                renderQuizItem(
-                    {
-                        question: "",
+        explanation: "",
 
-                        choices: [
-                            "",
-                            "",
-                            "",
-                            ""
-                        ],
+        source_type: "manual",
 
-                        answer: 0,
+        preserve_original: true,
+      },
+      null,
+      "today",
+    );
 
-                        explanation:
-                            "",
+    return;
+  }
 
-                        source_type:
-                            "manual",
+  if (e.target.id === "deleteTodayQuestion") {
+    if (!confirm("今日の1問を削除しますか？")) {
+      return;
+    }
 
-                        preserve_original:
-                            true
-                    },
-                    null,
-                    "today"
-                );
+    const area = document.getElementById("todayQuestionArea");
 
-            return;
-        }
-
-        if (
-            e.target.id ===
-            "deleteTodayQuestion"
-        ) {
-
-            if (
-                !confirm(
-                    "今日の1問を削除しますか？"
-                )
-            ) {
-                return;
-            }
-
-            const area =
-                document.getElementById(
-                    "todayQuestionArea"
-                );
-
-            area.innerHTML = `
+    area.innerHTML = `
                 <p id="noTodayQuestion">
                     今日の1問はありません。
                 </p>
@@ -1807,144 +1160,89 @@ document.addEventListener(
                 </button>
             `;
 
-            return;
-        }
+    return;
+  }
 
-        if (
-            e.target.id ===
-            "addFillBlank"
-        ) {
+  if (e.target.id === "addFillBlank") {
+    const list = document.getElementById("fillBlankList");
 
-            const list =
-                document.getElementById(
-                    "fillBlankList"
-                );
+    document.getElementById("noFillBlank")?.remove();
 
-            document
-                .getElementById(
-                    "noFillBlank"
-                )
-                ?.remove();
+    const index = document.querySelectorAll(".fill-edit-card").length;
 
-            const index =
-                document.querySelectorAll(
-                    ".fill-edit-card"
-                ).length;
+    list.insertAdjacentHTML(
+      "beforeend",
+      renderFillBlankItem(
+        {
+          question: "",
+          answer: "",
 
-            list.insertAdjacentHTML(
-                "beforeend",
-                renderFillBlankItem(
-                    {
-                        question: "",
-                        answer: "",
+          answers: [""],
 
-                        answers: [
-                            ""
-                        ],
+          source_type: "manual",
 
-                        source_type:
-                            "manual",
+          preserve_original: true,
+        },
+        index,
+      ),
+    );
 
-                        preserve_original:
-                            true
-                    },
-                    index
-                )
-            );
+    return;
+  }
 
-            return;
-        }
+  if (e.target.id === "addQuiz") {
+    const list = document.getElementById("quizList");
 
-        if (
-            e.target.id ===
-            "addQuiz"
-        ) {
+    document.getElementById("noQuiz")?.remove();
 
-            const list =
-                document.getElementById(
-                    "quizList"
-                );
+    const index = document.querySelectorAll(
+      `.quiz-edit-card[data-question-type="quiz"]`,
+    ).length;
 
-            document
-                .getElementById(
-                    "noQuiz"
-                )
-                ?.remove();
+    list.insertAdjacentHTML(
+      "beforeend",
+      renderQuizItem(
+        {
+          question: "",
 
-            const index =
-                document.querySelectorAll(
-                    `.quiz-edit-card[data-question-type="quiz"]`
-                ).length;
+          choices: ["", "", "", ""],
 
-            list.insertAdjacentHTML(
-                "beforeend",
-                renderQuizItem(
-                    {
-                        question: "",
+          answer: 0,
 
-                        choices: [
-                            "",
-                            "",
-                            "",
-                            ""
-                        ],
+          explanation: "",
 
-                        answer: 0,
+          source_type: "manual",
 
-                        explanation:
-                            "",
+          preserve_original: true,
+        },
+        index,
+        "quiz",
+      ),
+    );
 
-                        source_type:
-                            "manual",
+    return;
+  }
 
-                        preserve_original:
-                            true
-                    },
-                    index,
-                    "quiz"
-                )
-            );
+  if (e.target.classList.contains("add-quiz-choice")) {
+    const card = e.target.closest(".quiz-edit-card");
 
-            return;
-        }
+    if (!card) {
+      return;
+    }
 
-        if (
-            e.target.classList.contains(
-                "add-quiz-choice"
-            )
-        ) {
+    const area = card.querySelector(".quiz-choices-area");
 
-            const card =
-                e.target.closest(
-                    ".quiz-edit-card"
-                );
+    if (!area) {
+      return;
+    }
 
-            if (!card) {
-                return;
-            }
+    const quizIndex = card.dataset.index;
 
-            const area =
-                card.querySelector(
-                    ".quiz-choices-area"
-                );
+    const choiceIndex = area.querySelectorAll(".quiz-choice-row").length;
 
-            if (!area) {
-                return;
-            }
-
-            const quizIndex =
-                card.dataset.index;
-
-            const choiceIndex =
-                area
-                    .querySelectorAll(
-                        ".quiz-choice-row"
-                    )
-                    .length;
-
-            area.insertAdjacentHTML(
-                "beforeend",
-                `
+    area.insertAdjacentHTML(
+      "beforeend",
+      `
                     <div
                         class="quiz-choice-row"
                         data-choice-index="${choiceIndex}">
@@ -1965,142 +1263,74 @@ document.addEventListener(
                     </div>
 
                     <br>
-                `
-            );
+                `,
+    );
 
-            updateQuizChoiceIndexes(
-                card
-            );
+    updateQuizChoiceIndexes(card);
 
-            return;
-        }
+    return;
+  }
 
-        if (
-            e.target.classList.contains(
-                "delete-quiz-choice"
-            )
-        ) {
+  if (e.target.classList.contains("delete-quiz-choice")) {
+    const card = e.target.closest(".quiz-edit-card");
 
-            const card =
-                e.target.closest(
-                    ".quiz-edit-card"
-                );
+    if (!card) {
+      return;
+    }
 
-            if (!card) {
-                return;
-            }
+    const rows = card.querySelectorAll(".quiz-choice-row");
 
-            const rows =
-                card.querySelectorAll(
-                    ".quiz-choice-row"
-                );
+    if (rows.length <= 4) {
+      alert("選択肢は最低4つ必要です。");
 
-            if (
-                rows.length <= 4
-            ) {
+      return;
+    }
 
-                alert(
-                    "選択肢は最低4つ必要です。"
-                );
+    const row = e.target.closest(".quiz-choice-row");
 
-                return;
-            }
+    const deletedNumber = Number(row?.dataset.choiceIndex || 0) + 1;
 
-            const row =
-                e.target.closest(
-                    ".quiz-choice-row"
-                );
+    const answerInput = card.querySelector(".edit-quiz-answer");
 
-            const deletedNumber =
-                Number(
-                    row?.dataset
-                        .choiceIndex ||
-                    0
-                ) + 1;
+    let currentAnswer = Number(answerInput?.value || 1);
 
-            const answerInput =
-                card.querySelector(
-                    ".edit-quiz-answer"
-                );
+    const nextBreak = row?.nextElementSibling;
 
-            let currentAnswer =
-                Number(
-                    answerInput?.value ||
-                    1
-                );
+    row?.remove();
 
-            const nextBreak =
-                row?.nextElementSibling;
+    if (nextBreak && nextBreak.tagName === "BR") {
+      nextBreak.remove();
+    }
 
-            row?.remove();
+    if (currentAnswer > deletedNumber) {
+      currentAnswer--;
+    } else if (currentAnswer === deletedNumber) {
+      currentAnswer = 1;
+    }
 
-            if (
-                nextBreak &&
-                nextBreak.tagName ===
-                    "BR"
-            ) {
-                nextBreak.remove();
-            }
+    if (answerInput) {
+      answerInput.value = currentAnswer;
+    }
 
-            if (
-                currentAnswer >
-                deletedNumber
-            ) {
+    updateQuizChoiceIndexes(card);
 
-                currentAnswer--;
+    return;
+  }
 
-            } else if (
-                currentAnswer ===
-                deletedNumber
-            ) {
+  if (e.target.classList.contains("add-fill-answer-box")) {
+    const card = e.target.closest(".fill-edit-card");
 
-                currentAnswer =
-                    1;
-            }
+    if (!card) {
+      return;
+    }
 
-            if (answerInput) {
+    const area = card.querySelector(".fill-answers-area");
 
-                answerInput.value =
-                    currentAnswer;
-            }
+    const count = area.querySelectorAll(".edit-fill-answer-box").length;
 
-            updateQuizChoiceIndexes(
-                card
-            );
-
-            return;
-        }
-
-        if (
-            e.target.classList.contains(
-                "add-fill-answer-box"
-            )
-        ) {
-
-            const card =
-                e.target.closest(
-                    ".fill-edit-card"
-                );
-
-            if (!card) {
-                return;
-            }
-
-            const area =
-                card.querySelector(
-                    ".fill-answers-area"
-                );
-
-            const count =
-                area
-                    .querySelectorAll(
-                        ".edit-fill-answer-box"
-                    )
-                    .length;
-
-            area.insertAdjacentHTML(
-                "beforeend",
-                `
+    area.insertAdjacentHTML(
+      "beforeend",
+      `
                     <input
                         class="edit-fill-answer-box"
                         data-answer-index="${count}"
@@ -2108,131 +1338,69 @@ document.addEventListener(
                         placeholder="解答 ${count + 1}">
 
                     <br><br>
-                `
-            );
+                `,
+    );
 
-            return;
-        }
+    return;
+  }
 
-        if (
-            e.target.classList.contains(
-                "delete-fill"
-            )
-        ) {
+  if (e.target.classList.contains("delete-fill")) {
+    if (!confirm("この穴埋め問題を削除しますか？")) {
+      return;
+    }
 
-            if (
-                !confirm(
-                    "この穴埋め問題を削除しますか？"
-                )
-            ) {
-                return;
-            }
+    e.target.closest(".fill-edit-card")?.remove();
 
-            e.target
-                .closest(
-                    ".fill-edit-card"
-                )
-                ?.remove();
+    const list = document.getElementById("fillBlankList");
 
-            const list =
-                document.getElementById(
-                    "fillBlankList"
-                );
-
-            if (
-                document
-                    .querySelectorAll(
-                        ".fill-edit-card"
-                    )
-                    .length === 0
-            ) {
-
-                list.innerHTML = `
+    if (document.querySelectorAll(".fill-edit-card").length === 0) {
+      list.innerHTML = `
                     <p id="noFillBlank">
                         穴埋め問題はありません。
                     </p>
                 `;
-            }
+    }
 
-            return;
-        }
+    return;
+  }
 
-        if (
-            e.target.classList.contains(
-                "delete-quiz"
-            )
-        ) {
+  if (e.target.classList.contains("delete-quiz")) {
+    if (!confirm("この選択問題を削除しますか？")) {
+      return;
+    }
 
-            if (
-                !confirm(
-                    "この選択問題を削除しますか？"
-                )
-            ) {
-                return;
-            }
+    e.target.closest(".quiz-edit-card")?.remove();
 
-            e.target
-                .closest(
-                    ".quiz-edit-card"
-                )
-                ?.remove();
+    const list = document.getElementById("quizList");
 
-            const list =
-                document.getElementById(
-                    "quizList"
-                );
-
-            if (
-                document
-                    .querySelectorAll(
-                        `.quiz-edit-card[data-question-type="quiz"]`
-                    )
-                    .length === 0
-            ) {
-
-                list.innerHTML = `
+    if (
+      document.querySelectorAll(`.quiz-edit-card[data-question-type="quiz"]`)
+        .length === 0
+    ) {
+      list.innerHTML = `
                     <p id="noQuiz">
                         選択問題はありません。
                     </p>
                 `;
-            }
-
-            return;
-        }
     }
-);
 
-const jsonImport =
-    document.getElementById(
-        "jsonImport"
-    );
+    return;
+  }
+});
 
-const previewJson =
-    document.getElementById(
-        "previewJson"
-    );
+const jsonImport = document.getElementById("jsonImport");
 
-const importJson =
-    document.getElementById(
-        "importJson"
-    );
+const previewJson = document.getElementById("previewJson");
 
-const jsonPreview =
-    document.getElementById(
-        "jsonPreview"
-    );
+const importJson = document.getElementById("importJson");
 
-previewJson.onclick =
-    () => {
+const jsonPreview = document.getElementById("jsonPreview");
 
-        try {
+previewJson.onclick = () => {
+  try {
+    const data = JSON.parse(jsonImport.value);
 
-            const data =
-                JSON.parse(
-                    jsonImport.value
-                );
-
-            jsonPreview.innerHTML = `
+    jsonPreview.innerHTML = `
                 <p>
                     要約 :
                     ${data.summary ? "〇" : "×"}
@@ -2258,442 +1426,227 @@ previewJson.onclick =
                     ${data.today_question ? "〇" : "×"}
                 </p>
             `;
-
-        } catch (e) {
-
-            alert(
-                "JSONが正しくありません"
-            );
-
-        }
-    };
-
-importJson.onclick =
-    async () => {
-
-        try {
-
-            const data =
-                JSON.parse(
-                    jsonImport.value
-                );
-
-            if (
-                !data ||
-                typeof data !==
-                    "object" ||
-                Array.isArray(data)
-            ) {
-
-                throw new Error(
-                    "JSONの形式が正しくありません。"
-                );
-            }
-
-            const editedRef =
-                doc(
-                    db,
-                    "examSubjects",
-                    subjectId,
-                    "units",
-                    unitId,
-                    "ai",
-                    "edited"
-                );
-
-            const editedSnap =
-                await getDoc(
-                    editedRef
-                );
-
-            const current =
-                editedSnap.exists()
-                    ? editedSnap.data()
-                    : {};
-
-            const currentSummary =
-                Array.isArray(
-                    current.summary
-                )
-                    ? current.summary
-                    : (
-                        typeof current.summary ===
-                            "string" &&
-                        current.summary.trim() !==
-                            ""
-                    )
-                        ? [
-                            current.summary.trim()
-                        ]
-                        : [];
-
-            const importedSummary =
-                Array.isArray(
-                    data.summary
-                )
-                    ? data.summary
-                        .map(item =>
-                            String(
-                                item
-                            ).trim()
-                        )
-                        .filter(item =>
-                            item !== ""
-                        )
-                    : (
-                        typeof data.summary ===
-                            "string" &&
-                        data.summary.trim() !==
-                            ""
-                    )
-                        ? [
-                            data.summary.trim()
-                        ]
-                        : [];
-
-            const currentImportantPoints =
-                Array.isArray(
-                    current
-                        .important_points
-                )
-                    ? current
-                        .important_points
-                    : [];
-
-            const importedImportantPoints =
-                Array.isArray(
-                    data.important_points
-                )
-                    ? data
-                        .important_points
-                        .map(item =>
-                            String(
-                                item
-                            ).trim()
-                        )
-                        .filter(item =>
-                            item !== ""
-                        )
-                    : [];
-
-            const currentFillBlank =
-                Array.isArray(
-                    current.fill_blank
-                )
-                    ? current.fill_blank
-                    : [];
-
-            const importedFillBlank =
-                Array.isArray(
-                    data.fill_blank
-                )
-                    ? data.fill_blank
-                        .filter(item =>
-                            item &&
-                            typeof item ===
-                                "object" &&
-                            typeof item.question ===
-                                "string" &&
-                            item.question
-                                .trim() !==
-                                ""
-                        )
-                        .map(item => ({
-                            ...item,
-
-                            source_type:
-                                item.source_type ||
-                                "json",
-
-                            preserve_original:
-                                item.preserve_original ??
-                                true
-                        }))
-                    : [];
-
-            const currentQuiz =
-                Array.isArray(
-                    current.quiz
-                )
-                    ? current.quiz
-                    : [];
-
-            const importedQuiz =
-                Array.isArray(
-                    data.quiz
-                )
-                    ? data.quiz
-                        .filter(item =>
-                            item &&
-                            typeof item ===
-                                "object" &&
-                            typeof item.question ===
-                                "string" &&
-                            item.question
-                                .trim() !==
-                                ""
-                        )
-                        .map(item => ({
-                            ...item,
-
-                            choices:
-                                Array.isArray(
-                                    item.choices
-                                )
-                                    ? item
-                                        .choices
-                                        .map(
-                                            choice =>
-                                                String(
-                                                    choice
-                                                )
-                                                .trim()
-                                        )
-                                    : [],
-
-                            answer:
-                                Number.isInteger(
-                                    Number(
-                                        item.answer
-                                    )
-                                )
-                                    ? Number(
-                                        item.answer
-                                    )
-                                    : 0,
-
-                            source_type:
-                                item.source_type ||
-                                "json",
-
-                            preserve_original:
-                                item.preserve_original ??
-                                true
-                        }))
-                        .filter(item =>
-                            item.choices.length >=
-                                4 &&
-                            item.choices.every(
-                                choice =>
-                                    choice !==
-                                    ""
-                            ) &&
-                            item.answer >= 0 &&
-                            item.answer <
-                                item.choices.length
-                        )
-                    : [];
-
-            let todayQuestion =
-                current.today_question ||
-                null;
-
-            if (
-                !todayQuestion &&
-                data.today_question &&
-                typeof data.today_question ===
-                    "object" &&
-                typeof data
-                    .today_question
-                    .question ===
-                    "string" &&
-                data.today_question
-                    .question
-                    .trim() !==
-                    ""
-            ) {
-
-                const importedTodayChoices =
-                    Array.isArray(
-                        data.today_question
-                            .choices
-                    )
-                        ? data.today_question
-                            .choices
-                            .map(choice =>
-                                String(
-                                    choice
-                                ).trim()
-                            )
-                        : [];
-
-                const importedTodayAnswer =
-                    Number.isInteger(
-                        Number(
-                            data.today_question
-                                .answer
-                        )
-                    )
-                        ? Number(
-                            data.today_question
-                                .answer
-                        )
-                        : 0;
-
-                if (
-                    importedTodayChoices
-                        .length >= 4 &&
-                    importedTodayChoices
-                        .every(
-                            choice =>
-                                choice !== ""
-                        ) &&
-                    importedTodayAnswer >=
-                        0 &&
-                    importedTodayAnswer <
-                        importedTodayChoices
-                            .length
-                ) {
-
-                    todayQuestion = {
-                        ...data.today_question,
-
-                        choices:
-                            importedTodayChoices,
-
-                        answer:
-                            importedTodayAnswer,
-
-                        source_type:
-                            data.today_question
-                                .source_type ||
-                            "json",
-
-                        preserve_original:
-                            data.today_question
-                                .preserve_original ??
-                            true
-                    };
-                }
-            }
-
-            const addedCount =
-                importedSummary.length +
-                importedImportantPoints
-                    .length +
-                importedFillBlank.length +
-                importedQuiz.length +
-                (
-                    !current
-                        .today_question &&
-                    todayQuestion
-                        ? 1
-                        : 0
-                );
-
-            if (
-                addedCount === 0
-            ) {
-
-                alert(
-                    "追加できる内容がJSONにありません。"
-                );
-
-                return;
-            }
-
-            await setDoc(
-                editedRef,
-                {
-                    summary: [
-                        ...currentSummary,
-                        ...importedSummary
-                    ],
-
-                    important_points: [
-                        ...currentImportantPoints,
-                        ...importedImportantPoints
-                    ],
-
-                    fill_blank: [
-                        ...currentFillBlank,
-                        ...importedFillBlank
-                    ],
-
-                    quiz: [
-                        ...currentQuiz,
-                        ...importedQuiz
-                    ],
-
-                    today_question:
-                        todayQuestion,
-
-                    jsonImportedAt:
-                        new Date(),
-
-                    jsonImportedBy:
-                        studentNumber,
-
-                    editedAt:
-                        new Date(),
-
-                    editedBy:
-                        studentNumber
-                },
-                {
-                    merge: true
-                }
-            );
-
-            alert(
-                `${addedCount}件の内容を追加しました。`
-            );
-
-            jsonImport.value =
-                "";
-
-            jsonPreview.innerHTML =
-                "";
-
-            await loadQuestions();
-
-        } catch (e) {
-
-            console.error(
-                "JSON一括追加エラー:",
-                e
-            );
-
-            alert(
-                `追加できませんでした。\n${e.message}`
-            );
-
-        }
-    };
-
-document.addEventListener(
-    "change",
-    async event => {
-
-        const fileInput =
-            event.target.closest(
-                ".edit-question-image-file"
-            );
-
-        if (!fileInput) {
-            return;
-        }
-
-        const editor =
-            fileInput.closest(
-                ".question-image-editor"
-            );
-
-        if (!editor) {
-            return;
-        }
-
-        const file =
-            fileInput.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        await uploadQuestionImage(
-            file,
-            editor
-        );
-
+  } catch (e) {
+    alert("JSONが正しくありません");
+  }
+};
+
+importJson.onclick = async () => {
+  try {
+    const data = JSON.parse(jsonImport.value);
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("JSONの形式が正しくありません。");
     }
-);
+
+    const editedRef = doc(
+      db,
+      "examSubjects",
+      subjectId,
+      "units",
+      unitId,
+      "ai",
+      "edited",
+    );
+
+    const editedSnap = await getDoc(editedRef);
+
+    const current = editedSnap.exists() ? editedSnap.data() : {};
+
+    const currentSummary = Array.isArray(current.summary)
+      ? current.summary
+      : typeof current.summary === "string" && current.summary.trim() !== ""
+        ? [current.summary.trim()]
+        : [];
+
+    const importedSummary = Array.isArray(data.summary)
+      ? data.summary
+          .map((item) => String(item).trim())
+          .filter((item) => item !== "")
+      : typeof data.summary === "string" && data.summary.trim() !== ""
+        ? [data.summary.trim()]
+        : [];
+
+    const currentImportantPoints = Array.isArray(current.important_points)
+      ? current.important_points
+      : [];
+
+    const importedImportantPoints = Array.isArray(data.important_points)
+      ? data.important_points
+          .map((item) => String(item).trim())
+          .filter((item) => item !== "")
+      : [];
+
+    const currentFillBlank = Array.isArray(current.fill_blank)
+      ? current.fill_blank
+      : [];
+
+    const importedFillBlank = Array.isArray(data.fill_blank)
+      ? data.fill_blank
+          .filter(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.question === "string" &&
+              item.question.trim() !== "",
+          )
+          .map((item) => ({
+            ...item,
+
+            source_type: item.source_type || "json",
+
+            preserve_original: item.preserve_original ?? true,
+          }))
+      : [];
+
+    const currentQuiz = Array.isArray(current.quiz) ? current.quiz : [];
+
+    const importedQuiz = Array.isArray(data.quiz)
+      ? data.quiz
+          .filter(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.question === "string" &&
+              item.question.trim() !== "",
+          )
+          .map((item) => ({
+            ...item,
+
+            choices: Array.isArray(item.choices)
+              ? item.choices.map((choice) => String(choice).trim())
+              : [],
+
+            answer: Number.isInteger(Number(item.answer))
+              ? Number(item.answer)
+              : 0,
+
+            source_type: item.source_type || "json",
+
+            preserve_original: item.preserve_original ?? true,
+          }))
+          .filter(
+            (item) =>
+              item.choices.length >= 4 &&
+              item.choices.every((choice) => choice !== "") &&
+              item.answer >= 0 &&
+              item.answer < item.choices.length,
+          )
+      : [];
+
+    let todayQuestion = current.today_question || null;
+
+    if (
+      !todayQuestion &&
+      data.today_question &&
+      typeof data.today_question === "object" &&
+      typeof data.today_question.question === "string" &&
+      data.today_question.question.trim() !== ""
+    ) {
+      const importedTodayChoices = Array.isArray(data.today_question.choices)
+        ? data.today_question.choices.map((choice) => String(choice).trim())
+        : [];
+
+      const importedTodayAnswer = Number.isInteger(
+        Number(data.today_question.answer),
+      )
+        ? Number(data.today_question.answer)
+        : 0;
+
+      if (
+        importedTodayChoices.length >= 4 &&
+        importedTodayChoices.every((choice) => choice !== "") &&
+        importedTodayAnswer >= 0 &&
+        importedTodayAnswer < importedTodayChoices.length
+      ) {
+        todayQuestion = {
+          ...data.today_question,
+
+          choices: importedTodayChoices,
+
+          answer: importedTodayAnswer,
+
+          source_type: data.today_question.source_type || "json",
+
+          preserve_original: data.today_question.preserve_original ?? true,
+        };
+      }
+    }
+
+    const addedCount =
+      importedSummary.length +
+      importedImportantPoints.length +
+      importedFillBlank.length +
+      importedQuiz.length +
+      (!current.today_question && todayQuestion ? 1 : 0);
+
+    if (addedCount === 0) {
+      alert("追加できる内容がJSONにありません。");
+
+      return;
+    }
+
+    await setDoc(
+      editedRef,
+      {
+        summary: [...currentSummary, ...importedSummary],
+
+        important_points: [
+          ...currentImportantPoints,
+          ...importedImportantPoints,
+        ],
+
+        fill_blank: [...currentFillBlank, ...importedFillBlank],
+
+        quiz: [...currentQuiz, ...importedQuiz],
+
+        today_question: todayQuestion,
+
+        jsonImportedAt: new Date(),
+
+        jsonImportedBy: studentNumber,
+
+        editedAt: new Date(),
+
+        editedBy: studentNumber,
+      },
+      {
+        merge: true,
+      },
+    );
+
+    alert(`${addedCount}件の内容を追加しました。`);
+
+    jsonImport.value = "";
+
+    jsonPreview.innerHTML = "";
+
+    await loadQuestions();
+  } catch (e) {
+    console.error("JSON一括追加エラー:", e);
+
+    alert(`追加できませんでした。\n${e.message}`);
+  }
+};
+
+document.addEventListener("change", async (event) => {
+  const fileInput = event.target.closest(".edit-question-image-file");
+
+  if (!fileInput) {
+    return;
+  }
+
+  const editor = fileInput.closest(".question-image-editor");
+
+  if (!editor) {
+    return;
+  }
+
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  await uploadQuestionImage(file, editor);
+});

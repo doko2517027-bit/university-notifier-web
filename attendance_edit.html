@@ -1,42 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>出席記録の修正 | CareMate</title>
-        <link rel="stylesheet" href="style.css">
-        <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
-    </head>
-    <body class="page-loading">
-        <div class="top-buttons">
-            <button id="backButton" class="circle-button">←</button>
-            <h2>出席記録の修正</h2>
-            <div></div>
-        </div>
-        <main class="card setting-card attendance-edit-card">
-            <p class="attendance-personal-notice">CareMate上の個人用記録です。大学の公式出席記録は変更されません。</p>
-            <h2 id="editSubject">読み込み中...</h2>
-            <p id="editMeta"></p>
-            <label>到着記録
-                <select id="arrivalStatus">
-                    <option>出席</option>
-                    <option>遅刻</option>
-                    <option>欠席</option>
-                </select>
-            </label>
-            <label>退席記録
-                <select id="departureStatus">
-                    <option value="">未記録</option>
-                    <option>退席</option>
-                    <option>早退</option>
-                    <option>欠席</option>
-                </select>
-            </label>
-            <label>修正理由
-                <textarea id="correctionReason" placeholder="例：大学承認済みの交通遅延による修正"></textarea>
-            </label>
-            <button id="saveCorrection" class="main-button">修正を保存</button>
-        </main>
-        <script type="module" src="attendance_edit.js"></script>
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>出席記録の修正 | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
+      <h2>出席記録の修正</h2>
+      <div></div>
+    </div>
+    <main class="card setting-card attendance-edit-card">
+      <p class="attendance-personal-notice">
+        CareMate上の個人用記録です。大学の公式出席記録は変更されません。
+      </p>
+      <h2 id="editSubject">読み込み中...</h2>
+      <p id="editMeta"></p>
+      <label
+        >到着記録
+        <select id="arrivalStatus">
+          <option>出席</option>
+          <option>遅刻</option>
+          <option>欠席</option>
+        </select>
+      </label>
+      <label
+        >退席記録
+        <select id="departureStatus">
+          <option value="">未記録</option>
+          <option>退席</option>
+          <option>早退</option>
+          <option>欠席</option>
+        </select>
+      </label>
+      <label
+        >修正理由
+        <textarea
+          id="correctionReason"
+          placeholder="例：大学承認済みの交通遅延による修正"
+        ></textarea>
+      </label>
+      <button id="saveCorrection" class="main-button">修正を保存</button>
+    </main>
+    <script type="module" src="attendance_edit.js"></script>
+  </body>
 </html>

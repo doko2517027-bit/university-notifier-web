@@ -1,22 +1,183 @@
-import {db,studentNumber,setupTheme,initializePage,loadProfileImage,loadUserName,loadMyRanking,setupAdminTab} from "./common.js";
-import {collection,doc,query,where,onSnapshot} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import {httpsCallable} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
-import {functions} from "./common.js";
-const thresholds=[0,800,5000];
-const themeButton=document.getElementById("themeButton"),userName=document.getElementById("userName"),topProfileImage=document.getElementById("topProfileImage"),slots=document.getElementById("requestSlots"),form=document.getElementById("requestFormCard"),history=document.getElementById("requestHistory"),totalEl=document.getElementById("requestTotalPoints"),nextEl=document.getElementById("requestNextUnlock");
-let totalPoints=0,requests=[];
-const escapeHtml=value=>String(value??"").replace(/[&<>\"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[char]);
+import {
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  loadUserName,
+  loadMyRanking,
+  setupAdminTab,
+} from "./common.js";
+import {
+  collection,
+  doc,
+  query,
+  where,
+  onSnapshot,
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { functions } from "./common.js";
+const thresholds = [0, 800, 5000];
+const themeButton = document.getElementById("themeButton"),
+  userName = document.getElementById("userName"),
+  topProfileImage = document.getElementById("topProfileImage"),
+  slots = document.getElementById("requestSlots"),
+  form = document.getElementById("requestFormCard"),
+  history = document.getElementById("requestHistory"),
+  totalEl = document.getElementById("requestTotalPoints"),
+  nextEl = document.getElementById("requestNextUnlock");
+let totalPoints = 0,
+  requests = [];
+const escapeHtml = (value) =>
+  String(value ?? "").replace(
+    /[&<>\"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
 setupTheme(themeButton);
-await initializePage([setupAdminTab(),loadUserName(userName),loadMyRanking(),loadProfileImage(topProfileImage)]);
-const digitalNoteCard=document.getElementById("digitalNoteCard");
-if(studentNumber==="2510044"){digitalNoteCard.classList.add("is-available");digitalNoteCard.setAttribute("aria-hidden","false")}
-const clinicalCard=document.getElementById("clinicalCard");
-if(studentNumber==="2510044"){clinicalCard.classList.add("is-available");clinicalCard.setAttribute("aria-hidden","false")}
-onSnapshot(doc(db,"totalRanking",studentNumber),snap=>{totalPoints=Number(snap.data()?.point||0);render()});
-onSnapshot(query(collection(db,"featureRequests"),where("studentNumber","==",studentNumber)),snap=>{requests=snap.docs.map(item=>({id:item.id,...item.data()})).sort((a,b)=>timeOf(b.createdAt)-timeOf(a.createdAt));render()});
-function timeOf(value){return typeof value?.toDate==="function"?value.toDate().getTime():0}
-function label(status){return ({submitted:"送信済み",reviewing:"検討中",developing:"開発する",implemented:"実装済み",unavailable:"対応不可",withdrawn:"取り下げ済み"})[status]||"送信済み"}
-function usesSlot(item){return ["submitted","reviewing","developing","implemented"].includes(item.status||"submitted")}
-function render(){const unlocked=thresholds.filter(value=>totalPoints>=value).length,activeRequests=requests.filter(usesSlot);totalEl.textContent=`累計ポイント：${totalPoints.toLocaleString()}pt`;slots.innerHTML=thresholds.map((threshold,index)=>{const available=index<unlocked,used=activeRequests[index];const progress=threshold?Math.min(100,totalPoints/threshold*100):100;return `<div class="request-slot ${available?"":"is-locked"}"><div class="request-row"><b>${index+1}枠目 ${available?(used?"📝 使用中":"✅ 利用可能"):"🔒 未解放"}</b><span>${threshold?`${Math.min(totalPoints,threshold).toLocaleString()} / ${threshold.toLocaleString()} pt`:"最初から無料"}</span></div>${threshold?`<div class="request-progress"><i style="width:${progress}%"></i></div>`:""}${used?`<small>使用中：${escapeHtml(used.title||"名称未設定")}（${label(used.status)}）</small>`:""}</div>`}).join("");const availableIndex=activeRequests.length<unlocked?activeRequests.length:-1;form.hidden=availableIndex<0;if(availableIndex>=0){document.getElementById("sendFeatureRequest").textContent=`${availableIndex+1}枠目をリクエストする`}const next=thresholds.find(value=>value>totalPoints);nextEl.textContent=next?`次の解放まで あと${(next-totalPoints).toLocaleString()}pt`:unlocked===3?"🎉 すべてのリクエスト枠が解放済みです。":"";history.innerHTML=requests.length?requests.map(item=>`<article class="card setting-card request-item"><div class="request-row"><b>${escapeHtml(item.title||"機能名未設定")}</b><span class="request-status">${label(item.status)}</span></div><p>${escapeHtml(item.description||"").replace(/\n/g,"<br>")}</p>${item.useCase?`<small>使いたい場面：${escapeHtml(item.useCase)}</small>`:""}${(item.status||"submitted")==="submitted"?`<p><button class="btn btn-secondary withdraw-feature-request" data-id="${item.id}">リクエストを取り下げる</button></p>`:""}</article>`).join(""):"<p>まだリクエストはありません。</p>"}
-document.getElementById("sendFeatureRequest").onclick=async()=>{const title=document.getElementById("requestTitle").value.trim(),description=document.getElementById("requestDescription").value.trim(),useCase=document.getElementById("requestUseCase").value.trim();if(!title||!description)return alert("機能名と内容を入力してください。");const unlocked=thresholds.filter(value=>totalPoints>=value).length;if(requests.filter(usesSlot).length>=unlocked)return alert("利用できるリクエスト枠がありません。");if(!confirm("この内容を2510044へ送信しますか？"))return;const button=document.getElementById("sendFeatureRequest");button.disabled=true;try{await httpsCallable(functions,"submitFeatureRequest")({title,description,useCase});document.getElementById("requestTitle").value="";document.getElementById("requestDescription").value="";document.getElementById("requestUseCase").value="";alert("リクエストを送信しました。")}catch(error){console.error(error);alert(error.code==="functions/resource-exhausted"?"利用できるリクエスト枠がありません。":"送信に失敗しました。ログインし直して再度お試しください。")}finally{button.disabled=false}};
-document.addEventListener("click",async event=>{const button=event.target.closest(".withdraw-feature-request");if(!button)return;if(!confirm("送信済みのリクエストを取り下げますか？\nこの枠は再び使えるようになります。"))return;button.disabled=true;try{await httpsCallable(functions,"withdrawFeatureRequest")({requestId:button.dataset.id});alert("リクエストを取り下げました。枠を再び利用できます。")}catch(error){console.error(error);alert("取り下げできませんでした。検討中以降のリクエストは取り下げできません。")}finally{button.disabled=false}});
+await initializePage([
+  setupAdminTab(),
+  loadUserName(userName),
+  loadMyRanking(),
+  loadProfileImage(topProfileImage),
+]);
+const digitalNoteCard = document.getElementById("digitalNoteCard");
+if (studentNumber === "2510044") {
+  digitalNoteCard.classList.add("is-available");
+  digitalNoteCard.setAttribute("aria-hidden", "false");
+}
+const clinicalCard = document.getElementById("clinicalCard");
+if (studentNumber === "2510044") {
+  clinicalCard.classList.add("is-available");
+  clinicalCard.setAttribute("aria-hidden", "false");
+}
+onSnapshot(doc(db, "totalRanking", studentNumber), (snap) => {
+  totalPoints = Number(snap.data()?.point || 0);
+  render();
+});
+onSnapshot(
+  query(
+    collection(db, "featureRequests"),
+    where("studentNumber", "==", studentNumber),
+  ),
+  (snap) => {
+    requests = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => timeOf(b.createdAt) - timeOf(a.createdAt));
+    render();
+  },
+);
+function timeOf(value) {
+  return typeof value?.toDate === "function" ? value.toDate().getTime() : 0;
+}
+function label(status) {
+  return (
+    {
+      submitted: "送信済み",
+      reviewing: "検討中",
+      developing: "開発する",
+      implemented: "実装済み",
+      unavailable: "対応不可",
+      withdrawn: "取り下げ済み",
+    }[status] || "送信済み"
+  );
+}
+function usesSlot(item) {
+  return ["submitted", "reviewing", "developing", "implemented"].includes(
+    item.status || "submitted",
+  );
+}
+function render() {
+  const unlocked = thresholds.filter((value) => totalPoints >= value).length,
+    activeRequests = requests.filter(usesSlot);
+  totalEl.textContent = `累計ポイント：${totalPoints.toLocaleString()}pt`;
+  slots.innerHTML = thresholds
+    .map((threshold, index) => {
+      const available = index < unlocked,
+        used = activeRequests[index];
+      const progress = threshold
+        ? Math.min(100, (totalPoints / threshold) * 100)
+        : 100;
+      return `<div class="request-slot ${available ? "" : "is-locked"}"><div class="request-row"><b>${index + 1}枠目 ${available ? (used ? "📝 使用中" : "✅ 利用可能") : "🔒 未解放"}</b><span>${threshold ? `${Math.min(totalPoints, threshold).toLocaleString()} / ${threshold.toLocaleString()} pt` : "最初から無料"}</span></div>${threshold ? `<div class="request-progress"><i style="width:${progress}%"></i></div>` : ""}${used ? `<small>使用中：${escapeHtml(used.title || "名称未設定")}（${label(used.status)}）</small>` : ""}</div>`;
+    })
+    .join("");
+  const availableIndex =
+    activeRequests.length < unlocked ? activeRequests.length : -1;
+  form.hidden = availableIndex < 0;
+  if (availableIndex >= 0) {
+    document.getElementById("sendFeatureRequest").textContent =
+      `${availableIndex + 1}枠目をリクエストする`;
+  }
+  const next = thresholds.find((value) => value > totalPoints);
+  nextEl.textContent = next
+    ? `次の解放まで あと${(next - totalPoints).toLocaleString()}pt`
+    : unlocked === 3
+      ? "🎉 すべてのリクエスト枠が解放済みです。"
+      : "";
+  history.innerHTML = requests.length
+    ? requests
+        .map(
+          (item) =>
+            `<article class="card setting-card request-item"><div class="request-row"><b>${escapeHtml(item.title || "機能名未設定")}</b><span class="request-status">${label(item.status)}</span></div><p>${escapeHtml(item.description || "").replace(/\n/g, "<br>")}</p>${item.useCase ? `<small>使いたい場面：${escapeHtml(item.useCase)}</small>` : ""}${(item.status || "submitted") === "submitted" ? `<p><button class="btn btn-secondary withdraw-feature-request" data-id="${item.id}">リクエストを取り下げる</button></p>` : ""}</article>`,
+        )
+        .join("")
+    : "<p>まだリクエストはありません。</p>";
+}
+document.getElementById("sendFeatureRequest").onclick = async () => {
+  const title = document.getElementById("requestTitle").value.trim(),
+    description = document.getElementById("requestDescription").value.trim(),
+    useCase = document.getElementById("requestUseCase").value.trim();
+  if (!title || !description) return alert("機能名と内容を入力してください。");
+  const unlocked = thresholds.filter((value) => totalPoints >= value).length;
+  if (requests.filter(usesSlot).length >= unlocked)
+    return alert("利用できるリクエスト枠がありません。");
+  if (!confirm("この内容を2510044へ送信しますか？")) return;
+  const button = document.getElementById("sendFeatureRequest");
+  button.disabled = true;
+  try {
+    await httpsCallable(
+      functions,
+      "submitFeatureRequest",
+    )({ title, description, useCase });
+    document.getElementById("requestTitle").value = "";
+    document.getElementById("requestDescription").value = "";
+    document.getElementById("requestUseCase").value = "";
+    alert("リクエストを送信しました。");
+  } catch (error) {
+    console.error(error);
+    alert(
+      error.code === "functions/resource-exhausted"
+        ? "利用できるリクエスト枠がありません。"
+        : "送信に失敗しました。ログインし直して再度お試しください。",
+    );
+  } finally {
+    button.disabled = false;
+  }
+};
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest(".withdraw-feature-request");
+  if (!button) return;
+  if (
+    !confirm(
+      "送信済みのリクエストを取り下げますか？\nこの枠は再び使えるようになります。",
+    )
+  )
+    return;
+  button.disabled = true;
+  try {
+    await httpsCallable(
+      functions,
+      "withdrawFeatureRequest",
+    )({ requestId: button.dataset.id });
+    alert("リクエストを取り下げました。枠を再び利用できます。");
+  } catch (error) {
+    console.error(error);
+    alert(
+      "取り下げできませんでした。検討中以降のリクエストは取り下げできません。",
+    );
+  } finally {
+    button.disabled = false;
+  }
+});

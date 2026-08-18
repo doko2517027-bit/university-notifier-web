@@ -3,31 +3,25 @@
 
 <head>
 
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>テスト対策 | CareMate</title>
+  <title>テスト対策 | CareMate</title>
 
-<link
-    rel="stylesheet"
-    href="style.css">
+  <link rel="stylesheet" href="style.css">
 
-<script>
+  <script>
+    if (
+      localStorage.getItem("theme") === "dark"
+    ) {
 
-if (
-    localStorage.getItem("theme") === "dark"
-) {
-
-    document.documentElement.classList.add(
+      document.documentElement.classList.add(
         "dark"
-    );
+      );
 
-}
-
-</script>
+    }
+  </script>
 
 </head>
 
@@ -35,69 +29,53 @@ if (
 <body class="page-loading exam-dashboard-body">
 
 
-<!-- ========================================
+  <!-- ========================================
      上部操作
 ======================================== -->
 
-<div class="top-buttons exam-top-buttons">
+  <div class="top-buttons exam-top-buttons">
 
-    <button
-        id="backButton"
-        type="button"
-        class="circle-button"
-        aria-label="ホームへ戻る">
+    <button id="backButton" type="button" class="circle-button" aria-label="ホームへ戻る">
 
-        ←
+      ←
 
     </button>
 
 
     <div class="exam-top-title">
 
-        <span>
-            📚
-        </span>
+      <span>
+        📚
+      </span>
 
-        <strong>
-            テスト対策
-        </strong>
+      <strong>
+        テスト対策
+      </strong>
 
     </div>
 
 
     <div class="top-right">
 
-        <button
-            id="themeButton"
-            type="button"
-            class="circle-button"
-            aria-label="テーマを切り替える">
+      <button id="themeButton" type="button" class="circle-button" aria-label="テーマを切り替える">
 
-            🌙
+        🌙
 
-        </button>
+      </button>
 
 
-        <button
-            id="profileButton"
-            type="button"
-            class="circle-button"
-            aria-label="プロフィールを開く">
+      <button id="profileButton" type="button" class="circle-button" aria-label="プロフィールを開く">
 
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image"
-                alt="プロフィール画像">
+        <img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="プロフィール画像">
 
-        </button>
+      </button>
 
     </div>
 
-</div>
+  </div>
 
 
-<main class="exam-dashboard-page">
+  <main class="exam-dashboard-page">
 
 
     <!-- ========================================
@@ -107,80 +85,76 @@ if (
     <section class="exam-hero-card">
 
 
-        <div class="exam-hero-main">
+      <div class="exam-hero-main">
 
 
-            <div class="exam-hero-icon">
+        <div class="exam-hero-icon">
 
-                🎓
-
-            </div>
-
-
-            <div class="exam-hero-text">
-
-                <span
-                    id="examStateBadge"
-                    class="exam-state-badge">
-
-                    読み込み中
-
-                </span>
-
-
-                <h1 id="examTitle">
-
-                    テスト対策
-
-                </h1>
-
-
-                <p id="examCountdown">
-
-                    テスト情報を読み込んでいます...
-
-                </p>
-
-            </div>
+          🎓
 
         </div>
 
 
-        <div
-            id="examPeriodInformation"
-            class="exam-period-information">
+        <div class="exam-hero-text">
 
-            <div>
+          <span id="examStateBadge" class="exam-state-badge">
 
-                <small>
-                    開始
-                </small>
+            読み込み中
 
-                <strong id="examStartDateText">
-                    ----
-                </strong>
-
-            </div>
+          </span>
 
 
-            <span>
-                →
-            </span>
+          <h1 id="examTitle">
+
+            テスト対策
+
+          </h1>
 
 
-            <div>
+          <p id="examCountdown">
 
-                <small>
-                    終了
-                </small>
+            テスト情報を読み込んでいます...
 
-                <strong id="examEndDateText">
-                    ----
-                </strong>
-
-            </div>
+          </p>
 
         </div>
+
+      </div>
+
+
+      <div id="examPeriodInformation" class="exam-period-information">
+
+        <div>
+
+          <small>
+            開始
+          </small>
+
+          <strong id="examStartDateText">
+            ----
+          </strong>
+
+        </div>
+
+
+        <span>
+          →
+        </span>
+
+
+        <div>
+
+          <small>
+            終了
+          </small>
+
+          <strong id="examEndDateText">
+            ----
+          </strong>
+
+        </div>
+
+      </div>
 
     </section>
 
@@ -192,134 +166,127 @@ if (
     <section class="card setting-card exam-overall-card">
 
 
-        <div class="exam-section-heading">
+      <div class="exam-section-heading">
+
+        <div>
+
+          <span class="exam-section-label">
+            学習状況
+          </span>
+
+          <h2>
+            全体の達成度
+          </h2>
+
+        </div>
+
+
+        <div id="overallStatusBadge" class="exam-achievement-badge is-unstarted">
+
+          未着手
+
+        </div>
+
+      </div>
+
+
+      <div class="exam-overall-main">
+
+
+        <div id="overallProgressRing" class="exam-progress-ring" style="--progress: 0">
+
+          <div>
+
+            <strong id="overallProgressPercent">
+              0
+            </strong>
+
+            <span>
+              %
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="exam-overall-detail">
+
+          <p id="overallProgressMessage">
+
+            学習データを確認しています。
+
+          </p>
+
+
+          <div class="exam-overall-progress-track">
+
+            <div id="overallProgressBar" class="exam-overall-progress-bar">
+
+            </div>
+
+          </div>
+
+
+          <div class="exam-overall-counts">
+
 
             <div>
 
-                <span class="exam-section-label">
-                    学習状況
-                </span>
+              <strong id="completedFormatCount">
+                0
+              </strong>
 
-                <h2>
-                    全体の達成度
-                </h2>
+              <small>
+                達成
+              </small>
 
             </div>
 
 
-            <div
-                id="overallStatusBadge"
-                class="exam-achievement-badge is-unstarted">
+            <div>
 
+              <strong id="inProgressFormatCount">
+                0
+              </strong>
+
+              <small>
+                学習中
+              </small>
+
+            </div>
+
+
+            <div>
+
+              <strong id="unstartedFormatCount">
+                0
+              </strong>
+
+              <small>
                 未着手
+              </small>
 
             </div>
+
+
+            <div>
+
+              <strong id="completedSubjectCount">
+                0
+              </strong>
+
+              <small>
+                科目達成
+              </small>
+
+            </div>
+
+          </div>
 
         </div>
 
-
-        <div class="exam-overall-main">
-
-
-            <div
-                id="overallProgressRing"
-                class="exam-progress-ring"
-                style="--progress: 0">
-
-                <div>
-
-                    <strong id="overallProgressPercent">
-                        0
-                    </strong>
-
-                    <span>
-                        %
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="exam-overall-detail">
-
-                <p id="overallProgressMessage">
-
-                    学習データを確認しています。
-
-                </p>
-
-
-                <div class="exam-overall-progress-track">
-
-                    <div
-                        id="overallProgressBar"
-                        class="exam-overall-progress-bar">
-
-                    </div>
-
-                </div>
-
-
-                <div class="exam-overall-counts">
-
-
-                    <div>
-
-                        <strong id="completedFormatCount">
-                            0
-                        </strong>
-
-                        <small>
-                            達成
-                        </small>
-
-                    </div>
-
-
-                    <div>
-
-                        <strong id="inProgressFormatCount">
-                            0
-                        </strong>
-
-                        <small>
-                            学習中
-                        </small>
-
-                    </div>
-
-
-                    <div>
-
-                        <strong id="unstartedFormatCount">
-                            0
-                        </strong>
-
-                        <small>
-                            未着手
-                        </small>
-
-                    </div>
-
-
-                    <div>
-
-                        <strong id="completedSubjectCount">
-                            0
-                        </strong>
-
-                        <small>
-                            科目達成
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
+      </div>
 
     </section>
 
@@ -328,77 +295,69 @@ if (
          続きから
     ======================================== -->
 
-    <section
-        id="continueLearningSection"
-        class="exam-continue-section"
-        hidden>
+    <section id="continueLearningSection" class="exam-continue-section" hidden>
 
 
-        <div class="exam-section-heading">
+      <div class="exam-section-heading">
 
-            <div>
+        <div>
 
-                <span class="exam-section-label">
-                    おすすめ
-                </span>
+          <span class="exam-section-label">
+            おすすめ
+          </span>
 
-                <h2>
-                    続きから学習
-                </h2>
-
-            </div>
+          <h2>
+            続きから学習
+          </h2>
 
         </div>
 
-
-        <button
-            id="continueLearningButton"
-            type="button"
-            class="exam-continue-card">
+      </div>
 
 
-            <span
-                id="continueLearningIcon"
-                class="exam-continue-icon">
-
-                ▶️
-
-            </span>
+      <button id="continueLearningButton" type="button" class="exam-continue-card">
 
 
-            <span class="exam-continue-content">
+        <span id="continueLearningIcon" class="exam-continue-icon">
 
-                <small id="continueLearningSubject">
+          ▶️
 
-                    科目
-
-                </small>
-
-                <strong id="continueLearningTitle">
-
-                    学習を続ける
-
-                </strong>
-
-                <span id="continueLearningDetail">
-
-                    前回の続きから再開できます
-
-                </span>
-
-            </span>
+        </span>
 
 
-            <span class="exam-continue-action">
+        <span class="exam-continue-content">
 
-                続ける
-                <b>
-                    →
-                </b>
+          <small id="continueLearningSubject">
 
-            </span>
+            科目
 
-        </button>
+          </small>
+
+          <strong id="continueLearningTitle">
+
+            学習を続ける
+
+          </strong>
+
+          <span id="continueLearningDetail">
+
+            前回の続きから再開できます
+
+          </span>
+
+        </span>
+
+
+        <span class="exam-continue-action">
+
+          続ける
+          <b>
+            →
+          </b>
+
+        </span>
+
+      </button>
 
     </section>
 
@@ -410,48 +369,44 @@ if (
     <section class="card setting-card exam-today-card">
 
 
-        <div class="exam-section-heading">
+      <div class="exam-section-heading">
 
-            <div>
+        <div>
 
-                <span class="exam-section-label">
-                    毎日更新
-                </span>
+          <span class="exam-section-label">
+            毎日更新
+          </span>
 
-                <h2>
-                    今日の1問
-                </h2>
-
-            </div>
-
-
-            <span
-                id="todayDailyCount"
-                class="exam-today-count">
-
-                0 / 0達成
-
-            </span>
+          <h2>
+            今日の1問
+          </h2>
 
         </div>
 
 
-        <div class="exam-today-progress-track">
+        <span id="todayDailyCount" class="exam-today-count">
 
-            <div
-                id="todayDailyProgressBar"
-                class="exam-today-progress-bar">
+          0 / 0達成
 
-            </div>
+        </span>
+
+      </div>
+
+
+      <div class="exam-today-progress-track">
+
+        <div id="todayDailyProgressBar" class="exam-today-progress-bar">
 
         </div>
 
+      </div>
 
-        <p id="todayDailyMessage">
 
-            今日の達成状況を確認しています。
+      <p id="todayDailyMessage">
 
-        </p>
+        今日の達成状況を確認しています。
+
+      </p>
 
     </section>
 
@@ -463,115 +418,88 @@ if (
     <section class="card setting-card exam-filter-card">
 
 
-        <div class="exam-filter-search">
+      <div class="exam-filter-search">
 
-            <span aria-hidden="true">
-                🔍
-            </span>
+        <span aria-hidden="true">
+          🔍
+        </span>
 
-            <input
-                id="examSubjectSearch"
-                type="search"
-                autocomplete="off"
-                placeholder="科目名・テーマ名で検索">
+        <input id="examSubjectSearch" type="search" autocomplete="off" placeholder="科目名・テーマ名で検索">
 
-            <button
-                id="clearExamSearchButton"
-                type="button"
-                aria-label="検索を消去"
-                hidden>
+        <button id="clearExamSearchButton" type="button" aria-label="検索を消去" hidden>
 
-                ×
+          ×
 
-            </button>
+        </button>
 
-        </div>
+      </div>
 
 
-        <div
-            id="examStatusFilters"
-            class="exam-status-filters"
-            role="group"
-            aria-label="学習状況で絞り込む">
+      <div id="examStatusFilters" class="exam-status-filters" role="group" aria-label="学習状況で絞り込む">
 
 
-            <button
-                type="button"
-                class="exam-filter-button is-active"
-                data-status="all">
+        <button type="button" class="exam-filter-button is-active" data-status="all">
 
-                すべて
+          すべて
 
-                <span id="allSubjectFilterCount">
-                    0
-                </span>
+          <span id="allSubjectFilterCount">
+            0
+          </span>
 
-            </button>
+        </button>
 
 
-            <button
-                type="button"
-                class="exam-filter-button"
-                data-status="unstarted">
+        <button type="button" class="exam-filter-button" data-status="unstarted">
 
-                未着手
+          未着手
 
-                <span id="unstartedSubjectFilterCount">
-                    0
-                </span>
+          <span id="unstartedSubjectFilterCount">
+            0
+          </span>
 
-            </button>
+        </button>
 
 
-            <button
-                type="button"
-                class="exam-filter-button"
-                data-status="in-progress">
+        <button type="button" class="exam-filter-button" data-status="in-progress">
 
-                学習中
+          学習中
 
-                <span id="inProgressSubjectFilterCount">
-                    0
-                </span>
+          <span id="inProgressSubjectFilterCount">
+            0
+          </span>
 
-            </button>
+        </button>
 
 
-            <button
-                type="button"
-                class="exam-filter-button"
-                data-status="completed">
+        <button type="button" class="exam-filter-button" data-status="completed">
 
-                達成
+          達成
 
-                <span id="completedSubjectFilterCount">
-                    0
-                </span>
+          <span id="completedSubjectFilterCount">
+            0
+          </span>
 
-            </button>
+        </button>
 
-        </div>
+      </div>
 
 
-        <div class="exam-filter-bottom">
+      <div class="exam-filter-bottom">
 
-            <span id="visibleExamSubjectCount">
+        <span id="visibleExamSubjectCount">
 
-                0科目を表示
+          0科目を表示
 
-            </span>
+        </span>
 
 
-            <button
-                id="toggleAllSubjectsButton"
-                type="button"
-                class="exam-text-button">
+        <button id="toggleAllSubjectsButton" type="button" class="exam-text-button">
 
-                すべて開く
+          すべて開く
 
-            </button>
+        </button>
 
-        </div>
+      </div>
 
     </section>
 
@@ -583,336 +511,300 @@ if (
     <section class="exam-subject-section">
 
 
-        <div class="exam-section-heading">
+      <div class="exam-section-heading">
 
-            <div>
+        <div>
 
-                <span class="exam-section-label">
-                    科目別
-                </span>
+          <span class="exam-section-label">
+            科目別
+          </span>
 
-                <h2>
-                    学習する科目
-                </h2>
-
-            </div>
-
-
-            <span
-                id="totalSubjectCount"
-                class="exam-subject-total">
-
-                0科目
-
-            </span>
+          <h2>
+            学習する科目
+          </h2>
 
         </div>
 
 
-        <div
-            id="subjectUnitList"
-            class="exam-subject-list">
+        <span id="totalSubjectCount" class="exam-subject-total">
+
+          0科目
+
+        </span>
+
+      </div>
 
 
-            <div class="exam-loading-state">
+      <div id="subjectUnitList" class="exam-subject-list">
 
 
-                <div class="exam-loading-spinner"></div>
+        <div class="exam-loading-state">
 
 
-                <strong>
-                    学習データを準備しています
-                </strong>
+          <div class="exam-loading-spinner"></div>
 
 
-                <p>
-                    科目と達成状況を読み込んでいます...
-                </p>
+          <strong>
+            学習データを準備しています
+          </strong>
 
-            </div>
+
+          <p>
+            科目と達成状況を読み込んでいます...
+          </p>
 
         </div>
+
+      </div>
 
     </section>
 
 
-</main>
+  </main>
 
 
-<!-- ========================================
+  <!-- ========================================
      問題形式説明モーダル
 ======================================== -->
 
-<div
-    id="examHelpModal"
-    class="admin-modal-overlay exam-help-overlay"
-    hidden>
+  <div id="examHelpModal" class="admin-modal-overlay exam-help-overlay" hidden>
 
 
     <div class="admin-modal exam-help-modal">
 
 
-        <div class="exam-help-heading">
+      <div class="exam-help-heading">
 
-            <div>
+        <div>
 
-                <small>
-                    達成度について
-                </small>
+          <small>
+            達成度について
+          </small>
 
-                <h2>
-                    学習状況の見方
-                </h2>
-
-            </div>
-
-
-            <button
-                id="closeExamHelpButton"
-                type="button"
-                class="circle-button"
-                aria-label="閉じる">
-
-                ×
-
-            </button>
+          <h2>
+            学習状況の見方
+          </h2>
 
         </div>
 
 
-        <div class="exam-help-list">
+        <button id="closeExamHelpButton" type="button" class="circle-button" aria-label="閉じる">
 
-
-            <div>
-
-                <span class="exam-help-status is-completed">
-                    ✓
-                </span>
-
-                <p>
-
-                    <b>
-                        達成
-                    </b>
-
-                    問題を最後まで解き終えています。
-
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <span class="exam-help-status is-progress">
-                    ▶
-                </span>
-
-                <p>
-
-                    <b>
-                        学習中
-                    </b>
-
-                    途中まで解いています。前回の続きから再開できます。
-
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <span class="exam-help-status is-unstarted">
-                    ○
-                </span>
-
-                <p>
-
-                    <b>
-                        未着手
-                    </b>
-
-                    まだ問題を開始していません。
-
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <p class="exam-help-note">
-
-            科目・テーマの達成率は、穴埋め問題と四択問題の完了状況から計算します。
-            今日の1問は毎日更新されるため、別に「本日の達成状況」として表示します。
-
-        </p>
-
-
-        <button
-            id="confirmExamHelpButton"
-            type="button"
-            class="btn btn-primary">
-
-            わかりました
+          ×
 
         </button>
 
+      </div>
+
+
+      <div class="exam-help-list">
+
+
+        <div>
+
+          <span class="exam-help-status is-completed">
+            ✓
+          </span>
+
+          <p>
+
+            <b>
+              達成
+            </b>
+
+            問題を最後まで解き終えています。
+
+          </p>
+
+        </div>
+
+
+        <div>
+
+          <span class="exam-help-status is-progress">
+            ▶
+          </span>
+
+          <p>
+
+            <b>
+              学習中
+            </b>
+
+            途中まで解いています。前回の続きから再開できます。
+
+          </p>
+
+        </div>
+
+
+        <div>
+
+          <span class="exam-help-status is-unstarted">
+            ○
+          </span>
+
+          <p>
+
+            <b>
+              未着手
+            </b>
+
+            まだ問題を開始していません。
+
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <p class="exam-help-note">
+
+        科目・テーマの達成率は、穴埋め問題と四択問題の完了状況から計算します。
+        今日の1問は毎日更新されるため、別に「本日の達成状況」として表示します。
+
+      </p>
+
+
+      <button id="confirmExamHelpButton" type="button" class="btn btn-primary">
+
+        わかりました
+
+      </button>
+
     </div>
 
-</div>
+  </div>
 
 
-<!-- ========================================
+  <!-- ========================================
      画面右下の説明ボタン
 ======================================== -->
 
-<button
-    id="openExamHelpButton"
-    type="button"
-    class="exam-floating-help-button"
-    aria-label="達成度の説明を開く">
+  <button id="openExamHelpButton" type="button" class="exam-floating-help-button" aria-label="達成度の説明を開く">
 
     ？
 
-</button>
+  </button>
 
 
-<!-- ========================================
+  <!-- ========================================
      下部ナビゲーション
 ======================================== -->
 
-<nav class="bottom-nav">
+  <nav class="bottom-nav">
 
 
-    <a
-        href="index.html"
-        class="active">
+    <a href="index.html" class="active">
 
-        🏠
-        <br>
+      🏠
+      <br>
 
-        <span>
-            ホーム
-        </span>
+      <span>
+        ホーム
+      </span>
 
     </a>
 
 
     <a href="assignments.html">
 
-        <span class="nav-icon-wrap">
+      <span class="nav-icon-wrap">
 
-            <span class="nav-icon">
-                📚
-            </span>
+        <span class="nav-icon">
+          📚
+        </span>
 
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
+        <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
 
-                0
-
-            </span>
+          0
 
         </span>
 
-        <span>
-            課題
-        </span>
+      </span>
+
+      <span>
+        課題
+      </span>
 
     </a>
 
 
     <a href="requests.html">
 
-        <span class="nav-icon-wrap">
+      <span class="nav-icon-wrap">
 
-            <span class="nav-icon">
-                💡
-            </span>
+        <span class="nav-icon">
+          💡
+        </span>
 
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
+        <span id="shareNavBadge" class="nav-notification-badge" hidden>
 
-                0
-
-            </span>
+          0
 
         </span>
 
-        <span>
-            リクエスト
-        </span>
+      </span>
+
+      <span>
+        リクエスト
+      </span>
 
     </a>
 
 
     <a href="news.html">
 
-        <span class="nav-icon-wrap">
+      <span class="nav-icon-wrap">
 
-            <span class="nav-icon">
-                📢
-            </span>
+        <span class="nav-icon">
+          📢
+        </span>
 
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
+        <span id="newsNavBadge" class="nav-notification-badge" hidden>
 
-                0
-
-            </span>
+          0
 
         </span>
 
-        <span>
-            お知らせ
-        </span>
+      </span>
+
+      <span>
+        お知らせ
+      </span>
 
     </a>
 
 
     <!-- 一般ユーザーだけに表示する設定タブ -->
-    <a
-        id="settingsTab"
-        href="settings.html">
+    <a id="settingsTab" href="settings.html">
 
-        ⚙️
-        <br>
+      ⚙️
+      <br>
 
-        <span>
-            設定
-        </span>
+      <span>
+        設定
+      </span>
 
     </a>
 
 
     <!-- 管理者だけに表示する管理タブ -->
-    <a
-        id="adminTab"
-        href="admin.html"
-        style="display:none;">
+    <a id="adminTab" href="admin.html" style="display:none;">
 
-        👑
-        <br>
+      👑
+      <br>
 
-        <span>
-            管理
-        </span>
+      <span>
+        管理
+      </span>
 
     </a>
 
 
-<script
-    type="module"
-    src="exam.js">
-</script>
+    <script type="module" src="exam.js">
+    </script>
 
 
 </body>

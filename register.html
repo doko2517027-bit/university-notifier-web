@@ -1,152 +1,137 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-
-<head>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <meta charset="UTF-8">
+  <head>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta charset="UTF-8" />
     <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
     <title>初回登録 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css">
-    <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
 
-</head>
-
-<body>
-
+  <body>
     <div class="top-buttons">
-
-        <button id="backButton" class="circle-button">
-        ←
-        </button>
-
+      <button id="backButton" class="circle-button">←</button>
     </div>
 
-<header class="header">
+    <header class="header">
+      <div class="logo">🎓</div>
 
-    <div class="logo">🎓</div>
+      <h1>CareMateApp</h1>
 
-    <h1>CareMateApp</h1>
+      <p>初回登録</p>
+    </header>
 
-    <p>初回登録</p>
+    <div class="card setting-card">
+      <h3>所属</h3>
 
-</header>
-
-<div class="card setting-card">
-
-    <h3>所属</h3>
-
-    <p><b>学科</b></p>
-    <select id="department">
+      <p><b>学科</b></p>
+      <select id="department">
         <option value="">選択してください</option>
         <option>看護学科</option>
-    </select>
+      </select>
 
-    <p><b>学科の学年</b></p>
-    <select id="departmentGrade" disabled>
+      <p><b>学科の学年</b></p>
+      <select id="departmentGrade" disabled>
         <option value="">選択してください</option>
         <option>1年</option>
         <option>2年</option>
         <option>3年</option>
         <option>4年</option>
-    </select>
+      </select>
 
-    <hr>
+      <hr />
 
-    <p><b>専攻</b></p>
-    <select id="major">
+      <p><b>専攻</b></p>
+      <select id="major">
         <option value="">選択してください</option>
         <option>理学療法学専攻</option>
         <option>作業療法学専攻</option>
-    </select>
+      </select>
 
-    <p><b>専攻の学年</b></p>
-    <select id="majorGrade" disabled>
+      <p><b>専攻の学年</b></p>
+      <select id="majorGrade" disabled>
         <option value="">選択してください</option>
         <option>1年</option>
         <option>2年</option>
         <option>3年</option>
         <option>4年</option>
-    </select>
+      </select>
+    </div>
 
-</div>
+    <div class="card setting-card">
+      <h3>学生情報</h3>
 
-<div class="card setting-card">
-
-    <h3>学生情報</h3>
-
-    <p><b>学籍番号 必須</b></p>
-    <input
+      <p><b>学籍番号 必須</b></p>
+      <input
         id="studentNumber"
         type="text"
         maxlength="7"
-        placeholder="例：2510000">
+        placeholder="例：2510000"
+      />
 
-    <p><b>学生ページID 必須</b></p>
-    <input
-        id="studentPageId"
-        type="text"
-        placeholder="学生ページID">
+      <p><b>学生ページID 必須</b></p>
+      <input id="studentPageId" type="text" placeholder="学生ページID" />
 
-    <p><b>学生ページパスワード 必須</b></p>
-    <input
+      <p><b>学生ページパスワード 必須</b></p>
+      <input
         id="studentPagePassword"
         type="password"
-        placeholder="学生ページのパスワード">
+        placeholder="学生ページのパスワード"
+      />
+    </div>
 
-</div>
+    <div class="card setting-card">
+      <h3>追加ログイン情報</h3>
 
-<div class="card setting-card">
-
-    <h3>追加ログイン情報</h3>
-
-    <p><b>Active!Mailパスワード 任意</b></p>
-    <input
+      <p><b>Active!Mailパスワード 任意</b></p>
+      <input
         id="activeMailPassword"
         type="password"
-        placeholder="未入力でも登録できます">
+        placeholder="未入力でも登録できます"
+      />
 
-    <p><b>manabaパスワード 任意</b></p>
-    <input
+      <p><b>manabaパスワード 任意</b></p>
+      <input
         id="manabaPassword"
         type="password"
-        placeholder="未入力でも登録できます">
+        placeholder="未入力でも登録できます"
+      />
+    </div>
 
-</div>
+    <div class="card setting-card">
+      <h3>アプリログイン</h3>
 
-<div class="card setting-card">
-
-    <h3>アプリログイン</h3>
-
-    <p><b>アプリ用パスワード 必須</b></p>
-    <input
+      <p><b>アプリ用パスワード 必須</b></p>
+      <input
         id="appPassword"
         type="password"
-        placeholder="アプリにログインするパスワード">
+        placeholder="アプリにログインするパスワード"
+      />
 
-    <p><b>アプリ用パスワード確認 必須</b></p>
-    <input
+      <p><b>アプリ用パスワード確認 必須</b></p>
+      <input
         id="appPasswordConfirm"
         type="password"
-        placeholder="もう一度入力">
+        placeholder="もう一度入力"
+      />
 
-    <br><br>
+      <br /><br />
 
-    <button id="subscribe" class="btn btn-primary">
-        登録
-    </button>
+      <button id="subscribe" class="btn btn-primary">登録</button>
+    </div>
 
-</div>
+    <footer id="version"></footer>
 
-<footer id="version"></footer>
-
-<script type="module" src="register.js"></script>
-
-</body>
-
+    <script type="module" src="register.js"></script>
+  </body>
 </html>

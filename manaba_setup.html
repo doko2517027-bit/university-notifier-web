@@ -1,58 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <meta charset="UTF-8">
+  <head>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta charset="UTF-8" />
     <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Manaba再設定 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css">
-    <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
-</head>
-<body class="page-loading">
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading">
+    <header class="header">
+      <div class="logo">🔐</div>
+      <h1>CareMateApp</h1>
+      <p>Manaba再設定</p>
+    </header>
 
-<header class="header">
-    <div class="logo">🔐</div>
-    <h1>CareMateApp</h1>
-    <p>Manaba再設定</p>
-</header>
-
-<div class="card setting-card">
-
-    <p>
+    <div class="card setting-card">
+      <p>
         課題・コースニュース・通知を受け取るため、
         Manabaのパスワードを入力してください。
-    </p>
+      </p>
 
-    <h3>学籍番号</h3>
-    <input
-        id="studentNumber"
-        type="text"
-        readonly>
+      <h3>学籍番号</h3>
+      <input id="studentNumber" type="text" readonly />
 
-    <h3>Manabaパスワード</h3>
-    <input
+      <h3>Manabaパスワード</h3>
+      <input
         id="manabaPassword"
         type="password"
-        placeholder="パスワードを入力">
+        placeholder="パスワードを入力"
+      />
 
-    <br><br>
+      <br /><br />
 
-    <button id="savePassword" class="btn btn-primary">
-        保存
-    </button>
+      <button id="savePassword" class="btn btn-primary">保存</button>
 
-    <br><br>
+      <br /><br />
 
-    <button id="skipButton" class="btn btn-secondary">
-        後で設定する
-    </button>
+      <button id="skipButton" class="btn btn-secondary">後で設定する</button>
+    </div>
 
-</div>
-
-<script type="module" src="manaba_setup.js"></script>
-
-</body>
+    <script type="module" src="manaba_setup.js"></script>
+  </body>
 </html>

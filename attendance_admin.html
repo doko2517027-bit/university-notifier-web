@@ -1,386 +1,247 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <meta charset="UTF-8">
+    <title>出席管理 | CareMate</title>
 
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="style.css" />
 
-  <title>
-    出席管理 | CareMate
-  </title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-  <link
-    rel="stylesheet"
-    href="style.css">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" aria-label="戻る">←</button>
 
-  <script>
-    if (
-      localStorage.getItem("theme") === "dark"
-    ) {
-      document.documentElement.classList.add("dark");
-    }
-  </script>
+      <h2>
+        出席管理
+        <span id="pendingReviewBadge" class="admin-card-badge" hidden> 0 </span>
+      </h2>
 
-</head>
-
-<body class="page-loading">
-
-  <div class="top-buttons">
-
-    <button
-      id="backButton"
-      class="circle-button"
-      aria-label="戻る">
-      ←
-    </button>
-
-    <h2>
-      出席管理
-      <span
-        id="pendingReviewBadge"
-        class="admin-card-badge"
-        hidden>
-        0
-      </span>
-    </h2>
-
-    <div class="top-right">
-
-      <button
-        id="themeButton"
-        class="circle-button">
-        🌙
-      </button>
-
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
+      </div>
     </div>
 
-  </div>
+    <main class="attendance-admin-page">
+      <p id="attendanceScopeLabel" class="attendance-admin-help"></p>
 
-
-  <main class="attendance-admin-page">
-
-    <p
-      id="attendanceScopeLabel"
-      class="attendance-admin-help">
-    </p>
-
-
-    <!-- ========================================
+      <!-- ========================================
          現在学期
     ======================================== -->
 
-    <section
-      class="card setting-card attendance-admin-section">
+      <section class="card setting-card attendance-admin-section">
+        <h3>現在学期</h3>
 
-      <h3>
-        現在学期
-      </h3>
+        <p class="attendance-admin-help">
+          学生が出席管理画面を開いたときに最初に表示する学期です。
+        </p>
 
-      <p class="attendance-admin-help">
-        学生が出席管理画面を開いたときに最初に表示する学期です。
-      </p>
+        <label>
+          現在学期
 
-      <label>
+          <select id="attendanceCurrentSemester">
+            <option value="前期">前期</option>
 
-        現在学期
+            <option value="後期">後期</option>
+          </select>
+        </label>
 
-        <select id="attendanceCurrentSemester">
+        <button
+          id="saveAttendanceCurrentSemester"
+          class="btn btn-primary"
+          type="button"
+        >
+          現在学期を保存
+        </button>
 
-          <option value="前期">
-            前期
-          </option>
+        <p
+          id="attendanceCurrentSemesterResult"
+          class="attendance-admin-help"
+          aria-live="polite"
+        ></p>
+      </section>
 
-          <option value="後期">
-            後期
-          </option>
-
-        </select>
-
-      </label>
-
-      <button
-        id="saveAttendanceCurrentSemester"
-        class="btn btn-primary"
-        type="button">
-        現在学期を保存
-      </button>
-
-      <p
-        id="attendanceCurrentSemesterResult"
-        class="attendance-admin-help"
-        aria-live="polite">
-      </p>
-
-    </section>
-
-
-    <!-- ========================================
+      <!-- ========================================
          確認待ち
     ======================================== -->
 
-    <section
-      class="card setting-card attendance-admin-section">
+      <section class="card setting-card attendance-admin-section">
+        <h3>確認待ちの出席記録</h3>
 
-      <h3>
-        確認待ちの出席記録
-      </h3>
-
-      <p class="attendance-admin-help">
-        早すぎる終了打刻など、確認が必要な記録です。
-        内容を確認して出席扱い・早退・欠席を確定できます。
-      </p>
-
-      <div id="pendingReviewList">
-
-        <p>
-          読み込み中...
+        <p class="attendance-admin-help">
+          早すぎる終了打刻など、確認が必要な記録です。
+          内容を確認して出席扱い・早退・欠席を確定できます。
         </p>
 
-      </div>
+        <div id="pendingReviewList">
+          <p>読み込み中...</p>
+        </div>
+      </section>
 
-    </section>
-
-
-    <!-- ========================================
+      <!-- ========================================
          学生別出席記録
     ======================================== -->
 
-    <section
-      class="card setting-card attendance-admin-section">
+      <section class="card setting-card attendance-admin-section">
+        <h3>学生別の出席記録</h3>
 
-      <h3>
-        学生別の出席記録
-      </h3>
+        <p class="attendance-admin-help">
+          学籍番号を指定して、
+          学生画面と同じ出席・遅刻・早退・欠席の結果を確認・修正できます。
+        </p>
 
-      <p class="attendance-admin-help">
-        学籍番号を指定して、
-        学生画面と同じ出席・遅刻・早退・欠席の結果を確認・修正できます。
-      </p>
+        <label>
+          学籍番号
 
-      <label>
+          <input
+            id="recordStudentNumber"
+            inputmode="numeric"
+            maxlength="7"
+            placeholder="例：2510000"
+          />
+        </label>
 
-        学籍番号
+        <button id="loadStudentAttendance" class="btn" type="button">
+          出席記録を表示
+        </button>
 
-        <input
-          id="recordStudentNumber"
-          inputmode="numeric"
-          maxlength="7"
-          placeholder="例：2510000">
+        <div id="studentAttendanceList"></div>
+      </section>
 
-      </label>
-
-      <button
-        id="loadStudentAttendance"
-        class="btn"
-        type="button">
-        出席記録を表示
-      </button>
-
-      <div id="studentAttendanceList">
-      </div>
-
-    </section>
-
-
-    <!-- ========================================
+      <!-- ========================================
          出席通知テスト
     ======================================== -->
 
-    <section
-      class="card setting-card attendance-admin-section attendance-test-card">
+      <section
+        class="card setting-card attendance-admin-section attendance-test-card"
+      >
+        <h3>出席通知テスト</h3>
 
-      <h3>
-        出席通知テスト
-      </h3>
-
-      <p class="attendance-admin-help">
-        指定した学生の履修済み科目だけを使い、
-        通常と同じ打刻ルールでテスト通知を送ります。
-      </p>
-
-      <label>
-
-        学籍番号
-
-        <input
-          id="testStudentNumber"
-          inputmode="numeric"
-          maxlength="7"
-          placeholder="例：2510000">
-
-      </label>
-
-      <button
-        id="loadEnrolledSubjects"
-        class="btn"
-        type="button">
-        履修科目を読み込む
-      </button>
-
-      <label>
-
-        テスト対象科目
-
-        <select
-          id="testSubject"
-          disabled>
-
-          <option>
-            学籍番号を入力してください
-          </option>
-
-        </select>
-
-      </label>
-
-
-      <div class="attendance-time-grid">
+        <p class="attendance-admin-help">
+          指定した学生の履修済み科目だけを使い、
+          通常と同じ打刻ルールでテスト通知を送ります。
+        </p>
 
         <label>
-
-          クラス分け
-
-          <select id="testClassCount">
-
-            <option value="0">
-              なし
-            </option>
-
-            <option value="2">
-              2クラス（A・B）
-            </option>
-
-            <option value="3">
-              3クラス（A・B・C）
-            </option>
-
-            <option value="4">
-              4クラス（A〜D）
-            </option>
-
-          </select>
-
-        </label>
-
-
-        <label>
-
-          対象クラス
-
-          <select
-            id="testClassGroup"
-            disabled>
-
-            <option value="">
-              クラスなし
-            </option>
-
-          </select>
-
-        </label>
-
-      </div>
-
-
-      <div class="attendance-time-grid">
-
-        <label>
-
-          開始時刻
+          学籍番号
 
           <input
-            id="testStartTime"
-            type="time">
-
+            id="testStudentNumber"
+            inputmode="numeric"
+            maxlength="7"
+            placeholder="例：2510000"
+          />
         </label>
 
+        <button id="loadEnrolledSubjects" class="btn" type="button">
+          履修科目を読み込む
+        </button>
 
         <label>
+          テスト対象科目
 
-          終了時刻
-
-          <input
-            id="testEndTime"
-            type="time">
-
+          <select id="testSubject" disabled>
+            <option>学籍番号を入力してください</option>
+          </select>
         </label>
 
-      </div>
+        <div class="attendance-time-grid">
+          <label>
+            クラス分け
 
+            <select id="testClassCount">
+              <option value="0">なし</option>
 
-      <p
-        id="testScheduleExplanation"
-        class="attendance-admin-help">
-      </p>
+              <option value="2">2クラス（A・B）</option>
 
+              <option value="3">3クラス（A・B・C）</option>
 
-      <button
-        id="sendTestNotification"
-        class="btn btn-primary attendance-test-submit"
-        type="button"
-        disabled>
-        テスト通知を予約する
-      </button>
+              <option value="4">4クラス（A〜D）</option>
+            </select>
+          </label>
 
+          <label>
+            対象クラス
 
-      <p
-        id="testNotificationResult"
-        class="attendance-admin-help"
-        aria-live="polite">
-      </p>
+            <select id="testClassGroup" disabled>
+              <option value="">クラスなし</option>
+            </select>
+          </label>
+        </div>
 
-    </section>
+        <div class="attendance-time-grid">
+          <label>
+            開始時刻
 
-  </main>
+            <input id="testStartTime" type="time" />
+          </label>
 
+          <label>
+            終了時刻
 
-  <nav class="bottom-nav">
+            <input id="testEndTime" type="time" />
+          </label>
+        </div>
 
-    <a href="index.html">
-      🏠
-      <br>
-      <span>ホーム</span>
-    </a>
+        <p id="testScheduleExplanation" class="attendance-admin-help"></p>
 
-    <a href="assignments.html">
-      📚
-      <br>
-      <span>課題</span>
-    </a>
+        <button
+          id="sendTestNotification"
+          class="btn btn-primary attendance-test-submit"
+          type="button"
+          disabled
+        >
+          テスト通知を予約する
+        </button>
 
-    <a href="requests.html">
-      💡
-      <br>
-      <span>リクエスト</span>
-    </a>
+        <p
+          id="testNotificationResult"
+          class="attendance-admin-help"
+          aria-live="polite"
+        ></p>
+      </section>
+    </main>
 
-    <a href="news.html">
-      📢
-      <br>
-      <span>お知らせ</span>
-    </a>
+    <nav class="bottom-nav">
+      <a href="index.html">
+        🏠
+        <br />
+        <span>ホーム</span>
+      </a>
 
-    <a
-      id="settingsTab"
-      href="admin.html"
-      class="active">
-      👑
-      <br>
-      <span>管理</span>
-    </a>
+      <a href="assignments.html">
+        📚
+        <br />
+        <span>課題</span>
+      </a>
 
-  </nav>
+      <a href="requests.html">
+        💡
+        <br />
+        <span>リクエスト</span>
+      </a>
 
+      <a href="news.html">
+        📢
+        <br />
+        <span>お知らせ</span>
+      </a>
 
-  <script
-    type="module"
-    src="attendance_admin.js">
-  </script>
+      <a id="settingsTab" href="admin.html" class="active">
+        👑
+        <br />
+        <span>管理</span>
+      </a>
+    </nav>
 
-</body>
-
+    <script type="module" src="attendance_admin.js"></script>
+  </body>
 </html>

@@ -1,529 +1,402 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>管理 | CareMateApp</title>
 
-<title>管理 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
-
-</head>
-
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <div class="top-user-info">
-
-        <span id="userName">
-            Unknownさん
-        </span>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <div class="top-user-info">
+        <span id="userName"> Unknownさん </span>
 
         <span id="myRanking"></span>
+      </div>
 
-    </div>
-
-   <div class="top-right">
-
-        <button id="themeButton" class="circle-button">
-            🌙
-        </button>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-
+      </div>
     </div>
 
-</div>
+    <header class="header">
+      <div class="logo">👑</div>
 
-<header class="header">
+      <h1>管理</h1>
 
-    <div class="logo">👑</div>
+      <p>CareMateApp 管理者画面</p>
+    </header>
 
-    <h1>管理</h1>
+    <section class="card setting-card" aria-labelledby="adminScopeTitle">
+      <h2 id="adminScopeTitle">🎯 管理対象の切り替え</h2>
 
-    <p>CareMateApp 管理者画面</p>
-
-</header>
-
-<section class="card setting-card" aria-labelledby="adminScopeTitle">
-
-    <h2 id="adminScopeTitle">🎯 管理対象の切り替え</h2>
-
-    <p>
+      <p>
         ここで選んだ学科・専攻・学年だけを、学生・出席などの管理画面で表示します。
-    </p>
+      </p>
 
-    <div class="admin-user-filter-grid">
-
+      <div class="admin-user-filter-grid">
         <div>
-            <label for="adminScopeDepartment"><b>学科</b></label>
-            <select id="adminScopeDepartment">
-                <option value="">全学科</option>
-                <option value="看護学科">看護学科</option>
-                <option value="リハビリテーション学科">リハビリテーション学科</option>
-                <option value="医療薬学科">医療薬学科</option>
-            </select>
+          <label for="adminScopeDepartment"><b>学科</b></label>
+          <select id="adminScopeDepartment">
+            <option value="">全学科</option>
+            <option value="看護学科">看護学科</option>
+            <option value="リハビリテーション学科">
+              リハビリテーション学科
+            </option>
+            <option value="医療薬学科">医療薬学科</option>
+          </select>
         </div>
 
         <div>
-            <label for="adminScopeMajor"><b>専攻</b></label>
-            <select id="adminScopeMajor">
-                <option value="">すべて</option>
-                <option value="理学療法学専攻">理学療法学専攻</option>
-                <option value="作業療法学専攻">作業療法学専攻</option>
-            </select>
+          <label for="adminScopeMajor"><b>専攻</b></label>
+          <select id="adminScopeMajor">
+            <option value="">すべて</option>
+            <option value="理学療法学専攻">理学療法学専攻</option>
+            <option value="作業療法学専攻">作業療法学専攻</option>
+          </select>
         </div>
 
         <div>
-            <label for="adminScopeGrade"><b>学年</b></label>
-            <select id="adminScopeGrade">
-                <option value="">全学年</option>
-                <option value="1">1年</option>
-                <option value="2">2年</option>
-                <option value="3">3年</option>
-                <option value="4">4年</option>
-            </select>
+          <label for="adminScopeGrade"><b>学年</b></label>
+          <select id="adminScopeGrade">
+            <option value="">全学年</option>
+            <option value="1">1年</option>
+            <option value="2">2年</option>
+            <option value="3">3年</option>
+            <option value="4">4年</option>
+          </select>
         </div>
+      </div>
 
+      <p
+        id="adminScopeCurrent"
+        class="attendance-admin-help"
+        aria-live="polite"
+      ></p>
+    </section>
+
+    <h2>📊 ダッシュボード</h2>
+
+    <div class="card setting-card">
+      <p><b>登録ユーザー数</b></p>
+      <p id="userCount">取得中...</p>
+
+      <p><b>Version</b></p>
+      <p id="versionText">取得中...</p>
+
+      <p><b>Firestore状態</b></p>
+      <p id="firestoreStatus">確認中...</p>
+
+      <p><b>Render状態</b></p>
+      <p id="renderStatus">準備中</p>
+
+      <p><b>最終Cron実行</b></p>
+      <p id="lastCronText">----</p>
+
+      <p><b>最終時間割取得</b></p>
+      <p id="lastScheduleCheckText">----</p>
+
+      <p><b>最終課題取得</b></p>
+      <p id="lastAssignmentCheckText">----</p>
     </div>
 
-    <p id="adminScopeCurrent" class="attendance-admin-help" aria-live="polite"></p>
+    <h2>📱 Push通知</h2>
 
-</section>
+    <div class="card setting-card">
+      <p>管理者本人にテスト通知を送信します。</p>
 
-<h2>📊 ダッシュボード</h2>
-
-<div class="card setting-card">
-
-    <p><b>登録ユーザー数</b></p>
-    <p id="userCount">取得中...</p>
-
-    <p><b>Version</b></p>
-    <p id="versionText">取得中...</p>
-
-    <p><b>Firestore状態</b></p>
-    <p id="firestoreStatus">確認中...</p>
-
-    <p><b>Render状態</b></p>
-    <p id="renderStatus">準備中</p>
-
-    <p><b>最終Cron実行</b></p>
-    <p id="lastCronText">----</p>
-
-    <p><b>最終時間割取得</b></p>
-	<p id="lastScheduleCheckText">----</p>
-	
-	<p><b>最終課題取得</b></p>
-	<p id="lastAssignmentCheckText">----</p>
-
-</div>
-
-<h2>📱 Push通知</h2>
-
-<div class="card setting-card">
-
-    <p>
-        管理者本人にテスト通知を送信します。
-    </p>
-
-    <button id="sendTestPush" class="btn btn-primary">
+      <button id="sendTestPush" class="btn btn-primary">
         テスト通知を送信
-    </button>
-
-</div>
-
-<div class="admin-menu-grid">
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='users_admin.html'">
-
-<div class="admin-menu-icon">
-👥
-</div>
-
-<h3>
-ユーザー管理
-</h3>
-
-<p>
-学生情報・オンライン状況
-</p>
-
-</div>
-
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='system_news_admin.html'">
-
-<div class="admin-menu-icon">
-💙
-</div>
-
-<h3>
-CareMateお知らせ
-</h3>
-
-<p>
-投稿・編集管理
-</p>
-
-</div>
-
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='exam_admin.html'">
-
-<div class="admin-menu-icon">
-📚
-</div>
-
-<h3>
-テスト管理
-</h3>
-
-<p>
-問題・AI管理
-</p>
-
-</div>
-
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='subjects_admin.html'">
-
-<div class="admin-menu-icon">
-📖
-</div>
-
-<h3>
-履修科目管理
-</h3>
-
-<p>
-科目・単位管理
-</p>
-
-</div>
-
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='curriculum_admin.html'">
-
-<div class="admin-menu-icon">
-📘
-</div>
-
-<h3>
-カリキュラム管理
-</h3>
-
-<p>
-年度別卒業要件
-</p>
-
-</div>
-
-
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='attendance_admin.html'">
-
-<div class="admin-menu-icon">
-🕒
-</div>
-
-<h3>
-出席管理
-</h3>
-
-<p>
-通知設定
-</p>
-
-</div>
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='annual_transition_admin.html'">
-
-<div class="admin-menu-icon">
-🎓
-</div>
-
-<h3>
-年度末判定
-</h3>
-
-<p>
-進級・留年・卒業・退学
-</p>
-
-</div>
-
-<div class="card setting-card admin-menu-card"
-onclick="location.href='credit_confirmation_admin.html'">
-
-<div class="admin-menu-icon">
-💳
-</div>
-
-<h3>
-単位取得確認
-</h3>
-
-<p>
-前期・後期の取得状況
-</p>
-
-</div>
-
-
-
-<div
-    class="card setting-card admin-menu-card admin-report-link"
-    onclick="location.href='reports_admin.html'">
-
-    <span
-        id="adminReportCardBadge"
-        class="admin-card-badge"
-        hidden>
-        0
-    </span>
-
-    <div class="admin-menu-icon">
-        🚨
+      </button>
     </div>
 
-    <h3>
-        通報管理
-    </h3>
+    <div class="admin-menu-grid">
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='users_admin.html'"
+      >
+        <div class="admin-menu-icon">👥</div>
 
-    <p>
-        対応履歴
-    </p>
+        <h3>ユーザー管理</h3>
 
-</div>
+        <p>学生情報・オンライン状況</p>
+      </div>
 
-<div id="adminContactCard" class="card setting-card admin-menu-card admin-report-link" hidden
-onclick="location.href='contact_admin.html'">
-    <span id="adminContactCardBadge" class="admin-card-badge" hidden>0</span>
-    <div class="admin-menu-icon">💬</div>
-    <h3>お問い合わせ管理</h3>
-    <p>学生との個別チャット</p>
-</div>
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='system_news_admin.html'"
+      >
+        <div class="admin-menu-icon">💙</div>
 
-<div id="adminFeatureRequestCard" class="card setting-card admin-menu-card admin-report-link" hidden
-onclick="location.href='feature_requests_admin.html'">
-    <span id="adminFeatureRequestBadge" class="admin-card-badge" hidden>0</span>
-    <div class="admin-menu-icon">💡</div>
-    <h3>機能リクエスト</h3>
-    <p>学生ごとの専用機能要望</p>
-</div>
+        <h3>CareMateお知らせ</h3>
 
-</div>
+        <p>投稿・編集管理</p>
+      </div>
 
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='exam_admin.html'"
+      >
+        <div class="admin-menu-icon">📚</div>
 
-<h2>🛠 システム管理</h2>
+        <h3>テスト管理</h3>
 
-<div class="card setting-card">
+        <p>問題・AI管理</p>
+      </div>
 
-    <label class="setting-row">
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='subjects_admin.html'"
+      >
+        <div class="admin-menu-icon">📖</div>
 
-        <span>
-            <b>メンテナンスモード</b>
-            <br>
-            <small>
-                ONにすると一般ユーザーを
-                メンテナンス画面へ移動させます
-            </small>
+        <h3>履修科目管理</h3>
+
+        <p>科目・単位管理</p>
+      </div>
+
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='curriculum_admin.html'"
+      >
+        <div class="admin-menu-icon">📘</div>
+
+        <h3>カリキュラム管理</h3>
+
+        <p>年度別卒業要件</p>
+      </div>
+
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='attendance_admin.html'"
+      >
+        <div class="admin-menu-icon">🕒</div>
+
+        <h3>出席管理</h3>
+
+        <p>通知設定</p>
+      </div>
+
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='annual_transition_admin.html'"
+      >
+        <div class="admin-menu-icon">🎓</div>
+
+        <h3>年度末判定</h3>
+
+        <p>進級・留年・卒業・退学</p>
+      </div>
+
+      <div
+        class="card setting-card admin-menu-card"
+        onclick="location.href='credit_confirmation_admin.html'"
+      >
+        <div class="admin-menu-icon">💳</div>
+
+        <h3>単位取得確認</h3>
+
+        <p>前期・後期の取得状況</p>
+      </div>
+
+      <div
+        class="card setting-card admin-menu-card admin-report-link"
+        onclick="location.href='reports_admin.html'"
+      >
+        <span id="adminReportCardBadge" class="admin-card-badge" hidden>
+          0
         </span>
 
-        <input
-            type="checkbox"
-            id="maintenanceToggle">
+        <div class="admin-menu-icon">🚨</div>
 
-    </label>
+        <h3>通報管理</h3>
 
-    <br>
+        <p>対応履歴</p>
+      </div>
 
-    <h3>メンテナンスメッセージ</h3>
+      <div
+        id="adminContactCard"
+        class="card setting-card admin-menu-card admin-report-link"
+        hidden
+        onclick="location.href='contact_admin.html'"
+      >
+        <span id="adminContactCardBadge" class="admin-card-badge" hidden
+          >0</span
+        >
+        <div class="admin-menu-icon">💬</div>
+        <h3>お問い合わせ管理</h3>
+        <p>学生との個別チャット</p>
+      </div>
 
-    <textarea
+      <div
+        id="adminFeatureRequestCard"
+        class="card setting-card admin-menu-card admin-report-link"
+        hidden
+        onclick="location.href='feature_requests_admin.html'"
+      >
+        <span id="adminFeatureRequestBadge" class="admin-card-badge" hidden
+          >0</span
+        >
+        <div class="admin-menu-icon">💡</div>
+        <h3>機能リクエスト</h3>
+        <p>学生ごとの専用機能要望</p>
+      </div>
+    </div>
+
+    <h2>🛠 システム管理</h2>
+
+    <div class="card setting-card">
+      <label class="setting-row">
+        <span>
+          <b>メンテナンスモード</b>
+          <br />
+          <small>
+            ONにすると一般ユーザーを メンテナンス画面へ移動させます
+          </small>
+        </span>
+
+        <input type="checkbox" id="maintenanceToggle" />
+      </label>
+
+      <br />
+
+      <h3>メンテナンスメッセージ</h3>
+
+      <textarea
         id="maintenanceMessage"
         rows="5"
-        placeholder="メンテナンス中に表示するメッセージ"></textarea>
+        placeholder="メンテナンス中に表示するメッセージ"
+      ></textarea>
 
-    <br><br>
+      <br /><br />
 
-    <button
-        id="saveMaintenance"
-        class="btn btn-primary">
+      <button id="saveMaintenance" class="btn btn-primary">保存する</button>
+    </div>
 
-        保存する
+    <h2>⚙️ 設定</h2>
 
-    </button>
+    <div class="card setting-card">
+      <h3>通知設定</h3>
 
-</div>
-
-
-<h2>⚙️ 設定</h2>
-
-<div class="card setting-card">
-
-    <h3>通知設定</h3>
-
-    <button id="enablePushButton" class="btn btn-primary">
-
+      <button id="enablePushButton" class="btn btn-primary">
         🔔 通知を有効にする
+      </button>
 
-    </button>
+      <br /><br />
 
-    <br><br>
-
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>🗓 時間割変更</b><br>
-            <small>時間割PDFに変更があった時</small>
+          <b>🗓 時間割変更</b><br />
+          <small>時間割PDFに変更があった時</small>
         </span>
-        <input type="checkbox" id="notifySchedule">
-    </label>
+        <input type="checkbox" id="notifySchedule" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>🗞️ コースニュース</b><br>
-            <small>コースニュースに新しいお知らせが出た時</small>
+          <b>🗞️ コースニュース</b><br />
+          <small>コースニュースに新しいお知らせが出た時</small>
         </span>
-        <input type="checkbox" id="notifyCourseNews">
-    </label>
+        <input type="checkbox" id="notifyCourseNews" />
+      </label>
 
-        <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>📚 新しい課題</b><br>
-            <small>Manabaに新しい未提出課題が出た時</small>
+          <b>📚 新しい課題</b><br />
+          <small>Manabaに新しい未提出課題が出た時</small>
         </span>
-        <input type="checkbox" id="notifyAssignment">
-    </label>
+        <input type="checkbox" id="notifyAssignment" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>⏰ 課題リマインダー</b><br>
-            <small>締切前にお知らせ</small>
+          <b>⏰ 課題リマインダー</b><br />
+          <small>締切前にお知らせ</small>
         </span>
-        <input type="checkbox" id="notifyReminder">
-    </label>
+        <input type="checkbox" id="notifyReminder" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>💙 CareMateからのお知らせ</b><br>
-            <small>運営からのお知らせを投稿した時</small>
+          <b>💙 CareMateからのお知らせ</b><br />
+          <small>運営からのお知らせを投稿した時</small>
         </span>
-        <input type="checkbox" id="notifySystemNews">
-    </label>
+        <input type="checkbox" id="notifySystemNews" />
+      </label>
 
-    <br>
+      <br />
 
-    <button id="logout" class="btn btn-primary">
-        ログアウト
-    </button>
+      <button id="logout" class="btn btn-primary">ログアウト</button>
+    </div>
 
-</div>
-
-<nav class="bottom-nav">
-
-    <a href="index.html">
-        🏠<br>
+    <nav class="bottom-nav">
+      <a href="index.html">
+        🏠<br />
         <span>ホーム</span>
-    </a>
+      </a>
 
-    <a href="assignments.html">
-
+      <a href="assignments.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📚</span>
 
-            <span class="nav-icon">📚</span>
-
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>課題</span>
+      </a>
 
-    </a>
-
-    <a href="requests.html">
-
+      <a href="requests.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">💡</span>
 
-            <span class="nav-icon">💡</span>
-
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="shareNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>リクエスト</span>
+      </a>
 
-    </a>
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📢</span>
 
-            <span class="nav-icon">📢</span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a
-        id="settingsTab"
-        href="admin.html"
-        class="active">
-
-        👑<br>
+      <a id="settingsTab" href="admin.html" class="active">
+        👑<br />
         <span>管理</span>
+      </a>
+    </nav>
 
-    </a>
-
-</nav>
-
-<script type="module" src="admin.js"></script>
-
-</body>
+    <script type="module" src="admin.js"></script>
+  </body>
 </html>

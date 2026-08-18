@@ -1,185 +1,86 @@
 import {
-    db,
-    studentNumber,
-    showPage,
-    setupTheme,
-    loadProfileImage
+  db,
+  studentNumber,
+  showPage,
+  setupTheme,
+  loadProfileImage,
 } from "./common.js";
 
-
 import {
-    doc,
-    getDoc
+  doc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-
 import {
-    classifyStartStamp,
-    classifyEndStamp,
-    ATTENDANCE_STATUS
+  classifyStartStamp,
+  classifyEndStamp,
+  ATTENDANCE_STATUS,
 } from "./attendance_rules.js";
 
-
 import {
-    ATTENDANCE_STAMP_SOURCE,
-    normalizeAttendanceLecture,
-    createAttendanceRecordId,
-    recalculateAttendanceStatus,
-    stampAttendanceStart,
-    stampAttendanceEnd,
-    stampAttendanceEarlyLeave,
-    markAttendanceAbsent
+  ATTENDANCE_STAMP_SOURCE,
+  normalizeAttendanceLecture,
+  createAttendanceRecordId,
+  recalculateAttendanceStatus,
+  stampAttendanceStart,
+  stampAttendanceEnd,
+  stampAttendanceEarlyLeave,
+  markAttendanceAbsent,
 } from "./attendance_stamp.js";
-
 
 /* ========================================
    URL
 ======================================== */
 
-const params =
-    new URLSearchParams(
-        location.search
-    );
+const params = new URLSearchParams(location.search);
 
+const rawAction = params.get("action") || "arrival";
 
-const rawAction =
-    params.get("action") ||
-    "arrival";
+const notificationChoice = params.get("choice") || "";
 
+const notificationSource = params.get("source") || "";
 
-const notificationChoice =
-    params.get("choice") ||
-    "";
+const subject = String(params.get("subject") || "授業名未設定").trim();
 
+const date = normalizeDate(params.get("date")) || localDateKey();
 
-const notificationSource =
-    params.get("source") ||
-    "";
+const period = normalizePeriod(params.get("period"));
 
+const scheduleId = String(params.get("scheduleId") || "").trim();
 
-const subject =
-    String(
-        params.get("subject") ||
-        "授業名未設定"
-    ).trim();
+const classGroup = normalizeClassGroup(params.get("classGroup"));
 
+const startTime = String(params.get("startTime") || "").trim();
 
-const date =
-    normalizeDate(
-        params.get("date")
-    ) ||
-    localDateKey();
+const endTime = String(params.get("endTime") || "").trim();
 
+const notificationTest = params.get("notificationTest") === "1";
 
-const period =
-    normalizePeriod(
-        params.get("period")
-    );
-
-
-const scheduleId =
-    String(
-        params.get("scheduleId") ||
-        ""
-    ).trim();
-
-
-const classGroup =
-    normalizeClassGroup(
-        params.get("classGroup")
-    );
-
-
-const startTime =
-    String(
-        params.get("startTime") ||
-        ""
-    ).trim();
-
-
-const endTime =
-    String(
-        params.get("endTime") ||
-        ""
-    ).trim();
-
-
-const notificationTest =
-    params.get(
-        "notificationTest"
-    ) === "1";
-
-
-const testId =
-    String(
-        params.get("testId") ||
-        ""
-    ).trim();
-
+const testId = String(params.get("testId") || "").trim();
 
 /* ========================================
    DOM
 ======================================== */
 
-const subjectName =
-    document.getElementById(
-        "subjectName"
-    );
+const subjectName = document.getElementById("subjectName");
 
+const attendanceMeta = document.getElementById("attendanceMeta");
 
-const attendanceMeta =
-    document.getElementById(
-        "attendanceMeta"
-    );
+const attendanceStatus = document.getElementById("attendanceStatus");
 
+const personalRecordNotice = document.getElementById("personalRecordNotice");
 
-const attendanceStatus =
-    document.getElementById(
-        "attendanceStatus"
-    );
+const primaryButton = document.getElementById("attendanceButton");
 
+const secondaryButton = document.getElementById("leaveButton");
 
-const personalRecordNotice =
-    document.getElementById(
-        "personalRecordNotice"
-    );
+const doneLink = document.getElementById("attendanceDoneLink");
 
+const themeButton = document.getElementById("themeButton");
 
-const primaryButton =
-    document.getElementById(
-        "attendanceButton"
-    );
+const profileButton = document.getElementById("profileButton");
 
-
-const secondaryButton =
-    document.getElementById(
-        "leaveButton"
-    );
-
-
-const doneLink =
-    document.getElementById(
-        "attendanceDoneLink"
-    );
-
-
-const themeButton =
-    document.getElementById(
-        "themeButton"
-    );
-
-
-const profileButton =
-    document.getElementById(
-        "profileButton"
-    );
-
-
-const profileImage =
-    document.getElementById(
-        "topProfileImage"
-    );
-
+const profileImage = document.getElementById("topProfileImage");
 
 /* ========================================
    状態
@@ -187,200 +88,111 @@ const profileImage =
 
 let userData = {};
 
-let effectiveClock =
-    null;
+let effectiveClock = null;
 
-let lecture =
-    null;
+let lecture = null;
 
-let normalizedLecture =
-    null;
+let normalizedLecture = null;
 
-let recordId =
-    "";
+let recordId = "";
 
-let record =
-    null;
-
+let record = null;
 
 /* ========================================
    初期表示
 ======================================== */
 
-setupTheme(
-    themeButton
-);
+setupTheme(themeButton);
 
-
-loadProfileImage(
-    profileImage
-);
-
+loadProfileImage(profileImage);
 
 if (profileButton) {
-
-    profileButton.onclick =
-        () => {
-
-            location.href =
-                "profile.html";
-
-        };
-
+  profileButton.onclick = () => {
+    location.href = "profile.html";
+  };
 }
-
 
 if (subjectName) {
-
-    subjectName.textContent =
-        classGroup
-
-            ? `${subject}（${classGroup}クラス）`
-
-            : subject;
-
+  subjectName.textContent = classGroup
+    ? `${subject}（${classGroup}クラス）`
+    : subject;
 }
-
 
 if (attendanceMeta) {
-
-    attendanceMeta.textContent =
-        `${date}・${period}限 ` +
-        `${startTime || "--:--"}〜` +
-        `${endTime || "--:--"}`;
-
+  attendanceMeta.textContent =
+    `${date}・${period}限 ` +
+    `${startTime || "--:--"}〜` +
+    `${endTime || "--:--"}`;
 }
-
 
 if (personalRecordNotice) {
-
-    personalRecordNotice.textContent =
-        "CareMate上の個人用出席記録です。" +
-        "大学の公式出席記録ではありません。";
-
+  personalRecordNotice.textContent =
+    "CareMate上の個人用出席記録です。" + "大学の公式出席記録ではありません。";
 }
-
 
 /* ========================================
    講義データ
 ======================================== */
 
 function createLecture() {
+  return {
+    subject,
 
-    return {
+    subjectKey: subject,
 
-        subject,
+    date,
 
-        subjectKey:
-            subject,
+    period,
 
-        date,
+    classGroup,
 
-        period,
+    selectedClassGroup: classGroup,
 
-        classGroup,
+    startTime,
 
-        selectedClassGroup:
-            classGroup,
+    endTime,
 
-        startTime,
+    scheduleDocumentId: scheduleId,
 
-        endTime,
+    attendanceNotificationTest: notificationTest,
 
-        scheduleDocumentId:
-            scheduleId,
+    attendanceNotificationTestClock:
+      notificationTest && effectiveClock ? effectiveClock.toISOString() : null,
 
-        attendanceNotificationTest:
-            notificationTest,
-
-        attendanceNotificationTestClock:
-            (
-                notificationTest &&
-                effectiveClock
-            )
-                ? effectiveClock.toISOString()
-                : null,
-
-        testId
-
-    };
-
+    testId,
+  };
 }
-
 
 /* ========================================
    初期化
 ======================================== */
 
 async function init() {
+  if (!studentNumber) {
+    throw new Error("ログイン情報がありません。");
+  }
 
-    if (!studentNumber) {
+  if (!subject || subject === "授業名未設定") {
+    throw new Error("科目情報を確認できません。");
+  }
 
-        throw new Error(
-            "ログイン情報がありません。"
-        );
+  if (!period) {
+    throw new Error("時限情報を確認できません。");
+  }
 
-    }
+  if (!startTime || !endTime) {
+    throw new Error("講義時間を確認できません。");
+  }
 
+  const userSnap = await getDoc(doc(db, "users", studentNumber));
 
-    if (
-        !subject ||
-        subject ===
-            "授業名未設定"
-    ) {
+  if (!userSnap.exists()) {
+    throw new Error("ユーザー情報が見つかりません。");
+  }
 
-        throw new Error(
-            "科目情報を確認できません。"
-        );
+  userData = userSnap.data() || {};
 
-    }
-
-
-    if (!period) {
-
-        throw new Error(
-            "時限情報を確認できません。"
-        );
-
-    }
-
-
-    if (
-        !startTime ||
-        !endTime
-    ) {
-
-        throw new Error(
-            "講義時間を確認できません。"
-        );
-
-    }
-
-
-    const userSnap =
-        await getDoc(
-            doc(
-                db,
-                "users",
-                studentNumber
-            )
-        );
-
-
-    if (!userSnap.exists()) {
-
-        throw new Error(
-            "ユーザー情報が見つかりません。"
-        );
-
-    }
-
-
-    userData =
-        userSnap.data() || {};
-
-
-    /*
+  /*
     テスト時計。
 
     Firebase Functions側の
@@ -388,49 +200,23 @@ async function init() {
     出席判定を行う。
     */
 
-    const testClock =
-        userData
-            .attendanceTestClock ||
-        {};
+  const testClock = userData.attendanceTestClock || {};
 
+  const testClockActive =
+    testClock.enabled === true &&
+    normalizeDate(testClock.date) === date &&
+    /^\d{2}:\d{2}$/.test(testClock.time || "") &&
+    Date.parse(testClock.expiresAt || "") > Date.now();
 
-    const testClockActive =
+  if (testClockActive) {
+    effectiveClock = new Date(`${date}T${testClock.time}:00`);
 
-        testClock.enabled === true &&
-
-        normalizeDate(
-            testClock.date
-        ) === date &&
-
-        /^\d{2}:\d{2}$/
-            .test(
-                testClock.time || ""
-            ) &&
-
-        Date.parse(
-            testClock.expiresAt || ""
-        ) > Date.now();
-
-
-    if (testClockActive) {
-
-        effectiveClock =
-            new Date(
-                `${date}T${testClock.time}:00`
-            );
-
-
-        if (attendanceMeta) {
-
-            attendanceMeta.textContent +=
-                `（テスト時刻 ${testClock.time}）`;
-
-        }
-
+    if (attendanceMeta) {
+      attendanceMeta.textContent += `（テスト時刻 ${testClock.time}）`;
     }
+  }
 
-
-    /*
+  /*
     classGroupがある通知について、
     Firestoreの選択結果も確認する。
 
@@ -438,57 +224,31 @@ async function init() {
     クラス選択不要。
     */
 
-    if (classGroup) {
+  if (classGroup) {
+    validateClassSelection();
+  }
 
-        validateClassSelection();
+  lecture = createLecture();
 
-    }
+  try {
+    normalizedLecture = normalizeAttendanceLecture(lecture);
+  } catch (error) {
+    console.error("講義情報変換エラー:", error, lecture);
 
+    throw new Error("講義情報を確認できません。");
+  }
 
-    lecture =
-        createLecture();
-
-
-    try {
-
-        normalizedLecture =
-            normalizeAttendanceLecture(
-                lecture
-            );
-
-    } catch (error) {
-
-        console.error(
-            "講義情報変換エラー:",
-            error,
-            lecture
-        );
-
-
-        throw new Error(
-            "講義情報を確認できません。"
-        );
-
-    }
-
-
-    /*
+  /*
     attendance.jsと同じID生成方法。
     */
 
-    recordId =
-        createAttendanceRecordId(
-            normalizedLecture
-        );
+  recordId = createAttendanceRecordId(normalizedLecture);
 
+  await loadRecord();
 
-    await loadRecord();
+  renderActionButtons();
 
-
-    renderActionButtons();
-
-
-    /*
+  /*
     Push通知内の
 
     開始打刻
@@ -499,1368 +259,617 @@ async function init() {
     画面表示後その操作を実行する。
     */
 
-    const directAction =
-        resolveChoiceAction(
-            notificationChoice
-        );
+  const directAction = resolveChoiceAction(notificationChoice);
 
-
-    if (
-        directAction &&
-        canAutomaticallyExecute(
-            directAction
-        )
-    ) {
-
-        await executeAttendanceAction(
-            directAction
-        );
-
-    }
-
+  if (directAction && canAutomaticallyExecute(directAction)) {
+    await executeAttendanceAction(directAction);
+  }
 }
-
 
 /* ========================================
    クラス確認
 ======================================== */
 
 function validateClassSelection() {
+  const selections =
+    userData.classSelections && typeof userData.classSelections === "object"
+      ? userData.classSelections
+      : {};
 
-    const selections =
+  const slashDate = date.replaceAll("-", "/");
 
-        userData.classSelections &&
-        typeof userData
-            .classSelections ===
-            "object"
+  const keys = [
+    `${subject}_${date}_${period}`,
 
-            ? userData.classSelections
+    `${subject}_${slashDate}_${period}`,
 
-            : {};
+    `${subject}_${date}_${period}限`,
 
+    `${subject}__${period}`,
 
-    const slashDate =
-        date.replaceAll(
-            "-",
-            "/"
-        );
+    `${date}_${subject}_${period}`,
 
+    [
+      encodeURIComponent(date),
+      encodeURIComponent(subject),
+      encodeURIComponent(String(period)),
+    ].join("__"),
+  ];
 
-    const keys = [
+  const key = keys.find((item) =>
+    Object.prototype.hasOwnProperty.call(selections, item),
+  );
 
-        `${subject}_${date}_${period}`,
+  if (!key) {
+    throw new Error(
+      "この講義のクラス選択が完了していません。ホームでクラスを選択してください。",
+    );
+  }
 
-        `${subject}_${slashDate}_${period}`,
+  const selected = normalizeSavedClass(selections[key]);
 
-        `${subject}_${date}_${period}限`,
+  if (selected === "__NONE__") {
+    throw new Error("この講義は「クラスなし」が選択されています。");
+  }
 
-        `${subject}__${period}`,
-
-        `${date}_${subject}_${period}`,
-
-        [
-            encodeURIComponent(
-                date
-            ),
-            encodeURIComponent(
-                subject
-            ),
-            encodeURIComponent(
-                String(period)
-            )
-        ].join("__")
-
-    ];
-
-
-    const key =
-        keys.find(
-            item =>
-                Object.prototype
-                    .hasOwnProperty.call(
-                        selections,
-                        item
-                    )
-        );
-
-
-    if (!key) {
-
-        throw new Error(
-            "この講義のクラス選択が完了していません。ホームでクラスを選択してください。"
-        );
-
-    }
-
-
-    const selected =
-        normalizeSavedClass(
-            selections[key]
-        );
-
-
-    if (
-        selected ===
-        "__NONE__"
-    ) {
-
-        throw new Error(
-            "この講義は「クラスなし」が選択されています。"
-        );
-
-    }
-
-
-    if (
-        selected &&
-        selected !== classGroup
-    ) {
-
-        throw new Error(
-            `選択済みクラスは${selected}クラスです。`
-        );
-
-    }
-
+  if (selected && selected !== classGroup) {
+    throw new Error(`選択済みクラスは${selected}クラスです。`);
+  }
 }
-
 
 /* ========================================
    記録取得
 ======================================== */
 
 async function loadRecord() {
+  const ref = doc(db, "users", studentNumber, "attendanceRecords", recordId);
 
-    const ref =
-        doc(
-            db,
-            "users",
-            studentNumber,
-            "attendanceRecords",
-            recordId
-        );
+  const snap = await getDoc(ref);
 
+  record = snap.exists()
+    ? {
+        id: snap.id,
 
-    const snap =
-        await getDoc(
-            ref
-        );
+        ...snap.data(),
+      }
+    : null;
 
-
-    record =
-        snap.exists()
-            ? {
-                id:
-                    snap.id,
-
-                ...snap.data()
-            }
-            : null;
-
-
-    renderCurrentStatus();
-
+  renderCurrentStatus();
 }
-
 
 /* ========================================
    現在状態
 ======================================== */
 
 function renderCurrentStatus() {
+  if (!attendanceStatus) {
+    return;
+  }
 
-    if (!attendanceStatus) {
-        return;
-    }
+  if (!record) {
+    attendanceStatus.textContent = "未打刻";
 
+    return;
+  }
 
-    if (!record) {
+  try {
+    const result = recalculateAttendanceStatus(record);
 
-        attendanceStatus.textContent =
-            "未打刻";
+    attendanceStatus.textContent = `現在の判定：${result.label}`;
+  } catch (error) {
+    console.error("出席再判定エラー:", error);
 
-        return;
-
-    }
-
-
-    try {
-
-        const result =
-            recalculateAttendanceStatus(
-                record
-            );
-
-
-        attendanceStatus.textContent =
-            `現在の判定：${result.label}`;
-
-    } catch (error) {
-
-        console.error(
-            "出席再判定エラー:",
-            error
-        );
-
-
-        attendanceStatus.textContent =
-            record.statusLabel ||
-            "記録済み";
-
-    }
-
+    attendanceStatus.textContent = record.statusLabel || "記録済み";
+  }
 }
-
 
 /* ========================================
    ボタン
 ======================================== */
 
 function renderActionButtons() {
+  const action = normalizeNotificationAction(rawAction);
 
-    const action =
-        normalizeNotificationAction(
-            rawAction
-        );
+  if (action === "end") {
+    primaryButton.textContent = "🚪 終了打刻";
 
+    secondaryButton.textContent = "⏱ 早退";
 
-    if (
-        action === "end"
-    ) {
+    primaryButton.onclick = () => executeAttendanceAction("end");
 
-        primaryButton.textContent =
-            "🚪 終了打刻";
+    secondaryButton.onclick = () => executeAttendanceAction("early_leave");
 
+    return;
+  }
 
-        secondaryButton.textContent =
-            "⏱ 早退";
+  primaryButton.textContent = "✅ 開始打刻";
 
+  secondaryButton.textContent = "❌ 欠席";
 
-        primaryButton.onclick =
-            () =>
-                executeAttendanceAction(
-                    "end"
-                );
+  primaryButton.onclick = () => executeAttendanceAction("start");
 
-
-        secondaryButton.onclick =
-            () =>
-                executeAttendanceAction(
-                    "early_leave"
-                );
-
-
-        return;
-
-    }
-
-
-    primaryButton.textContent =
-        "✅ 開始打刻";
-
-
-    secondaryButton.textContent =
-        "❌ 欠席";
-
-
-    primaryButton.onclick =
-        () =>
-            executeAttendanceAction(
-                "start"
-            );
-
-
-    secondaryButton.onclick =
-        () =>
-            executeAttendanceAction(
-                "absent"
-            );
-
+  secondaryButton.onclick = () => executeAttendanceAction("absent");
 }
-
 
 /* ========================================
    打刻
 ======================================== */
 
-async function executeAttendanceAction(
-    action
-) {
+async function executeAttendanceAction(action) {
+  if (!lecture || !normalizedLecture) {
+    throw new Error("講義情報を確認できません。");
+  }
 
-    if (
-        !lecture ||
-        !normalizedLecture
-    ) {
+  disableButtons(true);
 
-        throw new Error(
-            "講義情報を確認できません。"
-        );
+  try {
+    const now = effectiveClock || new Date();
 
-    }
+    const source = resolveSource(action);
 
-
-    disableButtons(
-        true
-    );
-
-
-    try {
-
-        const now =
-            effectiveClock ||
-            new Date();
-
-
-        const source =
-            resolveSource(
-                action
-            );
-
-
-        /*
+    /*
         現在時刻でどの判定になるか
         先に表示。
         */
 
-        renderPendingJudgement(
-            action,
-            now
-        );
+    renderPendingJudgement(action, now);
 
+    let result;
 
-        let result;
+    if (action === "start") {
+      result = await stampAttendanceStart({
+        lecture,
 
+        now,
 
-        if (
-            action === "start"
-        ) {
+        source,
+      });
+    } else if (action === "end") {
+      result = await stampAttendanceEnd({
+        lecture,
 
-            result =
-                await stampAttendanceStart({
+        now,
 
-                    lecture,
+        action: "end",
 
-                    now,
+        source,
+      });
+    } else if (action === "early_leave") {
+      result = await stampAttendanceEarlyLeave({
+        lecture,
 
-                    source
+        now,
 
-                });
+        source,
+      });
+    } else if (action === "absent") {
+      result = await markAttendanceAbsent({
+        lecture,
 
-        } else if (
-            action === "end"
-        ) {
+        now,
 
-            result =
-                await stampAttendanceEnd({
+        source,
+      });
+    } else {
+      throw new Error("未対応の出席操作です。");
+    }
 
-                    lecture,
+    if (!result || result.ok !== true) {
+      throw new Error(result?.message || "打刻できませんでした。");
+    }
 
-                    now,
+    await loadRecord();
 
-                    action:
-                        "end",
+    renderResult(result, action);
 
-                    source
+    await closeRelatedNotifications();
 
-                });
-
-        } else if (
-            action ===
-            "early_leave"
-        ) {
-
-            result =
-                await stampAttendanceEarlyLeave({
-
-                    lecture,
-
-                    now,
-
-                    source
-
-                });
-
-        } else if (
-            action === "absent"
-        ) {
-
-            result =
-                await markAttendanceAbsent({
-
-                    lecture,
-
-                    now,
-
-                    source
-
-                });
-
-        } else {
-
-            throw new Error(
-                "未対応の出席操作です。"
-            );
-
-        }
-
-
-        if (
-            !result ||
-            result.ok !== true
-        ) {
-
-            throw new Error(
-                result?.message ||
-                "打刻できませんでした。"
-            );
-
-        }
-
-
-        await loadRecord();
-
-
-        renderResult(
-            result,
-            action
-        );
-
-
-        await closeRelatedNotifications();
-
-
-        /*
+    /*
         欠席または終了まで完了したら
         操作終了。
         */
 
-        if (
-            action === "absent" ||
-            action === "end" ||
-            action === "early_leave"
-        ) {
+    if (action === "absent" || action === "end" || action === "early_leave") {
+      primaryButton.hidden = true;
 
-            primaryButton.hidden =
-                true;
+      secondaryButton.hidden = true;
 
-            secondaryButton.hidden =
-                true;
-
-            if (doneLink) {
-
-                doneLink.hidden =
-                    false;
-
-            }
-
-        } else {
-
-            /*
+      if (doneLink) {
+        doneLink.hidden = false;
+      }
+    } else {
+      /*
             開始打刻後は終了待ち。
             */
 
-            primaryButton.disabled =
-                true;
+      primaryButton.disabled = true;
 
-            secondaryButton.disabled =
-                true;
+      secondaryButton.disabled = true;
 
-            primaryButton.textContent =
-                "✅ 開始打刻済み";
+      primaryButton.textContent = "✅ 開始打刻済み";
 
-            secondaryButton.textContent =
-                "終了時刻までお待ちください";
+      secondaryButton.textContent = "終了時刻までお待ちください";
 
-            if (doneLink) {
+      if (doneLink) {
+        doneLink.hidden = false;
+      }
+    }
 
-                doneLink.hidden =
-                    false;
+    return result;
+  } catch (error) {
+    showError(error);
 
-            }
+    return {
+      ok: false,
 
-        }
-
-
-        return result;
-
-    } catch (error) {
-
-        showError(
-            error
-        );
-
-
-        return {
-            ok:
-                false,
-
-            message:
-                error.message ||
-                "打刻できませんでした。"
-        };
-
-    } finally {
-
-        /*
+      message: error.message || "打刻できませんでした。",
+    };
+  } finally {
+    /*
         完了処理でdisabledにしたものは
         戻さない。
         */
 
-        if (
-            !primaryButton.hidden &&
-            primaryButton.textContent !==
-                "✅ 開始打刻済み"
-        ) {
-
-            disableButtons(
-                false
-            );
-
-        }
-
+    if (
+      !primaryButton.hidden &&
+      primaryButton.textContent !== "✅ 開始打刻済み"
+    ) {
+      disableButtons(false);
     }
-
+  }
 }
-
 
 /* ========================================
    判定予告
 ======================================== */
 
-function renderPendingJudgement(
-    action,
-    now
-) {
+function renderPendingJudgement(action, now) {
+  if (!attendanceStatus) {
+    return;
+  }
 
-    if (!attendanceStatus) {
-        return;
+  try {
+    if (action === "start") {
+      const result = classifyStartStamp({
+        stampAt: now,
+
+        lecture: normalizedLecture.lectureWindow,
+      });
+
+      attendanceStatus.textContent = `判定予定：${result.label}`;
+
+      return;
     }
 
+    if (action === "end" || action === "early_leave") {
+      const result = classifyEndStamp({
+        stampAt: now,
 
-    try {
+        lecture: normalizedLecture.lectureWindow,
+      });
 
-        if (
-            action === "start"
-        ) {
+      attendanceStatus.textContent = `判定予定：${result.label}`;
 
-            const result =
-                classifyStartStamp({
-
-                    stampAt:
-                        now,
-
-                    lecture:
-                        normalizedLecture
-                            .lectureWindow
-
-                });
-
-
-            attendanceStatus.textContent =
-                `判定予定：${result.label}`;
-
-            return;
-
-        }
-
-
-        if (
-            action === "end" ||
-            action ===
-                "early_leave"
-        ) {
-
-            const result =
-                classifyEndStamp({
-
-                    stampAt:
-                        now,
-
-                    lecture:
-                        normalizedLecture
-                            .lectureWindow
-
-                });
-
-
-            attendanceStatus.textContent =
-                `判定予定：${result.label}`;
-
-            return;
-
-        }
-
-
-        if (
-            action === "absent"
-        ) {
-
-            attendanceStatus.textContent =
-                "判定予定：欠席";
-
-        }
-
-    } catch (error) {
-
-        console.error(
-            "判定予告エラー:",
-            error
-        );
-
+      return;
     }
 
+    if (action === "absent") {
+      attendanceStatus.textContent = "判定予定：欠席";
+    }
+  } catch (error) {
+    console.error("判定予告エラー:", error);
+  }
 }
-
 
 /* ========================================
    保存結果
 ======================================== */
 
-function renderResult(
-    result,
-    action
-) {
+function renderResult(result, action) {
+  const final = result.finalResult || null;
 
-    const final =
-        result.finalResult ||
-        null;
+  const judgement = result.judgement || null;
 
+  const label = final?.label || judgement?.label || actionLabel(action);
 
-    const judgement =
-        result.judgement ||
-        null;
+  const message = result.message || "出席記録を保存しました。";
 
-
-    const label =
-
-        final?.label ||
-
-        judgement?.label ||
-
-        actionLabel(
-            action
-        );
-
-
-    const message =
-        result.message ||
-        "出席記録を保存しました。";
-
-
-    if (attendanceStatus) {
-
-        attendanceStatus.textContent =
-            `✅ ${label}：${message}`;
-
-    }
-
+  if (attendanceStatus) {
+    attendanceStatus.textContent = `✅ ${label}：${message}`;
+  }
 }
-
 
 /* ========================================
    自動操作
 ======================================== */
 
-function resolveChoiceAction(
-    value
-) {
+function resolveChoiceAction(value) {
+  const choice = String(value || "")
+    .trim()
+    .toLowerCase();
 
-    const choice =
-        String(
-            value || ""
-        )
-        .trim()
-        .toLowerCase();
+  const aliases = {
+    arrival: "start",
 
+    start: "start",
 
-    const aliases = {
+    attendance: "start",
 
-        arrival:
-            "start",
+    present: "start",
 
-        start:
-            "start",
+    absence: "absent",
 
-        attendance:
-            "start",
+    absent: "absent",
 
-        present:
-            "start",
+    departure: "end",
 
-        absence:
-            "absent",
+    end: "end",
 
-        absent:
-            "absent",
+    finish: "end",
 
-        departure:
-            "end",
+    early: "early_leave",
 
-        end:
-            "end",
+    early_leave: "early_leave",
+  };
 
-        finish:
-            "end",
-
-        early:
-            "early_leave",
-
-        early_leave:
-            "early_leave"
-
-    };
-
-
-    return (
-        aliases[choice] ||
-        ""
-    );
-
+  return aliases[choice] || "";
 }
 
+function canAutomaticallyExecute(action) {
+  if (!record) {
+    return action === "start" || action === "absent";
+  }
 
-function canAutomaticallyExecute(
-    action
-) {
+  const hasStart = Boolean(record.startStampedAt || record.startKind);
 
-    if (!record) {
+  const hasEnd = Boolean(record.endStampedAt || record.endKind);
 
-        return (
-            action === "start" ||
-            action === "absent"
-        );
+  const absent = record.absenceTapped === true;
 
-    }
+  if (action === "start" || action === "absent") {
+    return !hasStart && !hasEnd && !absent;
+  }
 
+  if (action === "end" || action === "early_leave") {
+    return hasStart && !hasEnd && !absent;
+  }
 
-    const hasStart =
-        Boolean(
-            record.startStampedAt ||
-            record.startKind
-        );
-
-
-    const hasEnd =
-        Boolean(
-            record.endStampedAt ||
-            record.endKind
-        );
-
-
-    const absent =
-        record.absenceTapped ===
-        true;
-
-
-    if (
-        action === "start" ||
-        action === "absent"
-    ) {
-
-        return (
-            !hasStart &&
-            !hasEnd &&
-            !absent
-        );
-
-    }
-
-
-    if (
-        action === "end" ||
-        action ===
-            "early_leave"
-    ) {
-
-        return (
-            hasStart &&
-            !hasEnd &&
-            !absent
-        );
-
-    }
-
-
-    return false;
-
+  return false;
 }
-
 
 /* ========================================
    通知source
 ======================================== */
 
-function resolveSource(
-    action
-) {
+function resolveSource(action) {
+  if (Object.values(ATTENDANCE_STAMP_SOURCE).includes(notificationSource)) {
+    return notificationSource;
+  }
 
-    if (
-        Object.values(
-            ATTENDANCE_STAMP_SOURCE
-        ).includes(
-            notificationSource
-        )
-    ) {
+  if (action === "start" || action === "absent") {
+    return ATTENDANCE_STAMP_SOURCE.START_NOTIFICATION;
+  }
 
-        return notificationSource;
+  if (action === "end" || action === "early_leave") {
+    return ATTENDANCE_STAMP_SOURCE.END_NOTIFICATION;
+  }
 
-    }
-
-
-    if (
-        action === "start" ||
-        action === "absent"
-    ) {
-
-        return (
-            ATTENDANCE_STAMP_SOURCE
-                .START_NOTIFICATION
-        );
-
-    }
-
-
-    if (
-        action === "end" ||
-        action ===
-            "early_leave"
-    ) {
-
-        return (
-            ATTENDANCE_STAMP_SOURCE
-                .END_NOTIFICATION
-        );
-
-    }
-
-
-    return (
-        ATTENDANCE_STAMP_SOURCE
-            .ATTENDANCE_PAGE
-    );
-
+  return ATTENDANCE_STAMP_SOURCE.ATTENDANCE_PAGE;
 }
-
 
 /* ========================================
    通知を閉じる
 ======================================== */
 
 async function closeRelatedNotifications() {
+  if (!navigator.serviceWorker?.ready) {
+    return;
+  }
 
-    if (
-        !navigator
-            .serviceWorker
-            ?.ready
-    ) {
+  try {
+    const registration = await navigator.serviceWorker.ready;
 
-        return;
+    const notices = await registration.getNotifications();
 
-    }
+    for (const notice of notices) {
+      const tag = String(notice.tag || "");
 
+      const target = String(notice.data?.url || "");
 
-    try {
+      let matches = false;
 
-        const registration =
-            await navigator
-                .serviceWorker
-                .ready;
+      if (tag.includes(encodeURIComponent(subject))) {
+        matches = true;
+      }
 
+      if (target) {
+        try {
+          const url = new URL(target, location.origin);
 
-        const notices =
-            await registration
-                .getNotifications();
+          const sameSubject = url.searchParams.get("subject") === subject;
 
+          const sameDate = url.searchParams.get("date") === date;
 
-        for (
-            const notice of notices
-        ) {
+          const samePeriod =
+            normalizePeriod(url.searchParams.get("period")) === period;
 
-            const tag =
-                String(
-                    notice.tag || ""
-                );
-
-
-            const target =
-                String(
-                    notice.data
-                        ?.url || ""
-                );
-
-
-            let matches =
-                false;
-
-
-            if (
-                tag.includes(
-                    encodeURIComponent(
-                        subject
-                    )
-                )
-            ) {
-
-                matches =
-                    true;
-
-            }
-
-
-            if (target) {
-
-                try {
-
-                    const url =
-                        new URL(
-                            target,
-                            location.origin
-                        );
-
-
-                    const sameSubject =
-                        url.searchParams
-                            .get(
-                                "subject"
-                            ) ===
-                        subject;
-
-
-                    const sameDate =
-                        url.searchParams
-                            .get(
-                                "date"
-                            ) ===
-                        date;
-
-
-                    const samePeriod =
-                        normalizePeriod(
-                            url.searchParams
-                                .get(
-                                    "period"
-                                )
-                        ) ===
-                        period;
-
-
-                    if (
-                        sameSubject &&
-                        sameDate &&
-                        samePeriod
-                    ) {
-
-                        matches =
-                            true;
-
-                    }
-
-                } catch {
-
-                    // 無視
-
-                }
-
-            }
-
-
-            if (matches) {
-
-                notice.close();
-
-            }
-
+          if (sameSubject && sameDate && samePeriod) {
+            matches = true;
+          }
+        } catch {
+          // 無視
         }
+      }
 
-    } catch (error) {
-
-        console.warn(
-            "通知クローズ失敗:",
-            error
-        );
-
+      if (matches) {
+        notice.close();
+      }
     }
-
+  } catch (error) {
+    console.warn("通知クローズ失敗:", error);
+  }
 }
-
 
 /* ========================================
    ボタン状態
 ======================================== */
 
-function disableButtons(
-    disabled
-) {
+function disableButtons(disabled) {
+  if (primaryButton) {
+    primaryButton.disabled = disabled;
+  }
 
-    if (primaryButton) {
-
-        primaryButton.disabled =
-            disabled;
-
-    }
-
-
-    if (secondaryButton) {
-
-        secondaryButton.disabled =
-            disabled;
-
-    }
-
+  if (secondaryButton) {
+    secondaryButton.disabled = disabled;
+  }
 }
-
 
 /* ========================================
    エラー
 ======================================== */
 
-function showError(
-    error
-) {
+function showError(error) {
+  console.error("出席確認エラー:", error);
 
-    console.error(
-        "出席確認エラー:",
-        error
-    );
+  const message = error?.message || "処理に失敗しました。";
 
+  if (attendanceStatus) {
+    attendanceStatus.textContent = `⚠️ ${message}`;
+  }
 
-    const message =
-        error?.message ||
-        "処理に失敗しました。";
-
-
-    if (attendanceStatus) {
-
-        attendanceStatus.textContent =
-            `⚠️ ${message}`;
-
-    }
-
-
-    alert(
-        message
-    );
-
+  alert(message);
 }
-
 
 /* ========================================
    表示用
 ======================================== */
 
-function actionLabel(
-    action
-) {
+function actionLabel(action) {
+  if (action === "start") {
+    return "開始打刻";
+  }
 
-    if (
-        action === "start"
-    ) {
-        return "開始打刻";
-    }
+  if (action === "end") {
+    return "終了打刻";
+  }
 
+  if (action === "early_leave") {
+    return "早退";
+  }
 
-    if (
-        action === "end"
-    ) {
-        return "終了打刻";
-    }
+  if (action === "absent") {
+    return "欠席";
+  }
 
-
-    if (
-        action ===
-        "early_leave"
-    ) {
-        return "早退";
-    }
-
-
-    if (
-        action === "absent"
-    ) {
-        return "欠席";
-    }
-
-
-    return "記録完了";
-
+  return "記録完了";
 }
-
 
 /* ========================================
    action変換
 ======================================== */
 
-function normalizeNotificationAction(
-    value
-) {
+function normalizeNotificationAction(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
 
-    const raw =
-        String(
-            value || ""
-        )
-        .trim()
-        .toLowerCase();
-
-
-    if (
-        [
-            "arrival",
-            "start",
-            "attendance",
-            "present"
-        ].includes(
-            raw
-        )
-    ) {
-
-        return "start";
-
-    }
-
-
-    if (
-        [
-            "departure",
-            "end",
-            "finish"
-        ].includes(
-            raw
-        )
-    ) {
-
-        return "end";
-
-    }
-
-
+  if (["arrival", "start", "attendance", "present"].includes(raw)) {
     return "start";
+  }
 
+  if (["departure", "end", "finish"].includes(raw)) {
+    return "end";
+  }
+
+  return "start";
 }
-
 
 /* ========================================
    クラス値
 ======================================== */
 
-function normalizeSavedClass(
-    value
-) {
+function normalizeSavedClass(value) {
+  if (value && typeof value === "object") {
+    return normalizeSavedClass(value.classGroup || value.class || value.value);
+  }
 
-    if (
-        value &&
-        typeof value ===
-            "object"
-    ) {
+  const raw = String(value || "").trim();
 
-        return normalizeSavedClass(
+  if (raw === "__NONE__") {
+    return "__NONE__";
+  }
 
-            value.classGroup ||
-
-            value.class ||
-
-            value.value
-
-        );
-
-    }
-
-
-    const raw =
-        String(
-            value || ""
-        ).trim();
-
-
-    if (
-        raw === "__NONE__"
-    ) {
-
-        return "__NONE__";
-
-    }
-
-
-    return normalizeClassGroup(
-        raw
-    );
-
+  return normalizeClassGroup(raw);
 }
 
+function normalizeClassGroup(value) {
+  const raw = String(value || "")
+    .replace(/[Ａ-Ｚａ-ｚ]/g, (character) =>
+      String.fromCharCode(character.charCodeAt(0) - 0xfee0),
+    )
+    .toUpperCase()
+    .replaceAll("クラス", "")
+    .replaceAll("組", "")
+    .replaceAll("班", "")
+    .trim();
 
-function normalizeClassGroup(
-    value
-) {
-
-    const raw =
-        String(
-            value || ""
-        )
-        .replace(
-            /[Ａ-Ｚａ-ｚ]/g,
-            character =>
-                String.fromCharCode(
-                    character
-                        .charCodeAt(0) -
-                    0xFEE0
-                )
-        )
-        .toUpperCase()
-        .replaceAll(
-            "クラス",
-            ""
-        )
-        .replaceAll(
-            "組",
-            ""
-        )
-        .replaceAll(
-            "班",
-            ""
-        )
-        .trim();
-
-
-    return (
-        raw.match(
-            /[A-Z]/
-        )?.[0] ||
-        ""
-    );
-
+  return raw.match(/[A-Z]/)?.[0] || "";
 }
-
 
 /* ========================================
    日付・時限
 ======================================== */
 
-function normalizePeriod(
-    value
-) {
+function normalizePeriod(value) {
+  const match = String(value || "").match(/\d+/);
 
-    const match =
-        String(
-            value || ""
-        ).match(
-            /\d+/
-        );
-
-
-    return match
-        ? Number(
-            match[0]
-        )
-        : 0;
-
+  return match ? Number(match[0]) : 0;
 }
 
+function normalizeDate(value) {
+  const text = String(value || "").trim();
 
-function normalizeDate(
-    value
-) {
+  const match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
 
-    const text =
-        String(
-            value || ""
-        ).trim();
+  if (!match) {
+    return "";
+  }
 
-
-    const match =
-        text.match(
-            /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/
-        );
-
-
-    if (!match) {
-
-        return "";
-
-    }
-
-
-    return (
-        `${match[1]}-` +
-        `${match[2].padStart(
-            2,
-            "0"
-        )}-` +
-        `${match[3].padStart(
-            2,
-            "0"
-        )}`
-    );
-
+  return (
+    `${match[1]}-` +
+    `${match[2].padStart(2, "0")}-` +
+    `${match[3].padStart(2, "0")}`
+  );
 }
 
+function localDateKey(value = new Date()) {
+  return [
+    value.getFullYear(),
 
-function localDateKey(
-    value = new Date()
-) {
+    String(value.getMonth() + 1).padStart(2, "0"),
 
-    return [
-
-        value.getFullYear(),
-
-        String(
-            value.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        ),
-
-        String(
-            value.getDate()
-        ).padStart(
-            2,
-            "0"
-        )
-
-    ].join("-");
-
+    String(value.getDate()).padStart(2, "0"),
+  ].join("-");
 }
-
 
 /* ========================================
    戻る
 ======================================== */
 
-document
-    .getElementById(
-        "backButton"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            location.href =
-                "attendance.html";
-
-        }
-    );
-
+document.getElementById("backButton")?.addEventListener("click", () => {
+  location.href = "attendance.html";
+});
 
 /* ========================================
    開始
 ======================================== */
 
 init()
-    .catch(
-        error => {
+  .catch((error) => {
+    showError(error);
 
-            showError(
-                error
-            );
-
-            disableButtons(
-                true
-            );
-
-        }
-    )
-    .finally(
-        () => {
-
-            showPage();
-
-        }
-    );
+    disableButtons(true);
+  })
+  .finally(() => {
+    showPage();
+  });

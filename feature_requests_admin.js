@@ -1,7 +1,87 @@
-import {db,studentNumber,setupTheme,isAdmin,initializePage} from "./common.js";
-import {collection,onSnapshot,query,orderBy,doc,updateDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-const list=document.getElementById("featureRequestList");setupTheme(document.getElementById("themeButton"));document.getElementById("backButton").onclick=()=>history.length>1?history.back():location.replace("admin.html");
-const escapeHtml=value=>String(value??"").replace(/[&<>\"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[char]);
+import {
+  db,
+  studentNumber,
+  setupTheme,
+  isAdmin,
+  initializePage,
+} from "./common.js";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+const list = document.getElementById("featureRequestList");
+setupTheme(document.getElementById("themeButton"));
+document.getElementById("backButton").onclick = () =>
+  history.length > 1 ? history.back() : location.replace("admin.html");
+const escapeHtml = (value) =>
+  String(value ?? "").replace(
+    /[&<>\"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
 await initializePage([]);
-if(studentNumber!=="2510044"||!(await isAdmin())){list.innerHTML='<div class="card setting-card">この画面を利用できません。</div>'}else{onSnapshot(query(collection(db,"featureRequests"),orderBy("createdAt","desc")),snap=>{const rows=snap.docs.map(item=>({id:item.id,...item.data()})).filter(item=>(item.status||"submitted")!=="withdrawn");list.innerHTML=rows.length?rows.map(render).join(""):'<div class="card setting-card">機能リクエストはありません。</div>'},error=>{console.error(error);list.innerHTML='<div class="card setting-card">リクエストを読み込めませんでした。</div>'})}
-function statusLabel(value){return ({submitted:"送信済み",reviewing:"検討中",developing:"開発する",implemented:"実装済み",unavailable:"対応不可"})[value]||"送信済み"}function time(value){return typeof value?.toDate==="function"?value.toDate().toLocaleDateString("ja-JP"):"日時未設定"}function render(item){const current=item.status||"submitted";return `<article class="card setting-card feature-request"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><b>${escapeHtml(item.studentNumber||"学籍番号未設定")}</b><small>送信：${time(item.createdAt)}</small></div><h3>${escapeHtml(item.title||"機能名未設定")}</h3><p>${escapeHtml(item.description||"").replace(/\n/g,"<br>")}</p>${item.useCase?`<p><small>使いたい場面：${escapeHtml(item.useCase)}</small></p>`:""}<label>対応状況 <select class="feature-request-status" data-id="${item.id}">${["submitted","reviewing","developing","implemented","unavailable"].map(value=>`<option value="${value}" ${current===value?"selected":""}>${statusLabel(value)}</option>`).join("")}</select></label></article>`}document.addEventListener("change",async event=>{const select=event.target.closest(".feature-request-status");if(!select)return;try{await updateDoc(doc(db,"featureRequests",select.dataset.id),{status:select.value,updatedAt:serverTimestamp(),updatedBy:studentNumber,...(select.value==="implemented"?{implementedAt:serverTimestamp()}:{})})}catch(error){console.error(error);alert("状態を保存できませんでした。")}});
+if (studentNumber !== "2510044" || !(await isAdmin())) {
+  list.innerHTML =
+    '<div class="card setting-card">この画面を利用できません。</div>';
+} else {
+  onSnapshot(
+    query(collection(db, "featureRequests"), orderBy("createdAt", "desc")),
+    (snap) => {
+      const rows = snap.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .filter((item) => (item.status || "submitted") !== "withdrawn");
+      list.innerHTML = rows.length
+        ? rows.map(render).join("")
+        : '<div class="card setting-card">機能リクエストはありません。</div>';
+    },
+    (error) => {
+      console.error(error);
+      list.innerHTML =
+        '<div class="card setting-card">リクエストを読み込めませんでした。</div>';
+    },
+  );
+}
+function statusLabel(value) {
+  return (
+    {
+      submitted: "送信済み",
+      reviewing: "検討中",
+      developing: "開発する",
+      implemented: "実装済み",
+      unavailable: "対応不可",
+    }[value] || "送信済み"
+  );
+}
+function time(value) {
+  return typeof value?.toDate === "function"
+    ? value.toDate().toLocaleDateString("ja-JP")
+    : "日時未設定";
+}
+function render(item) {
+  const current = item.status || "submitted";
+  return `<article class="card setting-card feature-request"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><b>${escapeHtml(item.studentNumber || "学籍番号未設定")}</b><small>送信：${time(item.createdAt)}</small></div><h3>${escapeHtml(item.title || "機能名未設定")}</h3><p>${escapeHtml(item.description || "").replace(/\n/g, "<br>")}</p>${item.useCase ? `<p><small>使いたい場面：${escapeHtml(item.useCase)}</small></p>` : ""}<label>対応状況 <select class="feature-request-status" data-id="${item.id}">${["submitted", "reviewing", "developing", "implemented", "unavailable"].map((value) => `<option value="${value}" ${current === value ? "selected" : ""}>${statusLabel(value)}</option>`).join("")}</select></label></article>`;
+}
+document.addEventListener("change", async (event) => {
+  const select = event.target.closest(".feature-request-status");
+  if (!select) return;
+  try {
+    await updateDoc(doc(db, "featureRequests", select.dataset.id), {
+      status: select.value,
+      updatedAt: serverTimestamp(),
+      updatedBy: studentNumber,
+      ...(select.value === "implemented"
+        ? { implementedAt: serverTimestamp() }
+        : {}),
+    });
+  } catch (error) {
+    console.error(error);
+    alert("状態を保存できませんでした。");
+  }
+});

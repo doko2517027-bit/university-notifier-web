@@ -1,169 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta charset="UTF-8">
+    <title>出席確認 | CareMate</title>
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css" />
 
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<title>出席確認 | CareMate</title>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
+      <h2>📚 出席確認</h2>
 
-<link rel="stylesheet" href="style.css">
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
-
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
-
-
-</head>
-
-
-<body class="page-loading">
-
-
-<div class="top-buttons">
-
-
-    <button
-        id="backButton"
-        class="circle-button">
-        ←
-    </button>
-
-
-    <h2>
-        📚 出席確認
-    </h2>
-
-
-    <div class="top-right">
-
-
-        <button
-            id="themeButton"
-            class="circle-button">
-            🌙
+        <button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-
-
-        <button
-            id="profileButton"
-            class="circle-button">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
-
-        </button>
-
-
+      </div>
     </div>
 
-
-</div>
-
-
-
-<div class="card setting-card">
-
-    <h2 class="attendance-choice-title">出席状況を選択</h2>
-    <p class="attendance-choice-help">
+    <div class="card setting-card">
+      <h2 class="attendance-choice-title">出席状況を選択</h2>
+      <p class="attendance-choice-help">
         通知に応じて開始・終了の打刻をしてください。
-    </p>
+      </p>
 
+      <h2 id="subjectName">読み込み中...</h2>
 
-    <h2 id="subjectName">
-        読み込み中...
-    </h2>
+      <p>授業の出席確認を行います。</p>
 
+      <p id="attendanceMeta"></p>
+      <p id="personalRecordNotice" class="attendance-personal-notice"></p>
+    </div>
 
-    <p>
-        授業の出席確認を行います。
-    </p>
+    <div class="card setting-card">
+      <h3>🕒 現在の状態</h3>
 
-    <p id="attendanceMeta"></p>
-    <p id="personalRecordNotice" class="attendance-personal-notice"></p>
+      <p id="attendanceStatus">未打刻</p>
+    </div>
 
-
-</div>
-
-
-
-
-
-<div class="card setting-card">
-
-
-    <h3>
-        🕒 現在の状態
-    </h3>
-
-
-    <p id="attendanceStatus">
-
-        未打刻
-
-    </p>
-
-
-
-</div>
-
-
-
-
-
-<div class="card setting-card attendance-choice-card">
-
-
-    <button
-        id="attendanceButton"
-        type="button"
-        class="main-button">
-
-
+    <div class="card setting-card attendance-choice-card">
+      <button id="attendanceButton" type="button" class="main-button">
         ✅ 出席する
+      </button>
 
-
-    </button>
-
-
-
-    <button
+      <button
         id="leaveButton"
         type="button"
         class="main-button"
-        style="margin-top:15px;">
-
-
+        style="margin-top: 15px"
+      >
         🚪 退席する
+      </button>
 
-
-    </button>
-
-    <a id="attendanceDoneLink" class="main-button attendance-done-link" href="attendance.html" hidden>
+      <a
+        id="attendanceDoneLink"
+        class="main-button attendance-done-link"
+        href="attendance.html"
+        hidden
+      >
         出席管理を確認
-    </a>
+      </a>
+    </div>
 
-
-</div>
-
-
-
-
-<script type="module" src="attendance_check.js"></script>
-
-
-</body>
-
-
+    <script type="module" src="attendance_check.js"></script>
+  </body>
 </html>

@@ -1,22 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>単位取得結果を編集 | CareMate</title>
-  <link rel="stylesheet" href="style.css">
-  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script>
-</head>
-<body class="page-loading">
-  <div class="top-buttons"><button id="backButton" class="circle-button" aria-label="戻る">←</button><h2>単位取得結果を編集</h2><div class="top-right"><button id="themeButton" class="circle-button">🌙</button></div></div>
-  <main class="attendance-admin-page">
-    <section class="card setting-card attendance-admin-section">
-      <h3 id="creditEditStudent">学生情報を読み込み中...</h3>
-      <p id="creditEditHelp" class="attendance-admin-help"></p>
-      <div id="creditEditList" class="credit-confirmation-list"></div>
-      <button id="saveCreditEdit" class="btn btn-primary" type="button">変更を保存</button>
-    </section>
-  </main>
-  <nav class="bottom-nav"><a href="index.html">🏠<br><span>ホーム</span></a><a href="assignments.html">📚<br><span>課題</span></a><a href="requests.html">💡<br><span>リクエスト</span></a><a href="news.html">📢<br><span>お知らせ</span></a><a id="settingsTab" href="admin.html" class="active">👑<br><span>管理</span></a></nav>
-  <script type="module" src="credit_confirmation_edit.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>単位取得結果を編集 | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" aria-label="戻る">←</button>
+      <h2>単位取得結果を編集</h2>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
+      </div>
+    </div>
+    <main class="attendance-admin-page">
+      <section class="card setting-card attendance-admin-section">
+        <h3 id="creditEditStudent">学生情報を読み込み中...</h3>
+        <p id="creditEditHelp" class="attendance-admin-help"></p>
+        <div id="creditEditList" class="credit-confirmation-list"></div>
+        <button id="saveCreditEdit" class="btn btn-primary" type="button">
+          変更を保存
+        </button>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html">🏠<br /><span>ホーム</span></a
+      ><a href="assignments.html">📚<br /><span>課題</span></a
+      ><a href="requests.html">💡<br /><span>リクエスト</span></a
+      ><a href="news.html">📢<br /><span>お知らせ</span></a
+      ><a id="settingsTab" href="admin.html" class="active"
+        >👑<br /><span>管理</span></a
+      >
+    </nav>
+    <script type="module" src="credit_confirmation_edit.js"></script>
+  </body>
 </html>

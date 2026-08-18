@@ -1,27 +1,27 @@
 import {
-    db,
-    studentNumber,
-    setupTheme,
-    initializePage,
-    loadProfileImage,
-    loadUserName,
-    loadMyRanking,
-    setupAdminTab,
-    updateAssignmentNavBadge,
-    updateShareNavBadge,
-    updateNewsNavBadge
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  loadUserName,
+  loadMyRanking,
+  setupAdminTab,
+  updateAssignmentNavBadge,
+  updateShareNavBadge,
+  updateNewsNavBadge,
 } from "./common.js";
 
 import {
-    doc,
-    getDoc,
-    setDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    orderBy,
-    serverTimestamp
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const userName = document.getElementById("userName");
@@ -42,269 +42,166 @@ const markAllReadButton = document.getElementById("markAllReadButton");
 let readNewsIds = new Set();
 
 async function loadReadNewsIds() {
+  if (!studentNumber) {
+    return;
+  }
 
-    if (!studentNumber) {
-        return;
-    }
+  try {
+    const snapshot = await getDocs(
+      collection(db, "users", studentNumber, "readNews"),
+    );
 
-    try {
+    readNewsIds = new Set(snapshot.docs.map((readDoc) => readDoc.id));
+  } catch (error) {
+    console.error("お知らせ既読情報取得エラー:", error);
 
-        const snapshot = await getDocs(
-            collection(
-                db,
-                "users",
-                studentNumber,
-                "readNews"
-            )
-        );
-
-        readNewsIds = new Set(
-            snapshot.docs.map(
-                readDoc => readDoc.id
-            )
-        );
-
-    } catch (error) {
-
-        console.error(
-            "お知らせ既読情報取得エラー:",
-            error
-        );
-
-        readNewsIds = new Set();
-
-    }
-
+    readNewsIds = new Set();
+  }
 }
 
-async function markNewsAsRead(
-    type,
-    originalNewsId
-) {
+async function markNewsAsRead(type, originalNewsId) {
+  if (!studentNumber || !type || !originalNewsId) {
+    return false;
+  }
 
-    if (
-        !studentNumber ||
-        !type ||
-        !originalNewsId
-    ) {
-        return false;
-    }
+  const readId = `${type}_${originalNewsId}`;
 
-    const readId =
-        `${type}_${originalNewsId}`;
+  if (readNewsIds.has(readId)) {
+    return true;
+  }
 
-    if (readNewsIds.has(readId)) {
-        return true;
-    }
+  try {
+    await setDoc(doc(db, "users", studentNumber, "readNews", readId), {
+      type,
+      newsId: originalNewsId,
+      studentNumber,
+      readAt: serverTimestamp(),
+    });
 
-    try {
+    readNewsIds.add(readId);
 
-        await setDoc(
-            doc(
-                db,
-                "users",
-                studentNumber,
-                "readNews",
-                readId
-            ),
-            {
-                type,
-                newsId: originalNewsId,
-                studentNumber,
-                readAt: serverTimestamp()
-            }
-        );
+    return true;
+  } catch (error) {
+    console.error("既読保存エラー:", error);
 
-        readNewsIds.add(readId);
-
-        return true;
-
-    } catch (error) {
-
-        console.error(
-            "既読保存エラー:",
-            error
-        );
-
-        return false;
-
-    }
-
+    return false;
+  }
 }
 
 async function markCurrentTabAllAsRead() {
+  if (!studentNumber || !markAllReadButton) {
+    return;
+  }
 
-    if (!studentNumber || !markAllReadButton) {
+  let type;
+  let targetContainer;
+  let targetBadge;
+  let newsIds = [];
+
+  try {
+    if (universityTab.classList.contains("active")) {
+      type = "university";
+      targetContainer = newsList;
+      targetBadge = universityNewsBadge;
+
+      const department = localStorage.getItem("department") || "";
+
+      const major = localStorage.getItem("major") || "";
+
+      const grade = (localStorage.getItem("grade") || "").replace("年", "");
+
+      if (!grade || (!department && !major)) {
         return;
+      }
+
+      let universityQuery;
+
+      if (department) {
+        universityQuery = query(
+          collection(db, "news"),
+          where("department", "==", department),
+          where("grade", "==", grade),
+        );
+      } else {
+        universityQuery = query(
+          collection(db, "news"),
+          where("major", "==", major),
+          where("grade", "==", grade),
+        );
+      }
+
+      const snapshot = await getDocs(universityQuery);
+
+      newsIds = snapshot.docs
+        .map((newsDoc) => newsDoc.id)
+        .filter((newsId) => !readNewsIds.has(`university_${newsId}`));
+    } else if (courseTab.classList.contains("active")) {
+      type = "course";
+      targetContainer = courseNews;
+      targetBadge = courseNewsBadge;
+
+      const snapshot = await getDocs(
+        collection(db, "courseNews", studentNumber, "news"),
+      );
+
+      newsIds = snapshot.docs
+        .map((newsDoc) => newsDoc.id)
+        .filter((newsId) => !readNewsIds.has(`course_${newsId}`));
+    } else {
+      type = "system";
+      targetContainer = systemNews;
+      targetBadge = systemNewsBadge;
+
+      const snapshot = await getDocs(collection(db, "systemNews"));
+
+      newsIds = snapshot.docs
+        .map((newsDoc) => newsDoc.id)
+        .filter((newsId) => !readNewsIds.has(`system_${newsId}`));
     }
 
-    let type;
-    let targetContainer;
-    let targetBadge;
-    let newsIds = [];
+    if (newsIds.length === 0) {
+      targetBadge.hidden = true;
+      targetBadge.textContent = "0";
 
-    try {
-
-        if (universityTab.classList.contains("active")) {
-
-            type = "university";
-            targetContainer = newsList;
-            targetBadge = universityNewsBadge;
-
-            const department =
-                localStorage.getItem("department") || "";
-
-            const major =
-                localStorage.getItem("major") || "";
-
-            const grade =
-                (
-                    localStorage.getItem("grade") || ""
-                ).replace("年", "");
-
-            if (!grade || (!department && !major)) {
-                return;
-            }
-
-            let universityQuery;
-
-            if (department) {
-
-                universityQuery = query(
-                    collection(db, "news"),
-                    where("department", "==", department),
-                    where("grade", "==", grade)
-                );
-
-            } else {
-
-                universityQuery = query(
-                    collection(db, "news"),
-                    where("major", "==", major),
-                    where("grade", "==", grade)
-                );
-
-            }
-
-            const snapshot =
-                await getDocs(universityQuery);
-
-            newsIds = snapshot.docs
-                .map(newsDoc => newsDoc.id)
-                .filter(newsId =>
-                    !readNewsIds.has(
-                        `university_${newsId}`
-                    )
-                );
-
-        } else if (
-            courseTab.classList.contains("active")
-        ) {
-
-            type = "course";
-            targetContainer = courseNews;
-            targetBadge = courseNewsBadge;
-
-            const snapshot = await getDocs(
-                collection(
-                    db,
-                    "courseNews",
-                    studentNumber,
-                    "news"
-                )
-            );
-
-            newsIds = snapshot.docs
-                .map(newsDoc => newsDoc.id)
-                .filter(newsId =>
-                    !readNewsIds.has(
-                        `course_${newsId}`
-                    )
-                );
-
-        } else {
-
-            type = "system";
-            targetContainer = systemNews;
-            targetBadge = systemNewsBadge;
-
-            const snapshot = await getDocs(
-                collection(db, "systemNews")
-            );
-
-            newsIds = snapshot.docs
-                .map(newsDoc => newsDoc.id)
-                .filter(newsId =>
-                    !readNewsIds.has(
-                        `system_${newsId}`
-                    )
-                );
-
-        }
-
-        if (newsIds.length === 0) {
-
-            targetBadge.hidden = true;
-            targetBadge.textContent = "0";
-
-            alert("未読のお知らせはありません。");
-            return;
-
-        }
-
-        const ok = confirm(
-            `${newsIds.length}件のお知らせを全て既読にしますか？`
-        );
-
-        if (!ok) {
-            return;
-        }
-
-        markAllReadButton.disabled = true;
-        markAllReadButton.textContent = "既読処理中...";
-
-        const results = await Promise.all(
-            newsIds.map(newsId =>
-                markNewsAsRead(type, newsId)
-            )
-        );
-
-        if (results.some(result => result !== true)) {
-            throw new Error(
-                "一部のお知らせを既読にできませんでした。"
-            );
-        }
-
-        targetContainer
-            .querySelectorAll(".news-new-label")
-            .forEach(label => label.remove());
-
-        targetContainer
-            .querySelectorAll(".news-read-hint")
-            .forEach(hint => hint.remove());
-
-        targetBadge.hidden = true;
-        targetBadge.textContent = "0";
-
-    } catch (error) {
-
-        console.error(
-            "全て既読エラー:",
-            error
-        );
-
-        alert(
-            "全て既読にできませんでした。"
-        );
-
-    } finally {
-
-        markAllReadButton.disabled = false;
-        markAllReadButton.textContent =
-            "✓ 全て既読";
-
+      alert("未読のお知らせはありません。");
+      return;
     }
 
+    const ok = confirm(`${newsIds.length}件のお知らせを全て既読にしますか？`);
+
+    if (!ok) {
+      return;
+    }
+
+    markAllReadButton.disabled = true;
+    markAllReadButton.textContent = "既読処理中...";
+
+    const results = await Promise.all(
+      newsIds.map((newsId) => markNewsAsRead(type, newsId)),
+    );
+
+    if (results.some((result) => result !== true)) {
+      throw new Error("一部のお知らせを既読にできませんでした。");
+    }
+
+    targetContainer
+      .querySelectorAll(".news-new-label")
+      .forEach((label) => label.remove());
+
+    targetContainer
+      .querySelectorAll(".news-read-hint")
+      .forEach((hint) => hint.remove());
+
+    targetBadge.hidden = true;
+    targetBadge.textContent = "0";
+  } catch (error) {
+    console.error("全て既読エラー:", error);
+
+    alert("全て既読にできませんでした。");
+  } finally {
+    markAllReadButton.disabled = false;
+    markAllReadButton.textContent = "✓ 全て既読";
+  }
 }
 
 markAllReadButton.onclick = markCurrentTabAllAsRead;
@@ -314,170 +211,136 @@ setupTheme(themeButton);
 await loadReadNewsIds();
 
 await initializePage([
-
-    setupAdminTab(),
-    loadUserName(userName),
-    loadMyRanking(),
-    loadProfileImage(topProfileImage),
-    loadNews(),
-    loadCourseNews(),
-    loadSystemNews(),
-    updateAssignmentNavBadge(),
-    updateShareNavBadge(),
-    updateNewsNavBadge()
-
+  setupAdminTab(),
+  loadUserName(userName),
+  loadMyRanking(),
+  loadProfileImage(topProfileImage),
+  loadNews(),
+  loadCourseNews(),
+  loadSystemNews(),
+  updateAssignmentNavBadge(),
+  updateShareNavBadge(),
+  updateNewsNavBadge(),
 ]);
 
 universityTab.onclick = () => {
+  universityTab.classList.add("active");
 
-    universityTab.classList.add("active");
+  courseTab.classList.remove("active");
+  systemTab.classList.remove("active");
 
-    courseTab.classList.remove("active");
-    systemTab.classList.remove("active");
-
-    universityNews.style.display = "block";
-    courseNews.style.display = "none";
-    systemNews.style.display = "none";
-
+  universityNews.style.display = "block";
+  courseNews.style.display = "none";
+  systemNews.style.display = "none";
 };
 
 courseTab.onclick = () => {
+  courseTab.classList.add("active");
 
-    courseTab.classList.add("active");
+  universityTab.classList.remove("active");
+  systemTab.classList.remove("active");
 
-    universityTab.classList.remove("active");
-    systemTab.classList.remove("active");
-
-    universityNews.style.display = "none";
-    courseNews.style.display = "block";
-    systemNews.style.display = "none";
-
+  universityNews.style.display = "none";
+  courseNews.style.display = "block";
+  systemNews.style.display = "none";
 };
 
 systemTab.onclick = () => {
+  systemTab.classList.add("active");
 
-    systemTab.classList.add("active");
+  universityTab.classList.remove("active");
+  courseTab.classList.remove("active");
 
-    universityTab.classList.remove("active");
-    courseTab.classList.remove("active");
-
-    universityNews.style.display = "none";
-    courseNews.style.display = "none";
-    systemNews.style.display = "block";
-
+  universityNews.style.display = "none";
+  courseNews.style.display = "none";
+  systemNews.style.display = "block";
 };
 
 async function loadNews() {
+  const department = localStorage.getItem("department") || "";
 
-    const department =
-        localStorage.getItem("department") || "";
+  const major = localStorage.getItem("major") || "";
 
-    const major =
-        localStorage.getItem("major") || "";
+  const grade = (localStorage.getItem("grade") || "").replace("年", "");
 
-    const grade =
-        (localStorage.getItem("grade") || "")
-            .replace("年", "");
+  if (!grade || (!department && !major)) {
+    newsList.innerHTML = "お知らせはありません。";
 
-    if (!grade || (!department && !major)) {
+    setNewsTabBadge(universityNewsBadge, 0);
 
-        newsList.innerHTML =
-            "お知らせはありません。";
+    return;
+  }
 
-        setNewsTabBadge(
-            universityNewsBadge,
-            0
-        );
+  const q = department
+    ? query(
+        collection(db, "news"),
+        where("department", "==", department),
+        where("grade", "==", grade),
+      )
+    : query(
+        collection(db, "news"),
+        where("major", "==", major),
+        where("grade", "==", grade),
+      );
 
-        return;
+  const snapshot = await getDocs(q);
 
-    }
+  if (snapshot.empty) {
+    newsList.innerHTML = "お知らせはありません。";
 
-    const q = department
-        ? query(
-            collection(db, "news"),
-            where("department", "==", department),
-            where("grade", "==", grade)
-        )
-        : query(
-            collection(db, "news"),
-            where("major", "==", major),
-            where("grade", "==", grade)
-        );
+    setNewsTabBadge(universityNewsBadge, 0);
 
-    const snapshot = await getDocs(q);
+    return;
+  }
 
-    if (snapshot.empty) {
+  const notices = snapshot.docs
+    .map((newsDoc) => ({
+      id: newsDoc.id,
+      ...newsDoc.data(),
+    }))
+    .sort(
+      (a, b) =>
+        getTimestampMilliseconds(b.postedAt) -
+        getTimestampMilliseconds(a.postedAt),
+    );
 
-        newsList.innerHTML =
-            "お知らせはありません。";
+  let unreadCount = 0;
 
-        setNewsTabBadge(
-            universityNewsBadge,
-            0
-        );
+  const html = notices
+    .map((notice) => {
+      const posted = notice.postedAt?.toDate?.() || null;
 
-        return;
+      const readId = `university_${notice.id}`;
 
-    }
+      const isUnread = !readNewsIds.has(readId);
 
-    const notices = snapshot.docs
-        .map(newsDoc => ({
-            id: newsDoc.id,
-            ...newsDoc.data()
-        }))
-        .sort((a, b) =>
-            getTimestampMilliseconds(b.postedAt) -
-            getTimestampMilliseconds(a.postedAt)
-        );
+      if (isUnread) {
+        unreadCount++;
+      }
 
-    let unreadCount = 0;
-
-    const html = notices.map(notice => {
-
-        const posted =
-            notice.postedAt?.toDate?.() || null;
-
-        const readId =
-            `university_${notice.id}`;
-
-        const isUnread =
-            !readNewsIds.has(readId);
-
-        if (isUnread) {
-            unreadCount++;
-        }
-
-        return `
+      return `
             <div
                 class="card news-card news-readable-card${
-                    notice.important === true
-                        ? " is-important"
-                        : ""
+                  notice.important === true ? " is-important" : ""
                 }"
                 data-news-type="university"
                 data-news-id="${notice.id}">
 
-                ${
-                    isUnread
-                        ? `<span class="news-new-label">NEW</span>`
-                        : ""
-                }
+                ${isUnread ? `<span class="news-new-label">NEW</span>` : ""}
 
                 <div class="news-date">
                     ${formatDateTime(posted)}
                 </div>
 
                 <div class="news-body">
-                    ${(notice.body || "")
-                        .replace(/\n/g, "<br>")}
+                    ${(notice.body || "").replace(/\n/g, "<br>")}
                 </div>
 
                 <br>
 
                 ${
-                    notice.pdf
-                        ? `
+                  notice.pdf
+                    ? `
                             <a
                                 href="${notice.pdf}"
                                 target="_blank"
@@ -485,355 +348,246 @@ async function loadNews() {
                                 📄 PDFを見る
                             </a>
                         `
-                        : ""
+                    : ""
                 }
 
                 ${
-                    isUnread
-                        ? `
+                  isUnread
+                    ? `
                             <div class="news-read-hint">
                                 タップで既読
                             </div>
                         `
-                        : ""
+                    : ""
                 }
 
             </div>
         `;
+    })
+    .join("");
 
-    }).join("");
+  newsList.innerHTML = html;
 
-    newsList.innerHTML = html;
-
-    setNewsTabBadge(
-        universityNewsBadge,
-        unreadCount
-    );
-
+  setNewsTabBadge(universityNewsBadge, unreadCount);
 }
 
-newsList.addEventListener(
-    "click",
-    async (event) => {
+newsList.addEventListener("click", async (event) => {
+  const card = event.target.closest(".news-readable-card");
 
-        const card =
-            event.target.closest(
-                ".news-readable-card"
-            );
+  if (!card) {
+    return;
+  }
 
-        if (!card) {
-            return;
-        }
+  const type = card.dataset.newsType;
 
-        const type =
-            card.dataset.newsType;
+  const newsId = card.dataset.newsId;
 
-        const newsId =
-            card.dataset.newsId;
+  const readId = `${type}_${newsId}`;
 
-        const readId =
-            `${type}_${newsId}`;
+  if (readNewsIds.has(readId)) {
+    return;
+  }
 
-        if (readNewsIds.has(readId)) {
-            return;
-        }
+  const saved = await markNewsAsRead(type, newsId);
 
-        const saved =
-            await markNewsAsRead(
-                type,
-                newsId
-            );
+  if (!saved) {
+    return;
+  }
 
-        if (!saved) {
-            return;
-        }
+  card.querySelector(".news-new-label")?.remove();
 
-        card
-            .querySelector(".news-new-label")
-            ?.remove();
+  card.querySelector(".news-read-hint")?.remove();
 
-        card
-            .querySelector(".news-read-hint")
-            ?.remove();
+  decreaseNewsTabBadge(universityNewsBadge);
 
-        decreaseNewsTabBadge(
-            universityNewsBadge
-        );
+  await updateNewsNavBadge();
+});
 
-        await updateNewsNavBadge();
+courseNews.addEventListener("click", async (event) => {
+  const card = event.target.closest(".news-readable-card");
 
+  if (!card) {
+    return;
+  }
+
+  const type = card.dataset.newsType;
+
+  const newsId = card.dataset.newsId;
+
+  const newsUrl = card.dataset.newsUrl;
+
+  const readId = `${type}_${newsId}`;
+
+  if (!readNewsIds.has(readId)) {
+    const saved = await markNewsAsRead(type, newsId);
+
+    if (!saved) {
+      return;
     }
-);
 
-courseNews.addEventListener(
-    "click",
-    async (event) => {
+    card.querySelector(".news-new-label")?.remove();
 
-        const card =
-            event.target.closest(
-                ".news-readable-card"
-            );
+    card.querySelector(".news-read-hint")?.remove();
 
-        if (!card) {
-            return;
-        }
+    decreaseNewsTabBadge(courseNewsBadge);
 
-        const type =
-            card.dataset.newsType;
+    await updateNewsNavBadge();
+  }
 
-        const newsId =
-            card.dataset.newsId;
-
-        const newsUrl =
-            card.dataset.newsUrl;
-
-        const readId =
-            `${type}_${newsId}`;
-
-        if (!readNewsIds.has(readId)) {
-
-            const saved =
-                await markNewsAsRead(
-                    type,
-                    newsId
-                );
-
-            if (!saved) {
-                return;
-            }
-
-            card
-                .querySelector(".news-new-label")
-                ?.remove();
-
-            card
-                .querySelector(".news-read-hint")
-                ?.remove();
-
-            decreaseNewsTabBadge(
-                courseNewsBadge
-            );
-
-            await updateNewsNavBadge();
-        }
-
-        if (newsUrl) {
-            window.open(
-                newsUrl,
-                "_blank",
-                "noopener,noreferrer"
-            );
-        }
-
-    }
-);
+  if (newsUrl) {
+    window.open(newsUrl, "_blank", "noopener,noreferrer");
+  }
+});
 
 function parseCourseNewsDate(value) {
+  if (!value) {
+    return 0;
+  }
 
-    if (!value) {
-        return 0;
-    }
+  const match = String(value).match(
+    /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/,
+  );
 
-    const match =
-        String(value).match(
-            /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s+(\d{1,2}):(\d{2})$/
-        );
+  if (!match) {
+    return 0;
+  }
 
-    if (!match) {
-        return 0;
-    }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
 
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    const hour = Number(match[4]);
-    const minute = Number(match[5]);
-
-    return new Date(
-        year,
-        month - 1,
-        day,
-        hour,
-        minute
-    ).getTime();
-
+  return new Date(year, month - 1, day, hour, minute).getTime();
 }
 
 function getTimestampMilliseconds(timestamp) {
-
-    if (!timestamp) {
-        return 0;
-    }
-
-    if (typeof timestamp.toMillis === "function") {
-        return timestamp.toMillis();
-    }
-
-    if (typeof timestamp.toDate === "function") {
-        return timestamp.toDate().getTime();
-    }
-
+  if (!timestamp) {
     return 0;
+  }
 
+  if (typeof timestamp.toMillis === "function") {
+    return timestamp.toMillis();
+  }
+
+  if (typeof timestamp.toDate === "function") {
+    return timestamp.toDate().getTime();
+  }
+
+  return 0;
 }
 
 function setNewsTabBadge(badge, count) {
+  if (!badge) {
+    return;
+  }
 
-    if (!badge) {
-        return;
-    }
+  if (count <= 0) {
+    badge.hidden = true;
+    badge.textContent = "0";
 
-    if (count <= 0) {
+    return;
+  }
 
-        badge.hidden = true;
-        badge.textContent = "0";
+  badge.hidden = false;
 
-        return;
-    }
-
-    badge.hidden = false;
-
-    badge.textContent =
-        count > 99
-            ? "99+"
-            : String(count);
-
+  badge.textContent = count > 99 ? "99+" : String(count);
 }
 
 function decreaseNewsTabBadge(badge) {
+  if (!badge || badge.hidden) {
+    return;
+  }
 
-    if (!badge || badge.hidden) {
-        return;
-    }
+  const currentCount = Number(badge.textContent);
 
-    const currentCount =
-        Number(badge.textContent);
+  if (!Number.isFinite(currentCount) || currentCount <= 1) {
+    badge.textContent = "0";
+    badge.hidden = true;
 
-    if (
-        !Number.isFinite(currentCount) ||
-        currentCount <= 1
-    ) {
+    return;
+  }
 
-        badge.textContent = "0";
-        badge.hidden = true;
-
-        return;
-    }
-
-    badge.textContent =
-        String(currentCount - 1);
-
+  badge.textContent = String(currentCount - 1);
 }
 
 function formatDateTime(date) {
+  if (!date) {
+    return "";
+  }
 
-    if (!date) {
-        return "";
-    }
-
-    return (
-        `${date.getFullYear()}/` +
-        `${String(date.getMonth() + 1).padStart(2, "0")}/` +
-        `${String(date.getDate()).padStart(2, "0")} ` +
-        `${String(date.getHours()).padStart(2, "0")}:` +
-        `${String(date.getMinutes()).padStart(2, "0")}`
-    );
-
+  return (
+    `${date.getFullYear()}/` +
+    `${String(date.getMonth() + 1).padStart(2, "0")}/` +
+    `${String(date.getDate()).padStart(2, "0")} ` +
+    `${String(date.getHours()).padStart(2, "0")}:` +
+    `${String(date.getMinutes()).padStart(2, "0")}`
+  );
 }
 
 function formatCourseNewsDate(value) {
+  const timestamp = parseCourseNewsDate(value);
 
-    const timestamp =
-        parseCourseNewsDate(value);
+  if (!timestamp) {
+    return value || "";
+  }
 
-    if (!timestamp) {
-        return value || "";
-    }
-
-    return formatDateTime(
-        new Date(timestamp)
-    );
-
+  return formatDateTime(new Date(timestamp));
 }
 
 async function loadCourseNews() {
+  if (!studentNumber) {
+    courseNews.innerHTML = "コースニュースはありません。";
 
-    if (!studentNumber) {
+    setNewsTabBadge(courseNewsBadge, 0);
 
-        courseNews.innerHTML =
-            "コースニュースはありません。";
+    return;
+  }
 
-        setNewsTabBadge(
-            courseNewsBadge,
-            0
-        );
+  const q = query(
+    collection(db, "courseNews", studentNumber, "news"),
+    orderBy("createdAt", "desc"),
+  );
 
-        return;
+  const snapshot = await getDocs(q);
 
-    }
+  if (snapshot.empty) {
+    courseNews.innerHTML = "コースニュースはありません。";
 
-    const q = query(
-        collection(
-            db,
-            "courseNews",
-            studentNumber,
-            "news"
-        ),
-        orderBy("createdAt", "desc")
+    setNewsTabBadge(courseNewsBadge, 0);
+
+    return;
+  }
+
+  const notices = snapshot.docs
+    .map((newsDoc) => ({
+      id: newsDoc.id,
+      ...newsDoc.data(),
+    }))
+    .sort(
+      (a, b) => parseCourseNewsDate(b.posted) - parseCourseNewsDate(a.posted),
     );
 
-    const snapshot = await getDocs(q);
+  let unreadCount = 0;
 
-    if (snapshot.empty) {
+  const html = notices
+    .map((notice) => {
+      const readId = `course_${notice.id}`;
 
-        courseNews.innerHTML =
-            "コースニュースはありません。";
+      const isUnread = !readNewsIds.has(readId);
 
-        setNewsTabBadge(
-            courseNewsBadge,
-            0
-        );
+      if (isUnread) {
+        unreadCount++;
+      }
 
-        return;
-
-    }
-
-    const notices = snapshot.docs
-        .map(newsDoc => ({
-            id: newsDoc.id,
-            ...newsDoc.data()
-        }))
-        .sort((a, b) =>
-            parseCourseNewsDate(b.posted) -
-            parseCourseNewsDate(a.posted)
-        );
-
-    let unreadCount = 0;
-
-    const html = notices.map(notice => {
-
-        const readId =
-            `course_${notice.id}`;
-
-        const isUnread =
-            !readNewsIds.has(readId);
-
-        if (isUnread) {
-            unreadCount++;
-        }
-
-        return `
+      return `
             <div
                 class="card news-card news-readable-card"
                 data-news-type="course"
                 data-news-id="${notice.id}"
                 data-news-url="${notice.url || ""}">
 
-                ${
-                    isUnread
-                        ? `<span class="news-new-label">NEW</span>`
-                        : ""
-                }
+                ${isUnread ? `<span class="news-new-label">NEW</span>` : ""}
 
                 <div class="news-date">
                     ${formatCourseNewsDate(notice.posted)}
@@ -852,136 +606,107 @@ async function loadCourseNews() {
                 </div>
 
                 ${
-                    isUnread
-                        ? `
+                  isUnread
+                    ? `
                             <div class="news-read-hint">
                                 タップで既読
                             </div>
                         `
-                        : ""
+                    : ""
                 }
 
             </div>
         `;
+    })
+    .join("");
 
-    }).join("");
+  courseNews.innerHTML = html;
 
-    courseNews.innerHTML = html;
-
-    setNewsTabBadge(
-        courseNewsBadge,
-        unreadCount
-    );
-
+  setNewsTabBadge(courseNewsBadge, unreadCount);
 }
 
 document.getElementById("profileButton").onclick = () => {
-    location.href = "profile.html";
+  location.href = "profile.html";
 };
 
 async function loadSystemNews() {
+  if (!studentNumber) {
+    systemNews.innerHTML = "Manaba認証後に表示されます。";
 
-    if (!studentNumber) {
+    setNewsTabBadge(systemNewsBadge, 0);
 
-        systemNews.innerHTML =
-            "Manaba認証後に表示されます。";
+    return;
+  }
 
-        setNewsTabBadge(
-            systemNewsBadge,
-            0
-        );
+  const q = query(collection(db, "systemNews"), orderBy("createdAt", "desc"));
 
-        return;
+  const [snapshot, targetedSnapshot] = await Promise.all([
+    getDocs(q),
+    getDocs(collection(db, "users", studentNumber, "targetedSystemNews")),
+  ]);
 
-    }
+  if (snapshot.empty && targetedSnapshot.empty) {
+    systemNews.innerHTML = "CareMateからのお知らせはありません。";
 
-    const q = query(
-        collection(db, "systemNews"),
-        orderBy("createdAt", "desc")
-    );
+    setNewsTabBadge(systemNewsBadge, 0);
 
-    const [snapshot, targetedSnapshot] = await Promise.all([
-        getDocs(q),
-        getDocs(collection(db, "users", studentNumber, "targetedSystemNews"))
-    ]);
+    return;
+  }
 
-    if (snapshot.empty && targetedSnapshot.empty) {
+  let unreadCount = 0;
 
-        systemNews.innerHTML =
-            "CareMateからのお知らせはありません。";
+  const notices = [...snapshot.docs, ...targetedSnapshot.docs]
+    .map((newsDoc) => ({
+      id: newsDoc.id,
+      ...newsDoc.data(),
+    }))
+    .sort((noticeA, noticeB) => {
+      const importantDifference =
+        Number(noticeB.important === true) - Number(noticeA.important === true);
 
-        setNewsTabBadge(
-            systemNewsBadge,
-            0
-        );
+      if (importantDifference !== 0) {
+        return importantDifference;
+      }
 
-        return;
+      return (
+        getTimestampMilliseconds(noticeB.createdAt) -
+        getTimestampMilliseconds(noticeA.createdAt)
+      );
+    });
 
-    }
+  const html = notices
+    .map((notice) => {
+      const created = notice.createdAt?.toDate?.() || null;
 
-    let unreadCount = 0;
+      const readId = `system_${notice.id}`;
 
-    const notices = [...snapshot.docs, ...targetedSnapshot.docs]
-        .map(newsDoc => ({
-            id: newsDoc.id,
-            ...newsDoc.data()
-        }))
-        .sort((noticeA, noticeB) => {
-            const importantDifference =
-                Number(noticeB.important === true) -
-                Number(noticeA.important === true);
+      const isUnread = !readNewsIds.has(readId);
 
-            if (importantDifference !== 0) {
-                return importantDifference;
-            }
+      if (isUnread) {
+        unreadCount++;
+      }
 
-            return getTimestampMilliseconds(noticeB.createdAt) -
-                getTimestampMilliseconds(noticeA.createdAt);
-        });
-
-    const html = notices.map(notice => {
-
-        const created =
-            notice.createdAt?.toDate?.() || null;
-
-        const readId =
-            `system_${notice.id}`;
-
-        const isUnread =
-            !readNewsIds.has(readId);
-
-        if (isUnread) {
-            unreadCount++;
-        }
-
-        return `
+      return `
             <div
                 class="card news-card news-readable-card${
-                    notice.important === true
-                        ? " is-important"
-                        : ""
+                  notice.important === true ? " is-important" : ""
                 }"
                 data-news-type="system"
                 data-news-id="${notice.id}">
 
-                ${
-                    isUnread
-                        ? `<span class="news-new-label">NEW</span>`
-                        : ""
-                }
+                ${isUnread ? `<span class="news-new-label">NEW</span>` : ""}
 
                 <div class="news-title">
                     💙 ${notice.title || ""}
                     ${
-                        notice.important === true
-                            ? `<span class="news-important-badge">📌 重要</span>`
-                            : ""
+                      notice.important === true
+                        ? `<span class="news-important-badge">📌 重要</span>`
+                        : ""
                     }
                 </div>
 
                 <div class="news-body">
-                    ${(notice.body || "")
-                        .replace(/\n/g, "<br>")}
+                    ${(notice.body || "").replace(/\n/g, "<br>")}
                 </div>
 
                 <div class="news-date">
@@ -989,84 +714,59 @@ async function loadSystemNews() {
                 </div>
 
                 ${
-                    isUnread
-                        ? `
+                  isUnread
+                    ? `
                             <div class="news-read-hint">
                                 タップで既読
                             </div>
                         `
-                        : ""
+                    : ""
                 }
 
             </div>
         `;
+    })
+    .join("");
 
-    }).join("");
+  systemNews.innerHTML = html;
 
-    systemNews.innerHTML = html;
-
-    setNewsTabBadge(
-        systemNewsBadge,
-        unreadCount
-    );
-
+  setNewsTabBadge(systemNewsBadge, unreadCount);
 }
 
-systemNews.addEventListener(
-    "click",
-    async (event) => {
+systemNews.addEventListener("click", async (event) => {
+  const card = event.target.closest(".news-readable-card");
 
-        const card =
-            event.target.closest(
-                ".news-readable-card"
-            );
+  if (!card) {
+    return;
+  }
 
-        if (!card) {
-            return;
-        }
+  const type = card.dataset.newsType;
 
-        const type =
-            card.dataset.newsType;
+  const newsId = card.dataset.newsId;
 
-        const newsId =
-            card.dataset.newsId;
+  const readId = `${type}_${newsId}`;
 
-        const readId =
-            `${type}_${newsId}`;
+  if (readNewsIds.has(readId)) {
+    return;
+  }
 
-        if (readNewsIds.has(readId)) {
-            return;
-        }
+  const saved = await markNewsAsRead(type, newsId);
 
-        const saved =
-            await markNewsAsRead(
-                type,
-                newsId
-            );
+  if (!saved) {
+    return;
+  }
 
-        if (!saved) {
-            return;
-        }
+  card.querySelector(".news-new-label")?.remove();
 
-        card
-            .querySelector(".news-new-label")
-            ?.remove();
+  card.querySelector(".news-read-hint")?.remove();
 
-        card
-            .querySelector(".news-read-hint")
-            ?.remove();
+  decreaseNewsTabBadge(systemNewsBadge);
 
-        decreaseNewsTabBadge(
-            systemNewsBadge
-        );
-
-        await updateNewsNavBadge();
-
-    }
-);
+  await updateNewsNavBadge();
+});
 
 const params = new URLSearchParams(location.search);
 
 if (params.get("tab") === "course") {
-    courseTab.click();
+  courseTab.click();
 }

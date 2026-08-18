@@ -1,105 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<head>
+    <title>資料管理 | CareMate</title>
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css" />
 
-<title>資料管理 | CareMate</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<link rel="stylesheet" href="style.css">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
+      <h2>📄 資料管理</h2>
 
-</head>
-
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <button id="backButton" class="circle-button">
-        ←
-    </button>
-
-    <h2>📄 資料管理</h2>
-
-    <div class="top-right">
-
-        <button id="themeButton" class="circle-button">
-            🌙
-        </button>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-
+      </div>
     </div>
 
-</div>
+    <div class="card setting-card">
+      <h2>📄 資料管理</h2>
 
-<div class="card setting-card">
+      <p id="unitInfo">読み込み中...</p>
+    </div>
 
-    <h2>📄 資料管理</h2>
+    <div class="card setting-card">
+      <h3>資料アップロード</h3>
 
-    <p id="unitInfo">
-        読み込み中...
-    </p>
-
-</div>
-
-<div class="card setting-card">
-
-    <h3>資料アップロード</h3>
-
-    <input
+      <input
         type="file"
         id="materialFile"
-        accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,audio/*">
+        accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,audio/*"
+      />
 
-    <br><br>
+      <br /><br />
 
-    <button id="uploadMaterial" class="btn btn-primary">
-        アップロード
-    </button>
-
-</div>
-
-<div class="card setting-card">
-
-    <h3>登録済み資料</h3>
-
-    <div id="materialList">
-        読み込み中...
+      <button id="uploadMaterial" class="btn btn-primary">アップロード</button>
     </div>
 
-</div>
+    <div class="card setting-card">
+      <h3>登録済み資料</h3>
 
-<div class="card setting-card">
+      <div id="materialList">読み込み中...</div>
+    </div>
 
-    <h3>🤖 AI問題生成</h3>
+    <div class="card setting-card">
+      <h3>🤖 AI問題生成</h3>
 
-    <p>
-        登録済み資料から重要ポイントを抽出して問題を作成します。
-    </p>
+      <p>登録済み資料から重要ポイントを抽出して問題を作成します。</p>
 
-    <button id="generateAiQuestions" class="btn btn-primary">
+      <button id="generateAiQuestions" class="btn btn-primary">
         🤖 AIで問題を作成
-    </button>
+      </button>
+    </div>
 
-</div>
-
-<script type="module" src="exam_materials_admin.js"></script>
-
-</body>
-
+    <script type="module" src="exam_materials_admin.js"></script>
+  </body>
 </html>

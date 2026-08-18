@@ -1,360 +1,245 @@
 import {
-    db,
-    studentNumber,
-    setupTheme,
-    initializePage,
-    loadProfileImage,
-    setupAdminTab,
-    isAdmin,
-    showToast,
-    updateAssignmentNavBadge,
-    updateShareNavBadge,
-    updateNewsNavBadge
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  setupAdminTab,
+  isAdmin,
+  showToast,
+  updateAssignmentNavBadge,
+  updateShareNavBadge,
+  updateNewsNavBadge,
 } from "./common.js";
 
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    setDoc,
-    writeBatch,
-    serverTimestamp,
-    query,
-    orderBy,
-    limit
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  writeBatch,
+  serverTimestamp,
+  query,
+  orderBy,
+  limit,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
 
 /* ========================================
    HTML要素
 ======================================== */
 
 const elements = {
+  theme: document.getElementById("themeButton"),
 
-    theme:
-        document.getElementById("themeButton"),
+  profile: document.getElementById("profileButton"),
 
-    profile:
-        document.getElementById("profileButton"),
+  image: document.getElementById("topProfileImage"),
 
-    image:
-        document.getElementById("topProfileImage"),
+  back: document.getElementById("backButton"),
 
-    back:
-        document.getElementById("backButton"),
+  previewBanner: document.getElementById("previewBanner"),
 
+  phaseCard: document.getElementById("registrationPhaseCard"),
 
-    previewBanner:
-        document.getElementById("previewBanner"),
+  phaseBadge: document.getElementById("registrationPhaseBadge"),
 
-    phaseCard:
-        document.getElementById("registrationPhaseCard"),
+  info: document.getElementById("studentCourseInfo"),
 
-    phaseBadge:
-        document.getElementById("registrationPhaseBadge"),
+  summary: document.getElementById("registrationSummary"),
 
-    info:
-        document.getElementById("studentCourseInfo"),
+  deadline: document.getElementById("registrationDeadline"),
 
-    summary:
-        document.getElementById("registrationSummary"),
+  curriculumName: document.getElementById("studentCurriculumName"),
 
-    deadline:
-        document.getElementById("registrationDeadline"),
+  departmentInfo: document.getElementById("studentDepartmentInfo"),
 
-    curriculumName:
-        document.getElementById("studentCurriculumName"),
+  gradeInfo: document.getElementById("studentGradeInfo"),
 
-    departmentInfo:
-        document.getElementById("studentDepartmentInfo"),
+  lastRegistrationInfo: document.getElementById("lastRegistrationInfo"),
 
-    gradeInfo:
-        document.getElementById("studentGradeInfo"),
+  unavailable: document.getElementById("registrationUnavailable"),
 
-    lastRegistrationInfo:
-        document.getElementById("lastRegistrationInfo"),
+  unavailableTitle: document.getElementById("registrationUnavailableTitle"),
 
+  unavailableMessage: document.getElementById("registrationUnavailableMessage"),
 
-    unavailable:
-        document.getElementById("registrationUnavailable"),
+  unavailableBack: document.getElementById("unavailableBackButton"),
 
-    unavailableTitle:
-        document.getElementById("registrationUnavailableTitle"),
+  guide: document.getElementById("registrationGuide"),
 
-    unavailableMessage:
-        document.getElementById("registrationUnavailableMessage"),
+  mainLayout: document.getElementById("registrationMainLayout"),
 
-    unavailableBack:
-        document.getElementById("unavailableBackButton"),
+  warningPanel: document.getElementById("courseWarningPanel"),
 
+  warningTitle: document.getElementById("courseWarningTitle"),
 
-    guide:
-        document.getElementById("registrationGuide"),
+  warningList: document.getElementById("courseWarningList"),
 
-    mainLayout:
-        document.getElementById("registrationMainLayout"),
+  graduationCard: document.getElementById("graduationProgressCard"),
 
+  graduationToggle: document.getElementById("toggleGraduationProgressButton"),
 
-    warningPanel:
-        document.getElementById("courseWarningPanel"),
+  graduationContent: document.getElementById("graduationProgressContent"),
 
-    warningTitle:
-        document.getElementById("courseWarningTitle"),
+  graduationProgressBar: document.getElementById("graduationProgressBar"),
 
-    warningList:
-        document.getElementById("courseWarningList"),
+  earnedCredits: document.getElementById("earnedCredits"),
 
+  earnedCreditsLabel: document.getElementById("earnedCreditsLabel"),
 
-    graduationCard:
-        document.getElementById("graduationProgressCard"),
+  graduationRequiredCredits: document.getElementById(
+    "requiredGraduationCredits",
+  ),
 
-    graduationToggle:
-        document.getElementById("toggleGraduationProgressButton"),
+  projectedCredits: document.getElementById("projectedCredits"),
 
-    graduationContent:
-        document.getElementById("graduationProgressContent"),
+  remainingCredits: document.getElementById("remainingCredits"),
 
-    graduationProgressBar:
-        document.getElementById("graduationProgressBar"),
+  categoryProgressList: document.getElementById("categoryProgressList"),
 
-    earnedCredits:
-        document.getElementById("earnedCredits"),
+  specialRequirementProgressList: document.getElementById(
+    "specialRequirementProgressList",
+  ),
 
-    earnedCreditsLabel:
-        document.getElementById("earnedCreditsLabel"),
+  progressCard: document.getElementById("courseProgressCard"),
 
-    graduationRequiredCredits:
-        document.getElementById("requiredGraduationCredits"),
+  progressToggle: document.getElementById("toggleProgressEditor"),
 
-    projectedCredits:
-        document.getElementById("projectedCredits"),
+  progressSummary: document.getElementById("courseProgressSummary"),
 
-    remainingCredits:
-        document.getElementById("remainingCredits"),
+  progressEditor: document.getElementById("progressEditor"),
 
-    categoryProgressList:
-        document.getElementById("categoryProgressList"),
+  progressYearFields: document.getElementById("courseProgressYearFields"),
 
-    specialRequirementProgressList:
-        document.getElementById("specialRequirementProgressList"),
+  progressSave: document.getElementById("saveCourseProgress"),
 
+  search: document.getElementById("courseSearchInput"),
 
-    progressCard:
-        document.getElementById("courseProgressCard"),
+  requirementFilter: document.getElementById("courseRequirementFilter"),
 
-    progressToggle:
-        document.getElementById("toggleProgressEditor"),
+  categoryFilter: document.getElementById("courseCategoryFilter"),
 
-    progressSummary:
-        document.getElementById("courseProgressSummary"),
+  selectionFilter: document.getElementById("courseSelectionFilter"),
 
-    progressEditor:
-        document.getElementById("progressEditor"),
+  resetFilters: document.getElementById("resetCourseFiltersButton"),
 
-    progressYearFields:
-        document.getElementById("courseProgressYearFields"),
+  visibleCount: document.getElementById("visibleCourseCount"),
 
-    progressSave:
-        document.getElementById("saveCourseProgress"),
+  selectRequired: document.getElementById("selectRequiredCoursesButton"),
 
+  restore: document.getElementById("restorePreviousEnrollment"),
 
-    search:
-        document.getElementById("courseSearchInput"),
+  clearOptional: document.getElementById("clearOptionalCoursesButton"),
 
-    requirementFilter:
-        document.getElementById("courseRequirementFilter"),
+  list: document.getElementById("courseList"),
 
-    categoryFilter:
-        document.getElementById("courseCategoryFilter"),
+  selectedCount: document.getElementById("selectedCourseCount"),
 
-    selectionFilter:
-        document.getElementById("courseSelectionFilter"),
+  warningBadge: document.getElementById("summaryWarningBadge"),
 
-    resetFilters:
-        document.getElementById("resetCourseFiltersButton"),
+  currentCredits: document.getElementById("currentCredits"),
 
-    visibleCount:
-        document.getElementById("visibleCourseCount"),
+  semesterCredits: document.getElementById("semesterCredits"),
 
+  annualCredits: document.getElementById("annualCredits"),
 
-    selectRequired:
-        document.getElementById("selectRequiredCoursesButton"),
+  semesterLimitText: document.getElementById("semesterLimitText"),
 
-    restore:
-        document.getElementById("restorePreviousEnrollment"),
+  annualLimitText: document.getElementById("annualLimitText"),
 
-    clearOptional:
-        document.getElementById("clearOptionalCoursesButton"),
+  semesterLimitBar: document.getElementById("semesterLimitProgressBar"),
 
+  annualLimitBar: document.getElementById("annualLimitProgressBar"),
 
-    list:
-        document.getElementById("courseList"),
+  earnedCreditsSummary: document.getElementById("earnedCreditsSummary"),
 
+  projectedCreditsSummary: document.getElementById("projectedCreditsSummary"),
 
-    selectedCount:
-        document.getElementById("selectedCourseCount"),
+  earnedRequiredCredits: document.getElementById("earnedRequiredCredits"),
 
-    warningBadge:
-        document.getElementById("summaryWarningBadge"),
+  earnedElectiveCredits: document.getElementById("earnedElectiveCredits"),
 
-    currentCredits:
-        document.getElementById("currentCredits"),
+  summaryMessage: document.getElementById("summaryMessage"),
 
-    semesterCredits:
-        document.getElementById("semesterCredits"),
+  save: document.getElementById("saveCoursesButton"),
 
-    annualCredits:
-        document.getElementById("annualCredits"),
+  mobileSaveBar: document.getElementById("mobileRegistrationSaveBar"),
 
-    semesterLimitText:
-        document.getElementById("semesterLimitText"),
+  mobileSummaryToggle: document.getElementById("toggleMobileSummaryButton"),
 
-    annualLimitText:
-        document.getElementById("annualLimitText"),
+  mobileSelectedCount: document.getElementById("mobileSelectedCourseCount"),
 
-    semesterLimitBar:
-        document.getElementById("semesterLimitProgressBar"),
+  mobileSelectedCredits: document.getElementById("mobileSelectedCredits"),
 
-    annualLimitBar:
-        document.getElementById("annualLimitProgressBar"),
+  mobileSave: document.getElementById("mobileSaveCoursesButton"),
 
-    earnedCreditsSummary:
-        document.getElementById("earnedCreditsSummary"),
+  mobileOverlay: document.getElementById("mobileSummaryOverlay"),
 
-    projectedCreditsSummary:
-        document.getElementById("projectedCreditsSummary"),
+  mobilePanel: document.getElementById("mobileSummaryPanel"),
 
-    earnedRequiredCredits:
-        document.getElementById("earnedRequiredCredits"),
+  mobilePanelClose: document.getElementById("closeMobileSummaryButton"),
 
-    earnedElectiveCredits:
-        document.getElementById("earnedElectiveCredits"),
+  mobilePanelCourseCount: document.getElementById("mobilePanelCourseCount"),
 
-    summaryMessage:
-        document.getElementById("summaryMessage"),
+  mobilePanelCredits: document.getElementById("mobilePanelCredits"),
 
-    save:
-        document.getElementById("saveCoursesButton"),
+  mobileSemesterCredits: document.getElementById("mobileSemesterCredits"),
 
+  mobileAnnualCredits: document.getElementById("mobileAnnualCredits"),
 
-    mobileSaveBar:
-        document.getElementById("mobileRegistrationSaveBar"),
+  mobileEarnedCredits: document.getElementById("mobileEarnedCredits"),
 
-    mobileSummaryToggle:
-        document.getElementById("toggleMobileSummaryButton"),
+  mobileRemainingCredits: document.getElementById("mobileRemainingCredits"),
 
-    mobileSelectedCount:
-        document.getElementById("mobileSelectedCourseCount"),
+  mobileWarning: document.getElementById("mobileSummaryWarning"),
 
-    mobileSelectedCredits:
-        document.getElementById("mobileSelectedCredits"),
+  mobilePanelSave: document.getElementById("mobilePanelSaveButton"),
 
-    mobileSave:
-        document.getElementById("mobileSaveCoursesButton"),
+  confirmModal: document.getElementById("enrollmentConfirmModal"),
 
-    mobileOverlay:
-        document.getElementById("mobileSummaryOverlay"),
+  confirmClose: document.getElementById("closeConfirmEnrollmentButton"),
 
-    mobilePanel:
-        document.getElementById("mobileSummaryPanel"),
+  confirmCancel: document.getElementById("cancelConfirmEnrollmentButton"),
 
-    mobilePanelClose:
-        document.getElementById("closeMobileSummaryButton"),
+  confirmCourseCount: document.getElementById("confirmCourseCount"),
 
-    mobilePanelCourseCount:
-        document.getElementById("mobilePanelCourseCount"),
+  confirmCreditCount: document.getElementById("confirmCreditCount"),
 
-    mobilePanelCredits:
-        document.getElementById("mobilePanelCredits"),
+  confirmSemesterCredits: document.getElementById("confirmSemesterCredits"),
 
-    mobileSemesterCredits:
-        document.getElementById("mobileSemesterCredits"),
+  confirmAnnualCredits: document.getElementById("confirmAnnualCredits"),
 
-    mobileAnnualCredits:
-        document.getElementById("mobileAnnualCredits"),
+  confirmCourseList: document.getElementById("confirmSelectedCourseList"),
 
-    mobileEarnedCredits:
-        document.getElementById("mobileEarnedCredits"),
+  confirmWarningSection: document.getElementById("confirmWarningSection"),
 
-    mobileRemainingCredits:
-        document.getElementById("mobileRemainingCredits"),
+  confirmWarningList: document.getElementById("confirmWarningList"),
 
-    mobileWarning:
-        document.getElementById("mobileSummaryWarning"),
+  confirmAgreement: document.getElementById("confirmAgreementCheckbox"),
 
-    mobilePanelSave:
-        document.getElementById("mobilePanelSaveButton"),
+  confirmEnrollment: document.getElementById("confirmEnrollmentButton"),
 
+  completeModal: document.getElementById("enrollmentCompleteModal"),
 
-    confirmModal:
-        document.getElementById("enrollmentConfirmModal"),
+  completeMessage: document.getElementById("enrollmentCompleteMessage"),
 
-    confirmClose:
-        document.getElementById("closeConfirmEnrollmentButton"),
+  completeClose: document.getElementById("closeEnrollmentCompleteButton"),
 
-    confirmCancel:
-        document.getElementById("cancelConfirmEnrollmentButton"),
-
-    confirmCourseCount:
-        document.getElementById("confirmCourseCount"),
-
-    confirmCreditCount:
-        document.getElementById("confirmCreditCount"),
-
-    confirmSemesterCredits:
-        document.getElementById("confirmSemesterCredits"),
-
-    confirmAnnualCredits:
-        document.getElementById("confirmAnnualCredits"),
-
-    confirmCourseList:
-        document.getElementById("confirmSelectedCourseList"),
-
-    confirmWarningSection:
-        document.getElementById("confirmWarningSection"),
-
-    confirmWarningList:
-        document.getElementById("confirmWarningList"),
-
-    confirmAgreement:
-        document.getElementById("confirmAgreementCheckbox"),
-
-    confirmEnrollment:
-        document.getElementById("confirmEnrollmentButton"),
-
-
-    completeModal:
-        document.getElementById("enrollmentCompleteModal"),
-
-    completeMessage:
-        document.getElementById("enrollmentCompleteMessage"),
-
-    completeClose:
-        document.getElementById("closeEnrollmentCompleteButton"),
-
-    completeHome:
-        document.getElementById("goHomeAfterEnrollmentButton")
-
+  completeHome: document.getElementById("goHomeAfterEnrollmentButton"),
 };
-
 
 /* ========================================
    URLパラメータ
 ======================================== */
 
-const pageParameters =
-    new URLSearchParams(location.search);
+const pageParameters = new URLSearchParams(location.search);
 
-const previewMode =
-    pageParameters.get("preview") === "1";
+const previewMode = pageParameters.get("preview") === "1";
 
-const requestedCurriculumId =
-    pageParameters.get("curriculumId") || "";
+const requestedCurriculumId = pageParameters.get("curriculumId") || "";
 
-const openCreditPanel =
-    pageParameters.get("creditPanel") === "1";
-
+const openCreditPanel = pageParameters.get("creditPanel") === "1";
 
 /* ========================================
    状態
@@ -364,16 +249,11 @@ let config = null;
 
 let userData = {};
 
-let department =
-    localStorage.getItem("department") || "";
+let department = localStorage.getItem("department") || "";
 
-let major =
-    localStorage.getItem("major") || "";
+let major = localStorage.getItem("major") || "";
 
-let grade =
-    normalizeGrade(
-        localStorage.getItem("grade") || ""
-    );
+let grade = normalizeGrade(localStorage.getItem("grade") || "");
 
 let admissionYear = 0;
 
@@ -387,798 +267,406 @@ let subjects = [];
 
 let visibleSubjects = [];
 
-let enrolledDocs =
-    new Map();
+let enrolledDocs = new Map();
 
-let pastCourseRecords =
-    new Map();
+let pastCourseRecords = new Map();
 
-let courseHistoryDirty =
-    false;
+let courseHistoryDirty = false;
 
-let retakeSubjectIds =
-    new Set();
+let retakeSubjectIds = new Set();
 
-let originalSelectedIds =
-    new Set();
+let originalSelectedIds = new Set();
 
-let selectedIds =
-    new Set();
+let selectedIds = new Set();
 
-let earnedSubjectIds =
-    new Set();
+let earnedSubjectIds = new Set();
 
-let earnedSubjectKeys =
-    new Set();
+let earnedSubjectKeys = new Set();
 
 let progress = createEmptyProgress();
 
-let progressSource =
-    "manual";
+let progressSource = "manual";
 
-let pageDirty =
-    false;
+let pageDirty = false;
 
-let savingEnrollment =
-    false;
+let savingEnrollment = false;
 
-let lastRegistrationAt =
-    null;
+let lastRegistrationAt = null;
 
 let currentWarnings = [];
 
-let registrationAvailable =
-    true;
-
+let registrationAvailable = true;
 
 /* ========================================
    初期化
 ======================================== */
 
-setupTheme(
-    elements.theme
-);
+setupTheme(elements.theme);
 
 setupEvents();
 
-
 if (previewMode) {
+  const admin = await isAdmin();
 
-    const admin =
-        await isAdmin();
+  if (!admin) {
+    alert("管理者プレビューは管理者のみ利用できます。");
 
-    if (!admin) {
+    location.href = "course_registration.html";
 
-        alert(
-            "管理者プレビューは管理者のみ利用できます。"
-        );
-
-        location.href =
-            "course_registration.html";
-
-        throw new Error(
-            "管理者権限がありません。"
-        );
-
-    }
-
+    throw new Error("管理者権限がありません。");
+  }
 }
 
-
 await initializePage([
+  setupAdminTab(),
 
-    setupAdminTab(),
+  loadProfileImage(elements.image),
 
-    loadProfileImage(
-        elements.image
-    ),
+  updateAssignmentNavBadge(),
 
-    updateAssignmentNavBadge(),
+  updateShareNavBadge(),
 
-    updateShareNavBadge(),
+  updateNewsNavBadge(),
 
-    updateNewsNavBadge(),
-
-    loadRegistrationData()
-
+  loadRegistrationData(),
 ]);
-
 
 /* ========================================
    イベント
 ======================================== */
 
 function setupEvents() {
+  elements.back?.addEventListener("click", () =>
+    navigateWithUnsavedCheck(history.length > 1 ? null : "index.html"),
+  );
 
-    elements.back?.addEventListener(
-        "click",
-        () => navigateWithUnsavedCheck(
-            history.length > 1
-                ? null
-                : "index.html"
-        )
-    );
+  elements.profile?.addEventListener("click", () =>
+    navigateWithUnsavedCheck("profile.html"),
+  );
 
+  elements.unavailableBack?.addEventListener("click", () => {
+    location.href = "index.html";
+  });
 
-    elements.profile?.addEventListener(
-        "click",
-        () => navigateWithUnsavedCheck(
-            "profile.html"
-        )
-    );
+  elements.graduationToggle?.addEventListener(
+    "click",
+    toggleGraduationProgress,
+  );
 
+  elements.progressToggle?.addEventListener("click", toggleProgressEditor);
 
-    elements.unavailableBack?.addEventListener(
-        "click",
-        () => {
-            location.href = "index.html";
-        }
-    );
+  elements.progressSave?.addEventListener("click", saveCourseProgress);
 
+  elements.search?.addEventListener("input", renderSubjects);
 
-    elements.graduationToggle?.addEventListener(
-        "click",
-        toggleGraduationProgress
-    );
+  elements.requirementFilter?.addEventListener("change", renderSubjects);
 
+  elements.categoryFilter?.addEventListener("change", renderSubjects);
 
-    elements.progressToggle?.addEventListener(
-        "click",
-        toggleProgressEditor
-    );
+  elements.selectionFilter?.addEventListener("change", renderSubjects);
 
+  elements.resetFilters?.addEventListener("click", resetFilters);
 
-    elements.progressSave?.addEventListener(
-        "click",
-        saveCourseProgress
-    );
+  elements.list?.addEventListener("change", handleSubjectSelection);
 
+  elements.selectRequired?.addEventListener("click", selectAllRequiredSubjects);
 
-    elements.search?.addEventListener(
-        "input",
-        renderSubjects
-    );
+  elements.clearOptional?.addEventListener("click", clearAllOptionalSubjects);
 
+  elements.restore?.addEventListener("click", restorePreviousEnrollment);
 
-    elements.requirementFilter?.addEventListener(
-        "change",
-        renderSubjects
-    );
-
-
-    elements.categoryFilter?.addEventListener(
-        "change",
-        renderSubjects
-    );
-
-
-    elements.selectionFilter?.addEventListener(
-        "change",
-        renderSubjects
-    );
-
-
-    elements.resetFilters?.addEventListener(
-        "click",
-        resetFilters
-    );
-
-
-    elements.list?.addEventListener(
-        "change",
-        handleSubjectSelection
-    );
-
-
-    elements.selectRequired?.addEventListener(
-        "click",
-        selectAllRequiredSubjects
-    );
-
-
-    elements.clearOptional?.addEventListener(
-        "click",
-        clearAllOptionalSubjects
-    );
-
-
-    elements.restore?.addEventListener(
-        "click",
-        restorePreviousEnrollment
-    );
-
-
-    [
-        elements.save,
-        elements.mobileSave,
-        elements.mobilePanelSave
-    ]
+  [elements.save, elements.mobileSave, elements.mobilePanelSave]
     .filter(Boolean)
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            openEnrollmentConfirmation
-        );
-
+    .forEach((button) => {
+      button.addEventListener("click", openEnrollmentConfirmation);
     });
 
+  elements.mobileSummaryToggle?.addEventListener("click", openMobileSummary);
 
-    elements.mobileSummaryToggle?.addEventListener(
-        "click",
-        openMobileSummary
-    );
+  elements.mobilePanelClose?.addEventListener("click", closeMobileSummary);
 
+  elements.mobileOverlay?.addEventListener("click", closeMobileSummary);
 
-    elements.mobilePanelClose?.addEventListener(
-        "click",
-        closeMobileSummary
-    );
+  elements.confirmClose?.addEventListener("click", closeEnrollmentConfirmation);
 
+  elements.confirmCancel?.addEventListener(
+    "click",
+    closeEnrollmentConfirmation,
+  );
 
-    elements.mobileOverlay?.addEventListener(
-        "click",
-        closeMobileSummary
-    );
+  elements.confirmModal?.addEventListener("click", (event) => {
+    if (event.target === elements.confirmModal) {
+      closeEnrollmentConfirmation();
+    }
+  });
 
+  elements.confirmAgreement?.addEventListener("change", updateConfirmButton);
 
-    elements.confirmClose?.addEventListener(
-        "click",
-        closeEnrollmentConfirmation
-    );
+  elements.confirmEnrollment?.addEventListener("click", saveEnrollment);
 
+  elements.completeClose?.addEventListener("click", closeCompleteModal);
 
-    elements.confirmCancel?.addEventListener(
-        "click",
-        closeEnrollmentConfirmation
-    );
+  elements.completeHome?.addEventListener("click", () => {
+    location.href = "index.html";
+  });
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
 
-    elements.confirmModal?.addEventListener(
-        "click",
-        event => {
+    closeMobileSummary();
+    closeEnrollmentConfirmation();
+  });
 
-            if (
-                event.target ===
-                elements.confirmModal
-            ) {
+  window.addEventListener("beforeunload", (event) => {
+    if (!pageDirty && !courseHistoryDirty) {
+      return;
+    }
 
-                closeEnrollmentConfirmation();
+    event.preventDefault();
 
-            }
+    event.returnValue = "";
+  });
 
-        }
-    );
+  elements.progressYearFields?.addEventListener("change", (event) => {
+    const target = event.target;
 
+    if (!target.matches("[data-history-subject-id]")) {
+      return;
+    }
 
-    elements.confirmAgreement?.addEventListener(
-        "change",
-        updateConfirmButton
-    );
-
-
-    elements.confirmEnrollment?.addEventListener(
-        "click",
-        saveEnrollment
-    );
-
-
-    elements.completeClose?.addEventListener(
-        "click",
-        closeCompleteModal
-    );
-
-
-    elements.completeHome?.addEventListener(
-        "click",
-        () => {
-            location.href = "index.html";
-        }
-    );
-
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            if (event.key !== "Escape") {
-                return;
-            }
-
-            closeMobileSummary();
-            closeEnrollmentConfirmation();
-
-        }
-    );
-
-
-    window.addEventListener(
-        "beforeunload",
-        event => {
-
-            if (
-                !pageDirty &&
-                !courseHistoryDirty
-            ) {
-
-                return;
-
-            }
-
-            event.preventDefault();
-
-            event.returnValue = "";
-
-        }
-    );
-
-    elements.progressYearFields
-        ?.addEventListener(
-            "change",
-            event => {
-
-                const target =
-                    event.target;
-
-
-                if (
-                    !target.matches(
-                        "[data-history-subject-id]"
-                    )
-                ) {
-
-                    return;
-
-                }
-
-
-                courseHistoryDirty =
-                    true;
-
-            }
-        );
-
+    courseHistoryDirty = true;
+  });
 }
-
 
 /* ========================================
    データ読込
 ======================================== */
 
 async function loadRegistrationData() {
+  if (!studentNumber) {
+    location.href = "login.html";
 
-    if (!studentNumber) {
+    return;
+  }
 
-        location.href =
-            "login.html";
+  try {
+    const configReference = doc(
+      db,
+      "system",
+      previewMode ? "courseRegistrationDraft" : "courseRegistration",
+    );
 
-        return;
+    const [
+      configSnapshot,
+      userSnapshot,
+      subjectSnapshot,
+      enrollmentSnapshot,
+      curriculumSnapshot,
+      creditRecordSnapshot,
+      courseHistorySnapshot,
+    ] = await Promise.all([
+      getDoc(configReference),
 
+      getDoc(doc(db, "users", studentNumber)),
+
+      getDocs(collection(db, "subjects")),
+
+      getDocs(collection(db, "users", studentNumber, "enrolledSubjects")),
+
+      getDocs(collection(db, "curricula")),
+
+      safeGetDocs(collection(db, "users", studentNumber, "creditRecords")),
+
+      safeGetDocs(
+        collection(db, "users", studentNumber, "courseHistoryRecords"),
+      ),
+    ]);
+
+    if (!configSnapshot.exists()) {
+      renderUnavailable(
+        "履修登録はまだ公開されていません。",
+        "履修登録期間外です",
+      );
+
+      return;
     }
 
-
-    try {
-
-        const configReference =
-            doc(
-                db,
-                "system",
-                previewMode
-                    ? "courseRegistrationDraft"
-                    : "courseRegistration"
-            );
-
-
-        const [
-            configSnapshot,
-            userSnapshot,
-            subjectSnapshot,
-            enrollmentSnapshot,
-            curriculumSnapshot,
-            creditRecordSnapshot,
-            courseHistorySnapshot
-        ] = await Promise.all([
-
-            getDoc(
-                configReference
-            ),
-
-            getDoc(
-                doc(
-                    db,
-                    "users",
-                    studentNumber
-                )
-            ),
-
-            getDocs(
-                collection(
-                    db,
-                    "subjects"
-                )
-            ),
-
-            getDocs(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "enrolledSubjects"
-                )
-            ),
-
-            getDocs(
-                collection(
-                    db,
-                    "curricula"
-                )
-            ),
-
-            safeGetDocs(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "creditRecords"
-                )
-            ),
-
-            safeGetDocs(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "courseHistoryRecords"
-                )
-            )
-
-        ]);
-
-
-        if (!configSnapshot.exists()) {
-
-            renderUnavailable(
-                "履修登録はまだ公開されていません。",
-                "履修登録期間外です"
-            );
-
-            return;
-
-        }
-
-
-        if (!userSnapshot.exists()) {
-
-            renderUnavailable(
-                "学生情報を取得できませんでした。",
-                "学生情報がありません"
-            );
-
-            return;
-
-        }
-
-
-        config =
-            normalizeConfig(
-                configSnapshot.data()
-            );
-
-
-        userData =
-            userSnapshot.data() || {};
-
-
-        if (
-            !previewMode &&
-            userData.manabaVerified !== true
-        ) {
-
-            renderUnavailable(
-                "履修登録はManabaログイン確認が完了している学生のみ利用できます。",
-                "Manabaログイン確認が必要です"
-            );
-
-            return;
-
-        }
-
-
-        normalizeStudentInformation();
-
-
-        curricula =
-            curriculumSnapshot.docs
-                .map(curriculumDocument =>
-                    normalizeCurriculum(
-                        curriculumDocument.id,
-                        curriculumDocument.data(),
-                        previewMode
-                    )
-                )
-                .sort(
-                    compareCurricula
-                );
-
-
-        currentCurriculum =
-            findStudentCurriculum();
-
-
-        if (!currentCurriculum) {
-
-            renderUnavailable(
-                "学科・専攻・入学年度に対応するカリキュラムが公開されていません。管理者へ確認してください。",
-                "対象カリキュラムがありません"
-            );
-
-            return;
-
-        }
-
-
-        allSubjects =
-            subjectSnapshot.docs
-                .map(subjectDocument =>
-                    normalizeSubject(
-                        subjectDocument.id,
-                        subjectDocument.data()
-                    )
-                )
-                .sort(
-                    compareSubjects
-                );
-
-
-        subjects =
-            allSubjects.filter(
-                subject =>
-                    subject.active
-            );
-
-
-        enrolledDocs =
-            new Map(
-                enrollmentSnapshot.docs.map(
-                    enrollmentDocument => [
-
-                        enrollmentDocument.id,
-
-                        {
-                            id:
-                                enrollmentDocument.id,
-
-                            ...enrollmentDocument.data()
-                        }
-
-                    ]
-                )
-            );
-
-        pastCourseRecords =
-            new Map(
-                (
-                    courseHistorySnapshot?.docs ||
-                    []
-                ).map(
-                    historyDocument => {
-
-                        const data =
-                            historyDocument.data() || {};
-
-
-                        const record = {
-
-                            id:
-                                historyDocument.id,
-
-                            ...data
-
-                        };
-
-
-                        const key =
-                            String(
-                                record.subjectId ||
-                                historyDocument.id
-                            ).trim();
-
-
-                        return [
-                            key,
-                            record
-                        ];
-
-                    }
-                )
-            );
-
-
-        courseHistoryDirty =
-            false;
-
-        retakeSubjectIds =
-            new Set(
-                [...enrolledDocs.values()]
-                    .filter(
-                        enrollment =>
-                            enrollment.isRetake === true &&
-                            enrollment.creditStatus === "not_earned"
-                    )
-                    .filter(
-                        enrollment => {
-
-                            const sourceYear =
-                                Number(
-                                    enrollment.retakeSourceAcademicYear ||
-                                    enrollment.creditConfirmedAcademicYear ||
-                                    enrollment.academicYear ||
-                                    0
-                                );
-
-                            return (
-                                sourceYear > 0 &&
-                                Number(config.academicYear) >
-                                sourceYear
-                            );
-
-                        }
-                    )
-                    .map(
-                        enrollment =>
-                            String(
-                                enrollment.subjectId ||
-                                enrollment.id ||
-                                ""
-                            )
-                    )
-                    .filter(Boolean)
-            );
-
-        const creditRecords =
-            mergeCreditRecords(
-                creditRecordSnapshot,
-                null
-            );
-
-        
-        const earnedHistoryRecords =
-            [...pastCourseRecords.values()]
-                .filter(
-                    record =>
-                        isPastCourseEarned(
-                            record
-                        )
-                )
-                .map(
-                    record => ({
-
-                        ...record,
-
-                        status:
-                            "earned"
-
-                    })
-                );
-
-
-        const earnedEnrollmentRecords =
-            [...enrolledDocs.values()]
-                .filter(
-                    enrollment =>
-                        enrollment.creditStatus ===
-                        "earned"
-                )
-                .map(
-                    enrollment => ({
-
-                        subjectId:
-                            String(
-                                enrollment.subjectId ||
-                                enrollment.id ||
-                                ""
-                            ),
-
-                        subjectKey:
-                            String(
-                                enrollment.subjectKey ||
-                                enrollment.name ||
-                                enrollment.subject ||
-                                ""
-                            ),
-
-                        name:
-                            String(
-                                enrollment.name ||
-                                enrollment.subject ||
-                                enrollment.subjectKey ||
-                                ""
-                            ),
-
-                        credits:
-                            toNonNegativeNumber(
-                                enrollment.credits
-                            ),
-
-                        requirementType:
-                            enrollment.requirementType ||
-                            (
-                                enrollment.required === true
-                                    ? "required"
-                                    : "elective"
-                            ),
-
-                        required:
-                            enrollment.required === true,
-
-                        category:
-                            enrollment.category || "",
-
-                        requirementTags:
-                            Array.isArray(
-                                enrollment.requirementTags
-                            )
-                                ? enrollment.requirementTags
-                                : [],
-
-                        academicYear:
-                            Number(
-                                enrollment.creditConfirmedAcademicYear ||
-                                enrollment.academicYear ||
-                                0
-                            ),
-
-                        semester:
-                            enrollment.creditConfirmedSemester ||
-                            enrollment.semester ||
-                            "",
-
-                        status:
-                            "earned"
-
-                    }))
-                .filter(
-                    record =>
-                        record.subjectId ||
-                        record.subjectKey
-                );
-
-
-        const combinedCreditRecordMap =
-            new Map();
-
-
-        [
-            ...earnedHistoryRecords,
-            ...creditRecords,
-            ...earnedEnrollmentRecords
-        ]
-        .map(
-            record =>
-                enrichCreditRecord(
-                    record,
-                    allSubjects
-                )
+    if (!userSnapshot.exists()) {
+      renderUnavailable(
+        "学生情報を取得できませんでした。",
+        "学生情報がありません",
+      );
+
+      return;
+    }
+
+    config = normalizeConfig(configSnapshot.data());
+
+    userData = userSnapshot.data() || {};
+
+    if (!previewMode && userData.manabaVerified !== true) {
+      renderUnavailable(
+        "履修登録はManabaログイン確認が完了している学生のみ利用できます。",
+        "Manabaログイン確認が必要です",
+      );
+
+      return;
+    }
+
+    normalizeStudentInformation();
+
+    curricula = curriculumSnapshot.docs
+      .map((curriculumDocument) =>
+        normalizeCurriculum(
+          curriculumDocument.id,
+          curriculumDocument.data(),
+          previewMode,
+        ),
+      )
+      .sort(compareCurricula);
+
+    currentCurriculum = findStudentCurriculum();
+
+    if (!currentCurriculum) {
+      renderUnavailable(
+        "学科・専攻・入学年度に対応するカリキュラムが公開されていません。管理者へ確認してください。",
+        "対象カリキュラムがありません",
+      );
+
+      return;
+    }
+
+    allSubjects = subjectSnapshot.docs
+      .map((subjectDocument) =>
+        normalizeSubject(subjectDocument.id, subjectDocument.data()),
+      )
+      .sort(compareSubjects);
+
+    subjects = allSubjects.filter((subject) => subject.active);
+
+    enrolledDocs = new Map(
+      enrollmentSnapshot.docs.map((enrollmentDocument) => [
+        enrollmentDocument.id,
+
+        {
+          id: enrollmentDocument.id,
+
+          ...enrollmentDocument.data(),
+        },
+      ]),
+    );
+
+    pastCourseRecords = new Map(
+      (courseHistorySnapshot?.docs || []).map((historyDocument) => {
+        const data = historyDocument.data() || {};
+
+        const record = {
+          id: historyDocument.id,
+
+          ...data,
+        };
+
+        const key = String(record.subjectId || historyDocument.id).trim();
+
+        return [key, record];
+      }),
+    );
+
+    courseHistoryDirty = false;
+
+    retakeSubjectIds = new Set(
+      [...enrolledDocs.values()]
+        .filter(
+          (enrollment) =>
+            enrollment.isRetake === true &&
+            enrollment.creditStatus === "not_earned",
         )
-        .forEach(
-            record => {
+        .filter((enrollment) => {
+          const sourceYear = Number(
+            enrollment.retakeSourceAcademicYear ||
+              enrollment.creditConfirmedAcademicYear ||
+              enrollment.academicYear ||
+              0,
+          );
 
-                const key =
-                    record.subjectId
-                        ? `subject:${record.subjectId}`
-                        : record.subjectKey
-                            ? `key:${record.subjectKey}`
-                            : record.id
-                                ? `record:${record.id}`
-                                : "";
+          return sourceYear > 0 && Number(config.academicYear) > sourceYear;
+        })
+        .map((enrollment) =>
+          String(enrollment.subjectId || enrollment.id || ""),
+        )
+        .filter(Boolean),
+    );
 
+    const creditRecords = mergeCreditRecords(creditRecordSnapshot, null);
 
-                if (!key) {
-                    return;
-                }
+    const earnedHistoryRecords = [...pastCourseRecords.values()]
+      .filter((record) => isPastCourseEarned(record))
+      .map((record) => ({
+        ...record,
 
+        status: "earned",
+      }));
 
-                /*
+    const earnedEnrollmentRecords = [...enrolledDocs.values()]
+      .filter((enrollment) => enrollment.creditStatus === "earned")
+      .map((enrollment) => ({
+        subjectId: String(enrollment.subjectId || enrollment.id || ""),
+
+        subjectKey: String(
+          enrollment.subjectKey || enrollment.name || enrollment.subject || "",
+        ),
+
+        name: String(
+          enrollment.name || enrollment.subject || enrollment.subjectKey || "",
+        ),
+
+        credits: toNonNegativeNumber(enrollment.credits),
+
+        requirementType:
+          enrollment.requirementType ||
+          (enrollment.required === true ? "required" : "elective"),
+
+        required: enrollment.required === true,
+
+        category: enrollment.category || "",
+
+        requirementTags: Array.isArray(enrollment.requirementTags)
+          ? enrollment.requirementTags
+          : [],
+
+        academicYear: Number(
+          enrollment.creditConfirmedAcademicYear ||
+            enrollment.academicYear ||
+            0,
+        ),
+
+        semester:
+          enrollment.creditConfirmedSemester || enrollment.semester || "",
+
+        status: "earned",
+      }))
+      .filter((record) => record.subjectId || record.subjectKey);
+
+    const combinedCreditRecordMap = new Map();
+
+    [...earnedHistoryRecords, ...creditRecords, ...earnedEnrollmentRecords]
+      .map((record) => enrichCreditRecord(record, allSubjects))
+      .forEach((record) => {
+        const key = record.subjectId
+          ? `subject:${record.subjectId}`
+          : record.subjectKey
+            ? `key:${record.subjectKey}`
+            : record.id
+              ? `record:${record.id}`
+              : "";
+
+        if (!key) {
+          return;
+        }
+
+        /*
                 同じ科目が
 
                 creditRecords
@@ -1188,1175 +676,540 @@ async function loadRegistrationData() {
                 1科目として扱う。
                 */
 
-                combinedCreditRecordMap.set(
-                    key,
-                    record
-                );
+        combinedCreditRecordMap.set(key, record);
+      });
 
-            }
-        );
+    const combinedCreditRecords = [...combinedCreditRecordMap.values()];
 
+    const storedProgressForBuild =
+      userData.courseHistoryInitialized === true
+        ? {}
+        : userData.courseProgress || {};
 
-        const combinedCreditRecords =
-            [...combinedCreditRecordMap.values()];
+    progress = buildProgress(storedProgressForBuild, combinedCreditRecords);
 
+    const regularSubjects = subjects.filter(
+      (subject) =>
+        matchesCurriculum(subject) &&
+        matchesStudentGrade(subject) &&
+        matchesSemester(subject),
+    );
 
-        const storedProgressForBuild =
-            userData.courseHistoryInitialized ===
-                true
-                ? {}
-                : (
-                    userData.courseProgress ||
-                    {}
-                );
+    const retakeSubjects = subjects.filter(
+      (subject) =>
+        matchesCurriculum(subject) &&
+        matchesSemester(subject) &&
+        isRetakeSubject(subject),
+    );
 
+    visibleSubjects = [
+      ...new Map(
+        [...retakeSubjects, ...regularSubjects]
+          .filter(
+            (subject) => !isAlreadyEarned(subject) || isRetakeSubject(subject),
+          )
+          .map((subject) => [subject.id, subject]),
+      ).values(),
+    ];
 
-        progress =
-            buildProgress(
-                storedProgressForBuild,
-                combinedCreditRecords
-            );
+    originalSelectedIds = new Set(
+      [...enrolledDocs.values()]
+        .filter((enrollment) => isCurrentRegistration(enrollment))
+        .map((enrollment) => enrollment.id || enrollment.subjectId)
+        .filter(Boolean),
+    );
 
-        const regularSubjects =
-            subjects.filter(
-                subject =>
-                    matchesCurriculum(subject) &&
-                    matchesStudentGrade(subject) &&
-                    matchesSemester(subject)
-            );
+    selectedIds = new Set(
+      [...originalSelectedIds].filter((id) =>
+        visibleSubjects.some(
+          (subject) => subject.id === id && !isAlreadyEarned(subject),
+        ),
+      ),
+    );
 
+    lastRegistrationAt =
+      [...enrolledDocs.values()]
+        .map((enrollment) => toDate(enrollment.updatedAt))
+        .filter(Boolean)
+        .sort((dateA, dateB) => dateB - dateA)[0] || null;
 
-        const retakeSubjects =
-            subjects.filter(
-                subject =>
-                    matchesCurriculum(subject) &&
-                    matchesSemester(subject) &&
-                    isRetakeSubject(subject)
-            );
+    renderPage();
+  } catch (error) {
+    console.error("履修登録データ取得エラー:", error);
 
-
-        visibleSubjects =
-            [
-                ...new Map(
-                    [
-                        ...retakeSubjects,
-                        ...regularSubjects
-                    ]
-                    .filter(
-                        subject =>
-                            !isAlreadyEarned(
-                                subject
-                            ) ||
-                            isRetakeSubject(
-                                subject
-                            )
-                    )
-                    .map(
-                        subject => [
-                            subject.id,
-                            subject
-                        ]
-                    )
-                ).values()
-            ];
-
-
-        originalSelectedIds =
-            new Set(
-                [...enrolledDocs.values()]
-                    .filter(
-                        enrollment =>
-                            isCurrentRegistration(
-                                enrollment
-                            )
-                    )
-                    .map(
-                        enrollment =>
-                            enrollment.id ||
-                            enrollment.subjectId
-                    )
-                    .filter(Boolean)
-            );
-
-
-        selectedIds =
-            new Set(
-                [...originalSelectedIds]
-                    .filter(id =>
-                        visibleSubjects.some(
-                            subject =>
-                                subject.id === id &&
-                                !isAlreadyEarned(subject)
-                        )
-                    )
-            );
-
-
-        lastRegistrationAt =
-            [...enrolledDocs.values()]
-                .map(
-                    enrollment =>
-                        toDate(
-                            enrollment.updatedAt
-                        )
-                )
-                .filter(Boolean)
-                .sort(
-                    (dateA, dateB) =>
-                        dateB - dateA
-                )[0] || null;
-
-
-        renderPage();
-
-    } catch (error) {
-
-        console.error(
-            "履修登録データ取得エラー:",
-            error
-        );
-
-
-        renderUnavailable(
-            "履修登録情報を読み込めませんでした。通信状態を確認して、もう一度開いてください。",
-            "読み込みに失敗しました"
-        );
-
-    }
-
+    renderUnavailable(
+      "履修登録情報を読み込めませんでした。通信状態を確認して、もう一度開いてください。",
+      "読み込みに失敗しました",
+    );
+  }
 }
-
 
 /* ========================================
    初期画面表示
 ======================================== */
 
 function renderPage() {
+  registrationAvailable = true;
 
-    registrationAvailable =
-        true;
+  elements.unavailable.hidden = true;
 
+  elements.guide.hidden = false;
 
-    elements.unavailable.hidden =
-        true;
+  elements.mainLayout.hidden = false;
 
-    elements.guide.hidden =
-        false;
+  elements.mobileSaveBar.hidden = false;
 
-    elements.mainLayout.hidden =
-        false;
+  if (previewMode) {
+    elements.previewBanner.hidden = false;
+  }
 
-    elements.mobileSaveBar.hidden =
-        false;
+  renderPhase();
 
+  renderProgress();
 
-    if (previewMode) {
+  updateCategoryFilter();
 
-        elements.previewBanner.hidden =
-            false;
+  renderSubjects();
 
-    }
+  updateAllDisplays();
 
+  if (openCreditPanel) {
+    elements.graduationContent.hidden = false;
 
-    renderPhase();
+    elements.graduationToggle.textContent = "詳細を閉じる";
 
-    renderProgress();
+    setTimeout(() => {
+      elements.graduationCard?.scrollIntoView({
+        behavior: "smooth",
 
-    updateCategoryFilter();
-
-    renderSubjects();
-
-    updateAllDisplays();
-
-
-    if (openCreditPanel) {
-
-        elements.graduationContent.hidden =
-            false;
-
-        elements.graduationToggle.textContent =
-            "詳細を閉じる";
-
-
-        setTimeout(
-            () => {
-
-                elements.graduationCard
-                    ?.scrollIntoView({
-                        behavior:
-                            "smooth",
-
-                        block:
-                            "start"
-                    });
-
-            },
-            250
-        );
-
-    }
-
+        block: "start",
+      });
+    }, 250);
+  }
 }
-
 
 /* ========================================
    設定正規化
 ======================================== */
 
-function normalizeConfig(
-    data
-) {
+function normalizeConfig(data) {
+  return {
+    academicYear: toNonNegativeNumber(data.academicYear),
 
-    return {
+    semester: normalizeSemester(data.semester) || "前期",
 
-        academicYear:
-            toNonNegativeNumber(
-                data.academicYear
-            ),
+    phase: String(data.phase || "hidden"),
 
-        semester:
-            normalizeSemester(
-                data.semester
-            ) || "前期",
+    correctionMode: String(data.correctionMode || "delete_only"),
 
-        phase:
-            String(
-                data.phase ||
-                "hidden"
-            ),
+    startAt: String(data.startAt || ""),
 
-        correctionMode:
-            String(
-                data.correctionMode ||
-                "delete_only"
-            ),
+    endAt: String(data.endAt || ""),
 
-        startAt:
-            String(
-                data.startAt ||
-                ""
-            ),
+    published: data.published === true,
 
-        endAt:
-            String(
-                data.endAt ||
-                ""
-            ),
+    pageEnabled: data.pageEnabled === true,
 
-        published:
-            data.published === true,
+    semesterCreditLimit: toNonNegativeNumber(data.semesterCreditLimit),
 
-        pageEnabled:
-            data.pageEnabled === true,
-
-        semesterCreditLimit:
-            toNonNegativeNumber(
-                data.semesterCreditLimit
-            ),
-
-        annualCreditLimit:
-            toNonNegativeNumber(
-                data.annualCreditLimit
-            )
-
-    };
-
+    annualCreditLimit: toNonNegativeNumber(data.annualCreditLimit),
+  };
 }
-
 
 /* ========================================
    学生情報
 ======================================== */
 
 function normalizeStudentInformation() {
+  department = String(userData.department || department || "").trim();
 
-    department =
-        String(
-            userData.department ||
-            department ||
-            ""
-        ).trim();
+  major = String(userData.major || major || "").trim();
 
+  grade = normalizeGrade(userData.grade || grade || "");
 
-    major =
-        String(
-            userData.major ||
-            major ||
-            ""
-        ).trim();
+  if (department === "理学療法学専攻") {
+    department = "リハビリテーション学科";
 
+    major = "理学療法学専攻";
+  }
 
-    grade =
-        normalizeGrade(
-            userData.grade ||
-            grade ||
-            ""
-        );
+  if (department === "作業療法学専攻") {
+    department = "リハビリテーション学科";
 
+    major = "作業療法学専攻";
+  }
 
-    if (
-        department ===
-        "理学療法学専攻"
-    ) {
+  admissionYear = toNonNegativeNumber(
+    userData.admissionYear || userData.enrollmentYear || userData.entranceYear,
+  );
 
-        department =
-            "リハビリテーション学科";
-
-        major =
-            "理学療法学専攻";
-
-    }
-
-
-    if (
-        department ===
-        "作業療法学専攻"
-    ) {
-
-        department =
-            "リハビリテーション学科";
-
-        major =
-            "作業療法学専攻";
-
-    }
-
-
-    admissionYear =
-        toNonNegativeNumber(
-
-            userData.admissionYear ||
-
-            userData.enrollmentYear ||
-
-            userData.entranceYear
-
-        );
-
-
-    if (
-        !admissionYear &&
-        config?.academicYear &&
-        Number(grade) > 0
-    ) {
-
-        admissionYear =
-            Number(config.academicYear) -
-            Number(grade) +
-            1;
-
-    }
-
+  if (!admissionYear && config?.academicYear && Number(grade) > 0) {
+    admissionYear = Number(config.academicYear) - Number(grade) + 1;
+  }
 }
-
 
 /* ========================================
    カリキュラム
 ======================================== */
 
-function normalizeCurriculum(
-    id,
-    data,
-    useDraft
-) {
+function normalizeCurriculum(id, data, useDraft) {
+  const draft =
+    useDraft &&
+    data?.draft &&
+    typeof data.draft === "object" &&
+    !Array.isArray(data.draft)
+      ? data.draft
+      : null;
 
-    const draft =
-        useDraft &&
-        data?.draft &&
-        typeof data.draft === "object" &&
-        !Array.isArray(data.draft)
-            ? data.draft
-            : null;
+  const source = draft
+    ? {
+        ...data,
+        ...draft,
+      }
+    : data;
 
+  return {
+    curriculumId: id,
 
-    const source =
-        draft
-            ? {
-                ...data,
-                ...draft
-            }
-            : data;
+    name: String(source.name || id).trim(),
 
+    department: String(source.department || "").trim(),
 
-    return {
+    major: String(source.major || "").trim(),
 
-        curriculumId:
-            id,
+    admissionYearFrom: toNonNegativeNumber(source.admissionYearFrom),
 
-        name:
-            String(
-                source.name ||
-                id
-            ).trim(),
+    admissionYearTo: source.admissionYearTo
+      ? toNonNegativeNumber(source.admissionYearTo)
+      : null,
 
-        department:
-            String(
-                source.department ||
-                ""
-            ).trim(),
+    graduationCredits: toNonNegativeNumber(source.graduationCredits),
 
-        major:
-            String(
-                source.major ||
-                ""
-            ).trim(),
+    requiredCredits: toNonNegativeNumber(source.requiredCredits),
 
-        admissionYearFrom:
-            toNonNegativeNumber(
-                source.admissionYearFrom
-            ),
+    electiveCreditsMinimum: toNonNegativeNumber(source.electiveCreditsMinimum),
 
-        admissionYearTo:
-            source.admissionYearTo
-                ? toNonNegativeNumber(
-                    source.admissionYearTo
-                )
-                : null,
+    categoryRequirements: Array.isArray(source.categoryRequirements)
+      ? source.categoryRequirements.map(normalizeCategoryRequirement)
+      : [],
 
-        graduationCredits:
-            toNonNegativeNumber(
-                source.graduationCredits
-            ),
+    specialRequirements: Array.isArray(source.specialRequirements)
+      ? source.specialRequirements.map(normalizeSpecialRequirement)
+      : [],
 
-        requiredCredits:
-            toNonNegativeNumber(
-                source.requiredCredits
-            ),
+    published: data.published === true,
 
-        electiveCreditsMinimum:
-            toNonNegativeNumber(
-                source.electiveCreditsMinimum
-            ),
-
-        categoryRequirements:
-            Array.isArray(
-                source.categoryRequirements
-            )
-                ? source.categoryRequirements.map(
-                    normalizeCategoryRequirement
-                )
-                : [],
-
-        specialRequirements:
-            Array.isArray(
-                source.specialRequirements
-            )
-                ? source.specialRequirements.map(
-                    normalizeSpecialRequirement
-                )
-                : [],
-
-        published:
-            data.published === true,
-
-        usingDraft:
-            draft !== null
-
-    };
-
+    usingDraft: draft !== null,
+  };
 }
 
+function normalizeCategoryRequirement(requirement) {
+  return {
+    category: String(requirement.category || "").trim(),
 
-function normalizeCategoryRequirement(
-    requirement
-) {
+    requiredCredits: toNonNegativeNumber(requirement.requiredCredits),
 
-    return {
+    electiveCreditsMinimum: toNonNegativeNumber(
+      requirement.electiveCreditsMinimum,
+    ),
 
-        category:
-            String(
-                requirement.category ||
-                ""
-            ).trim(),
-
-        requiredCredits:
-            toNonNegativeNumber(
-                requirement.requiredCredits
-            ),
-
-        electiveCreditsMinimum:
-            toNonNegativeNumber(
-                requirement.electiveCreditsMinimum
-            ),
-
-        totalCreditsMinimum:
-            toNonNegativeNumber(
-                requirement.totalCreditsMinimum
-            )
-
-    };
-
+    totalCreditsMinimum: toNonNegativeNumber(requirement.totalCreditsMinimum),
+  };
 }
 
+function normalizeSpecialRequirement(requirement) {
+  return {
+    requirementTag: String(requirement.requirementTag || "").trim(),
 
-function normalizeSpecialRequirement(
-    requirement
-) {
-
-    return {
-
-        requirementTag:
-            String(
-                requirement.requirementTag ||
-                ""
-            ).trim(),
-
-        minimumCredits:
-            toNonNegativeNumber(
-                requirement.minimumCredits
-            )
-
-    };
-
+    minimumCredits: toNonNegativeNumber(requirement.minimumCredits),
+  };
 }
-
 
 function findStudentCurriculum() {
+  if (previewMode && requestedCurriculumId) {
+    return (
+      curricula.find(
+        (curriculum) => curriculum.curriculumId === requestedCurriculumId,
+      ) || null
+    );
+  }
 
-    if (
-        previewMode &&
-        requestedCurriculumId
-    ) {
+  const storedCurriculumId = String(userData.curriculumId || "").trim();
 
-        return curricula.find(
-            curriculum =>
-                curriculum.curriculumId ===
-                requestedCurriculumId
-        ) || null;
+  if (storedCurriculumId) {
+    const exactCurriculum = curricula.find(
+      (curriculum) =>
+        curriculum.curriculumId === storedCurriculumId && curriculum.published,
+    );
 
+    if (exactCurriculum) {
+      return exactCurriculum;
     }
+  }
 
-
-    const storedCurriculumId =
-        String(
-            userData.curriculumId ||
-            ""
-        ).trim();
-
-
-    if (storedCurriculumId) {
-
-        const exactCurriculum =
-            curricula.find(
-                curriculum =>
-                    curriculum.curriculumId ===
-                        storedCurriculumId &&
-                    curriculum.published
-            );
-
-
-        if (exactCurriculum) {
-
-            return exactCurriculum;
-
+  return (
+    curricula
+      .filter((curriculum) => {
+        if (!curriculum.published) {
+          return false;
         }
 
-    }
+        if (curriculum.department !== department) {
+          return false;
+        }
 
+        if (curriculum.major !== major) {
+          return false;
+        }
 
-    return curricula
-        .filter(
-            curriculum => {
+        if (
+          admissionYear &&
+          curriculum.admissionYearFrom &&
+          admissionYear < curriculum.admissionYearFrom
+        ) {
+          return false;
+        }
 
-                if (!curriculum.published) {
-                    return false;
-                }
+        if (
+          admissionYear &&
+          curriculum.admissionYearTo &&
+          admissionYear > curriculum.admissionYearTo
+        ) {
+          return false;
+        }
 
-
-                if (
-                    curriculum.department !==
-                    department
-                ) {
-
-                    return false;
-
-                }
-
-
-                if (
-                    curriculum.major !==
-                    major
-                ) {
-
-                    return false;
-
-                }
-
-
-                if (
-                    admissionYear &&
-                    curriculum.admissionYearFrom &&
-                    admissionYear <
-                        curriculum.admissionYearFrom
-                ) {
-
-                    return false;
-
-                }
-
-
-                if (
-                    admissionYear &&
-                    curriculum.admissionYearTo &&
-                    admissionYear >
-                        curriculum.admissionYearTo
-                ) {
-
-                    return false;
-
-                }
-
-
-                return true;
-
-            }
-        )
-        .sort(
-            (
-                curriculumA,
-                curriculumB
-            ) =>
-                curriculumB.admissionYearFrom -
-                curriculumA.admissionYearFrom
-        )[0] || null;
-
+        return true;
+      })
+      .sort(
+        (curriculumA, curriculumB) =>
+          curriculumB.admissionYearFrom - curriculumA.admissionYearFrom,
+      )[0] || null
+  );
 }
-
 
 /* ========================================
    科目正規化
 ======================================== */
 
-function normalizeSubject(
+function normalizeSubject(id, data) {
+  let departmentValue = String(data.department || "").trim();
+
+  let majorValue = String(data.major || "").trim();
+
+  if (departmentValue === "理学療法学専攻") {
+    departmentValue = "リハビリテーション学科";
+
+    majorValue = "理学療法学専攻";
+  }
+
+  if (departmentValue === "作業療法学専攻") {
+    departmentValue = "リハビリテーション学科";
+
+    majorValue = "作業療法学専攻";
+  }
+
+  let requirementType = String(data.requirementType || "").trim();
+
+  if (!requirementType) {
+    requirementType = data.required === true ? "required" : "elective";
+  }
+
+  const curriculumIds = normalizeStringArray(data.curriculumIds);
+
+  if (data.curriculumId && !curriculumIds.includes(String(data.curriculumId))) {
+    curriculumIds.push(String(data.curriculumId));
+  }
+
+  return {
     id,
-    data
-) {
 
-    let departmentValue =
-        String(
-            data.department ||
-            ""
-        ).trim();
+    name: String(data.name || data.subjectKey || id).trim(),
 
+    subjectKey: String(data.subjectKey || data.name || id).trim(),
 
-    let majorValue =
-        String(
-            data.major ||
-            ""
-        ).trim();
+    department: departmentValue,
 
+    major: majorValue,
 
-    if (
-        departmentValue ===
-        "理学療法学専攻"
-    ) {
+    curriculumIds,
 
-        departmentValue =
-            "リハビリテーション学科";
+    grade: normalizeGrade(data.grade),
 
-        majorValue =
-            "理学療法学専攻";
+    semester: normalizeSemester(data.semester),
 
-    }
+    requirementType,
 
+    category: String(data.category || data.subjectCategory || "").trim(),
 
-    if (
-        departmentValue ===
-        "作業療法学専攻"
-    ) {
+    subcategory: String(data.subcategory || data.subCategory || "").trim(),
 
-        departmentValue =
-            "リハビリテーション学科";
+    requirementTags: Array.isArray(data.requirementTags)
+      ? normalizeStringArray(data.requirementTags)
+      : splitTags(data.requirementTags || data.requirementTag || ""),
 
-        majorValue =
-            "作業療法学専攻";
+    credits: toNonNegativeNumber(data.credits),
 
-    }
+    lectureCount: toNonNegativeNumber(data.lectureCount),
 
+    isPractical: data.isPractical === true,
 
-    let requirementType =
-        String(
-            data.requirementType ||
-            ""
-        ).trim();
+    active: data.active !== false,
 
+    attendanceNotificationDefaultEnabled:
+      data.attendanceNotificationDefaultEnabled !== false,
 
-    if (!requirementType) {
-
-        requirementType =
-            data.required === true
-                ? "required"
-                : "elective";
-
-    }
-
-
-    const curriculumIds =
-        normalizeStringArray(
-            data.curriculumIds
-        );
-
-
-    if (
-        data.curriculumId &&
-        !curriculumIds.includes(
-            String(data.curriculumId)
-        )
-    ) {
-
-        curriculumIds.push(
-            String(data.curriculumId)
-        );
-
-    }
-
-
-    return {
-
-        id,
-
-        name:
-            String(
-                data.name ||
-                data.subjectKey ||
-                id
-            ).trim(),
-
-        subjectKey:
-            String(
-                data.subjectKey ||
-                data.name ||
-                id
-            ).trim(),
-
-        department:
-            departmentValue,
-
-        major:
-            majorValue,
-
-        curriculumIds,
-
-        grade:
-            normalizeGrade(
-                data.grade
-            ),
-
-        semester:
-            normalizeSemester(
-                data.semester
-            ),
-
-        requirementType,
-
-        category:
-            String(
-                data.category ||
-                data.subjectCategory ||
-                ""
-            ).trim(),
-
-        subcategory:
-            String(
-                data.subcategory ||
-                data.subCategory ||
-                ""
-            ).trim(),
-
-        requirementTags:
-            Array.isArray(
-                data.requirementTags
-            )
-                ? normalizeStringArray(
-                    data.requirementTags
-                )
-                : splitTags(
-                    data.requirementTags ||
-                    data.requirementTag ||
-                    ""
-                ),
-
-        credits:
-            toNonNegativeNumber(
-                data.credits
-            ),
-
-        lectureCount:
-            toNonNegativeNumber(
-                data.lectureCount
-            ),
-
-        isPractical:
-            data.isPractical === true,
-
-        active:
-            data.active !== false,
-
-        attendanceNotificationDefaultEnabled:
-            data
-                .attendanceNotificationDefaultEnabled
-                !== false,
-
-        attendanceReminderMinutes:
-            toNonNegativeNumber(
-                data.attendanceReminderMinutes ??
-                10
-            )
-
-    };
-
+    attendanceReminderMinutes: toNonNegativeNumber(
+      data.attendanceReminderMinutes ?? 10,
+    ),
+  };
 }
-
 
 /* ========================================
    科目対象判定
 ======================================== */
 
-function matchesCurriculum(
-    subject
-) {
+function matchesCurriculum(subject) {
+  if (subject.curriculumIds.length > 0) {
+    return subject.curriculumIds.includes(currentCurriculum.curriculumId);
+  }
 
-    if (
-        subject.curriculumIds.length > 0
-    ) {
+  if (subject.department !== currentCurriculum.department) {
+    return false;
+  }
 
-        return subject.curriculumIds.includes(
-            currentCurriculum.curriculumId
-        );
+  if (currentCurriculum.major) {
+    return subject.major === currentCurriculum.major;
+  }
 
-    }
-
-
-    if (
-        subject.department !==
-        currentCurriculum.department
-    ) {
-
-        return false;
-
-    }
-
-
-    if (currentCurriculum.major) {
-
-        return (
-            subject.major ===
-            currentCurriculum.major
-        );
-
-    }
-
-
-    return !subject.major;
-
+  return !subject.major;
 }
 
-
-function matchesStudentGrade(
-    subject
-) {
-
-    return (
-        subject.grade === grade
-    );
-
+function matchesStudentGrade(subject) {
+  return subject.grade === grade;
 }
 
-
-function matchesSemester(
-    subject
-) {
-
-    return (
-
-        subject.semester ===
-            config.semester ||
-
-        subject.semester ===
-            "通期"
-
-    );
-
+function matchesSemester(subject) {
+  return subject.semester === config.semester || subject.semester === "通期";
 }
 
 // ========================================
 // ④ matchesSemester() の下に追加
 // ========================================
 
-function getRetakeEnrollment(
-    subject
-) {
+function getRetakeEnrollment(subject) {
+  const record = findPastCourseRecord(subject);
 
-    const record =
-        findPastCourseRecord(
-            subject
-        );
+  if (!record || !isPastCourseFailed(record)) {
+    return null;
+  }
 
-
-    if (
-        !record ||
-        !isPastCourseFailed(
-            record
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    return record;
-
+  return record;
 }
 
+function isRetakeSubject(subject) {
+  const historyRecord = getRetakeEnrollment(subject);
 
-function isRetakeSubject(
-    subject
-) {
+  if (!historyRecord) {
+    return false;
+  }
 
-    const historyRecord =
-        getRetakeEnrollment(
-            subject
-        );
+  const sourceYear = Number(
+    historyRecord.academicYear ||
+      historyRecord.creditConfirmedAcademicYear ||
+      0,
+  );
 
+  if (!sourceYear || Number(config.academicYear) <= sourceYear) {
+    return false;
+  }
 
-    if (!historyRecord) {
-        return false;
-    }
-
-
-    const sourceYear =
-        Number(
-            historyRecord.academicYear ||
-            historyRecord
-                .creditConfirmedAcademicYear ||
-            0
-        );
-
-
-    if (
-        !sourceYear ||
-        Number(config.academicYear) <=
-            sourceYear
-    ) {
-
-        return false;
-
-    }
-
-
-    /*
+  /*
      過去に未修得だった科目でも、
      現在の履修登録対象学期と一致するときだけ
      再履修候補として表示する。
     */
 
-    return matchesSemester(
-        subject
-    );
-
+  return matchesSemester(subject);
 }
-
 
 /* ========================================
    過去履修履歴
 ======================================== */
 
-function normalizePastCourseStatus(
-    value
-) {
+function normalizePastCourseStatus(value) {
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
 
-    const status =
-        String(
-            value ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
+  if (["earned", "修得", "取得"].includes(status)) {
+    return "earned";
+  }
 
+  if (["not_earned", "failed", "未修得", "不合格", "不可"].includes(status)) {
+    return "not_earned";
+  }
 
-    if (
-        [
-            "earned",
-            "修得",
-            "取得"
-        ].includes(status)
-    ) {
-
-        return "earned";
-
-    }
-
-
-    if (
-        [
-            "not_earned",
-            "failed",
-            "未修得",
-            "不合格",
-            "不可"
-        ].includes(status)
-    ) {
-
-        return "not_earned";
-
-    }
-
-
-    return "not_taken";
-
+  return "not_taken";
 }
 
+function findPastCourseRecord(subject) {
+  const direct = pastCourseRecords.get(subject.id);
 
-function findPastCourseRecord(
-    subject
-) {
+  if (direct) {
+    return direct;
+  }
 
-    const direct =
-        pastCourseRecords.get(
-            subject.id
-        );
+  return (
+    [...pastCourseRecords.values()].find((record) => {
+      const recordKey = String(record.subjectKey || record.name || "").trim();
 
-
-    if (direct) {
-        return direct;
-    }
-
-
-    return (
-        [...pastCourseRecords.values()]
-            .find(
-                record => {
-
-                    const recordKey =
-                        String(
-                            record.subjectKey ||
-                            record.name ||
-                            ""
-                        ).trim();
-
-
-                    return (
-                        recordKey &&
-                        recordKey ===
-                            subject.subjectKey
-                    );
-
-                }
-            ) ||
-        null
-    );
-
+      return recordKey && recordKey === subject.subjectKey;
+    }) || null
+  );
 }
 
-
-function isPastCourseActuallyTaken(
-    record
-) {
-
-    return (
-        record?.tookCourse === true
-    );
-
+function isPastCourseActuallyTaken(record) {
+  return record?.tookCourse === true;
 }
 
-
-function isPastCourseFailed(
-    record
-) {
-
-    return (
-        isPastCourseActuallyTaken(
-            record
-        ) &&
-        normalizePastCourseStatus(
-            record.status ||
-            record.creditStatus
-        ) ===
-            "not_earned"
-    );
-
+function isPastCourseFailed(record) {
+  return (
+    isPastCourseActuallyTaken(record) &&
+    normalizePastCourseStatus(record.status || record.creditStatus) ===
+      "not_earned"
+  );
 }
 
-
-function isPastCourseEarned(
-    record
-) {
-
-    return (
-        isPastCourseActuallyTaken(
-            record
-        ) &&
-        normalizePastCourseStatus(
-            record.status ||
-            record.creditStatus
-        ) ===
-            "earned"
-    );
-
+function isPastCourseEarned(record) {
+  return (
+    isPastCourseActuallyTaken(record) &&
+    normalizePastCourseStatus(record.status || record.creditStatus) === "earned"
+  );
 }
 
+function getAcademicYearForGrade(targetGrade) {
+  const gradeNumber = Number(targetGrade) || 1;
 
-function getAcademicYearForGrade(
-    targetGrade
-) {
+  if (admissionYear > 0) {
+    return admissionYear + gradeNumber - 1;
+  }
 
-    const gradeNumber =
-        Number(targetGrade) || 1;
+  const currentGrade = Number(grade) || 1;
 
-
-    if (admissionYear > 0) {
-
-        return (
-            admissionYear +
-            gradeNumber -
-            1
-        );
-
-    }
-
-
-    const currentGrade =
-        Number(grade) || 1;
-
-
-    return (
-        Number(
-            config?.academicYear ||
-            new Date().getFullYear()
-        ) -
-        (
-            currentGrade -
-            gradeNumber
-        )
-    );
-
+  return (
+    Number(config?.academicYear || new Date().getFullYear()) -
+    (currentGrade - gradeNumber)
+  );
 }
-
 
 function getPastAcademicPeriods() {
+  const currentGrade = Math.max(1, Math.min(4, Number(grade) || 1));
 
-    const currentGrade =
-        Math.max(
-            1,
-            Math.min(
-                4,
-                Number(grade) || 1
-            )
-        );
+  const currentSemester = normalizeSemester(config?.semester);
 
+  const periods = [];
 
-    const currentSemester =
-        normalizeSemester(
-            config?.semester
-        );
-
-
-    const periods =
-        [];
-
-
-    /*
+  /*
      ========================================
      現在学年より前
      ========================================
@@ -2369,65 +1222,40 @@ function getPastAcademicPeriods() {
      通期も登録対象にする。
     */
 
-    for (
-        let targetGrade = 1;
-        targetGrade < currentGrade;
-        targetGrade += 1
-    ) {
+  for (let targetGrade = 1; targetGrade < currentGrade; targetGrade += 1) {
+    const academicYear = getAcademicYearForGrade(targetGrade);
 
-        const academicYear =
-            getAcademicYearForGrade(
-                targetGrade
-            );
+    periods.push({
+      grade: targetGrade,
 
+      semester: "前期",
 
-        periods.push({
+      academicYear,
+    });
 
-            grade:
-                targetGrade,
+    periods.push({
+      grade: targetGrade,
 
-            semester:
-                "前期",
+      semester: "後期",
 
-            academicYear
+      academicYear,
+    });
 
-        });
-
-
-        periods.push({
-
-            grade:
-                targetGrade,
-
-            semester:
-                "後期",
-
-            academicYear
-
-        });
-
-
-        /*
+    /*
          通期科目が存在する場合のみ
          後から表示される。
         */
 
-        periods.push({
+    periods.push({
+      grade: targetGrade,
 
-            grade:
-                targetGrade,
+      semester: "通期",
 
-            semester:
-                "通期",
+      academicYear,
+    });
+  }
 
-            academicYear
-
-        });
-
-    }
-
-
-    /*
+  /*
      ========================================
      現在学年
      ========================================
@@ -2443,894 +1271,427 @@ function getPastAcademicPeriods() {
      → 1年前期を入力できる。
     */
 
-    if (
-        currentSemester ===
-        "後期"
-    ) {
+  if (currentSemester === "後期") {
+    periods.push({
+      grade: currentGrade,
 
-        periods.push({
+      semester: "前期",
 
-            grade:
-                currentGrade,
+      academicYear: getAcademicYearForGrade(currentGrade),
+    });
+  }
 
-            semester:
-                "前期",
-
-            academicYear:
-                getAcademicYearForGrade(
-                    currentGrade
-                )
-
-        });
-
-    }
-
-
-    return periods;
-
+  return periods;
 }
 
-
-function getHistoricalSubjectsForPeriod(
-    targetGrade,
-    targetSemester
-) {
-
-    return allSubjects
-        .filter(
-            subject => {
-
-                /*
+function getHistoricalSubjectsForPeriod(targetGrade, targetSemester) {
+  return allSubjects
+    .filter((subject) => {
+      /*
                  その学生のカリキュラムに
                  属する科目だけ。
                 */
 
-                if (
-                    !matchesCurriculum(
-                        subject
-                    )
-                ) {
+      if (!matchesCurriculum(subject)) {
+        return false;
+      }
 
-                    return false;
-
-                }
-
-
-                /*
+      /*
                  対象学年。
                 */
 
-                if (
-                    Number(subject.grade) !==
-                    Number(targetGrade)
-                ) {
+      if (Number(subject.grade) !== Number(targetGrade)) {
+        return false;
+      }
 
-                    return false;
-
-                }
-
-
-                /*
+      /*
                  対象学期。
                 */
 
-                return (
-                    normalizeSemester(
-                        subject.semester
-                    ) ===
-                    normalizeSemester(
-                        targetSemester
-                    )
-                );
-
-            }
-        )
-        .sort(
-            compareSubjects
-        );
-
+      return (
+        normalizeSemester(subject.semester) ===
+        normalizeSemester(targetSemester)
+      );
+    })
+    .sort(compareSubjects);
 }
-
 
 /* ========================================
    修得単位
 ======================================== */
 
 function createEmptyProgress() {
+  return {
+    locked: false,
+
+    years: {},
+
+    earnedCredits: 0,
+
+    earnedRequiredCredits: 0,
+
+    earnedElectiveCredits: 0,
+
+    categoryCredits: {},
+
+    categoryRequiredCredits: {},
+
+    categoryElectiveCredits: {},
+
+    requirementTagCredits: {},
+  };
+}
+
+function mergeCreditRecords(subcollectionSnapshot, topLevelSnapshot) {
+  const records = [];
+
+  if (subcollectionSnapshot) {
+    subcollectionSnapshot.docs.forEach((recordDocument) => {
+      records.push({
+        id: recordDocument.id,
+
+        ...recordDocument.data(),
+      });
+    });
+  }
+
+  if (topLevelSnapshot?.exists()) {
+    const topLevelData = topLevelSnapshot.data() || {};
+
+    if (Array.isArray(topLevelData.records)) {
+      topLevelData.records.forEach((record, index) => {
+        records.push({
+          id: record.id || `record_${index}`,
+
+          ...record,
+        });
+      });
+    }
+  }
+
+  const recordMap = new Map();
+
+  records.forEach((record) => {
+    const status = String(record.status || "").toLowerCase();
+
+    if (["failed", "不合格", "不可", "未修得"].includes(status)) {
+      return;
+    }
+
+    const credits = toNonNegativeNumber(record.credits);
+
+    if (credits <= 0) {
+      return;
+    }
+
+    const key = String(record.subjectId || record.subjectKey || record.id);
+
+    recordMap.set(key, record);
+  });
+
+  return [...recordMap.values()];
+}
+
+function findSubjectForCreditRecord(record, subjectCatalog) {
+  const subjectId = String(record.subjectId || "").trim();
+
+  if (subjectId) {
+    const subjectById = subjectCatalog.find(
+      (subject) => subject.id === subjectId,
+    );
+
+    if (subjectById) {
+      return subjectById;
+    }
+  }
+
+  const subjectKey = String(
+    record.subjectKey || record.name || record.subject || "",
+  ).trim();
+
+  if (!subjectKey) {
+    return null;
+  }
+
+  const subjectByKey = subjectCatalog.find(
+    (subject) => subject.subjectKey === subjectKey,
+  );
+
+  if (subjectByKey) {
+    return subjectByKey;
+  }
+
+  return subjectCatalog.find((subject) => subject.name === subjectKey) || null;
+}
+
+function enrichCreditRecord(record, subjectCatalog) {
+  const subject = findSubjectForCreditRecord(record, subjectCatalog);
+
+  const storedRequirementType = String(record.requirementType || "").trim();
+
+  let requirementType = "";
+
+  if (
+    storedRequirementType === "required" ||
+    storedRequirementType === "elective"
+  ) {
+    requirementType = storedRequirementType;
+  } else if (subject?.requirementType) {
+    requirementType = subject.requirementType;
+  } else {
+    requirementType = record.required === true ? "required" : "elective";
+  }
+
+  const storedRequirementTags = Array.isArray(record.requirementTags)
+    ? normalizeStringArray(record.requirementTags)
+    : splitTags(record.requirementTags || record.requirementTag || "");
+
+  const requirementTags =
+    storedRequirementTags.length > 0
+      ? storedRequirementTags
+      : subject?.requirementTags || [];
+
+  return {
+    ...record,
+
+    subjectId: String(record.subjectId || subject?.id || "").trim(),
+
+    subjectKey: String(
+      record.subjectKey ||
+        subject?.subjectKey ||
+        subject?.name ||
+        record.name ||
+        record.subject ||
+        "",
+    ).trim(),
+
+    name: String(
+      record.name || record.subject || subject?.name || record.subjectKey || "",
+    ).trim(),
+
+    credits: toNonNegativeNumber(record.credits || subject?.credits),
+
+    requirementType,
+
+    required: requirementType === "required",
+
+    category: String(record.category || subject?.category || "").trim(),
+
+    requirementTags,
+  };
+}
+
+function buildProgress(storedProgress, creditRecords) {
+  earnedSubjectIds = new Set();
+
+  earnedSubjectKeys = new Set();
+
+  if (creditRecords.length === 0) {
+    progressSource = "manual";
 
     return {
+      ...createEmptyProgress(),
 
-        locked:
-            false,
+      ...storedProgress,
 
-        years:
-            {},
+      years: storedProgress.years || {},
 
-        earnedCredits:
-            0,
+      categoryCredits: storedProgress.categoryCredits || {},
 
-        earnedRequiredCredits:
-            0,
+      categoryRequiredCredits: storedProgress.categoryRequiredCredits || {},
 
-        earnedElectiveCredits:
-            0,
+      categoryElectiveCredits: storedProgress.categoryElectiveCredits || {},
 
-        categoryCredits:
-            {},
-
-        categoryRequiredCredits:
-            {},
-
-        categoryElectiveCredits:
-            {},
-
-        requirementTagCredits:
-            {}
-
+      requirementTagCredits: storedProgress.requirementTagCredits || {},
     };
+  }
 
-}
+  progressSource = "records";
 
+  const calculatedProgress = createEmptyProgress();
 
-function mergeCreditRecords(
-    subcollectionSnapshot,
-    topLevelSnapshot
-) {
+  calculatedProgress.locked = true;
 
-    const records =
-        [];
+  creditRecords.forEach((record) => {
+    const credits = toNonNegativeNumber(record.credits);
 
-
-    if (subcollectionSnapshot) {
-
-        subcollectionSnapshot.docs.forEach(
-            recordDocument => {
-
-                records.push({
-
-                    id:
-                        recordDocument.id,
-
-                    ...recordDocument.data()
-
-                });
-
-            }
-        );
-
-    }
-
-
-    if (
-        topLevelSnapshot?.exists()
-    ) {
-
-        const topLevelData =
-            topLevelSnapshot.data() || {};
-
-
-        if (
-            Array.isArray(
-                topLevelData.records
-            )
-        ) {
-
-            topLevelData.records.forEach(
-                (
-                    record,
-                    index
-                ) => {
-
-                    records.push({
-
-                        id:
-                            record.id ||
-                            `record_${index}`,
-
-                        ...record
-
-                    });
-
-                }
-            );
-
-        }
-
-    }
-
-
-    const recordMap =
-        new Map();
-
-
-    records.forEach(
-        record => {
-
-            const status =
-                String(
-                    record.status ||
-                    ""
-                ).toLowerCase();
-
-
-            if (
-                [
-                    "failed",
-                    "不合格",
-                    "不可",
-                    "未修得"
-                ].includes(status)
-            ) {
-
-                return;
-
-            }
-
-
-            const credits =
-                toNonNegativeNumber(
-                    record.credits
-                );
-
-
-            if (credits <= 0) {
-                return;
-            }
-
-
-            const key =
-                String(
-
-                    record.subjectId ||
-
-                    record.subjectKey ||
-
-                    record.id
-
-                );
-
-
-            recordMap.set(
-                key,
-                record
-            );
-
-        }
+    const requirementType = String(
+      record.requirementType ||
+        (record.required === true ? "required" : "elective"),
     );
 
+    const category = String(record.category || "").trim();
 
-    return [...recordMap.values()];
+    const requirementTags = Array.isArray(record.requirementTags)
+      ? normalizeStringArray(record.requirementTags)
+      : splitTags(record.requirementTags || record.requirementTag || "");
 
-}
+    calculatedProgress.earnedCredits += credits;
 
-
-function findSubjectForCreditRecord(
-    record,
-    subjectCatalog
-) {
-
-    const subjectId =
-        String(
-            record.subjectId ||
-            ""
-        ).trim();
-
-
-    if (subjectId) {
-
-        const subjectById =
-            subjectCatalog.find(
-                subject =>
-                    subject.id ===
-                    subjectId
-            );
-
-
-        if (subjectById) {
-            return subjectById;
-        }
-
+    if (requirementType === "required") {
+      calculatedProgress.earnedRequiredCredits += credits;
+    } else if (requirementType === "elective") {
+      calculatedProgress.earnedElectiveCredits += credits;
     }
 
+    if (category) {
+      addObjectNumber(calculatedProgress.categoryCredits, category, credits);
 
-    const subjectKey =
-        String(
-            record.subjectKey ||
-            record.name ||
-            record.subject ||
-            ""
-        ).trim();
-
-
-    if (!subjectKey) {
-        return null;
-    }
-
-
-    const subjectByKey =
-        subjectCatalog.find(
-            subject =>
-                subject.subjectKey ===
-                subjectKey
+      if (requirementType === "required") {
+        addObjectNumber(
+          calculatedProgress.categoryRequiredCredits,
+          category,
+          credits,
         );
+      }
 
-
-    if (subjectByKey) {
-        return subjectByKey;
-    }
-
-
-    return (
-        subjectCatalog.find(
-            subject =>
-                subject.name ===
-                subjectKey
-        ) ||
-        null
-    );
-
-}
-
-
-function enrichCreditRecord(
-    record,
-    subjectCatalog
-) {
-
-    const subject =
-        findSubjectForCreditRecord(
-            record,
-            subjectCatalog
+      if (requirementType === "elective") {
+        addObjectNumber(
+          calculatedProgress.categoryElectiveCredits,
+          category,
+          credits,
         );
-
-
-    const storedRequirementType =
-        String(
-            record.requirementType ||
-            ""
-        ).trim();
-
-
-    let requirementType = "";
-
-
-    if (
-        storedRequirementType ===
-            "required" ||
-        storedRequirementType ===
-            "elective"
-    ) {
-
-        requirementType =
-            storedRequirementType;
-
-    } else if (
-        subject?.requirementType
-    ) {
-
-        requirementType =
-            subject.requirementType;
-
-    } else {
-
-        requirementType =
-            record.required === true
-                ? "required"
-                : "elective";
-
+      }
     }
 
+    requirementTags.forEach((tag) => {
+      addObjectNumber(calculatedProgress.requirementTagCredits, tag, credits);
+    });
 
-    const storedRequirementTags =
-        Array.isArray(
-            record.requirementTags
-        )
-            ? normalizeStringArray(
-                record.requirementTags
-            )
-            : splitTags(
-                record.requirementTags ||
-                record.requirementTag ||
-                ""
-            );
-
-
-    const requirementTags =
-        storedRequirementTags.length > 0
-            ? storedRequirementTags
-            : (
-                subject?.requirementTags ||
-                []
-            );
-
-
-    return {
-
-        ...record,
-
-        subjectId:
-            String(
-                record.subjectId ||
-                subject?.id ||
-                ""
-            ).trim(),
-
-        subjectKey:
-            String(
-                record.subjectKey ||
-                subject?.subjectKey ||
-                subject?.name ||
-                record.name ||
-                record.subject ||
-                ""
-            ).trim(),
-
-        name:
-            String(
-                record.name ||
-                record.subject ||
-                subject?.name ||
-                record.subjectKey ||
-                ""
-            ).trim(),
-
-        credits:
-            toNonNegativeNumber(
-                record.credits ||
-                subject?.credits
-            ),
-
-        requirementType,
-
-        required:
-            requirementType ===
-            "required",
-
-        category:
-            String(
-                record.category ||
-                subject?.category ||
-                ""
-            ).trim(),
-
-        requirementTags
-
-    };
-
-}
-
-
-function buildProgress(
-    storedProgress,
-    creditRecords
-) {
-
-    earnedSubjectIds =
-        new Set();
-
-    earnedSubjectKeys =
-        new Set();
-
-
-    if (
-        creditRecords.length === 0
-    ) {
-
-        progressSource =
-            "manual";
-
-
-        return {
-
-            ...createEmptyProgress(),
-
-            ...storedProgress,
-
-            years:
-                storedProgress.years || {},
-
-            categoryCredits:
-                storedProgress.categoryCredits || {},
-
-            categoryRequiredCredits:
-                storedProgress.categoryRequiredCredits || {},
-
-            categoryElectiveCredits:
-                storedProgress.categoryElectiveCredits || {},
-
-            requirementTagCredits:
-                storedProgress.requirementTagCredits || {}
-
-        };
-
+    if (record.subjectId) {
+      earnedSubjectIds.add(String(record.subjectId));
     }
 
+    if (record.subjectKey) {
+      earnedSubjectKeys.add(String(record.subjectKey));
+    }
+  });
 
-    progressSource =
-        "records";
-
-
-    const calculatedProgress =
-        createEmptyProgress();
-
-
-    calculatedProgress.locked =
-        true;
-
-
-    creditRecords.forEach(
-        record => {
-
-            const credits =
-                toNonNegativeNumber(
-                    record.credits
-                );
-
-
-            const requirementType =
-                String(
-                    record.requirementType ||
-                    (
-                        record.required === true
-                            ? "required"
-                            : "elective"
-                    )
-                );
-
-
-            const category =
-                String(
-                    record.category ||
-                    ""
-                ).trim();
-
-
-            const requirementTags =
-                Array.isArray(
-                    record.requirementTags
-                )
-                    ? normalizeStringArray(
-                        record.requirementTags
-                    )
-                    : splitTags(
-                        record.requirementTags ||
-                        record.requirementTag ||
-                        ""
-                    );
-
-
-            calculatedProgress.earnedCredits +=
-                credits;
-
-
-            if (
-                requirementType ===
-                "required"
-            ) {
-
-                calculatedProgress
-                    .earnedRequiredCredits +=
-                    credits;
-
-            } else if (
-                requirementType ===
-                "elective"
-            ) {
-
-                calculatedProgress
-                    .earnedElectiveCredits +=
-                    credits;
-
-            }
-
-
-            if (category) {
-
-                addObjectNumber(
-                    calculatedProgress.categoryCredits,
-                    category,
-                    credits
-                );
-
-
-                if (
-                    requirementType ===
-                    "required"
-                ) {
-
-                    addObjectNumber(
-                        calculatedProgress
-                            .categoryRequiredCredits,
-                        category,
-                        credits
-                    );
-
-                }
-
-
-                if (
-                    requirementType ===
-                    "elective"
-                ) {
-
-                    addObjectNumber(
-                        calculatedProgress
-                            .categoryElectiveCredits,
-                        category,
-                        credits
-                    );
-
-                }
-
-            }
-
-
-            requirementTags.forEach(
-                tag => {
-
-                    addObjectNumber(
-                        calculatedProgress
-                            .requirementTagCredits,
-                        tag,
-                        credits
-                    );
-
-                }
-            );
-
-
-            if (record.subjectId) {
-
-                earnedSubjectIds.add(
-                    String(record.subjectId)
-                );
-
-            }
-
-
-            if (record.subjectKey) {
-
-                earnedSubjectKeys.add(
-                    String(record.subjectKey)
-                );
-
-            }
-
-        }
-    );
-
-
-    return calculatedProgress;
-
+  return calculatedProgress;
 }
-
 
 /* ========================================
    公開期間
 ======================================== */
 
 function getEffectivePhase() {
+  if (previewMode) {
+    return config.phase || "view_only";
+  }
 
-    if (previewMode) {
+  if (config.published !== true || config.pageEnabled !== true) {
+    return "hidden";
+  }
 
-        return config.phase ||
-            "view_only";
+  const now = Date.now();
 
-    }
+  const startTime = config.startAt ? new Date(config.startAt).getTime() : 0;
 
+  const endTime = config.endAt
+    ? new Date(config.endAt).getTime()
+    : Number.POSITIVE_INFINITY;
 
-    if (
-        config.published !== true ||
-        config.pageEnabled !== true
-    ) {
+  if (now < startTime || now > endTime) {
+    return "view_only";
+  }
 
-        return "hidden";
-
-    }
-
-
-    const now =
-        Date.now();
-
-
-    const startTime =
-        config.startAt
-            ? new Date(
-                config.startAt
-            ).getTime()
-            : 0;
-
-
-    const endTime =
-        config.endAt
-            ? new Date(
-                config.endAt
-            ).getTime()
-            : Number.POSITIVE_INFINITY;
-
-
-    if (
-        now < startTime ||
-        now > endTime
-    ) {
-
-        return "view_only";
-
-    }
-
-
-    return config.phase ||
-        "view_only";
-
+  return config.phase || "view_only";
 }
 
+function phaseLabel(phase) {
+  return (
+    {
+      registration: "履修登録期間",
 
-function phaseLabel(
-    phase
-) {
+      correction: "履修修正期間",
 
-    return {
+      cancellation: "履修取消期間",
 
-        registration:
-            "履修登録期間",
+      view_only: "閲覧期間",
 
-        correction:
-            "履修修正期間",
-
-        cancellation:
-            "履修取消期間",
-
-        view_only:
-            "閲覧期間",
-
-        hidden:
-            "非公開"
-
-    }[phase] || "閲覧期間";
-
+      hidden: "非公開",
+    }[phase] || "閲覧期間"
+  );
 }
-
 
 function renderPhase() {
+  const phase = getEffectivePhase();
 
-    const phase =
-        getEffectivePhase();
+  if (phase === "hidden" && !previewMode) {
+    renderUnavailable(
+      "現在、履修登録画面は公開されていません。",
+      "履修登録期間外です",
+    );
 
+    return;
+  }
 
-    if (
-        phase === "hidden" &&
-        !previewMode
-    ) {
+  elements.phaseBadge.textContent = phaseLabel(phase);
 
-        renderUnavailable(
-            "現在、履修登録画面は公開されていません。",
-            "履修登録期間外です"
-        );
+  elements.phaseBadge.className = `course-phase-badge is-${phase}`;
 
-        return;
+  elements.info.textContent = `${config.academicYear}年度 ${config.semester}`;
 
-    }
+  const summaryParts = [
+    phaseLabel(phase),
 
+    previewMode ? "管理者プレビュー" : null,
 
-    elements.phaseBadge.textContent =
-        phaseLabel(phase);
+    currentCurriculum.usingDraft ? "編集中の下書きを表示" : null,
+  ].filter(Boolean);
 
+  elements.summary.textContent = summaryParts.join("｜");
 
-    elements.phaseBadge.className =
-        `course-phase-badge is-${phase}`;
+  elements.deadline.textContent = config.endAt
+    ? formatDateTime(config.endAt)
+    : "期限なし";
 
+  elements.curriculumName.textContent = currentCurriculum.name;
 
-    elements.info.textContent =
-        `${config.academicYear}年度 ${config.semester}`;
+  elements.departmentInfo.textContent = major
+    ? `${department} ${major}`
+    : department || "未設定";
 
+  elements.gradeInfo.textContent = grade ? `${grade}年` : "未設定";
 
-    const summaryParts = [
-
-        phaseLabel(phase),
-
-        previewMode
-            ? "管理者プレビュー"
-            : null,
-
-        currentCurriculum.usingDraft
-            ? "編集中の下書きを表示"
-            : null
-
-    ].filter(Boolean);
-
-
-    elements.summary.textContent =
-        summaryParts.join("｜");
-
-
-    elements.deadline.textContent =
-        config.endAt
-            ? formatDateTime(
-                config.endAt
-            )
-            : "期限なし";
-
-
-    elements.curriculumName.textContent =
-        currentCurriculum.name;
-
-
-    elements.departmentInfo.textContent =
-        major
-            ? `${department} ${major}`
-            : department || "未設定";
-
-
-    elements.gradeInfo.textContent =
-        grade
-            ? `${grade}年`
-            : "未設定";
-
-
-    elements.lastRegistrationInfo.textContent =
-        lastRegistrationAt
-            ? formatDateTime(
-                lastRegistrationAt
-            )
-            : "未登録";
-
+  elements.lastRegistrationInfo.textContent = lastRegistrationAt
+    ? formatDateTime(lastRegistrationAt)
+    : "未登録";
 }
-
 
 /* ========================================
    利用不可
 ======================================== */
 
-function renderUnavailable(
-    message,
-    title = "履修登録を利用できません"
-) {
+function renderUnavailable(message, title = "履修登録を利用できません") {
+  registrationAvailable = false;
 
-    registrationAvailable =
-        false;
+  elements.unavailable.hidden = false;
 
+  elements.unavailableTitle.textContent = title;
 
-    elements.unavailable.hidden =
-        false;
+  elements.unavailableMessage.textContent = message;
 
-    elements.unavailableTitle.textContent =
-        title;
+  elements.guide.hidden = true;
 
-    elements.unavailableMessage.textContent =
-        message;
+  elements.mainLayout.hidden = true;
 
+  elements.mobileSaveBar.hidden = true;
 
-    elements.guide.hidden =
-        true;
+  elements.summary.textContent = message;
 
-    elements.mainLayout.hidden =
-        true;
-
-    elements.mobileSaveBar.hidden =
-        true;
-
-
-    elements.summary.textContent =
-        message;
-
-
-    closeMobileSummary();
-    closeEnrollmentConfirmation();
-
+  closeMobileSummary();
+  closeEnrollmentConfirmation();
 }
-
 
 /* ========================================
    修得単位表示
 ======================================== */
 
 function renderProgress() {
+  const pastPeriods = getPastAcademicPeriods();
 
-    const pastPeriods =
-        getPastAcademicPeriods();
-
-
-    /*
+  /*
      過去として入力できる学期がなく、
      既存履歴もなければ非表示。
 
@@ -3338,70 +1699,34 @@ function renderProgress() {
      1年前期
     */
 
-    if (
-        pastPeriods.length === 0 &&
-        pastCourseRecords.size === 0
-    ) {
+  if (pastPeriods.length === 0 && pastCourseRecords.size === 0) {
+    elements.progressCard.hidden = true;
 
-        elements.progressCard.hidden =
-            true;
+    return;
+  }
 
-        return;
+  elements.progressCard.hidden = false;
 
-    }
+  const registeredRecords = [...pastCourseRecords.values()].filter((record) =>
+    isPastCourseActuallyTaken(record),
+  );
 
+  const earnedRecords = registeredRecords.filter((record) =>
+    isPastCourseEarned(record),
+  );
 
-    elements.progressCard.hidden =
-        false;
+  const failedRecords = registeredRecords.filter((record) =>
+    isPastCourseFailed(record),
+  );
 
+  const earnedCredits = earnedRecords.reduce(
+    (total, record) => total + toNonNegativeNumber(record.credits),
+    0,
+  );
 
-    const registeredRecords =
-        [...pastCourseRecords.values()]
-            .filter(
-                record =>
-                    isPastCourseActuallyTaken(
-                        record
-                    )
-            );
+  elements.progressSummary.hidden = false;
 
-
-    const earnedRecords =
-        registeredRecords.filter(
-            record =>
-                isPastCourseEarned(
-                    record
-                )
-        );
-
-
-    const failedRecords =
-        registeredRecords.filter(
-            record =>
-                isPastCourseFailed(
-                    record
-                )
-        );
-
-
-    const earnedCredits =
-        earnedRecords.reduce(
-            (
-                total,
-                record
-            ) =>
-                total +
-                toNonNegativeNumber(
-                    record.credits
-                ),
-            0
-        );
-
-
-    elements.progressSummary.hidden =
-        false;
-
-
-    elements.progressSummary.innerHTML = `
+  elements.progressSummary.innerHTML = `
 
         <div class="course-progress-official-summary">
 
@@ -3417,9 +1742,7 @@ function renderProgress() {
 
                 <strong>
 
-                    ${formatCredit(
-                        earnedCredits
-                    )}単位修得
+                    ${formatCredit(earnedCredits)}単位修得
 
                 </strong>
 
@@ -3441,53 +1764,30 @@ function renderProgress() {
 
     `;
 
+  elements.progressToggle.hidden = false;
 
-    elements.progressToggle.hidden =
-        false;
+  elements.progressToggle.textContent = elements.progressEditor.hidden
+    ? "過去の履修結果を登録・編集"
+    : "入力欄を閉じる";
 
+  elements.progressSave.textContent = "過去の履修結果を保存";
 
-    elements.progressToggle.textContent =
-        elements.progressEditor.hidden
-            ? "過去の履修結果を登録・編集"
-            : "入力欄を閉じる";
-
-
-    elements.progressSave.textContent =
-        "過去の履修結果を保存";
-
-
-    /*
+  /*
      ========================================
      実際に科目が存在する学期だけ残す
      ========================================
     */
 
-    const periodsWithSubjects =
-        pastPeriods
-            .map(
-                period => ({
+  const periodsWithSubjects = pastPeriods
+    .map((period) => ({
+      ...period,
 
-                    ...period,
+      subjects: getHistoricalSubjectsForPeriod(period.grade, period.semester),
+    }))
+    .filter((period) => period.subjects.length > 0);
 
-                    subjects:
-                        getHistoricalSubjectsForPeriod(
-                            period.grade,
-                            period.semester
-                        )
-
-                })
-            )
-            .filter(
-                period =>
-                    period.subjects.length > 0
-            );
-
-
-    if (
-        periodsWithSubjects.length === 0
-    ) {
-
-        elements.progressYearFields.innerHTML = `
+  if (periodsWithSubjects.length === 0) {
+    elements.progressYearFields.innerHTML = `
 
             <div class="course-progress-empty">
 
@@ -3497,68 +1797,36 @@ function renderProgress() {
 
         `;
 
-        return;
+    return;
+  }
 
-    }
-
-
-    /*
+  /*
      ========================================
      年次ごとにまとめる
      ========================================
     */
 
-    const groupedByGrade =
-        new Map();
+  const groupedByGrade = new Map();
 
+  periodsWithSubjects.forEach((period) => {
+    const key = String(period.grade);
 
-    periodsWithSubjects.forEach(
-        period => {
+    if (!groupedByGrade.has(key)) {
+      groupedByGrade.set(key, {
+        grade: period.grade,
 
-            const key =
-                String(
-                    period.grade
-                );
+        academicYear: period.academicYear,
 
+        periods: [],
+      });
+    }
 
-            if (
-                !groupedByGrade.has(
-                    key
-                )
-            ) {
+    groupedByGrade.get(key).periods.push(period);
+  });
 
-                groupedByGrade.set(
-                    key,
-                    {
-                        grade:
-                            period.grade,
-
-                        academicYear:
-                            period.academicYear,
-
-                        periods:
-                            []
-                    }
-                );
-
-            }
-
-
-            groupedByGrade
-                .get(key)
-                .periods
-                .push(
-                    period
-                );
-
-        }
-    );
-
-
-    elements.progressYearFields.innerHTML =
-        [...groupedByGrade.values()]
-            .map(
-                yearGroup => `
+  elements.progressYearFields.innerHTML = [...groupedByGrade.values()]
+    .map(
+      (yearGroup) => `
 
                     <section
                         class="course-history-year">
@@ -3587,89 +1855,40 @@ function renderProgress() {
                         </div>
 
 
-                        ${
-                            yearGroup.periods
-                                .map(
-                                    period =>
-                                        createPastSemesterSection(
-                                            period
-                                        )
-                                )
-                                .join("")
-                        }
+                        ${yearGroup.periods
+                          .map((period) => createPastSemesterSection(period))
+                          .join("")}
 
                     </section>
 
-                `
-            )
-            .join("");
-
+                `,
+    )
+    .join("");
 }
 
+function createPastSemesterSection(period) {
+  const semesterLabel =
+    {
+      前期: "🌸 前期",
 
-function createPastSemesterSection(
-    period
-) {
+      後期: "🍂 後期",
 
-    const semesterLabel = {
+      通期: "📅 通期",
+    }[period.semester] || period.semester;
 
-        前期:
-            "🌸 前期",
+  const earnedCount = period.subjects.filter((subject) => {
+    const record = findPastCourseRecord(subject);
 
-        後期:
-            "🍂 後期",
+    return record && isPastCourseEarned(record);
+  }).length;
 
-        通期:
-            "📅 通期"
+  const failedCount = period.subjects.filter((subject) => {
+    const record = findPastCourseRecord(subject);
 
-    }[
-        period.semester
-    ] || period.semester;
+    return record && isPastCourseFailed(record);
+  }).length;
 
-
-    const earnedCount =
-        period.subjects.filter(
-            subject => {
-
-                const record =
-                    findPastCourseRecord(
-                        subject
-                    );
-
-
-                return (
-                    record &&
-                    isPastCourseEarned(
-                        record
-                    )
-                );
-
-            }
-        ).length;
-
-
-    const failedCount =
-        period.subjects.filter(
-            subject => {
-
-                const record =
-                    findPastCourseRecord(
-                        subject
-                    );
-
-
-                return (
-                    record &&
-                    isPastCourseFailed(
-                        record
-                    )
-                );
-
-            }
-        ).length;
-
-
-    return `
+  return `
 
         <div
             class="course-history-semester">
@@ -3718,66 +1937,40 @@ function createPastSemesterSection(
                     course-history-subject-list
                 ">
 
-                ${
-                    period.subjects
-                        .map(
-                            subject =>
-                                createPastCourseHistoryRow(
-                                    subject,
-                                    period.academicYear,
-                                    period.semester
-                                )
-                        )
-                        .join("")
-                }
+                ${period.subjects
+                  .map((subject) =>
+                    createPastCourseHistoryRow(
+                      subject,
+                      period.academicYear,
+                      period.semester,
+                    ),
+                  )
+                  .join("")}
 
             </div>
 
         </div>
 
     `;
-
 }
 
+function createPastCourseHistoryRow(subject, academicYear, semester) {
+  const record = findPastCourseRecord(subject);
 
-function createPastCourseHistoryRow(
-    subject,
-    academicYear,
-    semester
-) {
+  const status = record
+    ? normalizePastCourseStatus(record.status || record.creditStatus)
+    : "not_taken";
 
-    const record =
-        findPastCourseRecord(
-            subject
-        );
+  const requirementLabel =
+    {
+      required: "必修",
 
+      elective: "選択",
 
-    const status =
-        record
-            ? normalizePastCourseStatus(
-                record.status ||
-                record.creditStatus
-            )
-            : "not_taken";
+      free: "自由",
+    }[subject.requirementType] || "未設定";
 
-
-    const requirementLabel = {
-
-        required:
-            "必修",
-
-        elective:
-            "選択",
-
-        free:
-            "自由"
-
-    }[
-        subject.requirementType
-    ] || "未設定";
-
-
-    return `
+  return `
 
         <div
             class="course-history-subject">
@@ -3787,9 +1980,7 @@ function createPastCourseHistoryRow(
 
                 <strong>
 
-                    ${escapeHtml(
-                        subject.name
-                    )}
+                    ${escapeHtml(subject.name)}
 
                 </strong>
 
@@ -3800,21 +1991,17 @@ function createPastCourseHistoryRow(
                     <span
                         class="
                             course-tag
-                            ${escapeAttribute(
-                                subject.requirementType
-                            )}
+                            ${escapeAttribute(subject.requirementType)}
                         ">
 
-                        ${escapeHtml(
-                            requirementLabel
-                        )}
+                        ${escapeHtml(requirementLabel)}
 
                     </span>
 
 
                     ${
-                        subject.category
-                            ? `
+                      subject.category
+                        ? `
 
                                 <span
                                     class="
@@ -3822,14 +2009,12 @@ function createPastCourseHistoryRow(
                                         category
                                     ">
 
-                                    ${escapeHtml(
-                                        subject.category
-                                    )}
+                                    ${escapeHtml(subject.category)}
 
                                 </span>
 
                             `
-                            : ""
+                        : ""
                     }
 
 
@@ -3838,9 +2023,7 @@ function createPastCourseHistoryRow(
 
                         <b>
 
-                            ${formatCredit(
-                                subject.credits
-                            )}
+                            ${formatCredit(subject.credits)}
 
                         </b>
 
@@ -3864,28 +2047,17 @@ function createPastCourseHistoryRow(
                 <select
                     class="course-history-status"
 
-                    data-history-subject-id="${escapeAttribute(
-                        subject.id
-                    )}"
+                    data-history-subject-id="${escapeAttribute(subject.id)}"
 
                     data-history-academic-year="${academicYear}"
 
-                    data-history-semester="${escapeAttribute(
-                        semester
-                    )}"
+                    data-history-semester="${escapeAttribute(semester)}"
 
-                    aria-label="${escapeAttribute(
-                        subject.name
-                    )}の履修結果">
+                    aria-label="${escapeAttribute(subject.name)}の履修結果">
 
                     <option
                         value="not_taken"
-                        ${
-                            status ===
-                            "not_taken"
-                                ? "selected"
-                                : ""
-                        }>
+                        ${status === "not_taken" ? "selected" : ""}>
 
                         未履修
 
@@ -3894,12 +2066,7 @@ function createPastCourseHistoryRow(
 
                     <option
                         value="earned"
-                        ${
-                            status ===
-                            "earned"
-                                ? "selected"
-                                : ""
-                        }>
+                        ${status === "earned" ? "selected" : ""}>
 
                         修得
 
@@ -3908,12 +2075,7 @@ function createPastCourseHistoryRow(
 
                     <option
                         value="not_earned"
-                        ${
-                            status ===
-                            "not_earned"
-                                ? "selected"
-                                : ""
-                        }>
+                        ${status === "not_earned" ? "selected" : ""}>
 
                         未修得
 
@@ -3926,192 +2088,99 @@ function createPastCourseHistoryRow(
         </div>
 
     `;
-
 }
-
 
 /* ========================================
    修得単位登録
 ======================================== */
 
 function toggleProgressEditor() {
+  elements.progressEditor.hidden = !elements.progressEditor.hidden;
 
-    elements.progressEditor.hidden =
-        !elements.progressEditor.hidden;
-
-
-    elements.progressToggle.textContent =
-        elements.progressEditor.hidden
-            ? "過去の履修結果を登録・編集"
-            : "入力欄を閉じる";
-
+  elements.progressToggle.textContent = elements.progressEditor.hidden
+    ? "過去の履修結果を登録・編集"
+    : "入力欄を閉じる";
 }
 
-
 async function saveCourseProgress() {
+  const fields = [
+    ...elements.progressYearFields.querySelectorAll(
+      "[data-history-subject-id]",
+    ),
+  ];
 
-    const fields =
-        [
-            ...elements
-                .progressYearFields
-                .querySelectorAll(
-                    "[data-history-subject-id]"
-                )
-        ];
+  if (fields.length === 0) {
+    alert("登録できる過去科目がありません。");
 
+    return;
+  }
 
-    if (
-        fields.length === 0
-    ) {
+  const selectedHistory = fields.map((field) => ({
+    subjectId: String(field.dataset.historySubjectId || ""),
 
-        alert(
-            "登録できる過去科目がありません。"
-        );
+    academicYear: Number(field.dataset.historyAcademicYear || 0),
 
-        return;
+    semester: normalizeSemester(field.dataset.historySemester || ""),
 
-    }
+    status: normalizePastCourseStatus(field.value),
+  }));
 
+  const takenCount = selectedHistory.filter(
+    (history) => history.status !== "not_taken",
+  ).length;
 
-    const selectedHistory =
-        fields.map(
-            field => ({
+  const earnedCount = selectedHistory.filter(
+    (history) => history.status === "earned",
+  ).length;
 
-                subjectId:
-                    String(
-                        field.dataset
-                            .historySubjectId ||
-                        ""
-                    ),
+  const failedCount = selectedHistory.filter(
+    (history) => history.status === "not_earned",
+  ).length;
 
-                academicYear:
-                    Number(
-                        field.dataset
-                            .historyAcademicYear ||
-                        0
-                    ),
+  const confirmed = confirm(
+    "過去の履修結果を保存します。\n\n" +
+      `履修した科目：${takenCount}科目\n` +
+      `修得：${earnedCount}科目\n` +
+      `未修得：${failedCount}科目\n\n` +
+      "「未履修」にした科目は、" +
+      "再履修対象にはなりません。\n\n" +
+      "過去に実際に履修した科目を" +
+      "すべて正しく設定してください。",
+  );
 
-                semester:
-                    normalizeSemester(
-                        field.dataset
-                            .historySemester ||
-                        ""
-                    ),
+  if (!confirmed) {
+    return;
+  }
 
-                status:
-                    normalizePastCourseStatus(
-                        field.value
-                    )
+  try {
+    elements.progressSave.disabled = true;
 
-            })
-        );
+    elements.progressSave.textContent = "保存中...";
 
+    const batch = writeBatch(db);
 
-    const takenCount =
-        selectedHistory.filter(
-            history =>
-                history.status !==
-                "not_taken"
-        ).length;
+    for (const history of selectedHistory) {
+      const subject = allSubjects.find(
+        (candidate) => candidate.id === history.subjectId,
+      );
 
+      if (!subject) {
+        continue;
+      }
 
-    const earnedCount =
-        selectedHistory.filter(
-            history =>
-                history.status ===
-                "earned"
-        ).length;
+      const existingRecord = findPastCourseRecord(subject);
 
+      const recordId = existingRecord?.id || subject.id;
 
-    const failedCount =
-        selectedHistory.filter(
-            history =>
-                history.status ===
-                "not_earned"
-        ).length;
+      const recordReference = doc(
+        db,
+        "users",
+        studentNumber,
+        "courseHistoryRecords",
+        recordId,
+      );
 
-
-    const confirmed =
-        confirm(
-
-            "過去の履修結果を保存します。\n\n" +
-
-            `履修した科目：${takenCount}科目\n` +
-
-            `修得：${earnedCount}科目\n` +
-
-            `未修得：${failedCount}科目\n\n` +
-
-            "「未履修」にした科目は、" +
-            "再履修対象にはなりません。\n\n" +
-
-            "過去に実際に履修した科目を" +
-            "すべて正しく設定してください。"
-
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        elements.progressSave.disabled =
-            true;
-
-
-        elements.progressSave.textContent =
-            "保存中...";
-
-
-        const batch =
-            writeBatch(
-                db
-            );
-
-
-        for (
-            const history of
-            selectedHistory
-        ) {
-
-            const subject =
-                allSubjects.find(
-                    candidate =>
-                        candidate.id ===
-                        history.subjectId
-                );
-
-
-            if (!subject) {
-                continue;
-            }
-
-
-            const existingRecord =
-                findPastCourseRecord(
-                    subject
-                );
-
-
-            const recordId =
-                existingRecord?.id ||
-                subject.id;
-
-
-            const recordReference =
-                doc(
-                    db,
-                    "users",
-                    studentNumber,
-                    "courseHistoryRecords",
-                    recordId
-                );
-
-
-            /*
+      /*
              未履修の場合は
              履修履歴そのものを削除。
 
@@ -4120,328 +2189,187 @@ async function saveCourseProgress() {
              だけでは再履修にならない。
             */
 
-            if (
-                history.status ===
-                "not_taken"
-            ) {
+      if (history.status === "not_taken") {
+        if (existingRecord) {
+          batch.delete(recordReference);
+        }
 
-                if (existingRecord) {
+        continue;
+      }
 
-                    batch.delete(
-                        recordReference
-                    );
+      batch.set(
+        recordReference,
+        {
+          subjectId: subject.id,
 
-                }
+          subjectKey: subject.subjectKey,
 
+          name: subject.name,
 
-                continue;
+          curriculumId: currentCurriculum.curriculumId,
 
-            }
+          department: subject.department || department,
 
+          major: subject.major || major,
 
-            batch.set(
-                recordReference,
-                {
+          grade: subject.grade,
 
-                    subjectId:
-                        subject.id,
+          academicYear: Number(history.academicYear),
 
-                    subjectKey:
-                        subject.subjectKey,
+          semester: history.semester || subject.semester,
 
-                    name:
-                        subject.name,
+          requirementType: subject.requirementType,
 
-                    curriculumId:
-                        currentCurriculum
-                            .curriculumId,
+          required: subject.requirementType === "required",
 
-                    department:
-                        subject.department ||
-                        department,
+          category: subject.category,
 
-                    major:
-                        subject.major ||
-                        major,
+          subcategory: subject.subcategory,
 
-                    grade:
-                        subject.grade,
+          requirementTags: subject.requirementTags,
 
-                    academicYear:
-                        Number(
-                            history.academicYear
-                        ),
+          credits: subject.credits,
 
-                    semester:
-                        history.semester ||
-                        subject.semester,
-
-                    requirementType:
-                        subject.requirementType,
-
-                    required:
-                        subject.requirementType ===
-                        "required",
-
-                    category:
-                        subject.category,
-
-                    subcategory:
-                        subject.subcategory,
-
-                    requirementTags:
-                        subject.requirementTags,
-
-                    credits:
-                        subject.credits,
-
-                    /*
+          /*
                      履修したことを明示する。
                     */
 
-                    tookCourse:
-                        true,
+          tookCourse: true,
 
-                    /*
+          /*
                      earned
                      not_earned
                     */
 
-                    status:
-                        history.status,
+          status: history.status,
 
-                    creditStatus:
-                        history.status,
+          creditStatus: history.status,
 
-                    source:
-                        "student_manual_history",
+          source: "student_manual_history",
 
-                    manualHistory:
-                        true,
+          manualHistory: true,
 
-                    registeredAt:
-                        existingRecord
-                            ?.registeredAt ||
-                        serverTimestamp(),
+          registeredAt: existingRecord?.registeredAt || serverTimestamp(),
 
-                    updatedAt:
-                        serverTimestamp()
+          updatedAt: serverTimestamp(),
+        },
+        {
+          merge: true,
+        },
+      );
+    }
 
-                },
-                {
-                    merge:
-                        true
-                }
-            );
-
-        }
-
-
-        /*
+    /*
          旧「単位数だけ入力」方式から
          科目履歴方式へ移行したことを保存。
         */
 
-        batch.set(
-            doc(
-                db,
-                "users",
-                studentNumber
-            ),
-            {
+    batch.set(
+      doc(db, "users", studentNumber),
+      {
+        courseHistoryInitialized: true,
 
-                courseHistoryInitialized:
-                    true,
+        courseHistoryUpdatedAt: serverTimestamp(),
+      },
+      {
+        merge: true,
+      },
+    );
 
-                courseHistoryUpdatedAt:
-                    serverTimestamp()
+    await batch.commit();
 
-            },
-            {
-                merge:
-                    true
-            }
-        );
+    courseHistoryDirty = false;
 
+    showToast("過去の履修結果を保存しました");
 
-        await batch.commit();
-
-
-        courseHistoryDirty =
-            false;
-
-
-        showToast(
-            "過去の履修結果を保存しました"
-        );
-
-
-        /*
+    /*
          単位数・再履修判定を
          Firestoreから再計算。
         */
 
-        await loadRegistrationData();
+    await loadRegistrationData();
+  } catch (error) {
+    console.error("過去履修結果保存エラー:", error);
 
+    alert("過去の履修結果を保存できませんでした。");
+  } finally {
+    elements.progressSave.disabled = false;
 
-    } catch (error) {
-
-        console.error(
-            "過去履修結果保存エラー:",
-            error
-        );
-
-
-        alert(
-            "過去の履修結果を保存できませんでした。"
-        );
-
-
-    } finally {
-
-        elements.progressSave.disabled =
-            false;
-
-
-        elements.progressSave.textContent =
-            "過去の履修結果を保存";
-
-    }
-
+    elements.progressSave.textContent = "過去の履修結果を保存";
+  }
 }
-
 
 /* ========================================
    科目区分フィルター
 ======================================== */
 
 function updateCategoryFilter() {
+  const currentValue = elements.categoryFilter.value;
 
-    const currentValue =
-        elements.categoryFilter.value;
+  const categories = new Set();
 
+  currentCurriculum.categoryRequirements.forEach((requirement) => {
+    if (requirement.category) {
+      categories.add(requirement.category);
+    }
+  });
 
-    const categories =
-        new Set();
+  visibleSubjects.forEach((subject) => {
+    if (subject.category) {
+      categories.add(subject.category);
+    }
+  });
 
-
-    currentCurriculum
-        .categoryRequirements
-        .forEach(
-            requirement => {
-
-                if (requirement.category) {
-
-                    categories.add(
-                        requirement.category
-                    );
-
-                }
-
-            }
-        );
-
-
-    visibleSubjects.forEach(
-        subject => {
-
-            if (subject.category) {
-
-                categories.add(
-                    subject.category
-                );
-
-            }
-
-        }
-    );
-
-
-    elements.categoryFilter.innerHTML = `
+  elements.categoryFilter.innerHTML = `
 
         <option value="">
             すべて
         </option>
 
-        ${
-            [...categories]
-                .sort(
-                    (
-                        categoryA,
-                        categoryB
-                    ) =>
-                        categoryA.localeCompare(
-                            categoryB,
-                            "ja"
-                        )
-                )
-                .map(
-                    category => `
+        ${[...categories]
+          .sort((categoryA, categoryB) =>
+            categoryA.localeCompare(categoryB, "ja"),
+          )
+          .map(
+            (category) => `
 
                         <option
-                            value="${escapeAttribute(
-                                category
-                            )}">
+                            value="${escapeAttribute(category)}">
 
-                            ${escapeHtml(
-                                category
-                            )}
+                            ${escapeHtml(category)}
 
                         </option>
 
-                    `
-                )
-                .join("")
-        }
+                    `,
+          )
+          .join("")}
 
     `;
 
+  const exists = Array.from(elements.categoryFilter.options).some(
+    (option) => option.value === currentValue,
+  );
 
-    const exists =
-        Array.from(
-            elements.categoryFilter.options
-        )
-        .some(
-            option =>
-                option.value ===
-                currentValue
-        );
-
-
-    if (exists) {
-
-        elements.categoryFilter.value =
-            currentValue;
-
-    }
-
+  if (exists) {
+    elements.categoryFilter.value = currentValue;
+  }
 }
-
 
 /* ========================================
    科目一覧表示
 ======================================== */
 
 function renderSubjects() {
+  if (!registrationAvailable) {
+    return;
+  }
 
-    if (!registrationAvailable) {
-        return;
-    }
+  const filteredSubjects = getFilteredSubjects();
 
+  elements.visibleCount.textContent = `${filteredSubjects.length}科目`;
 
-    const filteredSubjects =
-        getFilteredSubjects();
-
-
-    elements.visibleCount.textContent =
-        `${filteredSubjects.length}科目`;
-
-
-    if (
-        visibleSubjects.length === 0
-    ) {
-
-        elements.list.innerHTML = `
+  if (visibleSubjects.length === 0) {
+    elements.list.innerHTML = `
 
             <div class="course-registration-empty">
 
@@ -4455,25 +2383,13 @@ function renderSubjects() {
 
                 <p>
 
-                    ${escapeHtml(
-                        department
-                    )}
+                    ${escapeHtml(department)}
 
-                    ${
-                        major
-                            ? escapeHtml(
-                                major
-                            )
-                            : ""
-                    }
+                    ${major ? escapeHtml(major) : ""}
 
-                    ${escapeHtml(
-                        grade
-                    )}年・
+                    ${escapeHtml(grade)}年・
 
-                    ${escapeHtml(
-                        config.semester
-                    )}
+                    ${escapeHtml(config.semester)}
 
                     に一致する科目が登録されていません。
 
@@ -4483,19 +2399,13 @@ function renderSubjects() {
 
         `;
 
+    updateAllDisplays();
 
-        updateAllDisplays();
+    return;
+  }
 
-        return;
-
-    }
-
-
-    if (
-        filteredSubjects.length === 0
-    ) {
-
-        elements.list.innerHTML = `
+  if (filteredSubjects.length === 0) {
+    elements.list.innerHTML = `
 
             <div class="course-registration-empty">
 
@@ -4515,37 +2425,25 @@ function renderSubjects() {
 
         `;
 
-        return;
+    return;
+  }
 
-    }
+  // ========================================
+  // ⑤ renderSubjects() の
+  // const groups = [ ... ] より前に追加
+  // ========================================
 
+  const retakeSubjects = filteredSubjects.filter((subject) =>
+    isRetakeSubject(subject),
+  );
 
-    // ========================================
-    // ⑤ renderSubjects() の
-    // const groups = [ ... ] より前に追加
-    // ========================================
+  const regularFilteredSubjects = filteredSubjects.filter(
+    (subject) => !isRetakeSubject(subject),
+  );
 
-    const retakeSubjects =
-        filteredSubjects.filter(
-            subject =>
-                isRetakeSubject(
-                    subject
-                )
-        );
-
-
-    const regularFilteredSubjects =
-        filteredSubjects.filter(
-            subject =>
-                !isRetakeSubject(
-                    subject
-                )
-        );
-
-
-    const retakeHtml =
-        retakeSubjects.length > 0
-            ? `
+  const retakeHtml =
+    retakeSubjects.length > 0
+      ? `
 
                 <section
                     class="
@@ -4578,92 +2476,60 @@ function renderSubjects() {
 
                     <div class="course-registration-card-list">
 
-                        ${
-                            retakeSubjects
-                                .map(
-                                    createSubjectCardHtml
-                                )
-                                .join("")
-                        }
+                        ${retakeSubjects.map(createSubjectCardHtml).join("")}
 
                     </div>
 
                 </section>
 
             `
-            : "";
+      : "";
 
+  const groups = [
+    {
+      type: "required",
 
-    const groups = [
+      title: "必修科目",
 
-        {
-            type:
-                "required",
+      icon: "🔴",
 
-            title:
-                "必修科目",
+      description: "卒業のために履修が必要な科目です",
+    },
 
-            icon:
-                "🔴",
+    {
+      type: "elective",
 
-            description:
-                "卒業のために履修が必要な科目です"
-        },
+      title: "選択科目",
 
-        {
-            type:
-                "elective",
+      icon: "🔵",
 
-            title:
-                "選択科目",
+      description: "必要単位数を確認しながら選びます",
+    },
 
-            icon:
-                "🔵",
+    {
+      type: "free",
 
-            description:
-                "必要単位数を確認しながら選びます"
-        },
+      title: "自由科目",
 
-        {
-            type:
-                "free",
+      icon: "🟢",
 
-            title:
-                "自由科目",
+      description: "卒業要件への算入方法を確認して選びます",
+    },
+  ];
 
-            icon:
-                "🟢",
+  elements.list.innerHTML =
+    retakeHtml +
+    groups
+      .map((group) => {
+        const groupSubjects = regularFilteredSubjects.filter(
+          (subject) => subject.requirementType === group.type,
+        );
 
-            description:
-                "卒業要件への算入方法を確認して選びます"
+        if (groupSubjects.length === 0) {
+          return "";
         }
 
-    ];
-
-
-    elements.list.innerHTML =
-        retakeHtml +
-        groups.map(
-            group => {
-
-                const groupSubjects =
-                    regularFilteredSubjects.filter(
-                        subject =>
-                            subject.requirementType ===
-                            group.type
-                    );
-
-
-                if (
-                    groupSubjects.length === 0
-                ) {
-
-                    return "";
-
-                }
-
-
-                return `
+        return `
 
                     <section
                         class="
@@ -4697,196 +2563,83 @@ function renderSubjects() {
 
                         <div class="course-registration-card-list">
 
-                            ${
-                                groupSubjects
-                                    .map(
-                                        createSubjectCardHtml
-                                    )
-                                    .join("")
-                            }
+                            ${groupSubjects.map(createSubjectCardHtml).join("")}
 
                         </div>
 
                     </section>
 
                 `;
-
-            }
-        )
-        .join("");
-
+      })
+      .join("");
 }
-
 
 /* ========================================
    科目カード
 ======================================== */
 
-function createSubjectCardHtml(
-    subject
-) {
+function createSubjectCardHtml(subject) {
+  const selected = selectedIds.has(subject.id);
 
-    const selected =
-        selectedIds.has(
-            subject.id
-        );
+  const alreadyEarned = isAlreadyEarned(subject);
 
+  const retake = isRetakeSubject(subject);
 
-    const alreadyEarned =
-        isAlreadyEarned(
-            subject
-        );
+  const retakeEnrollment = retake ? getRetakeEnrollment(subject) : null;
 
+  const selectable = canToggleSubject(subject, selected);
 
-    const retake =
-        isRetakeSubject(
-            subject
-        );
+  const typeLabel =
+    {
+      required: "必修",
 
+      elective: "選択",
 
-    const retakeEnrollment =
-        retake
-            ? getRetakeEnrollment(
-                subject
-            )
-            : null;
+      free: "自由",
+    }[subject.requirementType] || "未設定";
 
+  const warnings = getSubjectWarnings(subject);
 
-    const selectable =
-        canToggleSubject(
-            subject,
-            selected
-        );
+  let statusText = retake ? "再履修を登録" : "タップして選択";
 
+  if (alreadyEarned) {
+    statusText = "修得済み";
+  } else if (selected && retake) {
+    statusText = "再履修・選択中";
+  } else if (selected) {
+    statusText = "選択中";
+  } else if (!selectable) {
+    statusText = "現在は変更できません";
+  } else if (subject.requirementType === "required") {
+    statusText = retake ? "再履修を登録" : "登録が必要";
+  }
 
-    const typeLabel = {
-
-        required:
-            "必修",
-
-        elective:
-            "選択",
-
-        free:
-            "自由"
-
-    }[
-        subject.requirementType
-    ] || "未設定";
-
-
-    const warnings =
-        getSubjectWarnings(
-            subject
-        );
-
-
-    let statusText =
-        retake
-            ? "再履修を登録"
-            : "タップして選択";
-
-
-    if (alreadyEarned) {
-
-        statusText =
-            "修得済み";
-
-    } else if (
-        selected &&
-        retake
-    ) {
-
-        statusText =
-            "再履修・選択中";
-
-    } else if (selected) {
-
-        statusText =
-            "選択中";
-
-    } else if (!selectable) {
-
-        statusText =
-            "現在は変更できません";
-
-    } else if (
-        subject.requirementType ===
-        "required"
-    ) {
-
-        statusText =
-            retake
-                ? "再履修を登録"
-                : "登録が必要";
-
-    }
-
-
-    return `
+  return `
 
         <label
             class="
                 course-registration-item
-                ${
-                    selected
-                        ? "is-selected"
-                        : ""
-                }
-                ${
-                    alreadyEarned
-                        ? "is-earned"
-                        : ""
-                }
-                ${
-                    !selectable
-                        ? "is-disabled"
-                        : ""
-                }
-                ${
-                    warnings.length > 0
-                        ? "has-warning"
-                        : ""
-                }
+                ${selected ? "is-selected" : ""}
+                ${alreadyEarned ? "is-earned" : ""}
+                ${!selectable ? "is-disabled" : ""}
+                ${warnings.length > 0 ? "has-warning" : ""}
 
-                ${
-                    retake
-                        ? "is-retake"
-                        : ""
-                }
+                ${retake ? "is-retake" : ""}
             "
-            data-subject-id="${escapeAttribute(
-                subject.id
-            )}">
+            data-subject-id="${escapeAttribute(subject.id)}">
 
 
             <input
                 type="checkbox"
                 class="course-checkbox"
-                data-subject-id="${escapeAttribute(
-                    subject.id
-                )}"
-                ${
-                    selected
-                        ? "checked"
-                        : ""
-                }
-                ${
-                    selectable
-                        ? ""
-                        : "disabled"
-                }>
+                data-subject-id="${escapeAttribute(subject.id)}"
+                ${selected ? "checked" : ""}
+                ${selectable ? "" : "disabled"}>
 
 
             <span class="course-card-check">
 
-                ${
-                    alreadyEarned
-                        ? "✓"
-                        : selected
-                            ? "✓"
-                            : ""
-                }
+                ${alreadyEarned ? "✓" : selected ? "✓" : ""}
 
             </span>
 
@@ -4898,20 +2651,14 @@ function createSubjectCardHtml(
 
                     <span class="course-registration-title">
 
-                        ${escapeHtml(
-                            subject.name
-                        )}
+                        ${escapeHtml(subject.name)}
 
                     </span>
 
                     <span
                         class="
                             course-card-status
-                            ${
-                                selected
-                                    ? "is-selected"
-                                    : ""
-                            }
+                            ${selected ? "is-selected" : ""}
                         ">
 
                         ${statusText}
@@ -4924,40 +2671,38 @@ function createSubjectCardHtml(
                 <span class="course-registration-meta">
 
                     ${
-                        retake
-                            ? `
+                      retake
+                        ? `
 
                                 <span class="course-tag retake">
                                     🔁 再履修
                                 </span>
 
                                 ${
-                                    retakeEnrollment
-                                        ?.retakeSourceAcademicYear
-                                        ? `
+                                  retakeEnrollment?.retakeSourceAcademicYear
+                                    ? `
                                             <span>
                                                 ${escapeHtml(
-                                                    retakeEnrollment.retakeSourceAcademicYear
+                                                  retakeEnrollment.retakeSourceAcademicYear,
                                                 )}年度
                                                 ${escapeHtml(
-                                                    retakeEnrollment.retakeSourceSemester || ""
+                                                  retakeEnrollment.retakeSourceSemester ||
+                                                    "",
                                                 )}
                                                 未取得
                                             </span>
                                         `
-                                        : ""
+                                    : ""
                                 }
 
                             `
-                            : ""
+                        : ""
                     }
 
                     <span
                         class="
                             course-tag
-                            ${escapeAttribute(
-                                subject.requirementType
-                            )}
+                            ${escapeAttribute(subject.requirementType)}
                         ">
 
                         ${typeLabel}
@@ -4966,25 +2711,23 @@ function createSubjectCardHtml(
 
 
                     ${
-                        subject.category
-                            ? `
+                      subject.category
+                        ? `
 
                                 <span class="course-tag category">
 
-                                    ${escapeHtml(
-                                        subject.category
-                                    )}
+                                    ${escapeHtml(subject.category)}
 
                                 </span>
 
                             `
-                            : ""
+                        : ""
                     }
 
 
                     ${
-                        subject.isPractical
-                            ? `
+                      subject.isPractical
+                        ? `
 
                                 <span class="course-tag practical">
 
@@ -4993,16 +2736,14 @@ function createSubjectCardHtml(
                                 </span>
 
                             `
-                            : ""
+                        : ""
                     }
 
 
                     <span class="course-credit-label">
 
                         <b>
-                            ${formatCredit(
-                                subject.credits
-                            )}
+                            ${formatCredit(subject.credits)}
                         </b>
 
                         単位
@@ -5011,87 +2752,77 @@ function createSubjectCardHtml(
 
 
                     ${
-                        subject.lectureCount > 0
-                            ? `
+                      subject.lectureCount > 0
+                        ? `
 
                                 <span>
 
-                                    全${formatCredit(
-                                        subject.lectureCount
-                                    )}回
+                                    全${formatCredit(subject.lectureCount)}回
 
                                 </span>
 
                             `
-                            : ""
+                        : ""
                     }
 
                 </span>
 
 
                 ${
-                    subject.subcategory
-                        ? `
+                  subject.subcategory
+                    ? `
 
                             <span class="course-subcategory">
 
-                                ${escapeHtml(
-                                    subject.subcategory
-                                )}
+                                ${escapeHtml(subject.subcategory)}
 
                             </span>
 
                         `
-                        : ""
+                    : ""
                 }
 
 
                 ${
-                    subject.requirementTags.length > 0
-                        ? `
+                  subject.requirementTags.length > 0
+                    ? `
 
                             <span class="course-requirement-tags">
 
-                                ${
-                                    subject.requirementTags
-                                        .map(
-                                            tag => `
+                                ${subject.requirementTags
+                                  .map(
+                                    (tag) => `
 
                                                 <span>
 
-                                                    ${escapeHtml(
-                                                        tag
-                                                    )}
+                                                    ${escapeHtml(tag)}
 
                                                 </span>
 
-                                            `
-                                        )
-                                        .join("")
-                                }
+                                            `,
+                                  )
+                                  .join("")}
 
                             </span>
 
                         `
-                        : ""
+                    : ""
                 }
 
 
                 ${
-                    warnings.length > 0
-                        ? `
+                  warnings.length > 0
+                    ? `
 
                             <span class="course-card-warning">
 
                                 ⚠️
-                                ${escapeHtml(
-                                    warnings.join("・")
-                                )}
+                                ${escapeHtml(warnings.join("・"))}
 
                             </span>
 
                         `
-                        : ""
+                    : ""
                 }
 
             </span>
@@ -5099,510 +2830,254 @@ function createSubjectCardHtml(
         </label>
 
     `;
-
 }
-
 
 /* ========================================
    絞り込み
 ======================================== */
 
 function getFilteredSubjects() {
+  const keyword = String(elements.search.value || "")
+    .trim()
+    .toLowerCase();
 
-    const keyword =
-        String(
-            elements.search.value ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
+  const requirementType = elements.requirementFilter.value;
 
+  const category = elements.categoryFilter.value;
 
-    const requirementType =
-        elements.requirementFilter.value;
+  const selection = elements.selectionFilter.value;
 
+  return visibleSubjects.filter((subject) => {
+    if (keyword) {
+      const searchText = (
+        `${subject.name} ` +
+        `${subject.subjectKey} ` +
+        `${subject.category} ` +
+        `${subject.subcategory} ` +
+        `${subject.requirementTags.join(" ")}`
+      ).toLowerCase();
 
-    const category =
-        elements.categoryFilter.value;
+      if (!searchText.includes(keyword)) {
+        return false;
+      }
+    }
 
+    if (requirementType && subject.requirementType !== requirementType) {
+      return false;
+    }
 
-    const selection =
-        elements.selectionFilter.value;
+    if (category && subject.category !== category) {
+      return false;
+    }
 
+    if (selection === "selected" && !selectedIds.has(subject.id)) {
+      return false;
+    }
 
-    return visibleSubjects.filter(
-        subject => {
+    if (selection === "unselected" && selectedIds.has(subject.id)) {
+      return false;
+    }
 
-            if (keyword) {
+    if (selection === "warning" && !subjectHasWarning(subject)) {
+      return false;
+    }
 
-                const searchText = (
-
-                    `${subject.name} ` +
-                    `${subject.subjectKey} ` +
-                    `${subject.category} ` +
-                    `${subject.subcategory} ` +
-                    `${subject.requirementTags.join(" ")}`
-
-                ).toLowerCase();
-
-
-                if (
-                    !searchText.includes(
-                        keyword
-                    )
-                ) {
-
-                    return false;
-
-                }
-
-            }
-
-
-            if (
-                requirementType &&
-                subject.requirementType !==
-                    requirementType
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                category &&
-                subject.category !== category
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                selection === "selected" &&
-                !selectedIds.has(
-                    subject.id
-                )
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                selection === "unselected" &&
-                selectedIds.has(
-                    subject.id
-                )
-            ) {
-
-                return false;
-
-            }
-
-
-            if (
-                selection === "warning" &&
-                !subjectHasWarning(
-                    subject
-                )
-            ) {
-
-                return false;
-
-            }
-
-
-            return true;
-
-        }
-    );
-
+    return true;
+  });
 }
-
 
 function resetFilters() {
+  elements.search.value = "";
 
-    elements.search.value =
-        "";
+  elements.requirementFilter.value = "";
 
-    elements.requirementFilter.value =
-        "";
+  elements.categoryFilter.value = "";
 
-    elements.categoryFilter.value =
-        "";
+  elements.selectionFilter.value = "";
 
-    elements.selectionFilter.value =
-        "";
+  renderSubjects();
 
-
-    renderSubjects();
-
-
-    showToast(
-        "絞り込みを解除しました"
-    );
-
+  showToast("絞り込みを解除しました");
 }
-
 
 /* ========================================
    科目選択
 ======================================== */
 
-function handleSubjectSelection(
-    event
-) {
+function handleSubjectSelection(event) {
+  const input = event.target.closest(".course-checkbox");
 
-    const input =
-        event.target.closest(
-            ".course-checkbox"
-        );
+  if (!input) {
+    return;
+  }
 
+  const subjectId = input.dataset.subjectId;
 
-    if (!input) {
-        return;
-    }
+  const subject = visibleSubjects.find((item) => item.id === subjectId);
 
+  if (!subject || !canToggleSubject(subject, selectedIds.has(subjectId))) {
+    input.checked = selectedIds.has(subjectId);
 
-    const subjectId =
-        input.dataset.subjectId;
+    return;
+  }
 
+  if (input.checked) {
+    selectedIds.add(subjectId);
+  } else {
+    selectedIds.delete(subjectId);
+  }
 
-    const subject =
-        visibleSubjects.find(
-            item =>
-                item.id === subjectId
-        );
+  updateDirtyState();
 
+  updateAllDisplays();
 
-    if (
-        !subject ||
-        !canToggleSubject(
-            subject,
-            selectedIds.has(subjectId)
-        )
-    ) {
-
-        input.checked =
-            selectedIds.has(subjectId);
-
-        return;
-
-    }
-
-
-    if (input.checked) {
-
-        selectedIds.add(
-            subjectId
-        );
-
-    } else {
-
-        selectedIds.delete(
-            subjectId
-        );
-
-    }
-
-
-    updateDirtyState();
-
-    updateAllDisplays();
-
-
-    if (
-        elements.selectionFilter.value
-    ) {
-
-        renderSubjects();
-
-    } else {
-
-        updateSubjectCardState(
-            subject
-        );
-
-    }
-
+  if (elements.selectionFilter.value) {
+    renderSubjects();
+  } else {
+    updateSubjectCardState(subject);
+  }
 }
 
+function updateSubjectCardState(subject) {
+  const card = elements.list.querySelector(
+    `[data-subject-id="${cssEscape(subject.id)}"].course-registration-item`,
+  );
 
-function updateSubjectCardState(
-    subject
-) {
+  if (!card) {
+    return;
+  }
 
-    const card =
-        elements.list.querySelector(
-            `[data-subject-id="${cssEscape(
-                subject.id
-            )}"].course-registration-item`
-        );
+  const selected = selectedIds.has(subject.id);
 
+  card.classList.toggle("is-selected", selected);
 
-    if (!card) {
-        return;
-    }
+  const check = card.querySelector(".course-card-check");
 
+  if (check) {
+    check.textContent = selected ? "✓" : "";
+  }
 
-    const selected =
-        selectedIds.has(
-            subject.id
-        );
+  const status = card.querySelector(".course-card-status");
 
+  if (status) {
+    status.textContent = selected
+      ? "選択中"
+      : subject.requirementType === "required"
+        ? "登録が必要"
+        : "タップして選択";
 
-    card.classList.toggle(
-        "is-selected",
-        selected
-    );
-
-
-    const check =
-        card.querySelector(
-            ".course-card-check"
-        );
-
-
-    if (check) {
-
-        check.textContent =
-            selected
-                ? "✓"
-                : "";
-
-    }
-
-
-    const status =
-        card.querySelector(
-            ".course-card-status"
-        );
-
-
-    if (status) {
-
-        status.textContent =
-            selected
-                ? "選択中"
-                : subject.requirementType ===
-                    "required"
-                    ? "登録が必要"
-                    : "タップして選択";
-
-
-        status.classList.toggle(
-            "is-selected",
-            selected
-        );
-
-    }
-
+    status.classList.toggle("is-selected", selected);
+  }
 }
-
 
 /* ========================================
    一括操作
 ======================================== */
 
 function selectAllRequiredSubjects() {
+  const selectableRequiredSubjects = visibleSubjects.filter(
+    (subject) =>
+      subject.requirementType === "required" &&
+      !isAlreadyEarned(subject) &&
+      canToggleSubject(subject, selectedIds.has(subject.id)),
+  );
 
-    const selectableRequiredSubjects =
-        visibleSubjects.filter(
-            subject =>
-                subject.requirementType ===
-                    "required" &&
-                !isAlreadyEarned(subject) &&
-                canToggleSubject(
-                    subject,
-                    selectedIds.has(subject.id)
-                )
-        );
+  if (selectableRequiredSubjects.length === 0) {
+    showToast("選択できる必修科目はありません");
 
+    return;
+  }
 
-    if (
-        selectableRequiredSubjects.length ===
-        0
-    ) {
+  const confirmed = confirm(
+    `必修科目${selectableRequiredSubjects.length}科目をまとめて選択しますか？`,
+  );
 
-        showToast(
-            "選択できる必修科目はありません"
-        );
+  if (!confirmed) {
+    return;
+  }
 
-        return;
+  selectableRequiredSubjects.forEach((subject) => {
+    selectedIds.add(subject.id);
+  });
 
-    }
+  updateDirtyState();
 
+  renderSubjects();
 
-    const confirmed =
-        confirm(
-            `必修科目${selectableRequiredSubjects.length}科目をまとめて選択しますか？`
-        );
+  updateAllDisplays();
 
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    selectableRequiredSubjects.forEach(
-        subject => {
-
-            selectedIds.add(
-                subject.id
-            );
-
-        }
-    );
-
-
-    updateDirtyState();
-
-    renderSubjects();
-
-    updateAllDisplays();
-
-
-    showToast(
-        "必修科目を選択しました"
-    );
-
+  showToast("必修科目を選択しました");
 }
-
 
 function clearAllOptionalSubjects() {
+  const removableSubjects = visibleSubjects.filter(
+    (subject) =>
+      subject.requirementType !== "required" &&
+      selectedIds.has(subject.id) &&
+      canToggleSubject(subject, true),
+  );
 
-    const removableSubjects =
-        visibleSubjects.filter(
-            subject =>
-                subject.requirementType !==
-                    "required" &&
-                selectedIds.has(
-                    subject.id
-                ) &&
-                canToggleSubject(
-                    subject,
-                    true
-                )
-        );
+  if (removableSubjects.length === 0) {
+    showToast("外せる選択科目はありません");
 
+    return;
+  }
 
-    if (
-        removableSubjects.length === 0
-    ) {
+  const confirmed = confirm(
+    `選択中の選択・自由科目${removableSubjects.length}科目を外しますか？`,
+  );
 
-        showToast(
-            "外せる選択科目はありません"
-        );
+  if (!confirmed) {
+    return;
+  }
 
-        return;
+  removableSubjects.forEach((subject) => {
+    selectedIds.delete(subject.id);
+  });
 
-    }
+  updateDirtyState();
 
+  renderSubjects();
 
-    const confirmed =
-        confirm(
-            `選択中の選択・自由科目${removableSubjects.length}科目を外しますか？`
-        );
+  updateAllDisplays();
 
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    removableSubjects.forEach(
-        subject => {
-
-            selectedIds.delete(
-                subject.id
-            );
-
-        }
-    );
-
-
-    updateDirtyState();
-
-    renderSubjects();
-
-    updateAllDisplays();
-
-
-    showToast(
-        "選択科目を外しました"
-    );
-
+  showToast("選択科目を外しました");
 }
-
 
 /* ========================================
    選択可否
 ======================================== */
 
-function canToggleSubject(
-    subject,
-    currentlySelected
-) {
+function canToggleSubject(subject, currentlySelected) {
+  if (isAlreadyEarned(subject)) {
+    return false;
+  }
 
-    if (
-        isAlreadyEarned(
-            subject
-        )
-    ) {
+  if (previewMode) {
+    return true;
+  }
 
-        return false;
+  const phase = getEffectivePhase();
 
-    }
-
-
-    if (previewMode) {
-
-        return true;
-
-    }
-
-
-    const phase =
-        getEffectivePhase();
-
-
-    /*
+  /*
      通常の履修登録期間は、
      対象科目を自由に選択・解除できる。
     */
 
-    if (
-        phase ===
-        "registration"
-    ) {
+  if (phase === "registration") {
+    return true;
+  }
 
-        return true;
-
-    }
-
-
-    /*
+  /*
      履修修正期間で
      追加・削除の両方が許可されている場合。
     */
 
-    if (
-        phase ===
-            "correction" &&
-        config.correctionMode ===
-            "add_delete"
-    ) {
+  if (phase === "correction" && config.correctionMode === "add_delete") {
+    return true;
+  }
 
-        return true;
-
-    }
-
-
-    /*
+  /*
      履修取消期間、
      または削除のみの履修修正期間では、
      期間開始前から履修していた科目だけ操作できる。
@@ -5613,404 +3088,198 @@ function canToggleSubject(
      再びチェックを入れられる。
     */
 
-    if (
-        phase ===
-            "cancellation" ||
-        phase ===
-            "correction"
-    ) {
+  if (phase === "cancellation" || phase === "correction") {
+    return originalSelectedIds.has(subject.id);
+  }
 
-        return originalSelectedIds.has(
-            subject.id
-        );
-
-    }
-
-
-    return false;
-
+  return false;
 }
-
 
 /* ========================================
    単位計算
 ======================================== */
 
 function getSelectionSummary() {
+  const selectedSubjects = visibleSubjects.filter((subject) =>
+    selectedIds.has(subject.id),
+  );
 
-    const selectedSubjects =
-        visibleSubjects.filter(
-            subject =>
-                selectedIds.has(
-                    subject.id
-                )
-        );
+  const currentCredits = sumSubjectCredits(selectedSubjects);
 
+  const otherSemesterCredits = getOtherSemesterAnnualCredits();
 
-    const currentCredits =
-        sumSubjectCredits(
-            selectedSubjects
-        );
+  const annualCredits = currentCredits + otherSemesterCredits;
 
+  const projectedCredits = progress.earnedCredits + currentCredits;
 
-    const otherSemesterCredits =
-        getOtherSemesterAnnualCredits();
+  const graduationCredits = currentCurriculum.graduationCredits;
 
+  const remainingCredits = Math.max(0, graduationCredits - projectedCredits);
 
-    const annualCredits =
-        currentCredits +
-        otherSemesterCredits;
+  return {
+    selectedSubjects,
 
+    selectedCount: selectedSubjects.length,
 
-    const projectedCredits =
-        progress.earnedCredits +
-        currentCredits;
+    currentCredits,
 
+    semesterCredits: currentCredits,
 
-    const graduationCredits =
-        currentCurriculum
-            .graduationCredits;
+    annualCredits,
 
+    otherSemesterCredits,
 
-    const remainingCredits =
-        Math.max(
-            0,
-            graduationCredits -
-            projectedCredits
-        );
+    projectedCredits,
 
+    graduationCredits,
 
-    return {
-
-        selectedSubjects,
-
-        selectedCount:
-            selectedSubjects.length,
-
-        currentCredits,
-
-        semesterCredits:
-            currentCredits,
-
-        annualCredits,
-
-        otherSemesterCredits,
-
-        projectedCredits,
-
-        graduationCredits,
-
-        remainingCredits
-
-    };
-
+    remainingCredits,
+  };
 }
-
 
 function getOtherSemesterAnnualCredits() {
+  return [...enrolledDocs.values()]
+    .filter((enrollment) => {
+      if (Number(enrollment.academicYear) !== Number(config.academicYear)) {
+        return false;
+      }
 
-    return [...enrolledDocs.values()]
-        .filter(
-            enrollment => {
+      if (enrollment.registeredSemester === config.semester) {
+        return false;
+      }
 
-                if (
-                    Number(
-                        enrollment.academicYear
-                    ) !==
-                    Number(
-                        config.academicYear
-                    )
-                ) {
+      if (normalizeSemester(enrollment.semester) === "通期") {
+        return false;
+      }
 
-                    return false;
-
-                }
-
-
-                if (
-                    enrollment.registeredSemester ===
-                    config.semester
-                ) {
-
-                    return false;
-
-                }
-
-
-                if (
-                    normalizeSemester(
-                        enrollment.semester
-                    ) === "通期"
-                ) {
-
-                    return false;
-
-                }
-
-
-                return true;
-
-            }
-        )
-        .reduce(
-            (
-                total,
-                enrollment
-            ) =>
-                total +
-                toNonNegativeNumber(
-                    enrollment.credits
-                ),
-            0
-        );
-
+      return true;
+    })
+    .reduce(
+      (total, enrollment) => total + toNonNegativeNumber(enrollment.credits),
+      0,
+    );
 }
-
 
 /* ========================================
    全表示更新
 ======================================== */
 
 function updateAllDisplays() {
+  if (!registrationAvailable) {
+    return;
+  }
 
-    if (!registrationAvailable) {
-        return;
-    }
+  const selectionSummary = getSelectionSummary();
 
+  currentWarnings = buildWarnings(selectionSummary);
 
-    const selectionSummary =
-        getSelectionSummary();
+  updateGraduationDisplay(selectionSummary);
 
+  updateCategoryProgress(selectionSummary);
 
-    currentWarnings =
-        buildWarnings(
-            selectionSummary
-        );
+  updateSpecialRequirementProgress(selectionSummary);
 
+  renderWarnings(currentWarnings);
 
-    updateGraduationDisplay(
-        selectionSummary
-    );
+  updateDesktopSummary(selectionSummary);
 
-    updateCategoryProgress(
-        selectionSummary
-    );
+  updateMobileSummary(selectionSummary);
 
-    updateSpecialRequirementProgress(
-        selectionSummary
-    );
-
-    renderWarnings(
-        currentWarnings
-    );
-
-    updateDesktopSummary(
-        selectionSummary
-    );
-
-    updateMobileSummary(
-        selectionSummary
-    );
-
-    updateSaveAvailability(
-        selectionSummary
-    );
-
+  updateSaveAvailability(selectionSummary);
 }
-
 
 /* ========================================
    卒業進捗
 ======================================== */
 
-function updateGraduationDisplay(
-    summary
-) {
+function updateGraduationDisplay(summary) {
+  setText(elements.earnedCredits, formatCredit(summary.projectedCredits));
 
-    setText(
-        elements.earnedCredits,
-        formatCredit(
-            summary.projectedCredits
+  setText(
+    elements.earnedCreditsLabel,
+    `${formatCredit(progress.earnedCredits)}単位`,
+  );
+
+  setText(
+    elements.graduationRequiredCredits,
+    formatCredit(summary.graduationCredits),
+  );
+
+  setText(elements.projectedCredits, formatCredit(summary.projectedCredits));
+
+  setText(elements.remainingCredits, formatCredit(summary.remainingCredits));
+
+  const percentage =
+    summary.graduationCredits > 0
+      ? Math.min(
+          100,
+          (summary.projectedCredits / summary.graduationCredits) * 100,
         )
-    );
+      : 0;
 
-
-    setText(
-        elements.earnedCreditsLabel,
-        `${formatCredit(
-            progress.earnedCredits
-        )}単位`
-    );
-
-
-    setText(
-        elements.graduationRequiredCredits,
-        formatCredit(
-            summary.graduationCredits
-        )
-    );
-
-
-    setText(
-        elements.projectedCredits,
-        formatCredit(
-            summary.projectedCredits
-        )
-    );
-
-
-    setText(
-        elements.remainingCredits,
-        formatCredit(
-            summary.remainingCredits
-        )
-    );
-
-
-    const percentage =
-        summary.graduationCredits > 0
-            ? Math.min(
-                100,
-                summary.projectedCredits /
-                summary.graduationCredits *
-                100
-            )
-            : 0;
-
-
-    setProgressWidth(
-        elements.graduationProgressBar,
-        percentage
-    );
-
+  setProgressWidth(elements.graduationProgressBar, percentage);
 }
-
 
 /* ========================================
    区分別進捗
 ======================================== */
 
-function updateCategoryProgress(
-    summary
-) {
+function updateCategoryProgress(summary) {
+  const requirements = currentCurriculum.categoryRequirements;
 
-    const requirements =
-        currentCurriculum
-            .categoryRequirements;
-
-
-    /*
+  /*
      ========================================
      卒業要件全体
      ========================================
     */
 
-    const selectedRequired =
-        sumSubjectCredits(
-            summary.selectedSubjects.filter(
-                subject =>
-                    subject.requirementType ===
-                    "required"
-            )
-        );
+  const selectedRequired = sumSubjectCredits(
+    summary.selectedSubjects.filter(
+      (subject) => subject.requirementType === "required",
+    ),
+  );
 
+  const selectedElective = sumSubjectCredits(
+    summary.selectedSubjects.filter(
+      (subject) => subject.requirementType === "elective",
+    ),
+  );
 
-    const selectedElective =
-        sumSubjectCredits(
-            summary.selectedSubjects.filter(
-                subject =>
-                    subject.requirementType ===
-                    "elective"
-            )
-        );
+  const earnedRequired = toNonNegativeNumber(progress.earnedRequiredCredits);
 
+  const earnedElective = toNonNegativeNumber(progress.earnedElectiveCredits);
 
-    const earnedRequired =
-        toNonNegativeNumber(
-            progress.earnedRequiredCredits
-        );
+  const projectedRequired = earnedRequired + selectedRequired;
 
+  const projectedElective = earnedElective + selectedElective;
 
-    const earnedElective =
-        toNonNegativeNumber(
-            progress.earnedElectiveCredits
-        );
+  const requiredTarget = toNonNegativeNumber(currentCurriculum.requiredCredits);
 
+  const electiveTarget = toNonNegativeNumber(
+    currentCurriculum.electiveCreditsMinimum,
+  );
 
-    const projectedRequired =
-        earnedRequired +
-        selectedRequired;
+  const requiredRemaining = Math.max(0, requiredTarget - projectedRequired);
 
+  const electiveRemaining = Math.max(0, electiveTarget - projectedElective);
 
-    const projectedElective =
-        earnedElective +
-        selectedElective;
+  const requiredComplete =
+    requiredTarget <= 0 || projectedRequired >= requiredTarget;
 
+  const electiveComplete =
+    electiveTarget <= 0 || projectedElective >= electiveTarget;
 
-    const requiredTarget =
-        toNonNegativeNumber(
-            currentCurriculum.requiredCredits
-        );
+  const requiredPercentage =
+    requiredTarget > 0
+      ? Math.min(100, (projectedRequired / requiredTarget) * 100)
+      : 100;
 
+  const electivePercentage =
+    electiveTarget > 0
+      ? Math.min(100, (projectedElective / electiveTarget) * 100)
+      : 100;
 
-    const electiveTarget =
-        toNonNegativeNumber(
-            currentCurriculum
-                .electiveCreditsMinimum
-        );
-
-
-    const requiredRemaining =
-        Math.max(
-            0,
-            requiredTarget -
-            projectedRequired
-        );
-
-
-    const electiveRemaining =
-        Math.max(
-            0,
-            electiveTarget -
-            projectedElective
-        );
-
-
-    const requiredComplete =
-        requiredTarget <= 0 ||
-        projectedRequired >=
-            requiredTarget;
-
-
-    const electiveComplete =
-        electiveTarget <= 0 ||
-        projectedElective >=
-            electiveTarget;
-
-
-    const requiredPercentage =
-        requiredTarget > 0
-            ? Math.min(
-                100,
-                projectedRequired /
-                requiredTarget *
-                100
-            )
-            : 100;
-
-
-    const electivePercentage =
-        electiveTarget > 0
-            ? Math.min(
-                100,
-                projectedElective /
-                electiveTarget *
-                100
-            )
-            : 100;
-
-
-    const overallRequirementHtml = `
+  const overallRequirementHtml = `
 
         <h3 class="special-requirement-heading">
 
@@ -6022,11 +3291,7 @@ function updateCategoryProgress(
         <article
             class="
                 category-progress-item
-                ${
-                    requiredComplete
-                        ? "is-complete"
-                        : ""
-                }
+                ${requiredComplete ? "is-complete" : ""}
             ">
 
             <div class="category-progress-heading">
@@ -6040,11 +3305,11 @@ function updateCategoryProgress(
                     <small>
 
                         ${
-                            requiredComplete
-                                ? "✅ 必修単位の要件を満たす見込みです"
-                                : `あと${formatCredit(
-                                    requiredRemaining
-                                )}単位必要です`
+                          requiredComplete
+                            ? "✅ 必修単位の要件を満たす見込みです"
+                            : `あと${formatCredit(
+                                requiredRemaining,
+                              )}単位必要です`
                         }
 
                     </small>
@@ -6054,15 +3319,11 @@ function updateCategoryProgress(
 
                 <strong>
 
-                    ${formatCredit(
-                        projectedRequired
-                    )}
+                    ${formatCredit(projectedRequired)}
 
                     /
 
-                    ${formatCredit(
-                        requiredTarget
-                    )}
+                    ${formatCredit(requiredTarget)}
 
                     単位
 
@@ -6087,9 +3348,7 @@ function updateCategoryProgress(
 
                     修得済み
                     <b>
-                        ${formatCredit(
-                            earnedRequired
-                        )}
+                        ${formatCredit(earnedRequired)}
                     </b>
 
                 </span>
@@ -6099,9 +3358,7 @@ function updateCategoryProgress(
 
                     今回選択
                     <b>
-                        ${formatCredit(
-                            selectedRequired
-                        )}
+                        ${formatCredit(selectedRequired)}
                     </b>
 
                 </span>
@@ -6111,9 +3368,7 @@ function updateCategoryProgress(
 
                     履修後見込み
                     <b>
-                        ${formatCredit(
-                            projectedRequired
-                        )}
+                        ${formatCredit(projectedRequired)}
                     </b>
 
                 </span>
@@ -6123,9 +3378,7 @@ function updateCategoryProgress(
 
                     残り
                     <b>
-                        ${formatCredit(
-                            requiredRemaining
-                        )}
+                        ${formatCredit(requiredRemaining)}
                     </b>
 
                 </span>
@@ -6138,11 +3391,7 @@ function updateCategoryProgress(
         <article
             class="
                 category-progress-item
-                ${
-                    electiveComplete
-                        ? "is-complete"
-                        : ""
-                }
+                ${electiveComplete ? "is-complete" : ""}
             ">
 
             <div class="category-progress-heading">
@@ -6156,11 +3405,11 @@ function updateCategoryProgress(
                     <small>
 
                         ${
-                            electiveComplete
-                                ? "✅ 選択単位の要件を満たす見込みです"
-                                : `あと${formatCredit(
-                                    electiveRemaining
-                                )}単位必要です`
+                          electiveComplete
+                            ? "✅ 選択単位の要件を満たす見込みです"
+                            : `あと${formatCredit(
+                                electiveRemaining,
+                              )}単位必要です`
                         }
 
                     </small>
@@ -6170,15 +3419,11 @@ function updateCategoryProgress(
 
                 <strong>
 
-                    ${formatCredit(
-                        projectedElective
-                    )}
+                    ${formatCredit(projectedElective)}
 
                     /
 
-                    ${formatCredit(
-                        electiveTarget
-                    )}
+                    ${formatCredit(electiveTarget)}
 
                     単位以上
 
@@ -6203,9 +3448,7 @@ function updateCategoryProgress(
 
                     修得済み
                     <b>
-                        ${formatCredit(
-                            earnedElective
-                        )}
+                        ${formatCredit(earnedElective)}
                     </b>
 
                 </span>
@@ -6215,9 +3458,7 @@ function updateCategoryProgress(
 
                     今回選択
                     <b>
-                        ${formatCredit(
-                            selectedElective
-                        )}
+                        ${formatCredit(selectedElective)}
                     </b>
 
                 </span>
@@ -6227,9 +3468,7 @@ function updateCategoryProgress(
 
                     履修後見込み
                     <b>
-                        ${formatCredit(
-                            projectedElective
-                        )}
+                        ${formatCredit(projectedElective)}
                     </b>
 
                 </span>
@@ -6239,9 +3478,7 @@ function updateCategoryProgress(
 
                     残り
                     <b>
-                        ${formatCredit(
-                            electiveRemaining
-                        )}
+                        ${formatCredit(electiveRemaining)}
                     </b>
 
                 </span>
@@ -6252,21 +3489,16 @@ function updateCategoryProgress(
 
     `;
 
-
-    /*
+  /*
      ========================================
      区分別要件
      ========================================
     */
 
-    let categoryRequirementHtml = "";
+  let categoryRequirementHtml = "";
 
-
-    if (
-        requirements.length === 0
-    ) {
-
-        categoryRequirementHtml = `
+  if (requirements.length === 0) {
+    categoryRequirementHtml = `
 
             <div class="course-progress-empty">
 
@@ -6275,10 +3507,8 @@ function updateCategoryProgress(
             </div>
 
         `;
-
-    } else {
-
-        categoryRequirementHtml = `
+  } else {
+    categoryRequirementHtml = `
 
             <h3 class="special-requirement-heading">
 
@@ -6286,126 +3516,75 @@ function updateCategoryProgress(
 
             </h3>
 
-            ${
-                requirements.map(
-                    requirement => {
+            ${requirements
+              .map((requirement) => {
+                const selectedCategorySubjects =
+                  summary.selectedSubjects.filter(
+                    (subject) => subject.category === requirement.category,
+                  );
 
-                        const selectedCategorySubjects =
-                            summary.selectedSubjects.filter(
-                                subject =>
-                                    subject.category ===
-                                    requirement.category
-                            );
+                const selectedTotal = sumSubjectCredits(
+                  selectedCategorySubjects,
+                );
 
+                const selectedRequired = sumSubjectCredits(
+                  selectedCategorySubjects.filter(
+                    (subject) => subject.requirementType === "required",
+                  ),
+                );
 
-                        const selectedTotal =
-                            sumSubjectCredits(
-                                selectedCategorySubjects
-                            );
+                const selectedElective = sumSubjectCredits(
+                  selectedCategorySubjects.filter(
+                    (subject) => subject.requirementType === "elective",
+                  ),
+                );
 
+                const earnedTotal = getObjectNumber(
+                  progress.categoryCredits,
+                  requirement.category,
+                );
 
-                        const selectedRequired =
-                            sumSubjectCredits(
-                                selectedCategorySubjects.filter(
-                                    subject =>
-                                        subject.requirementType ===
-                                        "required"
-                                )
-                            );
+                const earnedRequired = getObjectNumber(
+                  progress.categoryRequiredCredits,
+                  requirement.category,
+                );
 
+                const earnedElective = getObjectNumber(
+                  progress.categoryElectiveCredits,
+                  requirement.category,
+                );
 
-                        const selectedElective =
-                            sumSubjectCredits(
-                                selectedCategorySubjects.filter(
-                                    subject =>
-                                        subject.requirementType ===
-                                        "elective"
-                                )
-                            );
+                const projectedTotal = earnedTotal + selectedTotal;
 
+                const projectedRequired = earnedRequired + selectedRequired;
 
-                        const earnedTotal =
-                            getObjectNumber(
-                                progress.categoryCredits,
-                                requirement.category
-                            );
+                const projectedElective = earnedElective + selectedElective;
 
+                const totalTarget = requirement.totalCreditsMinimum;
 
-                        const earnedRequired =
-                            getObjectNumber(
-                                progress.categoryRequiredCredits,
-                                requirement.category
-                            );
+                const totalPercentage =
+                  totalTarget > 0
+                    ? Math.min(100, (projectedTotal / totalTarget) * 100)
+                    : 100;
 
+                const requiredComplete =
+                  projectedRequired >= requirement.requiredCredits;
 
-                        const earnedElective =
-                            getObjectNumber(
-                                progress.categoryElectiveCredits,
-                                requirement.category
-                            );
+                const electiveComplete =
+                  projectedElective >= requirement.electiveCreditsMinimum;
 
+                const totalComplete =
+                  projectedTotal >= requirement.totalCreditsMinimum;
 
-                        const projectedTotal =
-                            earnedTotal +
-                            selectedTotal;
+                const complete =
+                  totalComplete && requiredComplete && electiveComplete;
 
-
-                        const projectedRequired =
-                            earnedRequired +
-                            selectedRequired;
-
-
-                        const projectedElective =
-                            earnedElective +
-                            selectedElective;
-
-
-                        const totalTarget =
-                            requirement.totalCreditsMinimum;
-
-
-                        const totalPercentage =
-                            totalTarget > 0
-                                ? Math.min(
-                                    100,
-                                    projectedTotal /
-                                    totalTarget *
-                                    100
-                                )
-                                : 100;
-
-
-                        const requiredComplete =
-                            projectedRequired >=
-                            requirement.requiredCredits;
-
-
-                        const electiveComplete =
-                            projectedElective >=
-                            requirement.electiveCreditsMinimum;
-
-
-                        const totalComplete =
-                            projectedTotal >=
-                            requirement.totalCreditsMinimum;
-
-
-                        const complete =
-                            totalComplete &&
-                            requiredComplete &&
-                            electiveComplete;
-
-
-                        return `
+                return `
 
                             <article
                                 class="
                                     category-progress-item
-                                    ${
-                                        complete
-                                            ? "is-complete"
-                                            : ""
-                                    }
+                                    ${complete ? "is-complete" : ""}
                                 ">
 
                                 <div class="category-progress-heading">
@@ -6414,18 +3593,16 @@ function updateCategoryProgress(
 
                                         <h3>
 
-                                            ${escapeHtml(
-                                                requirement.category
-                                            )}
+                                            ${escapeHtml(requirement.category)}
 
                                         </h3>
 
                                         <small>
 
                                             ${
-                                                complete
-                                                    ? "✅ この区分の要件を満たす見込みです"
-                                                    : "まだ必要な単位があります"
+                                              complete
+                                                ? "✅ この区分の要件を満たす見込みです"
+                                                : "まだ必要な単位があります"
                                             }
 
                                         </small>
@@ -6435,15 +3612,11 @@ function updateCategoryProgress(
 
                                     <strong>
 
-                                        ${formatCredit(
-                                            projectedTotal
-                                        )}
+                                        ${formatCredit(projectedTotal)}
 
                                         /
 
-                                        ${formatCredit(
-                                            totalTarget
-                                        )}
+                                        ${formatCredit(totalTarget)}
 
                                         単位
 
@@ -6468,9 +3641,7 @@ function updateCategoryProgress(
 
                                         修得済み
                                         <b>
-                                            ${formatCredit(
-                                                earnedTotal
-                                            )}
+                                            ${formatCredit(earnedTotal)}
                                         </b>
 
                                     </span>
@@ -6480,9 +3651,7 @@ function updateCategoryProgress(
 
                                         今回選択
                                         <b>
-                                            ${formatCredit(
-                                                selectedTotal
-                                            )}
+                                            ${formatCredit(selectedTotal)}
                                         </b>
 
                                     </span>
@@ -6493,21 +3662,14 @@ function updateCategoryProgress(
                                         必修
                                         <b>
 
-                                            ${
-                                                requiredComplete
-                                                    ? "✅ "
-                                                    : ""
-                                            }
+                                            ${requiredComplete ? "✅ " : ""}
 
-                                            ${formatCredit(
-                                                projectedRequired
-                                            )}
+                                            ${formatCredit(projectedRequired)}
 
                                             /
 
                                             ${formatCredit(
-                                                requirement
-                                                    .requiredCredits
+                                              requirement.requiredCredits,
                                             )}
 
                                         </b>
@@ -6520,21 +3682,14 @@ function updateCategoryProgress(
                                         選択
                                         <b>
 
-                                            ${
-                                                electiveComplete
-                                                    ? "✅ "
-                                                    : ""
-                                            }
+                                            ${electiveComplete ? "✅ " : ""}
 
-                                            ${formatCredit(
-                                                projectedElective
-                                            )}
+                                            ${formatCredit(projectedElective)}
 
                                             /
 
                                             ${formatCredit(
-                                                requirement
-                                                    .electiveCreditsMinimum
+                                              requirement.electiveCreditsMinimum,
                                             )}
 
                                         </b>
@@ -6546,18 +3701,13 @@ function updateCategoryProgress(
                             </article>
 
                         `;
-
-                    }
-                )
-                .join("")
-            }
+              })
+              .join("")}
 
         `;
+  }
 
-    }
-
-
-    elements.categoryProgressList.innerHTML = `
+  elements.categoryProgressList.innerHTML = `
 
         ${overallRequirementHtml}
 
@@ -6565,24 +3715,19 @@ function updateCategoryProgress(
 
     `;
 
-
-    /*
+  /*
      手入力された過去単位しか存在せず、
      科目ごとの区分情報を持っていない場合。
     */
 
-    if (
-        progressSource === "manual" &&
-        progress.earnedCredits > 0 &&
-        Object.keys(
-            progress.categoryCredits
-        ).length === 0
-    ) {
-
-        elements.categoryProgressList
-            .insertAdjacentHTML(
-                "beforeend",
-                `
+  if (
+    progressSource === "manual" &&
+    progress.earnedCredits > 0 &&
+    Object.keys(progress.categoryCredits).length === 0
+  ) {
+    elements.categoryProgressList.insertAdjacentHTML(
+      "beforeend",
+      `
 
                     <div class="course-category-data-note">
 
@@ -6593,44 +3738,25 @@ function updateCategoryProgress(
 
                     </div>
 
-                `
-            );
-
-    }
-
+                `,
+    );
+  }
 }
-
 
 /* ========================================
    特別要件進捗
 ======================================== */
 
-function updateSpecialRequirementProgress(
-    summary
-) {
+function updateSpecialRequirementProgress(summary) {
+  const requirements = currentCurriculum.specialRequirements;
 
-    const requirements =
-        currentCurriculum
-            .specialRequirements;
+  if (requirements.length === 0) {
+    elements.specialRequirementProgressList.innerHTML = "";
 
+    return;
+  }
 
-    if (
-        requirements.length === 0
-    ) {
-
-        elements
-            .specialRequirementProgressList
-            .innerHTML =
-            "";
-
-        return;
-
-    }
-
-
-    elements
-        .specialRequirementProgressList
-        .innerHTML = `
+  elements.specialRequirementProgressList.innerHTML = `
 
             <h3 class="special-requirement-heading">
 
@@ -6638,73 +3764,49 @@ function updateSpecialRequirementProgress(
 
             </h3>
 
-            ${
-                requirements.map(
-                    requirement => {
+            ${requirements
+              .map((requirement) => {
+                const selectedCredits = sumSubjectCredits(
+                  summary.selectedSubjects.filter(
+                    (subject) =>
+                      subject.requirementTags.includes(
+                        requirement.requirementTag,
+                      ) || subject.subcategory === requirement.requirementTag,
+                  ),
+                );
 
-                        const selectedCredits =
-                            sumSubjectCredits(
-                                summary.selectedSubjects.filter(
-                                    subject =>
-                                        subject.requirementTags.includes(
-                                            requirement.requirementTag
-                                        ) ||
-                                        subject.subcategory ===
-                                            requirement.requirementTag
-                                )
-                            );
+                const earnedCredits = getObjectNumber(
+                  progress.requirementTagCredits,
+                  requirement.requirementTag,
+                );
 
+                const projectedCredits = earnedCredits + selectedCredits;
 
-                        const earnedCredits =
-                            getObjectNumber(
-                                progress.requirementTagCredits,
-                                requirement.requirementTag
-                            );
+                const complete = projectedCredits >= requirement.minimumCredits;
 
-
-                        const projectedCredits =
-                            earnedCredits +
-                            selectedCredits;
-
-
-                        const complete =
-                            projectedCredits >=
-                            requirement.minimumCredits;
-
-
-                        return `
+                return `
 
                             <div
                                 class="
                                     special-requirement-item
-                                    ${
-                                        complete
-                                            ? "is-complete"
-                                            : ""
-                                    }
+                                    ${complete ? "is-complete" : ""}
                                 ">
 
                                 <span>
 
                                     ${complete ? "✅" : "○"}
 
-                                    ${escapeHtml(
-                                        requirement.requirementTag
-                                    )}
+                                    ${escapeHtml(requirement.requirementTag)}
 
                                 </span>
 
                                 <strong>
 
-                                    ${formatCredit(
-                                        projectedCredits
-                                    )}
+                                    ${formatCredit(projectedCredits)}
 
                                     /
 
-                                    ${formatCredit(
-                                        requirement.minimumCredits
-                                    )}
+                                    ${formatCredit(requirement.minimumCredits)}
 
                                     単位
 
@@ -6713,250 +3815,130 @@ function updateSpecialRequirementProgress(
                             </div>
 
                         `;
-
-                    }
-                )
-                .join("")
-            }
+              })
+              .join("")}
 
         `;
-
 }
-
 
 /* ========================================
    警告作成
 ======================================== */
 
-function buildWarnings(
-    summary
-) {
+function buildWarnings(summary) {
+  const warnings = [];
 
-    const warnings = [];
+  const semesterLimit = config.semesterCreditLimit;
 
+  const annualLimit = config.annualCreditLimit;
 
-    const semesterLimit =
-        config.semesterCreditLimit;
+  if (semesterLimit > 0 && summary.semesterCredits > semesterLimit) {
+    warnings.push({
+      level: "error",
 
+      message: `半期の履修上限を${formatCredit(
+        summary.semesterCredits - semesterLimit,
+      )}単位超えています。`,
+    });
+  }
 
-    const annualLimit =
-        config.annualCreditLimit;
+  if (annualLimit > 0 && summary.annualCredits > annualLimit) {
+    warnings.push({
+      level: "error",
 
+      message: `年間の履修上限を${formatCredit(
+        summary.annualCredits - annualLimit,
+      )}単位超えています。`,
+    });
+  }
 
-    if (
-        semesterLimit > 0 &&
-        summary.semesterCredits >
-        semesterLimit
-    ) {
+  const missingRequiredSubjects = visibleSubjects.filter(
+    (subject) =>
+      subject.requirementType === "required" &&
+      !isAlreadyEarned(subject) &&
+      !selectedIds.has(subject.id),
+  );
 
-        warnings.push({
+  if (missingRequiredSubjects.length > 0) {
+    warnings.push({
+      level: "error",
 
-            level:
-                "error",
+      message: `未選択の必修科目が${missingRequiredSubjects.length}科目あります。`,
+    });
+  }
 
-            message:
-                `半期の履修上限を${formatCredit(
-                    summary.semesterCredits -
-                    semesterLimit
-                )}単位超えています。`
+  const incompleteSelectedSubjects = summary.selectedSubjects.filter(
+    (subject) => getSubjectWarnings(subject).length > 0,
+  );
 
-        });
+  if (incompleteSelectedSubjects.length > 0) {
+    warnings.push({
+      level: "warning",
 
-    }
+      message: `科目情報に確認が必要な科目が${incompleteSelectedSubjects.length}科目あります。`,
+    });
+  }
 
+  const legacySubjectCount = visibleSubjects.filter(
+    (subject) => subject.curriculumIds.length === 0,
+  ).length;
 
-    if (
-        annualLimit > 0 &&
-        summary.annualCredits >
-        annualLimit
-    ) {
+  if (legacySubjectCount > 0) {
+    warnings.push({
+      level: "info",
 
-        warnings.push({
+      message: `${legacySubjectCount}科目は学科・専攻情報から対象判定されています。`,
+    });
+  }
 
-            level:
-                "error",
+  if (summary.selectedCount === 0) {
+    warnings.push({
+      level: "info",
 
-            message:
-                `年間の履修上限を${formatCredit(
-                    summary.annualCredits -
-                    annualLimit
-                )}単位超えています。`
+      message: "履修する科目がまだ選択されていません。",
+    });
+  }
 
-        });
-
-    }
-
-
-    const missingRequiredSubjects =
-        visibleSubjects.filter(
-            subject =>
-                subject.requirementType ===
-                    "required" &&
-                !isAlreadyEarned(subject) &&
-                !selectedIds.has(
-                    subject.id
-                )
-        );
-
-
-    if (
-        missingRequiredSubjects.length >
-        0
-    ) {
-
-        warnings.push({
-
-            level:
-                "error",
-
-            message:
-                `未選択の必修科目が${missingRequiredSubjects.length}科目あります。`
-
-        });
-
-    }
-
-
-    const incompleteSelectedSubjects =
-        summary.selectedSubjects.filter(
-            subject =>
-                getSubjectWarnings(
-                    subject
-                ).length > 0
-        );
-
-
-    if (
-        incompleteSelectedSubjects.length >
-        0
-    ) {
-
-        warnings.push({
-
-            level:
-                "warning",
-
-            message:
-                `科目情報に確認が必要な科目が${incompleteSelectedSubjects.length}科目あります。`
-
-        });
-
-    }
-
-
-    const legacySubjectCount =
-        visibleSubjects.filter(
-            subject =>
-                subject.curriculumIds.length ===
-                0
-        ).length;
-
-
-    if (
-        legacySubjectCount > 0
-    ) {
-
-        warnings.push({
-
-            level:
-                "info",
-
-            message:
-                `${legacySubjectCount}科目は学科・専攻情報から対象判定されています。`
-
-        });
-
-    }
-
-
-    if (
-        summary.selectedCount === 0
-    ) {
-
-        warnings.push({
-
-            level:
-                "info",
-
-            message:
-                "履修する科目がまだ選択されていません。"
-
-        });
-
-    }
-
-
-    return warnings;
-
+  return warnings;
 }
-
 
 /* ========================================
    警告表示
 ======================================== */
 
-function renderWarnings(
-    warnings
-) {
+function renderWarnings(warnings) {
+  const importantWarnings = warnings.filter(
+    (warning) => warning.level !== "info",
+  );
 
-    const importantWarnings =
-        warnings.filter(
-            warning =>
-                warning.level !==
-                "info"
-        );
+  if (warnings.length === 0) {
+    elements.warningPanel.hidden = true;
 
+    return;
+  }
 
-    if (
-        warnings.length === 0
-    ) {
+  elements.warningPanel.hidden = false;
 
-        elements.warningPanel.hidden =
-            true;
+  elements.warningTitle.textContent =
+    importantWarnings.length > 0 ? "保存前に確認が必要です" : "現在の登録状況";
 
-        return;
+  elements.warningList.innerHTML = warnings
+    .map((warning) => {
+      const icon =
+        {
+          error: "🚨",
 
-    }
+          warning: "⚠️",
 
+          info: "ℹ️",
+        }[warning.level] || "ℹ️";
 
-    elements.warningPanel.hidden =
-        false;
-
-
-    elements.warningTitle.textContent =
-        importantWarnings.length > 0
-            ? "保存前に確認が必要です"
-            : "現在の登録状況";
-
-
-    elements.warningList.innerHTML =
-        warnings.map(
-            warning => {
-
-                const icon = {
-
-                    error:
-                        "🚨",
-
-                    warning:
-                        "⚠️",
-
-                    info:
-                        "ℹ️"
-
-                }[
-                    warning.level
-                ] || "ℹ️";
-
-
-                return `
+      return `
 
                     <div
                         class="
                             course-warning-item
-                            is-${escapeAttribute(
-                                warning.level
-                            )}
+                            is-${escapeAttribute(warning.level)}
                         ">
 
                         <span>
@@ -6964,633 +3946,324 @@ function renderWarnings(
                         </span>
 
                         <p>
-                            ${escapeHtml(
-                                warning.message
-                            )}
+                            ${escapeHtml(warning.message)}
                         </p>
 
                     </div>
 
                 `;
-
-            }
-        )
-        .join("");
-
+    })
+    .join("");
 }
-
 
 /* ========================================
    PCサマリー
 ======================================== */
 
-function updateDesktopSummary(
-    summary
-) {
+function updateDesktopSummary(summary) {
+  setText(elements.selectedCount, `${summary.selectedCount}科目`);
 
-    setText(
-        elements.selectedCount,
-        `${summary.selectedCount}科目`
-    );
+  setText(elements.currentCredits, formatCredit(summary.currentCredits));
 
+  setText(elements.semesterCredits, formatCredit(summary.semesterCredits));
 
-    setText(
-        elements.currentCredits,
-        formatCredit(
-            summary.currentCredits
-        )
-    );
+  setText(elements.annualCredits, formatCredit(summary.annualCredits));
 
+  setText(
+    elements.semesterLimitText,
+    config.semesterCreditLimit > 0
+      ? `/ ${formatCredit(config.semesterCreditLimit)}単位`
+      : "単位",
+  );
 
-    setText(
-        elements.semesterCredits,
-        formatCredit(
-            summary.semesterCredits
-        )
-    );
+  setText(
+    elements.annualLimitText,
+    config.annualCreditLimit > 0
+      ? `/ ${formatCredit(config.annualCreditLimit)}単位`
+      : "単位",
+  );
 
+  setText(elements.earnedCreditsSummary, formatCredit(progress.earnedCredits));
 
-    setText(
-        elements.annualCredits,
-        formatCredit(
-            summary.annualCredits
-        )
-    );
+  setText(
+    elements.projectedCreditsSummary,
+    formatCredit(summary.projectedCredits),
+  );
 
+  setText(
+    elements.earnedRequiredCredits,
+    formatCredit(progress.earnedRequiredCredits),
+  );
 
-    setText(
-        elements.semesterLimitText,
-        config.semesterCreditLimit > 0
-            ? `/ ${formatCredit(
-                config.semesterCreditLimit
-            )}単位`
-            : "単位"
-    );
+  setText(
+    elements.earnedElectiveCredits,
+    formatCredit(progress.earnedElectiveCredits),
+  );
 
+  setProgressWidth(
+    elements.semesterLimitBar,
+    getLimitPercentage(summary.semesterCredits, config.semesterCreditLimit),
+  );
 
-    setText(
-        elements.annualLimitText,
-        config.annualCreditLimit > 0
-            ? `/ ${formatCredit(
-                config.annualCreditLimit
-            )}単位`
-            : "単位"
-    );
+  setProgressWidth(
+    elements.annualLimitBar,
+    getLimitPercentage(summary.annualCredits, config.annualCreditLimit),
+  );
 
+  const importantWarningCount = currentWarnings.filter(
+    (warning) => warning.level === "error" || warning.level === "warning",
+  ).length;
 
-    setText(
-        elements.earnedCreditsSummary,
-        formatCredit(
-            progress.earnedCredits
-        )
-    );
+  elements.warningBadge.hidden = importantWarningCount === 0;
 
+  elements.warningBadge.textContent = importantWarningCount;
 
-    setText(
-        elements.projectedCreditsSummary,
-        formatCredit(
-            summary.projectedCredits
-        )
-    );
+  const errorCount = currentWarnings.filter(
+    (warning) => warning.level === "error",
+  ).length;
 
+  if (errorCount > 0) {
+    elements.summaryMessage.textContent = `${errorCount}件の問題を修正してください`;
 
-    setText(
-        elements.earnedRequiredCredits,
-        formatCredit(
-            progress.earnedRequiredCredits
-        )
-    );
+    elements.summaryMessage.className = "course-summary-message is-error";
+  } else if (importantWarningCount > 0) {
+    elements.summaryMessage.textContent = "確認事項があります";
 
+    elements.summaryMessage.className = "course-summary-message is-warning";
+  } else if (!pageDirty) {
+    elements.summaryMessage.textContent = "現在の登録内容から変更はありません";
 
-    setText(
-        elements.earnedElectiveCredits,
-        formatCredit(
-            progress.earnedElectiveCredits
-        )
-    );
+    elements.summaryMessage.className = "course-summary-message";
+  } else {
+    elements.summaryMessage.textContent = "保存できる状態です";
 
-
-    setProgressWidth(
-        elements.semesterLimitBar,
-        getLimitPercentage(
-            summary.semesterCredits,
-            config.semesterCreditLimit
-        )
-    );
-
-
-    setProgressWidth(
-        elements.annualLimitBar,
-        getLimitPercentage(
-            summary.annualCredits,
-            config.annualCreditLimit
-        )
-    );
-
-
-    const importantWarningCount =
-        currentWarnings.filter(
-            warning =>
-                warning.level ===
-                    "error" ||
-                warning.level ===
-                    "warning"
-        ).length;
-
-
-    elements.warningBadge.hidden =
-        importantWarningCount === 0;
-
-
-    elements.warningBadge.textContent =
-        importantWarningCount;
-
-
-    const errorCount =
-        currentWarnings.filter(
-            warning =>
-                warning.level ===
-                "error"
-        ).length;
-
-
-    if (errorCount > 0) {
-
-        elements.summaryMessage.textContent =
-            `${errorCount}件の問題を修正してください`;
-
-        elements.summaryMessage.className =
-            "course-summary-message is-error";
-
-    } else if (
-        importantWarningCount > 0
-    ) {
-
-        elements.summaryMessage.textContent =
-            "確認事項があります";
-
-        elements.summaryMessage.className =
-            "course-summary-message is-warning";
-
-    } else if (
-        !pageDirty
-    ) {
-
-        elements.summaryMessage.textContent =
-            "現在の登録内容から変更はありません";
-
-        elements.summaryMessage.className =
-            "course-summary-message";
-
-    } else {
-
-        elements.summaryMessage.textContent =
-            "保存できる状態です";
-
-        elements.summaryMessage.className =
-            "course-summary-message is-ready";
-
-    }
-
+    elements.summaryMessage.className = "course-summary-message is-ready";
+  }
 }
-
 
 /* ========================================
    スマホサマリー
 ======================================== */
 
-function updateMobileSummary(
-    summary
-) {
+function updateMobileSummary(summary) {
+  setText(elements.mobileSelectedCount, `${summary.selectedCount}科目`);
 
-    setText(
-        elements.mobileSelectedCount,
-        `${summary.selectedCount}科目`
-    );
+  setText(elements.mobileSelectedCredits, formatCredit(summary.currentCredits));
 
+  setText(elements.mobilePanelCourseCount, `${summary.selectedCount}科目`);
 
-    setText(
-        elements.mobileSelectedCredits,
-        formatCredit(
-            summary.currentCredits
-        )
-    );
+  setText(elements.mobilePanelCredits, formatCredit(summary.currentCredits));
 
+  setText(
+    elements.mobileSemesterCredits,
+    `${formatCredit(summary.semesterCredits)}単位`,
+  );
 
-    setText(
-        elements.mobilePanelCourseCount,
-        `${summary.selectedCount}科目`
-    );
+  setText(
+    elements.mobileAnnualCredits,
+    `${formatCredit(summary.annualCredits)}単位`,
+  );
 
+  setText(
+    elements.mobileEarnedCredits,
+    `${formatCredit(progress.earnedCredits)}単位`,
+  );
 
-    setText(
-        elements.mobilePanelCredits,
-        formatCredit(
-            summary.currentCredits
-        )
-    );
+  setText(
+    elements.mobileRemainingCredits,
+    `${formatCredit(summary.remainingCredits)}単位`,
+  );
 
+  const importantWarnings = currentWarnings.filter(
+    (warning) => warning.level === "error" || warning.level === "warning",
+  );
 
-    setText(
-        elements.mobileSemesterCredits,
-        `${formatCredit(
-            summary.semesterCredits
-        )}単位`
-    );
+  elements.mobileWarning.hidden = importantWarnings.length === 0;
 
-
-    setText(
-        elements.mobileAnnualCredits,
-        `${formatCredit(
-            summary.annualCredits
-        )}単位`
-    );
-
-
-    setText(
-        elements.mobileEarnedCredits,
-        `${formatCredit(
-            progress.earnedCredits
-        )}単位`
-    );
-
-
-    setText(
-        elements.mobileRemainingCredits,
-        `${formatCredit(
-            summary.remainingCredits
-        )}単位`
-    );
-
-
-    const importantWarnings =
-        currentWarnings.filter(
-            warning =>
-                warning.level ===
-                    "error" ||
-                warning.level ===
-                    "warning"
-        );
-
-
-    elements.mobileWarning.hidden =
-        importantWarnings.length === 0;
-
-
-    if (
-        importantWarnings.length > 0
-    ) {
-
-        elements.mobileWarning.textContent =
-            `⚠️ 確認が必要な項目が${importantWarnings.length}件あります`;
-
-    }
-
+  if (importantWarnings.length > 0) {
+    elements.mobileWarning.textContent = `⚠️ 確認が必要な項目が${importantWarnings.length}件あります`;
+  }
 }
-
 
 /* ========================================
    保存可否
 ======================================== */
 
-function updateSaveAvailability(
-    summary
-) {
+function updateSaveAvailability(summary) {
+  const editable = isRegistrationEditable();
 
-    const editable =
-        isRegistrationEditable();
+  const hasBlockingError = currentWarnings.some(
+    (warning) => warning.level === "error",
+  );
 
+  const disabled =
+    previewMode ||
+    !editable ||
+    !pageDirty ||
+    summary.selectedCount === 0 ||
+    hasBlockingError ||
+    savingEnrollment;
 
-    const hasBlockingError =
-        currentWarnings.some(
-            warning =>
-                warning.level ===
-                "error"
-        );
-
-
-    const disabled =
-        previewMode ||
-        !editable ||
-        !pageDirty ||
-        summary.selectedCount === 0 ||
-        hasBlockingError ||
-        savingEnrollment;
-
-
-    [
-
-        elements.save,
-        elements.mobileSave,
-        elements.mobilePanelSave
-
-    ]
+  [elements.save, elements.mobileSave, elements.mobilePanelSave]
     .filter(Boolean)
-    .forEach(
-        button => {
+    .forEach((button) => {
+      button.disabled = disabled;
+    });
 
-            button.disabled =
-                disabled;
+  elements.restore.disabled = previewMode || !editable || savingEnrollment;
 
-        }
-    );
+  elements.selectRequired.disabled = !editable || savingEnrollment;
 
-
-    elements.restore.disabled =
-        previewMode ||
-        !editable ||
-        savingEnrollment;
-
-
-    elements.selectRequired.disabled =
-        !editable ||
-        savingEnrollment;
-
-
-    elements.clearOptional.disabled =
-        !editable ||
-        savingEnrollment;
-
+  elements.clearOptional.disabled = !editable || savingEnrollment;
 }
-
 
 function isRegistrationEditable() {
+  if (previewMode) {
+    return true;
+  }
 
-    if (previewMode) {
-        return true;
-    }
-
-
-    return [
-
-        "registration",
-        "correction",
-        "cancellation"
-
-    ].includes(
-        getEffectivePhase()
-    );
-
+  return ["registration", "correction", "cancellation"].includes(
+    getEffectivePhase(),
+  );
 }
-
 
 /* ========================================
    前回内容へ戻す
 ======================================== */
 
 async function restorePreviousEnrollment() {
+  if (previewMode || !isRegistrationEditable()) {
+    return;
+  }
 
-    if (
-        previewMode ||
-        !isRegistrationEditable()
-    ) {
+  try {
+    elements.restore.disabled = true;
 
-        return;
+    elements.restore.textContent = "取得中...";
 
+    const historyQuery = query(
+      collection(db, "users", studentNumber, "enrollmentHistory"),
+      orderBy("savedAt", "desc"),
+      limit(10),
+    );
+
+    const historySnapshot = await getDocs(historyQuery);
+
+    const previousHistory = historySnapshot.docs
+      .map((historyDocument) => historyDocument.data())
+      .find(
+        (history) =>
+          Number(history.academicYear) === Number(config.academicYear) &&
+          history.semester === config.semester,
+      );
+
+    if (!previousHistory) {
+      alert("戻せる以前の登録内容がありません。");
+
+      return;
     }
 
+    const restoredIds = new Set(
+      previousHistory.previousSelectedSubjectIds ||
+        previousHistory.selectedSubjectIds ||
+        [],
+    );
 
-    try {
+    selectedIds = new Set(
+      [...restoredIds].filter((id) =>
+        visibleSubjects.some(
+          (subject) => subject.id === id && !isAlreadyEarned(subject),
+        ),
+      ),
+    );
 
-        elements.restore.disabled =
-            true;
+    updateDirtyState();
 
-        elements.restore.textContent =
-            "取得中...";
+    renderSubjects();
 
+    updateAllDisplays();
 
-        const historyQuery =
-            query(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "enrollmentHistory"
-                ),
-                orderBy(
-                    "savedAt",
-                    "desc"
-                ),
-                limit(10)
-            );
+    showToast("以前の内容を表示しました。保存すると確定します");
+  } catch (error) {
+    console.error("履修履歴取得エラー:", error);
 
+    alert("以前の登録内容を取得できませんでした。");
+  } finally {
+    elements.restore.textContent = "前回の登録内容に戻す";
 
-        const historySnapshot =
-            await getDocs(
-                historyQuery
-            );
-
-
-        const previousHistory =
-            historySnapshot.docs
-                .map(
-                    historyDocument =>
-                        historyDocument.data()
-                )
-                .find(
-                    history =>
-                        Number(
-                            history.academicYear
-                        ) ===
-                            Number(
-                                config.academicYear
-                            ) &&
-                        history.semester ===
-                            config.semester
-                );
-
-
-        if (!previousHistory) {
-
-            alert(
-                "戻せる以前の登録内容がありません。"
-            );
-
-            return;
-
-        }
-
-
-        const restoredIds =
-            new Set(
-
-                previousHistory
-                    .previousSelectedSubjectIds ||
-
-                previousHistory
-                    .selectedSubjectIds ||
-
-                []
-
-            );
-
-
-        selectedIds =
-            new Set(
-                [...restoredIds].filter(
-                    id =>
-                        visibleSubjects.some(
-                            subject =>
-                                subject.id === id &&
-                                !isAlreadyEarned(
-                                    subject
-                                )
-                        )
-                )
-            );
-
-
-        updateDirtyState();
-
-        renderSubjects();
-
-        updateAllDisplays();
-
-
-        showToast(
-            "以前の内容を表示しました。保存すると確定します"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "履修履歴取得エラー:",
-            error
-        );
-
-
-        alert(
-            "以前の登録内容を取得できませんでした。"
-        );
-
-    } finally {
-
-        elements.restore.textContent =
-            "前回の登録内容に戻す";
-
-
-        updateSaveAvailability(
-            getSelectionSummary()
-        );
-
-    }
-
+    updateSaveAvailability(getSelectionSummary());
+  }
 }
-
 
 /* ========================================
    最終確認モーダル
 ======================================== */
 
 function openEnrollmentConfirmation() {
+  const summary = getSelectionSummary();
 
-    const summary =
-        getSelectionSummary();
+  const blockingErrors = currentWarnings.filter(
+    (warning) => warning.level === "error",
+  );
 
+  if (blockingErrors.length > 0) {
+    elements.warningPanel?.scrollIntoView({
+      behavior: "smooth",
 
-    const blockingErrors =
-        currentWarnings.filter(
-            warning =>
-                warning.level ===
-                "error"
-        );
+      block: "center",
+    });
 
+    showToast("保存できない項目があります");
 
-    if (
-        blockingErrors.length > 0
-    ) {
+    return;
+  }
 
-        elements.warningPanel
-            ?.scrollIntoView({
-                behavior:
-                    "smooth",
+  if (!pageDirty) {
+    showToast("登録内容に変更はありません");
 
-                block:
-                    "center"
-            });
+    return;
+  }
 
+  closeMobileSummary();
 
-        showToast(
-            "保存できない項目があります"
-        );
+  setText(elements.confirmCourseCount, `${summary.selectedCount}科目`);
 
-        return;
+  setText(
+    elements.confirmCreditCount,
+    `${formatCredit(summary.currentCredits)}単位`,
+  );
 
-    }
+  setText(
+    elements.confirmSemesterCredits,
+    `${formatCredit(summary.semesterCredits)}単位`,
+  );
 
+  setText(
+    elements.confirmAnnualCredits,
+    `${formatCredit(summary.annualCredits)}単位`,
+  );
 
-    if (!pageDirty) {
-
-        showToast(
-            "登録内容に変更はありません"
-        );
-
-        return;
-
-    }
-
-
-    closeMobileSummary();
-
-
-    setText(
-        elements.confirmCourseCount,
-        `${summary.selectedCount}科目`
-    );
-
-
-    setText(
-        elements.confirmCreditCount,
-        `${formatCredit(
-            summary.currentCredits
-        )}単位`
-    );
-
-
-    setText(
-        elements.confirmSemesterCredits,
-        `${formatCredit(
-            summary.semesterCredits
-        )}単位`
-    );
-
-
-    setText(
-        elements.confirmAnnualCredits,
-        `${formatCredit(
-            summary.annualCredits
-        )}単位`
-    );
-
-
-    elements.confirmCourseList.innerHTML =
-        summary.selectedSubjects.map(
-            subject => `
+  elements.confirmCourseList.innerHTML = summary.selectedSubjects
+    .map(
+      (subject) => `
 
                 <div class="course-confirm-course-item">
 
                     <div>
 
                         <b>
-                            ${escapeHtml(
-                                subject.name
-                            )}
+                            ${escapeHtml(subject.name)}
                         </b>
 
                         <small>
 
                             ${escapeHtml(
-                                requirementTypeLabel(
-                                    subject.requirementType
-                                )
+                              requirementTypeLabel(subject.requirementType),
                             )}
 
                             ・
 
-                            ${escapeHtml(
-                                subject.category ||
-                                "区分未設定"
-                            )}
+                            ${escapeHtml(subject.category || "区分未設定")}
 
                         </small>
 
@@ -7598,1576 +4271,730 @@ function openEnrollmentConfirmation() {
 
                     <strong>
 
-                        ${formatCredit(
-                            subject.credits
-                        )}単位
+                        ${formatCredit(subject.credits)}単位
 
                     </strong>
 
                 </div>
 
-            `
-        )
-        .join("");
+            `,
+    )
+    .join("");
 
+  const confirmationWarnings = currentWarnings.filter(
+    (warning) => warning.level === "warning",
+  );
 
-    const confirmationWarnings =
-        currentWarnings.filter(
-            warning =>
-                warning.level ===
-                    "warning"
-        );
+  elements.confirmWarningSection.hidden = confirmationWarnings.length === 0;
 
-
-    elements.confirmWarningSection.hidden =
-        confirmationWarnings.length ===
-        0;
-
-
-    elements.confirmWarningList.innerHTML =
-        confirmationWarnings.map(
-            warning => `
+  elements.confirmWarningList.innerHTML = confirmationWarnings
+    .map(
+      (warning) => `
 
                 <div class="course-confirm-warning-item">
 
                     ⚠️
-                    ${escapeHtml(
-                        warning.message
-                    )}
+                    ${escapeHtml(warning.message)}
 
                 </div>
 
-            `
-        )
-        .join("");
+            `,
+    )
+    .join("");
 
+  elements.confirmAgreement.checked = false;
 
-    elements.confirmAgreement.checked =
-        false;
+  elements.confirmEnrollment.disabled = true;
 
-    elements.confirmEnrollment.disabled =
-        true;
-
-
-    openModal(
-        elements.confirmModal
-    );
-
+  openModal(elements.confirmModal);
 }
-
 
 function updateConfirmButton() {
-
-    elements.confirmEnrollment.disabled =
-        !elements.confirmAgreement.checked ||
-        savingEnrollment;
-
+  elements.confirmEnrollment.disabled =
+    !elements.confirmAgreement.checked || savingEnrollment;
 }
-
 
 function closeEnrollmentConfirmation() {
-
-    closeModal(
-        elements.confirmModal
-    );
-
+  closeModal(elements.confirmModal);
 }
-
 
 /* ========================================
    履修登録保存
 ======================================== */
 
 async function saveEnrollment() {
+  if (savingEnrollment || !elements.confirmAgreement.checked) {
+    return;
+  }
 
-    if (
-        savingEnrollment ||
-        !elements.confirmAgreement.checked
-    ) {
+  const summary = getSelectionSummary();
 
-        return;
+  if (currentWarnings.some((warning) => warning.level === "error")) {
+    alert("保存できない項目があります。");
 
-    }
+    closeEnrollmentConfirmation();
 
+    return;
+  }
 
-    const summary =
-        getSelectionSummary();
+  savingEnrollment = true;
 
+  const originalButtonText = elements.confirmEnrollment.textContent;
 
-    if (
-        currentWarnings.some(
-            warning =>
-                warning.level ===
-                "error"
-        )
-    ) {
+  try {
+    elements.confirmEnrollment.disabled = true;
 
-        alert(
-            "保存できない項目があります。"
-        );
+    elements.confirmEnrollment.textContent = "保存中...";
 
-        closeEnrollmentConfirmation();
+    const batch = writeBatch(db);
 
-        return;
+    const historyReference = doc(
+      collection(db, "users", studentNumber, "enrollmentHistory"),
+    );
 
-    }
+    batch.set(historyReference, {
+      academicYear: Number(config.academicYear),
 
+      semester: config.semester,
 
-    savingEnrollment =
-        true;
+      curriculumId: currentCurriculum.curriculumId,
 
+      previousSelectedSubjectIds: [...originalSelectedIds],
 
-    const originalButtonText =
-        elements.confirmEnrollment
-            .textContent;
+      selectedSubjectIds: [...selectedIds],
 
+      selectedCourseCount: summary.selectedCount,
 
-    try {
+      selectedCredits: summary.currentCredits,
 
-        elements.confirmEnrollment.disabled =
-            true;
+      savedAt: serverTimestamp(),
+    });
 
-        elements.confirmEnrollment.textContent =
-            "保存中...";
+    visibleSubjects.forEach((subject) => {
+      const enrollmentReference = doc(
+        db,
+        "users",
+        studentNumber,
+        "enrolledSubjects",
+        subject.id,
+      );
 
+      if (selectedIds.has(subject.id)) {
+        const existingEnrollment = enrolledDocs.get(subject.id);
 
-        const batch =
-            writeBatch(
-                db
-            );
+        const retakeEnrollment = getRetakeEnrollment(subject);
 
-
-        const historyReference =
-            doc(
-                collection(
-                    db,
-                    "users",
-                    studentNumber,
-                    "enrollmentHistory"
-                )
-            );
-
+        const registeringAsRetake = isRetakeSubject(subject);
 
         batch.set(
-            historyReference,
-            {
+          enrollmentReference,
+          {
+            subjectId: subject.id,
 
-                academicYear:
-                    Number(
-                        config.academicYear
-                    ),
+            name: subject.name,
 
-                semester:
-                    config.semester,
+            subjectKey: subject.subjectKey,
 
-                curriculumId:
-                    currentCurriculum
-                        .curriculumId,
+            curriculumId: currentCurriculum.curriculumId,
 
-                previousSelectedSubjectIds:
-                    [...originalSelectedIds],
+            department: subject.department || department,
 
-                selectedSubjectIds:
-                    [...selectedIds],
+            major: subject.major || major,
 
-                selectedCourseCount:
-                    summary.selectedCount,
+            grade: subject.grade || grade,
 
-                selectedCredits:
-                    summary.currentCredits,
+            semester: subject.semester,
 
-                savedAt:
-                    serverTimestamp()
+            registeredSemester: config.semester,
 
-            }
-        );
+            academicYear: Number(config.academicYear),
 
+            requirementType: subject.requirementType,
 
-        visibleSubjects.forEach(
-            subject => {
+            required: subject.requirementType === "required",
 
-                const enrollmentReference =
-                    doc(
-                        db,
-                        "users",
-                        studentNumber,
-                        "enrolledSubjects",
-                        subject.id
-                    );
+            category: subject.category,
 
+            subcategory: subject.subcategory,
 
-                if (
-                    selectedIds.has(
-                        subject.id
-                    )
-                ) {
+            requirementTags: subject.requirementTags,
 
-                    const existingEnrollment =
-                        enrolledDocs.get(
-                            subject.id
-                        );
+            credits: subject.credits,
 
+            lectureCount: subject.lectureCount,
 
-                    const retakeEnrollment =
-                        getRetakeEnrollment(
-                            subject
-                        );
+            isPractical: subject.isPractical,
 
+            attendanceNotificationEnabled:
+              existingEnrollment?.attendanceNotificationEnabled ??
+              subject.attendanceNotificationDefaultEnabled,
 
-                    const registeringAsRetake =
-                        isRetakeSubject(
-                            subject
-                        );
+            attendanceReminderMinutes:
+              existingEnrollment?.attendanceReminderMinutes ??
+              subject.attendanceReminderMinutes,
 
+            ...(registeringAsRetake
+              ? {
+                  isRetake: true,
 
-                    batch.set(
-                        enrollmentReference,
-                        {
+                  retakeLabel: "再履修",
 
-                            subjectId:
-                                subject.id,
+                  retakeSourceAcademicYear: Number(
+                    retakeEnrollment?.retakeSourceAcademicYear ||
+                      retakeEnrollment?.creditConfirmedAcademicYear ||
+                      retakeEnrollment?.academicYear ||
+                      0,
+                  ),
 
-                            name:
-                                subject.name,
+                  retakeSourceSemester:
+                    retakeEnrollment?.retakeSourceSemester ||
+                    retakeEnrollment?.creditConfirmedSemester ||
+                    retakeEnrollment?.semester ||
+                    "",
 
-                            subjectKey:
-                                subject.subjectKey,
+                  retakeRegisteredAcademicYear: Number(config.academicYear),
 
-                            curriculumId:
-                                currentCurriculum
-                                    .curriculumId,
+                  retakeRegisteredSemester: config.semester,
 
-                            department:
-                                subject.department ||
-                                department,
-
-                            major:
-                                subject.major ||
-                                major,
-
-                            grade:
-                                subject.grade ||
-                                grade,
-
-                            semester:
-                                subject.semester,
-
-                            registeredSemester:
-                                config.semester,
-
-                            academicYear:
-                                Number(
-                                    config.academicYear
-                                ),
-
-                            requirementType:
-                                subject.requirementType,
-
-                            required:
-                                subject.requirementType ===
-                                "required",
-
-                            category:
-                                subject.category,
-
-                            subcategory:
-                                subject.subcategory,
-
-                            requirementTags:
-                                subject.requirementTags,
-
-                            credits:
-                                subject.credits,
-
-                            lectureCount:
-                                subject.lectureCount,
-
-                            isPractical:
-                                subject.isPractical,
-
-                            attendanceNotificationEnabled:
-                                existingEnrollment
-                                    ?.attendanceNotificationEnabled ??
-                                subject
-                                    .attendanceNotificationDefaultEnabled,
-
-                            attendanceReminderMinutes:
-                                existingEnrollment
-                                    ?.attendanceReminderMinutes ??
-                                subject
-                                    .attendanceReminderMinutes,
-
-
-                            ...(registeringAsRetake
-                                ? {
-
-                                    isRetake:
-                                        true,
-
-                                    retakeLabel:
-                                        "再履修",
-
-                                    retakeSourceAcademicYear:
-                                        Number(
-                                            retakeEnrollment
-                                                ?.retakeSourceAcademicYear ||
-                                            retakeEnrollment
-                                                ?.creditConfirmedAcademicYear ||
-                                            retakeEnrollment
-                                                ?.academicYear ||
-                                            0
-                                        ),
-
-                                    retakeSourceSemester:
-                                        retakeEnrollment
-                                            ?.retakeSourceSemester ||
-                                        retakeEnrollment
-                                            ?.creditConfirmedSemester ||
-                                        retakeEnrollment
-                                            ?.semester ||
-                                        "",
-
-                                    retakeRegisteredAcademicYear:
-                                        Number(
-                                            config.academicYear
-                                        ),
-
-                                    retakeRegisteredSemester:
-                                        config.semester,
-
-                                    retakeRegisteredAt:
-                                        new Date()
-                                            .toISOString()
-
-                                }
-                                : {}),
-
-
-                            status:
-                                "enrolled",
-
-                            registeredAt:
-                                existingEnrollment
-                                    ?.registeredAt ||
-                                serverTimestamp(),
-
-                            updatedAt:
-                                serverTimestamp()
-
-                        },
-                        {
-                            merge:
-                                true
-                        }
-                    );
-
-                } else if (
-                    originalSelectedIds.has(
-                        subject.id
-                    )
-                ) {
-
-                    batch.delete(
-                        enrollmentReference
-                    );
-
+                  retakeRegisteredAt: new Date().toISOString(),
                 }
+              : {}),
 
-            }
+            status: "enrolled",
+
+            registeredAt: existingEnrollment?.registeredAt || serverTimestamp(),
+
+            updatedAt: serverTimestamp(),
+          },
+          {
+            merge: true,
+          },
         );
+      } else if (originalSelectedIds.has(subject.id)) {
+        batch.delete(enrollmentReference);
+      }
+    });
 
+    await batch.commit();
 
-        await batch.commit();
+    originalSelectedIds = new Set(selectedIds);
 
+    visibleSubjects.forEach((subject) => {
+      if (selectedIds.has(subject.id)) {
+        const previousEnrollment = enrolledDocs.get(subject.id) || {};
 
-        originalSelectedIds =
-            new Set(
-                selectedIds
-            );
+        const retakeEnrollment = getRetakeEnrollment(subject);
 
+        const registeringAsRetake = isRetakeSubject(subject);
 
-        visibleSubjects.forEach(
-            subject => {
+        enrolledDocs.set(subject.id, {
+          ...previousEnrollment,
 
-                if (
-                    selectedIds.has(
-                        subject.id
-                    )
-                ) {
+          id: subject.id,
 
-                    const previousEnrollment =
-                        enrolledDocs.get(
-                            subject.id
-                        ) || {};
+          subjectId: subject.id,
 
+          name: subject.name,
 
-                    const retakeEnrollment =
-                        getRetakeEnrollment(
-                            subject
-                        );
+          subjectKey: subject.subjectKey,
 
+          academicYear: Number(config.academicYear),
 
-                    const registeringAsRetake =
-                        isRetakeSubject(
-                            subject
-                        );
+          registeredSemester: config.semester,
 
+          semester: subject.semester,
 
-                    enrolledDocs.set(
-                        subject.id,
-                        {
+          credits: subject.credits,
 
-                            ...previousEnrollment,
+          status: "enrolled",
 
-                            id:
-                                subject.id,
+          ...(registeringAsRetake
+            ? {
+                isRetake: true,
 
-                            subjectId:
-                                subject.id,
+                retakeLabel: "再履修",
 
-                            name:
-                                subject.name,
+                retakeSourceAcademicYear: Number(
+                  retakeEnrollment?.retakeSourceAcademicYear ||
+                    retakeEnrollment?.creditConfirmedAcademicYear ||
+                    retakeEnrollment?.academicYear ||
+                    0,
+                ),
 
-                            subjectKey:
-                                subject.subjectKey,
+                retakeSourceSemester:
+                  retakeEnrollment?.retakeSourceSemester ||
+                  retakeEnrollment?.creditConfirmedSemester ||
+                  retakeEnrollment?.semester ||
+                  "",
 
-                            academicYear:
-                                Number(
-                                    config.academicYear
-                                ),
+                retakeRegisteredAcademicYear: Number(config.academicYear),
 
-                            registeredSemester:
-                                config.semester,
+                retakeRegisteredSemester: config.semester,
+              }
+            : {}),
 
-                            semester:
-                                subject.semester,
+          updatedAt: new Date(),
+        });
+      } else {
+        enrolledDocs.delete(subject.id);
+      }
+    });
 
-                            credits:
-                                subject.credits,
+    lastRegistrationAt = new Date();
 
-                            status:
-                                "enrolled",
+    pageDirty = false;
 
-                            ...(registeringAsRetake
-                                ? {
+    renderPhase();
 
-                                    isRetake:
-                                        true,
+    renderSubjects();
 
-                                    retakeLabel:
-                                        "再履修",
+    updateAllDisplays();
 
-                                    retakeSourceAcademicYear:
-                                        Number(
-                                            retakeEnrollment
-                                                ?.retakeSourceAcademicYear ||
-                                            retakeEnrollment
-                                                ?.creditConfirmedAcademicYear ||
-                                            retakeEnrollment
-                                                ?.academicYear ||
-                                            0
-                                        ),
+    closeEnrollmentConfirmation();
 
-                                    retakeSourceSemester:
-                                        retakeEnrollment
-                                            ?.retakeSourceSemester ||
-                                        retakeEnrollment
-                                            ?.creditConfirmedSemester ||
-                                        retakeEnrollment
-                                            ?.semester ||
-                                        "",
+    setText(
+      elements.completeMessage,
+      `${summary.selectedCount}科目・${formatCredit(
+        summary.currentCredits,
+      )}単位を登録しました。`,
+    );
 
-                                    retakeRegisteredAcademicYear:
-                                        Number(
-                                            config.academicYear
-                                        ),
+    openModal(elements.completeModal);
 
-                                    retakeRegisteredSemester:
-                                        config.semester
+    showToast("履修登録を保存しました");
+  } catch (error) {
+    console.error("履修登録保存エラー:", error);
 
-                                }
-                                : {}),
+    alert(
+      "履修登録を保存できませんでした。通信状態を確認して、もう一度お試しください。",
+    );
+  } finally {
+    savingEnrollment = false;
 
-                            updatedAt:
-                                new Date()
+    elements.confirmEnrollment.textContent = originalButtonText;
 
-                        }
-                    );
+    updateConfirmButton();
 
-                } else {
-
-                    enrolledDocs.delete(
-                        subject.id
-                    );
-
-                }
-
-            }
-        );
-
-
-        lastRegistrationAt =
-            new Date();
-
-
-        pageDirty =
-            false;
-
-
-        renderPhase();
-
-        renderSubjects();
-
-        updateAllDisplays();
-
-
-        closeEnrollmentConfirmation();
-
-
-        setText(
-            elements.completeMessage,
-            `${summary.selectedCount}科目・${formatCredit(
-                summary.currentCredits
-            )}単位を登録しました。`
-        );
-
-
-        openModal(
-            elements.completeModal
-        );
-
-
-        showToast(
-            "履修登録を保存しました"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "履修登録保存エラー:",
-            error
-        );
-
-
-        alert(
-            "履修登録を保存できませんでした。通信状態を確認して、もう一度お試しください。"
-        );
-
-    } finally {
-
-        savingEnrollment =
-            false;
-
-        elements.confirmEnrollment.textContent =
-            originalButtonText;
-
-
-        updateConfirmButton();
-
-        updateSaveAvailability(
-            getSelectionSummary()
-        );
-
-    }
-
+    updateSaveAvailability(getSelectionSummary());
+  }
 }
-
 
 /* ========================================
    保存完了
 ======================================== */
 
 function closeCompleteModal() {
-
-    closeModal(
-        elements.completeModal
-    );
-
+  closeModal(elements.completeModal);
 }
-
 
 /* ========================================
    スマホサマリー
 ======================================== */
 
 function openMobileSummary() {
+  elements.mobileOverlay.hidden = false;
 
-    elements.mobileOverlay.hidden =
-        false;
+  elements.mobilePanel.hidden = false;
 
-    elements.mobilePanel.hidden =
-        false;
+  requestAnimationFrame(() => {
+    elements.mobileOverlay.classList.add("is-open");
 
+    elements.mobilePanel.classList.add("is-open");
+  });
 
-    requestAnimationFrame(
-        () => {
-
-            elements.mobileOverlay.classList.add(
-                "is-open"
-            );
-
-            elements.mobilePanel.classList.add(
-                "is-open"
-            );
-
-        }
-    );
-
-
-    document.body.classList.add(
-        "course-mobile-panel-open"
-    );
-
+  document.body.classList.add("course-mobile-panel-open");
 }
-
 
 function closeMobileSummary() {
+  if (!elements.mobilePanel || elements.mobilePanel.hidden) {
+    return;
+  }
 
-    if (
-        !elements.mobilePanel ||
-        elements.mobilePanel.hidden
-    ) {
+  elements.mobileOverlay.classList.remove("is-open");
 
-        return;
+  elements.mobilePanel.classList.remove("is-open");
 
-    }
+  setTimeout(() => {
+    elements.mobileOverlay.hidden = true;
 
+    elements.mobilePanel.hidden = true;
+  }, 220);
 
-    elements.mobileOverlay.classList.remove(
-        "is-open"
-    );
-
-    elements.mobilePanel.classList.remove(
-        "is-open"
-    );
-
-
-    setTimeout(
-        () => {
-
-            elements.mobileOverlay.hidden =
-                true;
-
-            elements.mobilePanel.hidden =
-                true;
-
-        },
-        220
-    );
-
-
-    document.body.classList.remove(
-        "course-mobile-panel-open"
-    );
-
+  document.body.classList.remove("course-mobile-panel-open");
 }
-
 
 /* ========================================
    卒業進捗開閉
 ======================================== */
 
 function toggleGraduationProgress() {
+  elements.graduationContent.hidden = !elements.graduationContent.hidden;
 
-    elements.graduationContent.hidden =
-        !elements.graduationContent.hidden;
-
-
-    elements.graduationToggle.textContent =
-        elements.graduationContent.hidden
-            ? "詳細を表示"
-            : "詳細を閉じる";
-
+  elements.graduationToggle.textContent = elements.graduationContent.hidden
+    ? "詳細を表示"
+    : "詳細を閉じる";
 }
-
 
 /* ========================================
    科目警告
 ======================================== */
 
-function getSubjectWarnings(
-    subject
-) {
+function getSubjectWarnings(subject) {
+  const warnings = [];
 
-    const warnings = [];
+  if (!subject.category) {
+    warnings.push("科目区分未設定");
+  }
 
+  if (!subject.requirementType) {
+    warnings.push("必修・選択区分未設定");
+  }
 
-    if (!subject.category) {
+  if (subject.credits <= 0) {
+    warnings.push("単位数未設定");
+  }
 
-        warnings.push(
-            "科目区分未設定"
-        );
-
-    }
-
-
-    if (!subject.requirementType) {
-
-        warnings.push(
-            "必修・選択区分未設定"
-        );
-
-    }
-
-
-    if (subject.credits <= 0) {
-
-        warnings.push(
-            "単位数未設定"
-        );
-
-    }
-
-
-    return warnings;
-
+  return warnings;
 }
 
-
-function subjectHasWarning(
-    subject
-) {
-
-    return (
-
-        getSubjectWarnings(
-            subject
-        ).length > 0 ||
-
-        (
-            subject.requirementType ===
-                "required" &&
-            !selectedIds.has(
-                subject.id
-            ) &&
-            !isAlreadyEarned(
-                subject
-            )
-        )
-
-    );
-
+function subjectHasWarning(subject) {
+  return (
+    getSubjectWarnings(subject).length > 0 ||
+    (subject.requirementType === "required" &&
+      !selectedIds.has(subject.id) &&
+      !isAlreadyEarned(subject))
+  );
 }
-
 
 /* ========================================
    修得済み判定
 ======================================== */
 
-function isAlreadyEarned(
-    subject
-) {
-
-    return (
-
-        earnedSubjectIds.has(
-            subject.id
-        ) ||
-
-        earnedSubjectKeys.has(
-            subject.subjectKey
-        )
-
-    );
-
+function isAlreadyEarned(subject) {
+  return (
+    earnedSubjectIds.has(subject.id) ||
+    earnedSubjectKeys.has(subject.subjectKey)
+  );
 }
-
 
 /* ========================================
    登録対象判定
 ======================================== */
 
-function isCurrentRegistration(
-    enrollment
-) {
+function isCurrentRegistration(enrollment) {
+  if (Number(enrollment.academicYear) !== Number(config.academicYear)) {
+    return false;
+  }
 
-    if (
-        Number(
-            enrollment.academicYear
-        ) !==
-        Number(
-            config.academicYear
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    return (
-
-        enrollment.registeredSemester ===
-            config.semester ||
-
-        normalizeSemester(
-            enrollment.semester
-        ) === "通期"
-
-    );
-
+  return (
+    enrollment.registeredSemester === config.semester ||
+    normalizeSemester(enrollment.semester) === "通期"
+  );
 }
-
 
 /* ========================================
    変更状態
 ======================================== */
 
 function updateDirtyState() {
-
-    pageDirty =
-        !setsEqual(
-            selectedIds,
-            originalSelectedIds
-        );
-
+  pageDirty = !setsEqual(selectedIds, originalSelectedIds);
 }
-
 
 /* ========================================
    画面移動
 ======================================== */
 
-function navigateWithUnsavedCheck(
-    url
-) {
+function navigateWithUnsavedCheck(url) {
+  if (pageDirty || courseHistoryDirty) {
+    const confirmed = confirm(
+      "保存していない履修登録の変更があります。\n\n" +
+        "変更を破棄して移動しますか？",
+    );
 
-    if (
-        pageDirty ||
-        courseHistoryDirty
-    ) {
-
-        const confirmed =
-            confirm(
-                "保存していない履修登録の変更があります。\n\n" +
-                "変更を破棄して移動しますか？"
-            );
-
-
-        if (!confirmed) {
-            return;
-        }
-
+    if (!confirmed) {
+      return;
     }
+  }
 
+  courseHistoryDirty = false;
 
-    courseHistoryDirty =
-        false;
-
-
-    if (url) {
-
-        location.href =
-            url;
-
-    } else {
-
-        history.back();
-
-    }
-
+  if (url) {
+    location.href = url;
+  } else {
+    history.back();
+  }
 }
-
 
 /* ========================================
    モーダル
 ======================================== */
 
-function openModal(
-    modal
-) {
+function openModal(modal) {
+  if (!modal) {
+    return;
+  }
 
-    if (!modal) {
-        return;
-    }
+  modal.hidden = false;
 
-
-    modal.hidden =
-        false;
-
-
-    document.body.classList.add(
-        "admin-modal-open"
-    );
-
+  document.body.classList.add("admin-modal-open");
 }
 
+function closeModal(modal) {
+  if (!modal || modal.hidden) {
+    return;
+  }
 
-function closeModal(
-    modal
-) {
+  modal.hidden = true;
 
-    if (
-        !modal ||
-        modal.hidden
-    ) {
-
-        return;
-    }
-
-
-    modal.hidden =
-        true;
-
-
-    if (
-        elements.confirmModal?.hidden &&
-        elements.completeModal?.hidden
-    ) {
-
-        document.body.classList.remove(
-            "admin-modal-open"
-        );
-
-    }
-
+  if (elements.confirmModal?.hidden && elements.completeModal?.hidden) {
+    document.body.classList.remove("admin-modal-open");
+  }
 }
-
 
 /* ========================================
    補助関数
 ======================================== */
 
-async function safeGetDocs(
-    reference
-) {
-
-    try {
-
-        return await getDocs(
-            reference
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "任意コレクション取得エラー:",
-            error
-        );
-
-
-        return {
-
-            docs:
-                [],
-
-            empty:
-                true,
-
-            size:
-                0
-
-        };
-
-    }
-
-}
-
-
-async function safeGetDoc(
-    reference
-) {
-
-    try {
-
-        return await getDoc(
-            reference
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "任意ドキュメント取得エラー:",
-            error
-        );
-
-        return null;
-
-    }
-
-}
-
-
-function sumSubjectCredits(
-    subjectList
-) {
-
-    return subjectList.reduce(
-        (
-            total,
-            subject
-        ) =>
-            total +
-            toNonNegativeNumber(
-                subject.credits
-            ),
-        0
-    );
-
-}
-
-
-function sumObjectValues(
-    object,
-    field
-) {
-
-    return Object.values(
-        object
-    ).reduce(
-        (
-            total,
-            item
-        ) =>
-            total +
-            toNonNegativeNumber(
-                item?.[field]
-            ),
-        0
-    );
-
-}
-
-
-function addObjectNumber(
-    object,
-    key,
-    value
-) {
-
-    object[key] =
-        toNonNegativeNumber(
-            object[key]
-        ) +
-        toNonNegativeNumber(
-            value
-        );
-
-}
-
-
-function getObjectNumber(
-    object,
-    key
-) {
-
-    return toNonNegativeNumber(
-        object?.[key]
-    );
-
-}
-
-
-function getLimitPercentage(
-    value,
-    limitValue
-) {
-
-    if (
-        limitValue <= 0
-    ) {
-
-        return 0;
-
-    }
-
-
-    return Math.min(
-        100,
-        value /
-        limitValue *
-        100
-    );
-
-}
-
-
-function setProgressWidth(
-    element,
-    percentage
-) {
-
-    if (!element) {
-        return;
-    }
-
-
-    element.style.width =
-        `${Math.max(
-            0,
-            Math.min(
-                100,
-                percentage
-            )
-        )}%`;
-
-}
-
-
-function normalizeGrade(
-    value
-) {
-
-    return String(
-        value ||
-        ""
-    )
-    .replace(
-        "年",
-        ""
-    )
-    .trim();
-
-}
-
-
-function normalizeSemester(
-    value
-) {
-
-    const semester =
-        String(
-            value ||
-            ""
-        ).trim();
-
-
-    if (
-        semester.includes(
-            "通"
-        )
-    ) {
-
-        return "通期";
-
-    }
-
-
-    if (
-        semester.includes(
-            "前"
-        )
-    ) {
-
-        return "前期";
-
-    }
-
-
-    if (
-        semester.includes(
-            "後"
-        )
-    ) {
-
-        return "後期";
-
-    }
-
-
-    return semester;
-
-}
-
-
-function normalizeStringArray(
-    value
-) {
-
-    if (!Array.isArray(value)) {
-
-        return [];
-
-    }
-
-
-    return [
-
-        ...new Set(
-
-            value
-                .map(
-                    item =>
-                        String(
-                            item
-                        ).trim()
-                )
-                .filter(Boolean)
-
-        )
-
-    ];
-
-}
-
-
-function splitTags(
-    value
-) {
-
-    if (Array.isArray(value)) {
-
-        return normalizeStringArray(
-            value
-        );
-
-    }
-
-
-    return [
-
-        ...new Set(
-
-            String(
-                value ||
-                ""
-            )
-            .split(
-                /[、,\n]/
-            )
-            .map(
-                item =>
-                    item.trim()
-            )
-            .filter(Boolean)
-
-        )
-
-    ];
-
-}
-
-
-function requirementTypeLabel(
-    type
-) {
+async function safeGetDocs(reference) {
+  try {
+    return await getDocs(reference);
+  } catch (error) {
+    console.warn("任意コレクション取得エラー:", error);
 
     return {
+      docs: [],
 
-        required:
-            "必修",
+      empty: true,
 
-        elective:
-            "選択",
-
-        free:
-            "自由"
-
-    }[type] || "未設定";
-
-}
-
-
-function compareCurricula(
-    curriculumA,
-    curriculumB
-) {
-
-    return (
-        curriculumB.admissionYearFrom -
-        curriculumA.admissionYearFrom
-    );
-
-}
-
-
-function compareSubjects(
-    subjectA,
-    subjectB
-) {
-
-    const requirementOrder = {
-
-        required:
-            1,
-
-        elective:
-            2,
-
-        free:
-            3
-
+      size: 0,
     };
-
-
-    const requirementA =
-        requirementOrder[
-            subjectA.requirementType
-        ] || 99;
-
-
-    const requirementB =
-        requirementOrder[
-            subjectB.requirementType
-        ] || 99;
-
-
-    if (
-        requirementA !==
-        requirementB
-    ) {
-
-        return requirementA -
-            requirementB;
-
-    }
-
-
-    const categoryComparison =
-        subjectA.category.localeCompare(
-            subjectB.category,
-            "ja"
-        );
-
-
-    if (
-        categoryComparison !== 0
-    ) {
-
-        return categoryComparison;
-
-    }
-
-
-    return subjectA.name.localeCompare(
-        subjectB.name,
-        "ja"
-    );
-
+  }
 }
 
+async function safeGetDoc(reference) {
+  try {
+    return await getDoc(reference);
+  } catch (error) {
+    console.warn("任意ドキュメント取得エラー:", error);
 
-function setsEqual(
-    setA,
-    setB
-) {
-
-    if (
-        setA.size !==
-        setB.size
-    ) {
-
-        return false;
-
-    }
-
-
-    return [...setA].every(
-        value =>
-            setB.has(
-                value
-            )
-    );
-
+    return null;
+  }
 }
 
-
-function toNonNegativeNumber(
-    value
-) {
-
-    const number =
-        Number(
-            value
-        );
-
-
-    if (
-        !Number.isFinite(number) ||
-        number < 0
-    ) {
-
-        return 0;
-
-    }
-
-
-    return number;
-
+function sumSubjectCredits(subjectList) {
+  return subjectList.reduce(
+    (total, subject) => total + toNonNegativeNumber(subject.credits),
+    0,
+  );
 }
 
-
-function formatCredit(
-    value
-) {
-
-    const number =
-        toNonNegativeNumber(
-            value
-        );
-
-
-    return Number.isInteger(
-        number
-    )
-        ? String(number)
-        : number
-            .toFixed(1)
-            .replace(
-                /\.0$/,
-                ""
-            );
-
+function sumObjectValues(object, field) {
+  return Object.values(object).reduce(
+    (total, item) => total + toNonNegativeNumber(item?.[field]),
+    0,
+  );
 }
 
+function addObjectNumber(object, key, value) {
+  object[key] = toNonNegativeNumber(object[key]) + toNonNegativeNumber(value);
+}
 
-function formatDateTime(
-    value
-) {
+function getObjectNumber(object, key) {
+  return toNonNegativeNumber(object?.[key]);
+}
 
+function getLimitPercentage(value, limitValue) {
+  if (limitValue <= 0) {
+    return 0;
+  }
+
+  return Math.min(100, (value / limitValue) * 100);
+}
+
+function setProgressWidth(element, percentage) {
+  if (!element) {
+    return;
+  }
+
+  element.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+}
+
+function normalizeGrade(value) {
+  return String(value || "")
+    .replace("年", "")
+    .trim();
+}
+
+function normalizeSemester(value) {
+  const semester = String(value || "").trim();
+
+  if (semester.includes("通")) {
+    return "通期";
+  }
+
+  if (semester.includes("前")) {
+    return "前期";
+  }
+
+  if (semester.includes("後")) {
+    return "後期";
+  }
+
+  return semester;
+}
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value.map((item) => String(item).trim()).filter(Boolean))];
+}
+
+function splitTags(value) {
+  if (Array.isArray(value)) {
+    return normalizeStringArray(value);
+  }
+
+  return [
+    ...new Set(
+      String(value || "")
+        .split(/[、,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function requirementTypeLabel(type) {
+  return (
+    {
+      required: "必修",
+
+      elective: "選択",
+
+      free: "自由",
+    }[type] || "未設定"
+  );
+}
+
+function compareCurricula(curriculumA, curriculumB) {
+  return curriculumB.admissionYearFrom - curriculumA.admissionYearFrom;
+}
+
+function compareSubjects(subjectA, subjectB) {
+  const requirementOrder = {
+    required: 1,
+
+    elective: 2,
+
+    free: 3,
+  };
+
+  const requirementA = requirementOrder[subjectA.requirementType] || 99;
+
+  const requirementB = requirementOrder[subjectB.requirementType] || 99;
+
+  if (requirementA !== requirementB) {
+    return requirementA - requirementB;
+  }
+
+  const categoryComparison = subjectA.category.localeCompare(
+    subjectB.category,
+    "ja",
+  );
+
+  if (categoryComparison !== 0) {
+    return categoryComparison;
+  }
+
+  return subjectA.name.localeCompare(subjectB.name, "ja");
+}
+
+function setsEqual(setA, setB) {
+  if (setA.size !== setB.size) {
+    return false;
+  }
+
+  return [...setA].every((value) => setB.has(value));
+}
+
+function toNonNegativeNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 0) {
+    return 0;
+  }
+
+  return number;
+}
+
+function formatCredit(value) {
+  const number = toNonNegativeNumber(value);
+
+  return Number.isInteger(number)
+    ? String(number)
+    : number.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "----";
+  }
+
+  return date.toLocaleString("ja-JP", {
+    month: "numeric",
+
+    day: "numeric",
+
+    hour: "2-digit",
+
+    minute: "2-digit",
+  });
+}
+
+function toDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  try {
     const date =
-        value instanceof Date
-            ? value
-            : new Date(value);
+      typeof value.toDate === "function" ? value.toDate() : new Date(value);
 
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return "----";
-
-    }
-
-
-    return date.toLocaleString(
-        "ja-JP",
-        {
-            month:
-                "numeric",
-
-            day:
-                "numeric",
-
-            hour:
-                "2-digit",
-
-            minute:
-                "2-digit"
-        }
-    );
-
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 }
 
+function cssEscape(value) {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(String(value));
+  }
 
-function toDate(
-    value
-) {
-
-    if (!value) {
-        return null;
-    }
-
-
-    try {
-
-        const date =
-            typeof value.toDate ===
-                "function"
-                ? value.toDate()
-                : new Date(value);
-
-
-        return Number.isNaN(
-            date.getTime()
-        )
-            ? null
-            : date;
-
-    } catch {
-
-        return null;
-
-    }
-
+  return String(value).replace(/["\\]/g, "\\$&");
 }
 
+function setText(element, value) {
+  if (!element) {
+    return;
+  }
 
-function cssEscape(
-    value
-) {
-
-    if (
-        window.CSS &&
-        typeof window.CSS.escape ===
-            "function"
-    ) {
-
-        return window.CSS.escape(
-            String(value)
-        );
-
-    }
-
-
-    return String(value)
-        .replace(
-            /["\\]/g,
-            "\\$&"
-        );
-
+  element.textContent = String(value ?? "");
 }
 
-
-function setText(
-    element,
-    value
-) {
-
-    if (!element) {
-        return;
-    }
-
-
-    element.textContent =
-        String(
-            value ??
-            ""
-        );
-
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-
-function escapeHtml(
-    value
-) {
-
-    return String(
-        value ??
-        ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
-}
-
-
-function escapeAttribute(
-    value
-) {
-
-    return escapeHtml(
-        value
-    );
-
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }

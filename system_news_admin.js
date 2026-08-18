@@ -1,193 +1,134 @@
 import {
-    db,
-    studentNumber,
-    setupTheme,
-    initializePage,
-    loadProfileImage,
-    loadUserName,
-    loadMyRanking,
-    setupAdminTab,
-    isAdmin,
-    showToast,
-    updateAssignmentNavBadge,
-    updateShareNavBadge,
-    updateNewsNavBadge
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  loadUserName,
+  loadMyRanking,
+  setupAdminTab,
+  isAdmin,
+  showToast,
+  updateAssignmentNavBadge,
+  updateShareNavBadge,
+  updateNewsNavBadge,
 } from "./common.js";
 
 import {
-    collection,
-    doc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    getDocs,
-    query,
-    orderBy,
-    onSnapshot,
-    serverTimestamp
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
 
 /* ========================================
    HTML要素
 ======================================== */
 
-const userName =
-    document.getElementById("userName");
+const userName = document.getElementById("userName");
 
-const themeButton =
-    document.getElementById("themeButton");
+const themeButton = document.getElementById("themeButton");
 
-const topProfileImage =
-    document.getElementById("topProfileImage");
+const topProfileImage = document.getElementById("topProfileImage");
 
-const backButton =
-    document.getElementById("backButton");
+const backButton = document.getElementById("backButton");
 
+const systemNewsTotalCount = document.getElementById("systemNewsTotalCount");
 
-const systemNewsTotalCount =
-    document.getElementById(
-        "systemNewsTotalCount"
-    );
+const systemNewsTodayCount = document.getElementById("systemNewsTodayCount");
 
-const systemNewsTodayCount =
-    document.getElementById(
-        "systemNewsTodayCount"
-    );
+const systemNewsPendingCount = document.getElementById(
+  "systemNewsPendingCount",
+);
 
-const systemNewsPendingCount =
-    document.getElementById(
-        "systemNewsPendingCount"
-    );
+const systemNewsTitle = document.getElementById("systemNewsTitle");
 
+const systemNewsBody = document.getElementById("systemNewsBody");
 
-const systemNewsTitle =
-    document.getElementById(
-        "systemNewsTitle"
-    );
+const systemNewsTitleCount = document.getElementById("systemNewsTitleCount");
 
-const systemNewsBody =
-    document.getElementById(
-        "systemNewsBody"
-    );
+const systemNewsBodyCount = document.getElementById("systemNewsBodyCount");
 
-const systemNewsTitleCount =
-    document.getElementById(
-        "systemNewsTitleCount"
-    );
+const sendSystemNewsNotification = document.getElementById(
+  "sendSystemNewsNotification",
+);
 
-const systemNewsBodyCount =
-    document.getElementById(
-        "systemNewsBodyCount"
-    );
+const systemNewsImportant = document.getElementById("systemNewsImportant");
 
-const sendSystemNewsNotification =
-    document.getElementById(
-        "sendSystemNewsNotification"
-    );
+const systemNewsRecipientMode = document.getElementById(
+  "systemNewsRecipientMode",
+);
+const systemNewsRecipientSelect = document.getElementById(
+  "systemNewsRecipientSelect",
+);
 
-const systemNewsImportant =
-    document.getElementById(
-        "systemNewsImportant"
-    );
+async function loadNewsRecipients() {
+  if (!systemNewsRecipientSelect) return;
+  const snapshot = await getDocs(collection(db, "publicUsers"));
+  const users = snapshot.docs
+    .map((item) => ({ id: item.id, ...item.data() }))
+    .filter((item) => /^\d{7}$/.test(item.id))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  systemNewsRecipientSelect.innerHTML =
+    users
+      .map(
+        (user) =>
+          `<option value="${user.id}">${user.id}　${String(user.name || "氏名未設定")}</option>`,
+      )
+      .join("") || "<option disabled>登録済み学生がいません</option>";
+}
 
-const systemNewsRecipientMode = document.getElementById("systemNewsRecipientMode");
-const systemNewsRecipientSelect = document.getElementById("systemNewsRecipientSelect");
+const postSystemNews = document.getElementById("postSystemNews");
 
-async function loadNewsRecipients(){if(!systemNewsRecipientSelect)return;const snapshot=await getDocs(collection(db,"publicUsers"));const users=snapshot.docs.map(item=>({id:item.id,...item.data()})).filter(item=>/^\d{7}$/.test(item.id)).sort((a,b)=>a.id.localeCompare(b.id));systemNewsRecipientSelect.innerHTML=users.map(user=>`<option value="${user.id}">${user.id}　${String(user.name||"氏名未設定")}</option>`).join("")||'<option disabled>登録済み学生がいません</option>'}
+const systemNewsSearch = document.getElementById("systemNewsSearch");
 
-const postSystemNews =
-    document.getElementById(
-        "postSystemNews"
-    );
+const systemNewsSort = document.getElementById("systemNewsSort");
 
+const systemNewsFilteredCount = document.getElementById(
+  "systemNewsFilteredCount",
+);
 
-const systemNewsSearch =
-    document.getElementById(
-        "systemNewsSearch"
-    );
+const refreshSystemNews = document.getElementById("refreshSystemNews");
 
-const systemNewsSort =
-    document.getElementById(
-        "systemNewsSort"
-    );
-
-const systemNewsFilteredCount =
-    document.getElementById(
-        "systemNewsFilteredCount"
-    );
-
-const refreshSystemNews =
-    document.getElementById(
-        "refreshSystemNews"
-    );
-
-const systemNewsList =
-    document.getElementById(
-        "systemNewsList"
-    );
-
+const systemNewsList = document.getElementById("systemNewsList");
 
 /* 編集モーダル */
 
-const editSystemNewsModal =
-    document.getElementById(
-        "editSystemNewsModal"
-    );
+const editSystemNewsModal = document.getElementById("editSystemNewsModal");
 
-const editSystemNewsId =
-    document.getElementById(
-        "editSystemNewsId"
-    );
+const editSystemNewsId = document.getElementById("editSystemNewsId");
 
-const editSystemNewsTitle =
-    document.getElementById(
-        "editSystemNewsTitle"
-    );
+const editSystemNewsTitle = document.getElementById("editSystemNewsTitle");
 
-const editSystemNewsBody =
-    document.getElementById(
-        "editSystemNewsBody"
-    );
+const editSystemNewsBody = document.getElementById("editSystemNewsBody");
 
-const editSystemNewsImportant =
-    document.getElementById(
-        "editSystemNewsImportant"
-    );
+const editSystemNewsImportant = document.getElementById(
+  "editSystemNewsImportant",
+);
 
-const cancelSystemNewsEdit =
-    document.getElementById(
-        "cancelSystemNewsEdit"
-    );
+const cancelSystemNewsEdit = document.getElementById("cancelSystemNewsEdit");
 
-const saveSystemNewsEdit =
-    document.getElementById(
-        "saveSystemNewsEdit"
-    );
-
+const saveSystemNewsEdit = document.getElementById("saveSystemNewsEdit");
 
 /* 削除モーダル */
 
-const deleteSystemNewsModal =
-    document.getElementById(
-        "deleteSystemNewsModal"
-    );
+const deleteSystemNewsModal = document.getElementById("deleteSystemNewsModal");
 
-const deleteSystemNewsTitle =
-    document.getElementById(
-        "deleteSystemNewsTitle"
-    );
+const deleteSystemNewsTitle = document.getElementById("deleteSystemNewsTitle");
 
-const cancelSystemNewsDelete =
-    document.getElementById(
-        "cancelSystemNewsDelete"
-    );
+const cancelSystemNewsDelete = document.getElementById(
+  "cancelSystemNewsDelete",
+);
 
-const confirmSystemNewsDelete =
-    document.getElementById(
-        "confirmSystemNewsDelete"
-    );
-
+const confirmSystemNewsDelete = document.getElementById(
+  "confirmSystemNewsDelete",
+);
 
 /* ========================================
    状態
@@ -203,44 +144,35 @@ let stopSystemNewsListener = null;
 
 let stopTargetedSystemNewsListener = null;
 
-
 /* ========================================
    初期化
 ======================================== */
 
 setupTheme(themeButton);
 
-const admin =
-    await isAdmin();
+const admin = await isAdmin();
 
 if (!admin) {
+  alert("管理者のみアクセスできます。");
 
-    alert(
-        "管理者のみアクセスできます。"
-    );
+  location.href = "index.html";
 
-    location.href =
-        "index.html";
-
-    throw new Error(
-        "管理者権限がありません。"
-    );
-
+  throw new Error("管理者権限がありません。");
 }
 
-
 await initializePage([
-    setupAdminTab(),
-    loadUserName(userName),
-    loadMyRanking(),
-    loadProfileImage(topProfileImage),
-    updateAssignmentNavBadge(),
-    updateShareNavBadge(),
-    updateNewsNavBadge()
+  setupAdminTab(),
+  loadUserName(userName),
+  loadMyRanking(),
+  loadProfileImage(topProfileImage),
+  updateAssignmentNavBadge(),
+  updateShareNavBadge(),
+  updateNewsNavBadge(),
 ]);
 
-loadNewsRecipients().catch(error=>console.error("お知らせ対象学生取得エラー:",error));
-
+loadNewsRecipients().catch((error) =>
+  console.error("お知らせ対象学生取得エラー:", error),
+);
 
 setupEvents();
 
@@ -248,669 +180,379 @@ updatePostForm();
 
 startSystemNewsListener();
 
-
 /* ========================================
    Firestore監視
 ======================================== */
 
 function startSystemNewsListener() {
+  if (stopSystemNewsListener) {
+    stopSystemNewsListener();
+  }
 
-    if (stopSystemNewsListener) {
+  if (stopTargetedSystemNewsListener) {
+    stopTargetedSystemNewsListener();
+  }
 
-        stopSystemNewsListener();
+  const updateNewsItems = () => {
+    systemNewsItems = [...globalSystemNewsItems, ...targetedSystemNewsItems];
 
-    }
+    renderSystemNews();
+  };
 
-    if (stopTargetedSystemNewsListener) {
+  let globalSystemNewsItems = [];
 
-        stopTargetedSystemNewsListener();
+  let targetedSystemNewsItems = [];
 
-    }
+  const newsQuery = query(
+    collection(db, "systemNews"),
+    orderBy("createdAt", "desc"),
+  );
 
-    const updateNewsItems = () => {
+  stopSystemNewsListener = onSnapshot(
+    newsQuery,
+    (snapshot) => {
+      globalSystemNewsItems = snapshot.docs.map((newsDocument) => ({
+        id: newsDocument.id,
 
-        systemNewsItems = [
-            ...globalSystemNewsItems,
-            ...targetedSystemNewsItems
-        ];
+        sourceCollection: "systemNews",
 
-        renderSystemNews();
+        ...newsDocument.data(),
+      }));
 
-    };
+      updateNewsItems();
+    },
+    (error) => {
+      console.error("CareMateお知らせ取得エラー:", error);
 
-    let globalSystemNewsItems = [];
-
-    let targetedSystemNewsItems = [];
-
-    const newsQuery =
-        query(
-            collection(
-                db,
-                "systemNews"
-            ),
-            orderBy(
-                "createdAt",
-                "desc"
-            )
-        );
-
-    stopSystemNewsListener =
-        onSnapshot(
-            newsQuery,
-            snapshot => {
-
-                globalSystemNewsItems =
-                    snapshot.docs.map(
-                        newsDocument => ({
-                            id:
-                                newsDocument.id,
-
-                            sourceCollection:
-                                "systemNews",
-
-                            ...newsDocument.data()
-                        })
-                    );
-
-                updateNewsItems();
-
-            },
-            error => {
-
-                console.error(
-                    "CareMateお知らせ取得エラー:",
-                    error
-                );
-
-                if (systemNewsList) {
-
-                    systemNewsList.innerHTML = `
+      if (systemNewsList) {
+        systemNewsList.innerHTML = `
                         <div class="system-news-loading">
                             お知らせの取得に失敗しました。
                         </div>
                     `;
+      }
+    },
+  );
 
-                }
+  const targetedNewsQuery = query(
+    collection(db, "targetedSystemNews"),
+    orderBy("createdAt", "desc"),
+  );
 
-            }
-        );
+  stopTargetedSystemNewsListener = onSnapshot(
+    targetedNewsQuery,
+    (snapshot) => {
+      targetedSystemNewsItems = snapshot.docs.map((newsDocument) => ({
+        id: newsDocument.id,
 
-    const targetedNewsQuery =
-        query(
-            collection(
-                db,
-                "targetedSystemNews"
-            ),
-            orderBy(
-                "createdAt",
-                "desc"
-            )
-        );
+        sourceCollection: "targetedSystemNews",
 
-    stopTargetedSystemNewsListener =
-        onSnapshot(
-            targetedNewsQuery,
-            snapshot => {
+        ...newsDocument.data(),
+      }));
 
-                targetedSystemNewsItems =
-                    snapshot.docs.map(
-                        newsDocument => ({
-                            id:
-                                newsDocument.id,
-
-                            sourceCollection:
-                                "targetedSystemNews",
-
-                            ...newsDocument.data()
-                        })
-                    );
-
-                updateNewsItems();
-
-            },
-            error => {
-
-                console.error(
-                    "指定先お知らせ取得エラー:",
-                    error
-                );
-
-            }
-        );
-
+      updateNewsItems();
+    },
+    (error) => {
+      console.error("指定先お知らせ取得エラー:", error);
+    },
+  );
 }
-
 
 /* ========================================
    イベント
 ======================================== */
 
 function setupEvents() {
+  if (backButton) {
+    backButton.onclick = () => {
+      location.href = "admin.html";
+    };
+  }
 
-    if (backButton) {
+  [systemNewsTitle, systemNewsBody].filter(Boolean).forEach((input) => {
+    input.addEventListener("input", updatePostForm);
+  });
 
-        backButton.onclick = () => {
+  if (postSystemNews) {
+    postSystemNews.onclick = postNews;
+  }
 
-            location.href =
-                "admin.html";
+  if (systemNewsSearch) {
+    systemNewsSearch.addEventListener("input", renderSystemNews);
+  }
 
-        };
+  if (systemNewsSort) {
+    systemNewsSort.addEventListener("change", renderSystemNews);
+  }
 
-    }
+  if (refreshSystemNews) {
+    refreshSystemNews.onclick = refreshNewsList;
+  }
 
+  if (systemNewsList) {
+    systemNewsList.addEventListener("click", (event) => {
+      const editButton = event.target.closest(".edit-system-news");
 
-    [
-        systemNewsTitle,
-        systemNewsBody
-    ]
-    .filter(Boolean)
-    .forEach(input => {
+      if (editButton) {
+        openEditModal(editButton.dataset.id, editButton.dataset.source);
 
-        input.addEventListener(
-            "input",
-            updatePostForm
-        );
+        return;
+      }
 
+      const deleteButton = event.target.closest(".delete-system-news");
+
+      if (deleteButton) {
+        openDeleteModal(deleteButton.dataset.id, deleteButton.dataset.source);
+      }
     });
+  }
 
+  if (cancelSystemNewsEdit) {
+    cancelSystemNewsEdit.onclick = () => {
+      closeModal(editSystemNewsModal);
+    };
+  }
 
-    if (postSystemNews) {
+  if (saveSystemNewsEdit) {
+    saveSystemNewsEdit.onclick = saveEditedNews;
+  }
 
-        postSystemNews.onclick =
-            postNews;
+  if (cancelSystemNewsDelete) {
+    cancelSystemNewsDelete.onclick = () => {
+      closeModal(deleteSystemNewsModal);
+    };
+  }
 
-    }
+  if (confirmSystemNewsDelete) {
+    confirmSystemNewsDelete.onclick = deleteSelectedNews;
+  }
 
-
-    if (systemNewsSearch) {
-
-        systemNewsSearch
-            .addEventListener(
-                "input",
-                renderSystemNews
-            );
-
-    }
-
-
-    if (systemNewsSort) {
-
-        systemNewsSort
-            .addEventListener(
-                "change",
-                renderSystemNews
-            );
-
-    }
-
-
-    if (refreshSystemNews) {
-
-        refreshSystemNews.onclick =
-            refreshNewsList;
-
-    }
-
-
-    if (systemNewsList) {
-
-        systemNewsList.addEventListener(
-            "click",
-            event => {
-
-                const editButton =
-                    event.target.closest(
-                        ".edit-system-news"
-                    );
-
-                if (editButton) {
-
-                    openEditModal(
-                        editButton.dataset.id,
-                        editButton.dataset.source
-                    );
-
-                    return;
-
-                }
-
-
-                const deleteButton =
-                    event.target.closest(
-                        ".delete-system-news"
-                    );
-
-                if (deleteButton) {
-
-                    openDeleteModal(
-                        deleteButton.dataset.id,
-                        deleteButton.dataset.source
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (cancelSystemNewsEdit) {
-
-        cancelSystemNewsEdit.onclick =
-            () => {
-
-                closeModal(
-                    editSystemNewsModal
-                );
-
-            };
-
-    }
-
-
-    if (saveSystemNewsEdit) {
-
-        saveSystemNewsEdit.onclick =
-            saveEditedNews;
-
-    }
-
-
-    if (cancelSystemNewsDelete) {
-
-        cancelSystemNewsDelete.onclick =
-            () => {
-
-                closeModal(
-                    deleteSystemNewsModal
-                );
-
-            };
-
-    }
-
-
-    if (confirmSystemNewsDelete) {
-
-        confirmSystemNewsDelete.onclick =
-            deleteSelectedNews;
-
-    }
-
-
-    [
-        editSystemNewsModal,
-        deleteSystemNewsModal
-    ]
+  [editSystemNewsModal, deleteSystemNewsModal]
     .filter(Boolean)
-    .forEach(modal => {
-
-        modal.addEventListener(
-            "click",
-            event => {
-
-                if (
-                    event.target === modal
-                ) {
-
-                    closeModal(modal);
-
-                }
-
-            }
-        );
-
+    .forEach((modal) => {
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          closeModal(modal);
+        }
+      });
     });
-
 }
-
 
 /* ========================================
    新規投稿
 ======================================== */
 
 function updatePostForm() {
+  const titleLength = systemNewsTitle?.value.length || 0;
 
-    const titleLength =
-        systemNewsTitle
-            ?.value.length || 0;
+  const bodyLength = systemNewsBody?.value.length || 0;
 
-    const bodyLength =
-        systemNewsBody
-            ?.value.length || 0;
+  if (systemNewsTitleCount) {
+    systemNewsTitleCount.textContent = String(titleLength);
+  }
 
+  if (systemNewsBodyCount) {
+    systemNewsBodyCount.textContent = String(bodyLength);
+  }
 
-    if (systemNewsTitleCount) {
-
-        systemNewsTitleCount
-            .textContent =
-            String(titleLength);
-
-    }
-
-
-    if (systemNewsBodyCount) {
-
-        systemNewsBodyCount
-            .textContent =
-            String(bodyLength);
-
-    }
-
-
-    if (postSystemNews) {
-
-        postSystemNews.disabled =
-            !systemNewsTitle
-                ?.value.trim() ||
-            !systemNewsBody
-                ?.value.trim();
-
-    }
-
+  if (postSystemNews) {
+    postSystemNews.disabled =
+      !systemNewsTitle?.value.trim() || !systemNewsBody?.value.trim();
+  }
 }
 
-
 async function postNews() {
+  if (!postSystemNews) {
+    return;
+  }
 
-    if (!postSystemNews) {
-        return;
-    }
+  const title = systemNewsTitle?.value.trim() || "";
 
-    const title =
-        systemNewsTitle
-            ?.value.trim() || "";
+  const body = systemNewsBody?.value.trim() || "";
 
-    const body =
-        systemNewsBody
-            ?.value.trim() || "";
+  if (!title || !body) {
+    alert("タイトルと本文を入力してください。");
 
+    return;
+  }
 
-    if (!title || !body) {
+  const shouldNotify = sendSystemNewsNotification?.checked !== false;
 
-        alert(
-            "タイトルと本文を入力してください。"
-        );
+  const recipients = [
+    ...new Set(
+      [...(systemNewsRecipientSelect?.selectedOptions || [])].map(
+        (option) => option.value,
+      ),
+    ),
+  ];
+  const recipientMode = systemNewsRecipientMode?.value || "only";
+  if (recipients.some((value) => !/^\d{7}$/.test(value))) {
+    alert("学籍番号は7桁の数字で入力してください。");
+    return;
+  }
 
-        return;
+  postSystemNews.disabled = true;
 
-    }
+  postSystemNews.textContent = "投稿中...";
 
+  try {
+    await addDoc(
+      collection(db, recipients.length ? "targetedSystemNews" : "systemNews"),
+      {
+        title,
+        body,
 
-    const shouldNotify =
-        sendSystemNewsNotification
-            ?.checked !== false;
+        author: studentNumber || "",
 
-    const recipients = [...new Set([...systemNewsRecipientSelect?.selectedOptions||[]].map(option=>option.value))];
-    const recipientMode = systemNewsRecipientMode?.value || "only";
-    if (recipients.some(value => !/^\d{7}$/.test(value))) {
-        alert("学籍番号は7桁の数字で入力してください。");
-        return;
-    }
+        createdAt: serverTimestamp(),
 
+        updatedAt: null,
 
-    postSystemNews.disabled = true;
+        updatedBy: null,
 
-    postSystemNews.textContent =
-        "投稿中...";
+        important: systemNewsImportant?.checked === true,
 
-
-    try {
-
-        await addDoc(
-            collection(
-                db,
-                recipients.length ? "targetedSystemNews" : "systemNews"
-            ),
-            {
-                title,
-                body,
-
-                author:
-                    studentNumber || "",
-
-                createdAt:
-                    serverTimestamp(),
-
-                updatedAt:
-                    null,
-
-                updatedBy:
-                    null,
-
-                important:
-                    systemNewsImportant
-                        ?.checked === true,
-
-                /*
+        /*
                 既存通知処理との互換性を維持
                 */
 
-                notifyTarget:
-                    shouldNotify
-                        ? (recipients.length ? "selectedUsers" : "allUsers")
-                        : "none",
+        notifyTarget: shouldNotify
+          ? recipients.length
+            ? "selectedUsers"
+            : "allUsers"
+          : "none",
 
-                notificationRequested:
-                    shouldNotify,
+        notificationRequested: shouldNotify,
 
-                notificationSentAt:
-                    shouldNotify
-                        ? null
-                        : serverTimestamp()
-                ,
-                targetStudentNumbers: recipientMode === "only" ? recipients : [],
-                excludedStudentNumbers: recipientMode === "exclude" ? recipients : []
-            }
-        );
+        notificationSentAt: shouldNotify ? null : serverTimestamp(),
+        targetStudentNumbers: recipientMode === "only" ? recipients : [],
+        excludedStudentNumbers: recipientMode === "exclude" ? recipients : [],
+      },
+    );
 
-
-        if (systemNewsTitle) {
-
-            systemNewsTitle.value =
-                "";
-
-        }
-
-        if (systemNewsBody) {
-
-            systemNewsBody.value =
-                "";
-
-        }
-
-        if (systemNewsImportant) {
-
-            systemNewsImportant.checked =
-                false;
-
-        }
-
-
-        if (
-            sendSystemNewsNotification
-        ) {
-
-            sendSystemNewsNotification
-                .checked = true;
-
-        }
-
-
-        updatePostForm();
-
-        showToast(
-            "お知らせを投稿しました"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "お知らせ投稿エラー:",
-            error
-        );
-
-        alert(
-            "お知らせの投稿に失敗しました。"
-        );
-
-    } finally {
-
-        postSystemNews.textContent =
-            "お知らせを投稿する";
-
-        updatePostForm();
-
+    if (systemNewsTitle) {
+      systemNewsTitle.value = "";
     }
 
-}
+    if (systemNewsBody) {
+      systemNewsBody.value = "";
+    }
 
+    if (systemNewsImportant) {
+      systemNewsImportant.checked = false;
+    }
+
+    if (sendSystemNewsNotification) {
+      sendSystemNewsNotification.checked = true;
+    }
+
+    updatePostForm();
+
+    showToast("お知らせを投稿しました");
+  } catch (error) {
+    console.error("お知らせ投稿エラー:", error);
+
+    alert("お知らせの投稿に失敗しました。");
+  } finally {
+    postSystemNews.textContent = "お知らせを投稿する";
+
+    updatePostForm();
+  }
+}
 
 /* ========================================
    一覧表示
 ======================================== */
 
 function renderSystemNews() {
+  updateSummary();
 
-    updateSummary();
+  if (!systemNewsList) {
+    return;
+  }
 
-    if (!systemNewsList) {
-        return;
+  const keyword = String(systemNewsSearch?.value || "")
+    .trim()
+    .toLowerCase();
+
+  let filteredItems = systemNewsItems.filter((news) => {
+    if (!keyword) {
+      return true;
     }
 
+    const searchTarget =
+      `${news.title || ""} ` + `${news.body || ""}`.toLowerCase();
 
-    const keyword =
-        String(
-            systemNewsSearch
-                ?.value || ""
-        )
-        .trim()
-        .toLowerCase();
+    return searchTarget.includes(keyword);
+  });
 
+  const oldestFirst = systemNewsSort?.value === "oldest";
 
-    let filteredItems =
-        systemNewsItems.filter(
-            news => {
+  filteredItems = [...filteredItems].sort((newsA, newsB) => {
+    // 重要なお知らせは日付順より優先して先頭へ固定する。
+    const importantDifference =
+      Number(newsB.important === true) - Number(newsA.important === true);
 
-                if (!keyword) {
-                    return true;
-                }
-
-                const searchTarget =
-                    `${news.title || ""} ` +
-                    `${news.body || ""}`
-                        .toLowerCase();
-
-                return searchTarget
-                    .includes(keyword);
-
-            }
-        );
-
-
-    const oldestFirst =
-        systemNewsSort?.value === "oldest";
-
-    filteredItems =
-        [...filteredItems]
-            .sort((newsA, newsB) => {
-                // 重要なお知らせは日付順より優先して先頭へ固定する。
-                const importantDifference =
-                    Number(newsB.important === true) -
-                    Number(newsA.important === true);
-
-                if (importantDifference !== 0) {
-                    return importantDifference;
-                }
-
-                const timeDifference =
-                    getTimestampMilliseconds(newsA.createdAt) -
-                    getTimestampMilliseconds(newsB.createdAt);
-
-                return oldestFirst
-                    ? timeDifference
-                    : -timeDifference;
-            });
-
-
-    if (systemNewsFilteredCount) {
-
-        systemNewsFilteredCount
-            .textContent =
-            `${filteredItems.length}件を表示`;
-
+    if (importantDifference !== 0) {
+      return importantDifference;
     }
 
+    const timeDifference =
+      getTimestampMilliseconds(newsA.createdAt) -
+      getTimestampMilliseconds(newsB.createdAt);
 
-    if (filteredItems.length === 0) {
+    return oldestFirst ? timeDifference : -timeDifference;
+  });
 
-        systemNewsList.innerHTML = `
+  if (systemNewsFilteredCount) {
+    systemNewsFilteredCount.textContent = `${filteredItems.length}件を表示`;
+  }
+
+  if (filteredItems.length === 0) {
+    systemNewsList.innerHTML = `
             <div class="system-news-loading">
                 条件に一致するお知らせはありません。
             </div>
         `;
 
-        return;
+    return;
+  }
 
-    }
-
-
-    systemNewsList.innerHTML =
-        filteredItems
-            .map(createSystemNewsHtml)
-            .join("");
-
+  systemNewsList.innerHTML = filteredItems.map(createSystemNewsHtml).join("");
 }
 
-
 function createSystemNewsHtml(news) {
+  const createdDate = formatDate(news.createdAt);
 
-    const createdDate =
-        formatDate(
-            news.createdAt
-        );
+  const updatedDate = formatDate(news.updatedAt);
 
-    const updatedDate =
-        formatDate(
-            news.updatedAt
-        );
+  const notificationText =
+    news.notifyTarget === "none" || news.notificationRequested === false
+      ? "🔕 通知なし"
+      : "🔔 即時通知";
 
-    const notificationText =
-        news.notifyTarget === "none" ||
-        news.notificationRequested === false
-            ? "🔕 通知なし"
-            : "🔔 即時通知";
+  const selectedRecipients = Array.isArray(news.targetStudentNumbers)
+    ? news.targetStudentNumbers
+    : [];
 
-    const selectedRecipients =
-        Array.isArray(news.targetStudentNumbers)
-            ? news.targetStudentNumbers
-            : [];
+  const excludedRecipients = Array.isArray(news.excludedStudentNumbers)
+    ? news.excludedStudentNumbers
+    : [];
 
-    const excludedRecipients =
-        Array.isArray(news.excludedStudentNumbers)
-            ? news.excludedStudentNumbers
-            : [];
+  const recipientText =
+    news.sourceCollection !== "targetedSystemNews"
+      ? "全員"
+      : selectedRecipients.length
+        ? `指定：${selectedRecipients.join("、")}`
+        : excludedRecipients.length
+          ? `除外：${excludedRecipients.join("、")}`
+          : "全員";
 
-    const recipientText =
-        news.sourceCollection !== "targetedSystemNews"
-            ? "全員"
-            : selectedRecipients.length
-                ? `指定：${selectedRecipients.join("、")}`
-                : excludedRecipients.length
-                    ? `除外：${excludedRecipients.join("、")}`
-                    : "全員";
-
-
-    return `
+  return `
         <article
             class="
                 system-news-item
-                ${
-                    news.important
-                        ? "is-important"
-                        : ""
-                }
+                ${news.important ? "is-important" : ""}
             ">
 
             <div class="system-news-item-heading">
@@ -918,20 +560,17 @@ function createSystemNewsHtml(news) {
                 <div>
 
                     ${
-                        news.important
-                            ? `
+                      news.important
+                        ? `
                                 <span class="system-news-important-badge">
                                     📌 重要
                                 </span>
                             `
-                            : ""
+                        : ""
                     }
 
                     <h3>
-                        ${escapeHtml(
-                            news.title ||
-                            "タイトルなし"
-                        )}
+                        ${escapeHtml(news.title || "タイトルなし")}
                     </h3>
 
                 </div>
@@ -947,9 +586,7 @@ function createSystemNewsHtml(news) {
 
             <div class="system-news-item-body">
 
-                ${escapeHtml(
-                    news.body || ""
-                ).replace(/\n/g, "<br>")}
+                ${escapeHtml(news.body || "").replace(/\n/g, "<br>")}
 
             </div>
 
@@ -962,23 +599,19 @@ function createSystemNewsHtml(news) {
                 </span>
 
                 ${
-                    news.updatedAt
-                        ? `
+                  news.updatedAt
+                    ? `
                             <span>
                                 更新日：
-                                ${escapeHtml(
-                                    updatedDate
-                                )}
+                                ${escapeHtml(updatedDate)}
                             </span>
                         `
-                        : ""
+                    : ""
                 }
 
                 <span>
                     投稿者：
-                    ${escapeHtml(
-                        news.author || "-"
-                    )}
+                    ${escapeHtml(news.author || "-")}
                 </span>
 
                 <span>
@@ -1015,582 +648,318 @@ function createSystemNewsHtml(news) {
 
         </article>
     `;
-
 }
-
 
 /* ========================================
    件数表示
 ======================================== */
 
 function updateSummary() {
+  const today = new Date();
 
-    const today =
-        new Date();
+  let todayCount = 0;
 
-    let todayCount = 0;
+  systemNewsItems.forEach((news) => {
+    const date = timestampToDate(news.createdAt);
 
-    systemNewsItems.forEach(news => {
+    if (
+      date &&
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    ) {
+      todayCount += 1;
+    }
+  });
 
-        const date =
-            timestampToDate(
-                news.createdAt
-            );
+  setText(systemNewsTotalCount, `${systemNewsItems.length}件`);
 
-        if (
-            date &&
-            date.getFullYear() ===
-                today.getFullYear() &&
-            date.getMonth() ===
-                today.getMonth() &&
-            date.getDate() ===
-                today.getDate()
-        ) {
-
-            todayCount += 1;
-
-        }
-    });
-
-
-    setText(
-        systemNewsTotalCount,
-        `${systemNewsItems.length}件`
-    );
-
-    setText(
-        systemNewsTodayCount,
-        `${todayCount}件`
-    );
-
+  setText(systemNewsTodayCount, `${todayCount}件`);
 }
-
 
 /* ========================================
    編集
 ======================================== */
 
 function openEditModal(newsId, sourceCollection = "systemNews") {
+  const news = systemNewsItems.find(
+    (item) =>
+      item.id === newsId &&
+      (item.sourceCollection || "systemNews") === sourceCollection,
+  );
 
-    const news =
-        systemNewsItems.find(
-            item =>
-                item.id === newsId &&
-                (item.sourceCollection || "systemNews") === sourceCollection
-        );
+  if (!news) {
+    alert("お知らせが見つかりません。");
 
-    if (!news) {
+    return;
+  }
 
-        alert(
-            "お知らせが見つかりません。"
-        );
+  if (editSystemNewsId) {
+    editSystemNewsId.value = `${news.sourceCollection || "systemNews"}:${news.id}`;
+  }
 
-        return;
+  if (editSystemNewsTitle) {
+    editSystemNewsTitle.value = news.title || "";
+  }
 
-    }
+  if (editSystemNewsBody) {
+    editSystemNewsBody.value = news.body || "";
+  }
 
+  if (editSystemNewsImportant) {
+    editSystemNewsImportant.checked = news.important === true;
+  }
 
-    if (editSystemNewsId) {
+  openModal(editSystemNewsModal);
 
-        editSystemNewsId.value =
-            `${news.sourceCollection || "systemNews"}:${news.id}`;
-
-    }
-
-    if (editSystemNewsTitle) {
-
-        editSystemNewsTitle.value =
-            news.title || "";
-
-    }
-
-    if (editSystemNewsBody) {
-
-        editSystemNewsBody.value =
-            news.body || "";
-
-    }
-
-    if (editSystemNewsImportant) {
-
-        editSystemNewsImportant
-            .checked =
-            news.important === true;
-
-    }
-
-
-    openModal(
-        editSystemNewsModal
-    );
-
-    editSystemNewsTitle
-        ?.focus();
-
+  editSystemNewsTitle?.focus();
 }
-
 
 async function saveEditedNews() {
+  const newsKey = editSystemNewsId?.value.trim() || "";
 
-    const newsKey =
-        editSystemNewsId
-            ?.value.trim() || "";
+  const [sourceCollection = "systemNews", newsId = ""] = newsKey.split(":");
 
-    const [sourceCollection = "systemNews", newsId = ""] =
-        newsKey.split(":");
+  const title = editSystemNewsTitle?.value.trim() || "";
 
-    const title =
-        editSystemNewsTitle
-            ?.value.trim() || "";
+  const body = editSystemNewsBody?.value.trim() || "";
 
-    const body =
-        editSystemNewsBody
-            ?.value.trim() || "";
+  if (!newsId) {
+    return;
+  }
 
+  if (!title || !body) {
+    alert("タイトルと本文を入力してください。");
 
-    if (!newsId) {
-        return;
-    }
+    return;
+  }
 
+  if (saveSystemNewsEdit) {
+    saveSystemNewsEdit.disabled = true;
 
-    if (!title || !body) {
+    saveSystemNewsEdit.textContent = "保存中...";
+  }
 
-        alert(
-            "タイトルと本文を入力してください。"
-        );
+  try {
+    await updateDoc(doc(db, sourceCollection, newsId), {
+      title,
+      body,
 
-        return;
+      important: editSystemNewsImportant?.checked === true,
 
-    }
+      updatedAt: serverTimestamp(),
 
+      updatedBy: studentNumber || "",
+    });
 
+    closeModal(editSystemNewsModal);
+
+    showToast("お知らせを更新しました");
+  } catch (error) {
+    console.error("お知らせ更新エラー:", error);
+
+    alert("お知らせの更新に失敗しました。");
+  } finally {
     if (saveSystemNewsEdit) {
+      saveSystemNewsEdit.disabled = false;
 
-        saveSystemNewsEdit.disabled =
-            true;
-
-        saveSystemNewsEdit.textContent =
-            "保存中...";
-
+      saveSystemNewsEdit.textContent = "変更を保存";
     }
-
-
-    try {
-
-        await updateDoc(
-            doc(
-                db,
-                sourceCollection,
-                newsId
-            ),
-            {
-                title,
-                body,
-
-                important:
-                    editSystemNewsImportant
-                        ?.checked === true,
-
-                updatedAt:
-                    serverTimestamp(),
-
-                updatedBy:
-                    studentNumber || ""
-            }
-        );
-
-
-        closeModal(
-            editSystemNewsModal
-        );
-
-        showToast(
-            "お知らせを更新しました"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "お知らせ更新エラー:",
-            error
-        );
-
-        alert(
-            "お知らせの更新に失敗しました。"
-        );
-
-    } finally {
-
-        if (saveSystemNewsEdit) {
-
-            saveSystemNewsEdit.disabled =
-                false;
-
-            saveSystemNewsEdit.textContent =
-                "変更を保存";
-
-        }
-
-    }
-
+  }
 }
-
 
 /* ========================================
    削除
 ======================================== */
 
 function openDeleteModal(newsId, sourceCollection = "systemNews") {
+  const news = systemNewsItems.find(
+    (item) =>
+      item.id === newsId &&
+      (item.sourceCollection || "systemNews") === sourceCollection,
+  );
 
-    const news =
-        systemNewsItems.find(
-            item =>
-                item.id === newsId &&
-                (item.sourceCollection || "systemNews") === sourceCollection
-        );
+  if (!news) {
+    alert("お知らせが見つかりません。");
 
-    if (!news) {
+    return;
+  }
 
-        alert(
-            "お知らせが見つかりません。"
-        );
+  selectedDeleteId = news.id;
 
-        return;
+  selectedDeleteCollection = news.sourceCollection || "systemNews";
 
-    }
+  setText(deleteSystemNewsTitle, news.title || "タイトルなし");
 
-
-    selectedDeleteId =
-        news.id;
-
-    selectedDeleteCollection =
-        news.sourceCollection || "systemNews";
-
-
-    setText(
-        deleteSystemNewsTitle,
-        news.title ||
-        "タイトルなし"
-    );
-
-
-    openModal(
-        deleteSystemNewsModal
-    );
-
+  openModal(deleteSystemNewsModal);
 }
-
 
 async function deleteSelectedNews() {
+  if (!selectedDeleteId) {
+    return;
+  }
 
-    if (!selectedDeleteId) {
-        return;
-    }
+  if (confirmSystemNewsDelete) {
+    confirmSystemNewsDelete.disabled = true;
 
+    confirmSystemNewsDelete.textContent = "削除中...";
+  }
 
+  try {
+    await deleteDoc(doc(db, selectedDeleteCollection, selectedDeleteId));
+
+    closeModal(deleteSystemNewsModal);
+
+    selectedDeleteId = "";
+
+    selectedDeleteCollection = "systemNews";
+
+    showToast("お知らせを削除しました");
+  } catch (error) {
+    console.error("お知らせ削除エラー:", error);
+
+    alert("お知らせの削除に失敗しました。");
+  } finally {
     if (confirmSystemNewsDelete) {
+      confirmSystemNewsDelete.disabled = false;
 
-        confirmSystemNewsDelete
-            .disabled = true;
-
-        confirmSystemNewsDelete
-            .textContent =
-            "削除中...";
-
+      confirmSystemNewsDelete.textContent = "削除する";
     }
-
-
-    try {
-
-        await deleteDoc(
-            doc(
-                db,
-                selectedDeleteCollection,
-                selectedDeleteId
-            )
-        );
-
-
-        closeModal(
-            deleteSystemNewsModal
-        );
-
-        selectedDeleteId = "";
-
-        selectedDeleteCollection = "systemNews";
-
-        showToast(
-            "お知らせを削除しました"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "お知らせ削除エラー:",
-            error
-        );
-
-        alert(
-            "お知らせの削除に失敗しました。"
-        );
-
-    } finally {
-
-        if (confirmSystemNewsDelete) {
-
-            confirmSystemNewsDelete
-                .disabled = false;
-
-            confirmSystemNewsDelete
-                .textContent =
-                "削除する";
-
-        }
-
-    }
-
+  }
 }
-
 
 /* ========================================
    手動更新
 ======================================== */
 
 async function refreshNewsList() {
+  if (!refreshSystemNews) {
+    return;
+  }
 
-    if (!refreshSystemNews) {
-        return;
-    }
+  refreshSystemNews.disabled = true;
 
+  refreshSystemNews.textContent = "更新中...";
 
-    refreshSystemNews.disabled =
-        true;
+  try {
+    const [globalSnapshot, targetedSnapshot] = await Promise.all([
+      getDocs(
+        query(collection(db, "systemNews"), orderBy("createdAt", "desc")),
+      ),
+      getDocs(
+        query(
+          collection(db, "targetedSystemNews"),
+          orderBy("createdAt", "desc"),
+        ),
+      ),
+    ]);
 
-    refreshSystemNews.textContent =
-        "更新中...";
+    systemNewsItems = [
+      ...globalSnapshot.docs.map((newsDocument) => ({
+        id: newsDocument.id,
+        sourceCollection: "systemNews",
+        ...newsDocument.data(),
+      })),
+      ...targetedSnapshot.docs.map((newsDocument) => ({
+        id: newsDocument.id,
+        sourceCollection: "targetedSystemNews",
+        ...newsDocument.data(),
+      })),
+    ];
 
+    renderSystemNews();
 
-    try {
+    showToast("お知らせを更新しました");
+  } catch (error) {
+    console.error("お知らせ更新エラー:", error);
 
-        const [globalSnapshot, targetedSnapshot] =
-            await Promise.all([
-                getDocs(
-                    query(
-                        collection(
-                            db,
-                            "systemNews"
-                        ),
-                        orderBy(
-                            "createdAt",
-                            "desc"
-                        )
-                    )
-                ),
-                getDocs(
-                    query(
-                        collection(
-                            db,
-                            "targetedSystemNews"
-                        ),
-                        orderBy(
-                            "createdAt",
-                            "desc"
-                        )
-                    )
-                )
-            ]);
+    alert("お知らせの更新に失敗しました。");
+  } finally {
+    refreshSystemNews.disabled = false;
 
-
-        systemNewsItems = [
-            ...globalSnapshot.docs.map(
-                newsDocument => ({
-                    id: newsDocument.id,
-                    sourceCollection: "systemNews",
-                    ...newsDocument.data()
-                })
-            ),
-            ...targetedSnapshot.docs.map(
-                newsDocument => ({
-                    id: newsDocument.id,
-                    sourceCollection: "targetedSystemNews",
-                    ...newsDocument.data()
-                })
-            )
-        ];
-
-
-        renderSystemNews();
-
-        showToast(
-            "お知らせを更新しました"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "お知らせ更新エラー:",
-            error
-        );
-
-        alert(
-            "お知らせの更新に失敗しました。"
-        );
-
-    } finally {
-
-        refreshSystemNews.disabled =
-            false;
-
-        refreshSystemNews.textContent =
-            "↻ 更新";
-
-    }
-
+    refreshSystemNews.textContent = "↻ 更新";
+  }
 }
-
 
 /* ========================================
    共通処理
 ======================================== */
 
 function timestampToDate(value) {
+  if (!value) {
+    return null;
+  }
 
-    if (!value) {
-        return null;
+  try {
+    if (typeof value.toDate === "function") {
+      return value.toDate();
     }
 
-    try {
+    const date = new Date(value);
 
-        if (
-            typeof value.toDate ===
-            "function"
-        ) {
-
-            return value.toDate();
-
-        }
-
-        const date =
-            new Date(value);
-
-        return Number.isNaN(
-            date.getTime()
-        )
-            ? null
-            : date;
-
-    } catch {
-
-        return null;
-
-    }
-
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 }
 
+function getTimestampMilliseconds(value) {
+  const date = timestampToDate(value);
 
-function getTimestampMilliseconds(
-    value
-) {
-
-    const date =
-        timestampToDate(value);
-
-    return date
-        ? date.getTime()
-        : 0;
-
+  return date ? date.getTime() : 0;
 }
-
 
 function formatDate(value) {
+  const date = timestampToDate(value);
 
-    const date =
-        timestampToDate(value);
+  if (!date) {
+    return "日時未設定";
+  }
 
-    if (!date) {
-        return "日時未設定";
-    }
-
-    return date.toLocaleString(
-        "ja-JP"
-    );
-
+  return date.toLocaleString("ja-JP");
 }
 
+function setText(element, value) {
+  if (!element) {
+    return;
+  }
 
-function setText(
-    element,
-    value
-) {
-
-    if (!element) {
-        return;
-    }
-
-    element.textContent =
-        String(value ?? "");
-
+  element.textContent = String(value ?? "");
 }
-
 
 function escapeHtml(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
-
 
 function openModal(modal) {
+  if (!modal) {
+    return;
+  }
 
-    if (!modal) {
-        return;
-    }
+  modal.hidden = false;
 
-    modal.hidden = false;
-
-    document.body.classList.add(
-        "admin-modal-open"
-    );
-
+  document.body.classList.add("admin-modal-open");
 }
-
 
 function closeModal(modal) {
+  if (!modal) {
+    return;
+  }
 
-    if (!modal) {
-        return;
-    }
+  modal.hidden = true;
 
-    modal.hidden = true;
-
-    if (
-        editSystemNewsModal?.hidden &&
-        deleteSystemNewsModal?.hidden
-    ) {
-
-        document.body.classList.remove(
-            "admin-modal-open"
-        );
-
-    }
-
+  if (editSystemNewsModal?.hidden && deleteSystemNewsModal?.hidden) {
+    document.body.classList.remove("admin-modal-open");
+  }
 }
 
-
-window.addEventListener(
-    "beforeunload",
-    () => {
-
-        if (stopSystemNewsListener) {
-
-            stopSystemNewsListener();
-
-        }
-
-    }
-);
+window.addEventListener("beforeunload", () => {
+  if (stopSystemNewsListener) {
+    stopSystemNewsListener();
+  }
+});

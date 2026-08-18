@@ -1,183 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<meta charset="UTF-8">
+    <title>天気設定 | CareMate</title>
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css" />
 
-<title>天気設定 | CareMate</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<link rel="stylesheet" href="style.css">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
-<script>
+      <div id="userName">読み込み中...</div>
 
-if(localStorage.getItem("theme")==="dark"){
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
-    document.documentElement.classList.add("dark");
-
-}
-
-</script>
-
-</head>
-
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <button id="backButton" class="circle-button">
-        ←
-    </button>
-
-    <div id="userName">
-        読み込み中...
-    </div>
-
-    <div class="top-right">
-
-        <button
-            id="themeButton"
-            class="circle-button">
-
-            🌙
-
+        <button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            class="header-profile-image"
+            src="images/default.png"
+          />
         </button>
-
-        <button
-            id="profileButton"
-            class="circle-button">
-
-            <img
-                id="topProfileImage"
-                class="header-profile-image"
-                src="images/default.png">
-
-        </button>
-
+      </div>
     </div>
 
-</div>
+    <header class="header">
+      <div class="logo">🌤</div>
 
-<header class="header">
+      <h1>天気設定</h1>
 
-    <div class="logo">
+      <p>表示する地域を設定します</p>
+    </header>
 
-        🌤
+    <div class="card setting-card">
+      <h2>地域検索</h2>
 
+      <input id="weatherSearch" type="text" placeholder="市区町村を検索" />
+
+      <div id="weatherResults"></div>
+
+      <div id="weatherSelected"></div>
+
+      <br />
+
+      <button id="saveWeatherButton" class="btn btn-primary">保存</button>
     </div>
 
-    <h1>
+    <div class="card setting-card">
+      <h2>現在の設定</h2>
 
-        天気設定
-
-    </h1>
-
-    <p>
-
-        表示する地域を設定します
-
-    </p>
-
-</header>
-
-<div class="card setting-card">
-
-    <h2>
-
-        地域検索
-
-    </h2>
-
-    <input
-        id="weatherSearch"
-        type="text"
-        placeholder="市区町村を検索">
-
-    <div id="weatherResults"></div>
-
-    <div id="weatherSelected"></div>
-
-    <br>
-
-    <button
-        id="saveWeatherButton"
-        class="btn btn-primary">
-
-        保存
-
-    </button>
-
-</div>
-
-<div class="card setting-card">
-
-    <h2>
-
-        現在の設定
-
-    </h2>
-
-    <div id="currentWeather">
-
-        読み込み中...
-
+      <div id="currentWeather">読み込み中...</div>
     </div>
 
-</div>
+    <div style="height: 100px"></div>
 
-<div style="height:100px;"></div>
-
-<nav class="bottom-nav">
-
-    <a href="index.html">
-        🏠<br>
+    <nav class="bottom-nav">
+      <a href="index.html">
+        🏠<br />
         <span>ホーム</span>
-    </a>
+      </a>
 
-    <a href="assignments.html">
-        📚<br>
+      <a href="assignments.html">
+        📚<br />
         <span>課題</span>
-    </a>
+      </a>
 
-    <a href="requests.html">
-        💡<br>
+      <a href="requests.html">
+        💡<br />
         <span>リクエスト</span>
-    </a>
+      </a>
 
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📢</span>
 
-            <span class="nav-icon">📢</span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a
-        id="settingsTab"
-        href="settings.html">
-        ⚙️<br>
+      <a id="settingsTab" href="settings.html">
+        ⚙️<br />
         <span>設定</span>
-    </a>
+      </a>
+    </nav>
 
-</nav>
-
-<script type="module" src="weather-settings.js"></script>
-
-</body>
-
+    <script type="module" src="weather-settings.js"></script>
+  </body>
 </html>

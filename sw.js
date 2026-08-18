@@ -3,7 +3,6 @@
    高速表示・Push通知・通知タップ処理
 ======================================== */
 
-
 /*
 Service Workerを更新した時は
 この数字を1つ上げる。
@@ -13,19 +12,11 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE =
-    "caremate-static-v2";
+const STATIC_CACHE = "caremate-static-v2";
 
+const RUNTIME_CACHE = "caremate-runtime-v2";
 
-const RUNTIME_CACHE =
-    "caremate-runtime-v2";
-
-
-const CACHE_NAMES = [
-    STATIC_CACHE,
-    RUNTIME_CACHE
-];
-
+const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
 /*
 確実に存在する主要ファイルだけ
@@ -36,201 +27,110 @@ Service Worker全体のinstallを
 失敗させないよう個別取得する。
 */
 const CORE_ASSETS = [
+  "./",
 
-    "./",
+  "index.html",
 
-    "index.html",
+  "style.css",
 
-    "style.css",
+  "app.js",
 
-    "app.js",
+  "common.js",
 
-    "common.js",
+  "personal_timetable_data.js",
 
-    "personal_timetable_data.js",
+  "class_selection.js",
 
-    "class_selection.js",
+  "manifest.json",
 
-    "manifest.json",
+  "version.js",
 
-    "version.js",
+  "images/default.png",
 
-    "images/default.png",
-
-    "icon-192.png"
-
+  "icon-192.png",
 ];
-
 
 /* ========================================
    Service Worker更新
 ======================================== */
 
-self.addEventListener(
-    "install",
-    event => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(STATIC_CACHE);
 
-        event.waitUntil(
-            (
-                async () => {
-
-                    const cache =
-                        await caches.open(
-                            STATIC_CACHE
-                        );
-
-
-                    /*
+      /*
                     addAll()では、
                     1個404になると全部失敗するため
                     個別にキャッシュする。
                     */
-                    await Promise.allSettled(
+      await Promise.allSettled(
+        CORE_ASSETS.map(async (asset) => {
+          try {
+            await cache.add(
+              new Request(asset, {
+                cache: "reload",
+              }),
+            );
+          } catch (error) {
+            console.warn("事前キャッシュ失敗:", asset, error);
+          }
+        }),
+      );
 
-                        CORE_ASSETS.map(
-                            async asset => {
+      await self.skipWaiting();
+    })(),
+  );
+});
 
-                                try {
-
-                                    await cache.add(
-                                        new Request(
-                                            asset,
-                                            {
-                                                cache:
-                                                    "reload"
-                                            }
-                                        )
-                                    );
-
-                                } catch (error) {
-
-                                    console.warn(
-                                        "事前キャッシュ失敗:",
-                                        asset,
-                                        error
-                                    );
-
-                                }
-
-                            }
-                        )
-
-                    );
-
-
-                    await self.skipWaiting();
-
-                }
-            )()
-        );
-
-    }
-);
-
-
-self.addEventListener(
-    "activate",
-    event => {
-
-        event.waitUntil(
-            (
-                async () => {
-
-                    /*
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      /*
                     古いCareMateキャッシュを削除。
                     */
-                    const cacheKeys =
-                        await caches.keys();
+      const cacheKeys = await caches.keys();
 
+      await Promise.all(
+        cacheKeys.map((cacheName) => {
+          const isCareMateCache = cacheName.startsWith("caremate-");
 
-                    await Promise.all(
+          const isCurrentCache = CACHE_NAMES.includes(cacheName);
 
-                        cacheKeys.map(
-                            cacheName => {
+          if (isCareMateCache && !isCurrentCache) {
+            return caches.delete(cacheName);
+          }
 
-                                const isCareMateCache =
-                                    cacheName.startsWith(
-                                        "caremate-"
-                                    );
+          return Promise.resolve();
+        }),
+      );
 
-
-                                const isCurrentCache =
-                                    CACHE_NAMES.includes(
-                                        cacheName
-                                    );
-
-
-                                if (
-                                    isCareMateCache &&
-                                    !isCurrentCache
-                                ) {
-
-                                    return caches.delete(
-                                        cacheName
-                                    );
-
-                                }
-
-
-                                return Promise.resolve();
-
-                            }
-                        )
-
-                    );
-
-
-                    /*
+      /*
                     navigation preload対応ブラウザでは
                     Service Worker起動中にも
                     HTML通信を先行させる。
                     */
-                    if (
-                        self.registration
-                            .navigationPreload
-                    ) {
+      if (self.registration.navigationPreload) {
+        try {
+          await self.registration.navigationPreload.enable();
+        } catch (error) {
+          console.warn("Navigation Preload有効化失敗:", error);
+        }
+      }
 
-                        try {
-
-                            await self.registration
-                                .navigationPreload
-                                .enable();
-
-                        } catch (error) {
-
-                            console.warn(
-                                "Navigation Preload有効化失敗:",
-                                error
-                            );
-
-                        }
-
-                    }
-
-
-                    await self.clients.claim();
-
-                }
-            )()
-        );
-
-    }
-);
-
+      await self.clients.claim();
+    })(),
+  );
+});
 
 /* ========================================
    高速キャッシュ
 ======================================== */
 
-self.addEventListener(
-    "fetch",
-    event => {
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
 
-        const request =
-            event.request;
-
-
-        /*
+  /*
         GET以外は絶対に触らない。
 
         Firestore更新
@@ -239,22 +139,13 @@ self.addEventListener(
         Functions
         などを壊さないため。
         */
-        if (
-            request.method !== "GET"
-        ) {
+  if (request.method !== "GET") {
+    return;
+  }
 
-            return;
+  const url = new URL(request.url);
 
-        }
-
-
-        const url =
-            new URL(
-                request.url
-            );
-
-
-        /*
+  /*
         CareMateと同じorigin以外は
         Service Workerキャッシュ対象外。
 
@@ -263,59 +154,30 @@ self.addEventListener(
         Google
         などは常に本来の通信を使う。
         */
-        if (
-            url.origin !==
-            self.location.origin
-        ) {
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
-            return;
-
-        }
-
-
-        /*
+  /*
         HTMLページ遷移。
         最新版を最優先する。
         */
-        if (
-            request.mode === "navigate"
-        ) {
+  if (request.mode === "navigate") {
+    event.respondWith(handleNavigationRequest(event));
 
-            event.respondWith(
-                handleNavigationRequest(
-                    event
-                )
-            );
+    return;
+  }
 
-            return;
-
-        }
-
-
-        /*
+  /*
         CSS / JS / 画像 / manifest等。
 
         まずキャッシュを即表示し、
         裏で最新版を取得する。
         */
-        if (
-            isStaticAsset(
-                request,
-                url
-            )
-        ) {
-
-            event.respondWith(
-                handleStaticRequest(
-                    request
-                )
-            );
-
-        }
-
-    }
-);
-
+  if (isStaticAsset(request, url)) {
+    event.respondWith(handleStaticRequest(request));
+  }
+});
 
 /*
 HTMLは
@@ -329,113 +191,57 @@ HTMLは
 古い時間割や画面を
 通常時に優先表示しない。
 */
-async function handleNavigationRequest(
-    event
-) {
+async function handleNavigationRequest(event) {
+  const request = event.request;
 
-    const request =
-        event.request;
-
-
-    try {
-
-        /*
+  try {
+    /*
         activateでNavigation Preloadが
         有効なら先に始まっている通信を使用。
         */
-        const preloadResponse =
-            await event.preloadResponse;
+    const preloadResponse = await event.preloadResponse;
 
+    if (preloadResponse) {
+      const cache = await caches.open(RUNTIME_CACHE);
 
-        if (preloadResponse) {
+      cache.put(request, preloadResponse.clone());
 
-            const cache =
-                await caches.open(
-                    RUNTIME_CACHE
-                );
+      return preloadResponse;
+    }
 
+    const networkResponse = await fetch(request);
 
-            cache.put(
-                request,
-                preloadResponse.clone()
-            );
+    if (networkResponse && networkResponse.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
 
+      cache.put(request, networkResponse.clone());
+    }
 
-            return preloadResponse;
-
-        }
-
-
-        const networkResponse =
-            await fetch(
-                request
-            );
-
-
-        if (
-            networkResponse &&
-            networkResponse.ok
-        ) {
-
-            const cache =
-                await caches.open(
-                    RUNTIME_CACHE
-                );
-
-
-            cache.put(
-                request,
-                networkResponse.clone()
-            );
-
-        }
-
-
-        return networkResponse;
-
-
-    } catch (error) {
-
-        /*
+    return networkResponse;
+  } catch (error) {
+    /*
         オフライン等の場合だけ
         保存済みHTMLを使う。
         */
-        const cachedResponse =
-            await caches.match(
-                request
-            );
+    const cachedResponse = await caches.match(request);
 
+    if (cachedResponse) {
+      return cachedResponse;
+    }
 
-        if (cachedResponse) {
-
-            return cachedResponse;
-
-        }
-
-
-        /*
+    /*
         URLパラメータ付きindex等で
         完全一致しなかった時の保険。
         */
-        const fallback =
-            await caches.match(
-                "index.html"
-            );
+    const fallback = await caches.match("index.html");
 
-
-        if (fallback) {
-
-            return fallback;
-
-        }
-
-
-        throw error;
-
+    if (fallback) {
+      return fallback;
     }
 
+    throw error;
+  }
 }
-
 
 /*
 JS/CSS/画像は
@@ -446,261 +252,120 @@ JS/CSS/画像は
 
 Stale While Revalidate方式。
 */
-async function handleStaticRequest(
-    request
-) {
+async function handleStaticRequest(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
 
-    const cache =
-        await caches.open(
-            RUNTIME_CACHE
-        );
+  const cachedResponse = await caches.match(request);
 
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
 
-    const cachedResponse =
-        await caches.match(
-            request
-        );
+      return response;
+    })
+    .catch((error) => {
+      if (!cachedResponse) {
+        throw error;
+      }
 
+      return null;
+    });
 
-    const networkPromise =
-        fetch(
-            request
-        )
-            .then(
-                response => {
-
-                    if (
-                        response &&
-                        response.ok
-                    ) {
-
-                        cache.put(
-                            request,
-                            response.clone()
-                        );
-
-                    }
-
-
-                    return response;
-
-                }
-            )
-            .catch(
-                error => {
-
-                    if (
-                        !cachedResponse
-                    ) {
-
-                        throw error;
-
-                    }
-
-
-                    return null;
-
-                }
-            );
-
-
-    /*
+  /*
     キャッシュがあるなら
     ネットワークを待たず即返す。
     */
-    if (cachedResponse) {
-
-        /*
+  if (cachedResponse) {
+    /*
         Promise自体は走り続けるので
         次回用キャッシュが更新される。
         */
-        return cachedResponse;
+    return cachedResponse;
+  }
 
-    }
-
-
-    return networkPromise;
-
+  return networkPromise;
 }
-
 
 /*
 キャッシュしてよい
 静的ファイルだけ判定。
 */
-function isStaticAsset(
-    request,
-    url
-) {
+function isStaticAsset(request, url) {
+  if (
+    ["script", "style", "image", "font", "manifest"].includes(
+      request.destination,
+    )
+  ) {
+    return true;
+  }
 
-    if (
-        [
-            "script",
-            "style",
-            "image",
-            "font",
-            "manifest"
-        ].includes(
-            request.destination
-        )
-    ) {
-
-        return true;
-
-    }
-
-
-    return /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|json)$/i
-        .test(
-            url.pathname
-        );
-
+  return /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|json)$/i.test(url.pathname);
 }
-
 
 /* ========================================
    Push通知受信
 ======================================== */
 
-self.addEventListener(
-    "push",
-    event => {
-
-        event.waitUntil(
-            handlePushEvent(
-                event
-            )
-        );
-
-    }
-);
-
+self.addEventListener("push", (event) => {
+  event.waitUntil(handlePushEvent(event));
+});
 
 /**
  * Push通知を表示する。
  */
-async function handlePushEvent(
-    event
-) {
+async function handlePushEvent(event) {
+  const data = readPushData(event);
 
-    const data =
-        readPushData(
-            event
-        );
+  const notificationType = resolveNotificationType(data);
 
+  const targetUrl = createAttendanceTargetUrl(data, notificationType);
 
-    const notificationType =
-        resolveNotificationType(
-            data
-        );
+  const actions = createNotificationActions(notificationType);
 
+  const title = data.title || getDefaultTitle(notificationType);
 
-    const targetUrl =
-        createAttendanceTargetUrl(
-            data,
-            notificationType
-        );
+  const body = data.body || getDefaultBody(notificationType);
 
+  const tag = data.tag || createNotificationTag(data, notificationType);
 
-    const actions =
-        createNotificationActions(
-            notificationType
-        );
+  const options = {
+    body,
 
+    icon: data.icon || "/icon-192.png",
 
-    const title =
-        data.title ||
-        getDefaultTitle(
-            notificationType
-        );
+    badge: data.badge || "/icon-192.png",
 
+    tag,
 
-    const body =
-        data.body ||
-        getDefaultBody(
-            notificationType
-        );
+    renotify: Boolean(tag),
 
+    requireInteraction: true,
 
-    const tag =
-        data.tag ||
-        createNotificationTag(
-            data,
-            notificationType
-        );
+    timestamp: Date.now(),
 
+    actions,
 
-    const options = {
+    data: {
+      url: targetUrl.href,
 
-        body,
+      notificationType,
 
-        icon:
-            data.icon ||
-            "/icon-192.png",
+      defaultAction: getDefaultAction(notificationType),
 
-        badge:
-            data.badge ||
-            "/icon-192.png",
+      subject: normalizeText(data.subject),
 
-        tag,
+      period: normalizePeriod(data.period),
 
-        renotify:
-            Boolean(tag),
+      date: normalizeDate(data.date || data.attendanceDate),
 
-        requireInteraction:
-            true,
+      expiresAt: normalizeText(data.expiresAt),
+    },
+  };
 
-        timestamp:
-            Date.now(),
-
-        actions,
-
-        data: {
-
-            url:
-                targetUrl.href,
-
-            notificationType,
-
-            defaultAction:
-                getDefaultAction(
-                    notificationType
-                ),
-
-            subject:
-                normalizeText(
-                    data.subject
-                ),
-
-            period:
-                normalizePeriod(
-                    data.period
-                ),
-
-            date:
-                normalizeDate(
-                    data.date ||
-                    data.attendanceDate
-                ),
-
-            expiresAt:
-                normalizeText(
-                    data.expiresAt
-                )
-
-        }
-
-    };
-
-
-    await self.registration
-        .showNotification(
-            title,
-            options
-        );
-
+  await self.registration.showNotification(title, options);
 }
-
 
 /* ========================================
    Pushデータ取得
@@ -709,72 +374,35 @@ async function handlePushEvent(
 /**
  * Pushデータを安全に読み込む。
  */
-function readPushData(
-    event
-) {
+function readPushData(event) {
+  if (!event.data) {
+    return {};
+  }
 
-    if (!event.data) {
+  try {
+    const json = event.data.json();
 
-        return {};
-
+    if (json && typeof json === "object") {
+      return json;
     }
+  } catch (error) {
+    console.warn("Push JSON取得失敗:", error);
+  }
 
+  try {
+    const text = event.data.text();
 
-    try {
+    return {
+      title: "CareMate",
 
-        const json =
-            event.data.json();
+      body: text,
+    };
+  } catch (error) {
+    console.warn("Pushテキスト取得失敗:", error);
 
-
-        if (
-            json &&
-            typeof json === "object"
-        ) {
-
-            return json;
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Push JSON取得失敗:",
-            error
-        );
-
-    }
-
-
-    try {
-
-        const text =
-            event.data.text();
-
-
-        return {
-
-            title:
-                "CareMate",
-
-            body:
-                text
-
-        };
-
-    } catch (error) {
-
-        console.warn(
-            "Pushテキスト取得失敗:",
-            error
-        );
-
-
-        return {};
-
-    }
-
+    return {};
+  }
 }
-
 
 /* ========================================
    通知種類
@@ -789,126 +417,43 @@ function readPushData(
  * end
  * 講義終了5分前通知
  */
-function resolveNotificationType(
-    data
-) {
+function resolveNotificationType(data) {
+  const directValue = normalizeText(
+    data.notificationType || data.attendanceType || data.type || data.action,
+  ).toLowerCase();
 
-    const directValue =
-        normalizeText(
+  if (["start", "arrival", "attendance", "present"].includes(directValue)) {
+    return "start";
+  }
 
-            data.notificationType ||
+  if (["end", "finish", "departure"].includes(directValue)) {
+    return "end";
+  }
 
-            data.attendanceType ||
+  const rawUrl = normalizeText(data.url);
 
-            data.type ||
+  if (rawUrl) {
+    try {
+      const url = new URL(rawUrl, self.location.origin);
 
-            data.action
+      const urlAction = normalizeText(
+        url.searchParams.get("action"),
+      ).toLowerCase();
 
-        ).toLowerCase();
-
-
-    if (
-        [
-            "start",
-            "arrival",
-            "attendance",
-            "present"
-        ].includes(
-            directValue
-        )
-    ) {
-
+      if (["start", "arrival", "attendance", "present"].includes(urlAction)) {
         return "start";
+      }
 
-    }
-
-
-    if (
-        [
-            "end",
-            "finish",
-            "departure"
-        ].includes(
-            directValue
-        )
-    ) {
-
+      if (["end", "finish", "departure"].includes(urlAction)) {
         return "end";
-
+      }
+    } catch (error) {
+      console.warn("Push URL解析失敗:", error);
     }
+  }
 
-
-    const rawUrl =
-        normalizeText(
-            data.url
-        );
-
-
-    if (rawUrl) {
-
-        try {
-
-            const url =
-                new URL(
-                    rawUrl,
-                    self.location.origin
-                );
-
-
-            const urlAction =
-                normalizeText(
-                    url.searchParams.get(
-                        "action"
-                    )
-                ).toLowerCase();
-
-
-            if (
-                [
-                    "start",
-                    "arrival",
-                    "attendance",
-                    "present"
-                ].includes(
-                    urlAction
-                )
-            ) {
-
-                return "start";
-
-            }
-
-
-            if (
-                [
-                    "end",
-                    "finish",
-                    "departure"
-                ].includes(
-                    urlAction
-                )
-            ) {
-
-                return "end";
-
-            }
-
-        } catch (error) {
-
-            console.warn(
-                "Push URL解析失敗:",
-                error
-            );
-
-        }
-
-    }
-
-
-    return "general";
-
+  return "general";
 }
-
 
 /* ========================================
    通知ボタン
@@ -917,141 +462,74 @@ function resolveNotificationType(
 /**
  * 通知に表示する操作ボタンを返す。
  */
-function createNotificationActions(
-    notificationType
-) {
+function createNotificationActions(notificationType) {
+  /*
+   * 開始通知。
+   *
+   * 開始打刻または欠席を選べる。
+   */
+  if (notificationType === "start") {
+    return [
+      {
+        action: "start",
 
-    /*
-     * 開始通知。
-     *
-     * 開始打刻または欠席を選べる。
-     */
-    if (
-        notificationType ===
-        "start"
-    ) {
+        title: "開始打刻",
+      },
 
-        return [
+      {
+        action: "absent",
 
-            {
-                action:
-                    "start",
+        title: "欠席",
+      },
+    ];
+  }
 
-                title:
-                    "開始打刻"
-            },
+  /*
+   * 終了通知。
+   *
+   * 早退通知は出さない。
+   * 終了打刻だけ表示する。
+   */
+  if (notificationType === "end") {
+    return [
+      {
+        action: "end",
 
-            {
-                action:
-                    "absent",
+        title: "終了打刻",
+      },
+    ];
+  }
 
-                title:
-                    "欠席"
-            }
-
-        ];
-
-    }
-
-
-    /*
-     * 終了通知。
-     *
-     * 早退通知は出さない。
-     * 終了打刻だけ表示する。
-     */
-    if (
-        notificationType ===
-        "end"
-    ) {
-
-        return [
-
-            {
-                action:
-                    "end",
-
-                title:
-                    "終了打刻"
-            }
-
-        ];
-
-    }
-
-
-    return [];
-
+  return [];
 }
-
 
 /* ========================================
    通知文
 ======================================== */
 
-function getDefaultTitle(
-    notificationType
-) {
+function getDefaultTitle(notificationType) {
+  if (notificationType === "start") {
+    return "講義開始10分前です";
+  }
 
-    if (
-        notificationType ===
-        "start"
-    ) {
+  if (notificationType === "end") {
+    return "講義終了5分前です";
+  }
 
-        return "講義開始10分前です";
-
-    }
-
-
-    if (
-        notificationType ===
-        "end"
-    ) {
-
-        return "講義終了5分前です";
-
-    }
-
-
-    return "CareMate";
-
+  return "CareMate";
 }
 
+function getDefaultBody(notificationType) {
+  if (notificationType === "start") {
+    return "講義の開始打刻をしてください。";
+  }
 
-function getDefaultBody(
-    notificationType
-) {
+  if (notificationType === "end") {
+    return "講義の終了打刻をしてください。";
+  }
 
-    if (
-        notificationType ===
-        "start"
-    ) {
-
-        return (
-            "講義の開始打刻をしてください。"
-        );
-
-    }
-
-
-    if (
-        notificationType ===
-        "end"
-    ) {
-
-        return (
-            "講義の終了打刻をしてください。"
-        );
-
-    }
-
-
-    return (
-        "CareMateからのお知らせです。"
-    );
-
+  return "CareMateからのお知らせです。";
 }
-
 
 /* ========================================
    通知URL
@@ -1060,371 +538,170 @@ function getDefaultBody(
 /**
  * 通知から開く出席管理画面URLを作る。
  */
-function createAttendanceTargetUrl(
-    data,
-    notificationType
-) {
+function createAttendanceTargetUrl(data, notificationType) {
+  /*
+   * GitHub Pagesでは
+   *
+   * https://...github.io/university-notifier-web/
+   *
+   * がService Workerのscopeになる。
+   *
+   * origin直下 "/" を使うと
+   * /university-notifier-web/ が消えるため、
+   * 必ずregistration.scopeを基準にする。
+   */
 
+  const fallbackUrl = new URL("index.html", self.registration.scope);
+
+  let url;
+
+  try {
     /*
-     * GitHub Pagesでは
+     * Firebase Functions側から渡されたURLを
+     * 最優先でそのまま使う。
      *
-     * https://...github.io/university-notifier-web/
+     * 出席通知
+     * → attendance_check.html
      *
-     * がService Workerのscopeになる。
-     *
-     * origin直下 "/" を使うと
-     * /university-notifier-web/ が消えるため、
-     * 必ずregistration.scopeを基準にする。
+     * クラス選択通知
+     * → index.html
      */
 
-    const fallbackUrl =
-        new URL(
-            "index.html",
-            self.registration.scope
-        );
+    url = data.url ? new URL(data.url, self.registration.scope) : fallbackUrl;
+  } catch (error) {
+    console.warn("通知URL作成失敗:", error);
 
+    url = new URL(fallbackUrl.href);
+  }
 
-    let url;
+  /*
+   * Functions側のURLにすでに
+   *
+   * subject
+   * period
+   * date
+   * action
+   * recordId
+   * scheduleId
+   * classGroup
+   * startTime
+   * endTime
+   *
+   * が入っている。
+   *
+   * ここでは消さずに補助情報だけ追加する。
+   */
 
+  const subject = normalizeText(data.subject);
 
-    try {
+  const period = normalizePeriod(data.period);
 
-        /*
-         * Firebase Functions側から渡されたURLを
-         * 最優先でそのまま使う。
-         *
-         * 出席通知
-         * → attendance_check.html
-         *
-         * クラス選択通知
-         * → index.html
-         */
+  const date = normalizeDate(data.date || data.attendanceDate);
 
-        url =
-            data.url
-                ? new URL(
-                    data.url,
-                    self.registration.scope
-                )
-                : fallbackUrl;
+  if (subject && !url.searchParams.has("subject")) {
+    url.searchParams.set("subject", subject);
+  }
 
-    } catch (error) {
+  if (period && !url.searchParams.has("period")) {
+    url.searchParams.set("period", String(period));
+  }
 
-        console.warn(
-            "通知URL作成失敗:",
-            error
-        );
+  if (date && !url.searchParams.has("date")) {
+    url.searchParams.set("date", date);
+  }
 
+  /*
+   * actionはFunctions側の
+   * arrival / departure を優先する。
+   *
+   * URLにactionがない古い通知だけ補完。
+   */
 
-        url =
-            new URL(
-                fallbackUrl.href
-            );
-
+  if (!url.searchParams.has("action")) {
+    if (notificationType === "start") {
+      url.searchParams.set("action", "arrival");
     }
 
-
-    /*
-     * Functions側のURLにすでに
-     *
-     * subject
-     * period
-     * date
-     * action
-     * recordId
-     * scheduleId
-     * classGroup
-     * startTime
-     * endTime
-     *
-     * が入っている。
-     *
-     * ここでは消さずに補助情報だけ追加する。
-     */
-
-    const subject =
-        normalizeText(
-            data.subject
-        );
-
-
-    const period =
-        normalizePeriod(
-            data.period
-        );
-
-
-    const date =
-        normalizeDate(
-            data.date ||
-            data.attendanceDate
-        );
-
-
-    if (
-        subject &&
-        !url.searchParams.has(
-            "subject"
-        )
-    ) {
-
-        url.searchParams.set(
-            "subject",
-            subject
-        );
-
+    if (notificationType === "end") {
+      url.searchParams.set("action", "departure");
     }
+  }
 
-
-    if (
-        period &&
-        !url.searchParams.has(
-            "period"
-        )
-    ) {
-
-        url.searchParams.set(
-            "period",
-            String(period)
-        );
-
-    }
-
-
-    if (
-        date &&
-        !url.searchParams.has(
-            "date"
-        )
-    ) {
-
-        url.searchParams.set(
-            "date",
-            date
-        );
-
-    }
-
-
-    /*
-     * actionはFunctions側の
-     * arrival / departure を優先する。
-     *
-     * URLにactionがない古い通知だけ補完。
-     */
-
-    if (
-        !url.searchParams.has(
-            "action"
-        )
-    ) {
-
-        if (
-            notificationType ===
-            "start"
-        ) {
-
-            url.searchParams.set(
-                "action",
-                "arrival"
-            );
-
-        }
-
-
-        if (
-            notificationType ===
-            "end"
-        ) {
-
-            url.searchParams.set(
-                "action",
-                "departure"
-            );
-
-        }
-
-    }
-
-
-    return url;
-
+  return url;
 }
-
 
 /* ========================================
    通知タグ
 ======================================== */
 
-function createNotificationTag(
-    data,
-    notificationType
-) {
+function createNotificationTag(data, notificationType) {
+  const date = normalizeDate(data.date || data.attendanceDate) || "today";
 
-    const date =
-        normalizeDate(
+  const period = normalizePeriod(data.period) || "unknown";
 
-            data.date ||
+  const subject = normalizeText(data.subject) || "lecture";
 
-            data.attendanceDate
-
-        ) ||
-        "today";
-
-
-    const period =
-        normalizePeriod(
-            data.period
-        ) ||
-        "unknown";
-
-
-    const subject =
-        normalizeText(
-            data.subject
-        ) ||
-        "lecture";
-
-
-    return [
-
-        "attendance",
-
-        notificationType,
-
-        date,
-
-        period,
-
-        subject
-
-    ].join("-");
-
+  return ["attendance", notificationType, date, period, subject].join("-");
 }
-
 
 /* ========================================
    通知タップ
 ======================================== */
 
-self.addEventListener(
-    "notificationclick",
-    event => {
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
 
-        event.notification.close();
-
-
-        event.waitUntil(
-            handleNotificationClick(
-                event
-            )
-        );
-
-    }
-);
-
+  event.waitUntil(handleNotificationClick(event));
+});
 
 /**
  * 通知または通知ボタンを押した時の処理。
  */
-async function handleNotificationClick(
-    event
-) {
+async function handleNotificationClick(event) {
+  const notificationData = event.notification.data || {};
 
-    const notificationData =
-        event.notification.data ||
-        {};
+  const targetUrl = createClickTargetUrl(
+    notificationData,
 
+    event.action,
+  );
 
-    const targetUrl =
-        createClickTargetUrl(
+  const clientList = await self.clients.matchAll({
+    type: "window",
 
-            notificationData,
+    includeUncontrolled: true,
+  });
 
-            event.action
+  /*
+   * CareMateがすでに開いている場合は、
+   * その画面を出席管理へ移動して前面表示する。
+   */
+  for (const client of clientList) {
+    try {
+      const clientUrl = new URL(client.url);
 
-        );
+      if (clientUrl.origin !== self.location.origin) {
+        continue;
+      }
 
+      if ("navigate" in client) {
+        await client.navigate(targetUrl.href);
+      }
 
-    const clientList =
-        await self.clients.matchAll({
-
-            type:
-                "window",
-
-            includeUncontrolled:
-                true
-
-        });
-
-
-    /*
-     * CareMateがすでに開いている場合は、
-     * その画面を出席管理へ移動して前面表示する。
-     */
-    for (
-        const client of clientList
-    ) {
-
-        try {
-
-            const clientUrl =
-                new URL(
-                    client.url
-                );
-
-
-            if (
-                clientUrl.origin !==
-                self.location.origin
-            ) {
-
-                continue;
-
-            }
-
-
-            if (
-                "navigate" in client
-            ) {
-
-                await client.navigate(
-                    targetUrl.href
-                );
-
-            }
-
-
-            if (
-                "focus" in client
-            ) {
-
-                return client.focus();
-
-            }
-
-        } catch (error) {
-
-            console.warn(
-                "既存画面の再利用失敗:",
-                error
-            );
-
-        }
-
+      if ("focus" in client) {
+        return client.focus();
+      }
+    } catch (error) {
+      console.warn("既存画面の再利用失敗:", error);
     }
+  }
 
-
-    /*
-     * 開いている画面がなければ
-     * 新しい画面を開く。
-     */
-    return self.clients.openWindow(
-        targetUrl.href
-    );
-
+  /*
+   * 開いている画面がなければ
+   * 新しい画面を開く。
+   */
+  return self.clients.openWindow(targetUrl.href);
 }
-
 
 /* ========================================
    タップ後URL
@@ -1433,413 +710,165 @@ async function handleNotificationClick(
 /**
  * 押された通知ボタンをURLへ反映する。
  */
-function createClickTargetUrl(
-    notificationData,
-    clickedAction
-) {
+function createClickTargetUrl(notificationData, clickedAction) {
+  const fallbackUrl = new URL("index.html", self.registration.scope);
 
-    const fallbackUrl =
-        new URL(
-            "index.html",
-            self.registration.scope
-        );
+  let url;
 
+  try {
+    url = notificationData.url
+      ? new URL(notificationData.url, self.registration.scope)
+      : fallbackUrl;
+  } catch {
+    url = new URL(fallbackUrl.href);
+  }
 
-    let url;
+  /*
+   * 通知内ボタンが押された場合だけ
+   * actionを書き換える。
+   *
+   * 通知本体タップの場合は、
+   * Functionsから渡された
+   * arrival/departureをそのまま使う。
+   */
 
+  const clicked = normalizeText(clickedAction).toLowerCase();
 
-    try {
+  if (clicked) {
+    if (["start", "arrival", "attendance", "present"].includes(clicked)) {
+      url.searchParams.set("action", "arrival");
 
-        url =
-            notificationData.url
-                ? new URL(
-                    notificationData.url,
-                    self.registration.scope
-                )
-                : fallbackUrl;
+      url.searchParams.set("choice", "arrival");
 
-    } catch {
+      url.searchParams.set("source", "start_notification");
+    } else if (["absent", "absence"].includes(clicked)) {
+      url.searchParams.set("action", "arrival");
 
-        url =
-            new URL(
-                fallbackUrl.href
-            );
+      url.searchParams.set("choice", "absence");
 
+      url.searchParams.set("source", "start_notification");
+    } else if (["end", "finish", "departure"].includes(clicked)) {
+      url.searchParams.set("action", "departure");
+
+      url.searchParams.set("choice", "departure");
+
+      url.searchParams.set("source", "end_notification");
     }
+  }
 
+  const subject = normalizeText(notificationData.subject);
 
-    /*
-     * 通知内ボタンが押された場合だけ
-     * actionを書き換える。
-     *
-     * 通知本体タップの場合は、
-     * Functionsから渡された
-     * arrival/departureをそのまま使う。
-     */
+  const period = normalizePeriod(notificationData.period);
 
-    const clicked =
-        normalizeText(
-            clickedAction
-        ).toLowerCase();
+  const date = normalizeDate(notificationData.date);
 
+  if (subject && !url.searchParams.has("subject")) {
+    url.searchParams.set("subject", subject);
+  }
 
-    if (clicked) {
+  if (period && !url.searchParams.has("period")) {
+    url.searchParams.set("period", String(period));
+  }
 
-        if (
-            [
-                "start",
-                "arrival",
-                "attendance",
-                "present"
-            ].includes(
-                clicked
-            )
-        ) {
+  if (date && !url.searchParams.has("date")) {
+    url.searchParams.set("date", date);
+  }
 
-            url.searchParams.set(
-                "action",
-                "arrival"
-            );
-
-
-            url.searchParams.set(
-                "choice",
-                "arrival"
-            );
-
-
-            url.searchParams.set(
-                "source",
-                "start_notification"
-            );
-
-        } else if (
-            [
-                "absent",
-                "absence"
-            ].includes(
-                clicked
-            )
-        ) {
-
-            url.searchParams.set(
-                "action",
-                "arrival"
-            );
-
-
-            url.searchParams.set(
-                "choice",
-                "absence"
-            );
-
-
-            url.searchParams.set(
-                "source",
-                "start_notification"
-            );
-
-        } else if (
-            [
-                "end",
-                "finish",
-                "departure"
-            ].includes(
-                clicked
-            )
-        ) {
-
-            url.searchParams.set(
-                "action",
-                "departure"
-            );
-
-
-            url.searchParams.set(
-                "choice",
-                "departure"
-            );
-
-
-            url.searchParams.set(
-                "source",
-                "end_notification"
-            );
-
-        }
-
-    }
-
-
-    const subject =
-        normalizeText(
-            notificationData.subject
-        );
-
-
-    const period =
-        normalizePeriod(
-            notificationData.period
-        );
-
-
-    const date =
-        normalizeDate(
-            notificationData.date
-        );
-
-
-    if (
-        subject &&
-        !url.searchParams.has(
-            "subject"
-        )
-    ) {
-
-        url.searchParams.set(
-            "subject",
-            subject
-        );
-
-    }
-
-
-    if (
-        period &&
-        !url.searchParams.has(
-            "period"
-        )
-    ) {
-
-        url.searchParams.set(
-            "period",
-            String(period)
-        );
-
-    }
-
-
-    if (
-        date &&
-        !url.searchParams.has(
-            "date"
-        )
-    ) {
-
-        url.searchParams.set(
-            "date",
-            date
-        );
-
-    }
-
-
-    return url;
-
+  return url;
 }
-
 
 /**
  * 古い通知ボタン名も
  * 新しい名前へ変換する。
  */
-function normalizeClickedAction(
-    value
-) {
+function normalizeClickedAction(value) {
+  const action = normalizeText(value).toLowerCase();
 
-    const action =
-        normalizeText(
-            value
-        ).toLowerCase();
+  const aliases = {
+    start: "start",
 
+    arrival: "start",
 
-    const aliases = {
+    attendance: "start",
 
-        start:
-            "start",
+    present: "start",
 
-        arrival:
-            "start",
+    absent: "absent",
 
-        attendance:
-            "start",
+    absence: "absent",
 
-        present:
-            "start",
+    end: "end",
 
-        absent:
-            "absent",
+    finish: "end",
 
-        absence:
-            "absent",
+    departure: "end",
+  };
 
-        end:
-            "end",
-
-        finish:
-            "end",
-
-        departure:
-            "end"
-
-    };
-
-
-    return (
-        aliases[action] ||
-        ""
-    );
-
+  return aliases[action] || "";
 }
-
 
 /* ========================================
    初期操作
 ======================================== */
 
-function getDefaultAction(
-    notificationType
-) {
+function getDefaultAction(notificationType) {
+  if (notificationType === "start") {
+    return "start";
+  }
 
-    if (
-        notificationType ===
-        "start"
-    ) {
+  if (notificationType === "end") {
+    return "end";
+  }
 
-        return "start";
-
-    }
-
-
-    if (
-        notificationType ===
-        "end"
-    ) {
-
-        return "end";
-
-    }
-
-
-    return "";
-
+  return "";
 }
-
 
 /* ========================================
    共通変換
 ======================================== */
 
-function normalizeText(
-    value
-) {
-
-    return String(
-        value ?? ""
-    )
-        .replace(
-            /\s+/g,
-            " "
-        )
-        .trim();
-
+function normalizeText(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
+function normalizePeriod(value) {
+  const period = Number(
+    String(value ?? "")
+      .replace("限", "")
+      .trim(),
+  );
 
-function normalizePeriod(
-    value
-) {
-
-    const period =
-        Number(
-            String(
-                value ?? ""
-            )
-                .replace(
-                    "限",
-                    ""
-                )
-                .trim()
-        );
-
-
-    return Number.isInteger(
-        period
-    )
-        ? period
-        : "";
-
+  return Number.isInteger(period) ? period : "";
 }
 
+function normalizeDate(value) {
+  const text = normalizeText(value);
 
-function normalizeDate(
-    value
-) {
+  if (!text) {
+    return "";
+  }
 
-    const text =
-        normalizeText(
-            value
-        );
+  const cleaned = text
 
+    .replace(/年|\/|\./g, "-")
 
-    if (!text) {
+    .replace(/月/g, "-")
 
-        return "";
+    .replace(/日/g, "")
 
-    }
+    .replace(/-+/g, "-");
 
+  const match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
 
-    const cleaned =
-        text
+  if (!match) {
+    return "";
+  }
 
-            .replace(
-                /年|\/|\./g,
-                "-"
-            )
-
-            .replace(
-                /月/g,
-                "-"
-            )
-
-            .replace(
-                /日/g,
-                ""
-            )
-
-            .replace(
-                /-+/g,
-                "-"
-            );
-
-
-    const match =
-        cleaned.match(
-            /^(\d{4})-(\d{1,2})-(\d{1,2})$/
-        );
-
-
-    if (!match) {
-
-        return "";
-
-    }
-
-
-    return (
-
-        `${match[1]}-` +
-
-        `${match[2].padStart(
-            2,
-            "0"
-        )}-` +
-
-        `${match[3].padStart(
-            2,
-            "0"
-        )}`
-
-    );
-
+  return (
+    `${match[1]}-` +
+    `${match[2].padStart(2, "0")}-` +
+    `${match[3].padStart(2, "0")}`
+  );
 }

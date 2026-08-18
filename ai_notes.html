@@ -1,483 +1,397 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
 
-<meta charset="UTF-8">
+    <title>AIデジタルノート | CareMate</title>
 
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
->
+    <link rel="stylesheet" href="style.css" />
 
-<title>
-    AIデジタルノート | CareMate
-</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
 
-<link
-    rel="stylesheet"
-    href="style.css"
->
-
-<script>
-if(
-    localStorage.getItem("theme")
-    ===
-    "dark"
-){
-    document.documentElement.classList.add(
-        "dark"
-    );
-}
-</script>
-
-
-<style>
-
-/* ========================================
+    <style>
+      /* ========================================
    上部
 ======================================== */
 
-.top-buttons{
-    display:flex;
-    align-items:center;
-    gap:9px;
-}
+      .top-buttons {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
 
-.top-buttons .top-user-info{
-    margin-right:0;
-    text-align:left;
-    white-space:nowrap;
-}
+      .top-buttons .top-user-info {
+        margin-right: 0;
+        text-align: left;
+        white-space: nowrap;
+      }
 
-.top-buttons .top-right{
-    margin-left:auto;
-}
+      .top-buttons .top-right {
+        margin-left: auto;
+      }
 
-
-/* ========================================
+      /* ========================================
    ドロワー
 ======================================== */
 
-.drawer-note-actions{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    margin:16px 0 8px;
-}
+      .drawer-note-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 16px 0 8px;
+      }
 
-.drawer-note-actions b{
-    font-size:1rem;
-}
+      .drawer-note-actions b {
+        font-size: 1rem;
+      }
 
-.drawer-note-actions .btn{
-    min-height:40px;
-    white-space:nowrap;
-}
+      .drawer-note-actions .btn {
+        min-height: 40px;
+        white-space: nowrap;
+      }
 
-.drawer-menu{
-    display:none;
-}
+      .drawer-menu {
+        display: none;
+      }
 
-.note-drawer{
-    position:fixed;
-    z-index:1000;
+      .note-drawer {
+        position: fixed;
+        z-index: 1000;
 
-    inset:
-        0
-        auto
-        0
-        0;
+        inset: 0 auto 0 0;
 
-    width:min(
-        370px,
-        88vw
-    );
+        width: min(370px, 88vw);
 
-    padding:
-        20px
-        16px
-        98px;
+        padding: 20px 16px 98px;
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    box-shadow:
-        18px
-        0
-        45px
-        rgba(0,0,0,.2);
+        box-shadow: 18px 0 45px rgba(0, 0, 0, 0.2);
 
-    transform:
-        translateX(-105%);
+        transform: translateX(-105%);
 
-    transition:
-        transform .22s ease;
+        transition: transform 0.22s ease;
 
-    overflow:auto;
-}
+        overflow: auto;
+      }
 
-.note-drawer.is-open{
-    transform:
-        translateX(0);
-}
+      .note-drawer.is-open {
+        transform: translateX(0);
+      }
 
-.note-drawer h2{
-    margin:
-        4px
-        0
-        14px;
-}
+      .note-drawer h2 {
+        margin: 4px 0 14px;
+      }
 
-.drawer-backdrop{
-    position:fixed;
-    z-index:999;
+      .drawer-backdrop {
+        position: fixed;
+        z-index: 999;
 
-    inset:0;
+        inset: 0;
 
-    background:
-        rgba(0,0,0,.38);
+        background: rgba(0, 0, 0, 0.38);
 
-    opacity:0;
+        opacity: 0;
 
-    visibility:hidden;
+        visibility: hidden;
 
-    transition:
-        opacity .2s;
-}
+        transition: opacity 0.2s;
+      }
 
-.drawer-backdrop.is-open{
-    opacity:1;
-    visibility:visible;
-}
+      .drawer-backdrop.is-open {
+        opacity: 1;
+        visibility: visible;
+      }
 
-.drawer-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
+      .drawer-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-
-/* ========================================
+      /* ========================================
    機能切替
 ======================================== */
 
-.feature-switcher{
-    display:grid;
+      .feature-switcher {
+        display: grid;
 
-    grid-template-columns:
-        repeat(
-            3,
-            minmax(0,1fr)
-        );
+        grid-template-columns: repeat(3, minmax(0, 1fr));
 
-    gap:8px;
+        gap: 8px;
 
-    margin-bottom:10px;
-}
+        margin-bottom: 10px;
+      }
 
-.feature-switch-button{
-    min-height:46px;
+      .feature-switch-button {
+        min-height: 46px;
 
-    border:
-        1px solid
-        var(--border);
+        border: 1px solid var(--border);
 
-    border-radius:12px;
+        border-radius: 12px;
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    color:
-        var(--text);
+        color: var(--text);
 
-    font-weight:700;
-    font-size:.86rem;
+        font-weight: 700;
+        font-size: 0.86rem;
 
-    cursor:pointer;
-}
+        cursor: pointer;
+      }
 
-.feature-switch-button.active{
-    background:
-        var(--primary);
+      .feature-switch-button.active {
+        background: var(--primary);
 
-    color:#fff;
+        color: #fff;
 
-    border-color:
-        var(--primary);
-}
+        border-color: var(--primary);
+      }
 
-.feature-section{
-    display:none;
-}
+      .feature-section {
+        display: none;
+      }
 
-.feature-section.active{
-    display:block;
-}
+      .feature-section.active {
+        display: block;
+      }
 
-
-/* ========================================
+      /* ========================================
    ワークスペース
 ======================================== */
 
-.workspace-tabs{
-    display:none;
-}
+      .workspace-tabs {
+        display: none;
+      }
 
-.workspace-panel{
-    display:none;
-}
+      .workspace-panel {
+        display: none;
+      }
 
-.workspace-panel.active{
-    display:block;
-}
+      .workspace-panel.active {
+        display: block;
+      }
 
-.note-shell{
-    display:block;
-}
+      .note-shell {
+        display: block;
+      }
 
-
-/* ========================================
+      /* ========================================
    ノート一覧
 ======================================== */
 
-.note-list{
-    display:grid;
+      .note-list {
+        display: grid;
 
-    gap:10px;
+        gap: 10px;
 
-    max-height:
-        calc(
-            100vh - 245px
-        );
+        max-height: calc(100vh - 245px);
 
-    overflow:auto;
+        overflow: auto;
 
-    padding:
-        2px 3px;
-}
+        padding: 2px 3px;
+      }
 
-.note-entry{
-    width:100%;
+      .note-entry {
+        width: 100%;
 
-    text-align:left;
+        text-align: left;
 
-    border:
-        1px solid
-        var(--border);
+        border: 1px solid var(--border);
 
-    border-radius:16px;
+        border-radius: 16px;
 
-    padding:14px;
+        padding: 14px;
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    color:
-        var(--text);
+        color: var(--text);
 
-    min-height:76px;
-}
+        min-height: 76px;
+      }
 
-.note-entry.active{
-    border-color:
-        var(--primary);
+      .note-entry.active {
+        border-color: var(--primary);
 
-    box-shadow:
-        0
-        0
-        0
-        3px
-        color-mix(
-            in srgb,
-            var(--primary) 18%,
-            transparent
-        );
-}
+        box-shadow: 0 0 0 3px
+          color-mix(in srgb, var(--primary) 18%, transparent);
+      }
 
-.note-entry p{
-    margin:6px 0;
+      .note-entry p {
+        margin: 6px 0;
 
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-.note-entry small,
-.note-hint{
-    color:
-        var(--muted);
+      .note-entry small,
+      .note-hint {
+        color: var(--muted);
 
-    font-size:.9rem;
-    line-height:1.55;
-}
+        font-size: 0.9rem;
+        line-height: 1.55;
+      }
 
-
-/* ========================================
+      /* ========================================
    ノートエディタ
 ======================================== */
 
-.note-editor{
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-}
+      .note-editor {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
 
-.note-editor h2,
-.note-editor label{
-    letter-spacing:.01em;
-}
+      .note-editor h2,
+      .note-editor label {
+        letter-spacing: 0.01em;
+      }
 
-.note-editor label{
-    display:block;
+      .note-editor label {
+        display: block;
 
-    margin:
-        16px 0;
+        margin: 16px 0;
 
-    font-weight:700;
-}
+        font-weight: 700;
+      }
 
-.note-editor input{
-    width:100%;
+      .note-editor input {
+        width: 100%;
 
-    box-sizing:border-box;
+        box-sizing: border-box;
 
-    margin-top:7px;
+        margin-top: 7px;
 
-    font:inherit;
-}
+        font: inherit;
+      }
 
-
-/* ========================================
+      /* ========================================
    ノート用紙
 ======================================== */
 
-.note-document-wrap{
-    position:relative;
+      .note-document-wrap {
+        position: relative;
 
-    min-height:560px;
+        min-height: 560px;
 
-    border-radius:16px;
+        border-radius: 16px;
 
-    overflow:hidden;
+        overflow: hidden;
 
-    isolation:isolate;
-}
+        isolation: isolate;
+      }
 
-.note-document{
-    position:relative;
+      .note-document {
+        position: relative;
 
-    z-index:2;
+        z-index: 2;
 
-    min-height:560px;
+        min-height: 560px;
 
-    padding:26px;
+        padding: 26px;
 
-    box-sizing:border-box;
+        box-sizing: border-box;
 
-    border:
-        1px solid
-        var(--border);
+        border: 1px solid var(--border);
 
-    border-radius:16px;
+        border-radius: 16px;
 
-    background:#fff;
+        background: #fff;
 
-    color:#182338;
+        color: #182338;
 
-    line-height:1.85;
+        line-height: 1.85;
 
-    font-size:1rem;
+        font-size: 1rem;
 
-    outline:none;
+        outline: none;
 
-    overflow:auto;
+        overflow: auto;
 
-    overflow-wrap:anywhere;
+        overflow-wrap: anywhere;
 
-    word-break:break-word;
-}
+        word-break: break-word;
+      }
 
-.note-document:empty:before{
-    content:
-        attr(
-            data-placeholder
-        );
+      .note-document:empty:before {
+        content: attr(data-placeholder);
 
-    color:#8792a2;
+        color: #8792a2;
 
-    pointer-events:none;
-}
+        pointer-events: none;
+      }
 
-
-/*
+      /*
 旧方式で本文内へ画像が残っていた場合でも、
 長押しやDelete対象になりにくくする。
 
 新規画像はnoteImageLayerに配置する。
 */
-.note-document img{
-    pointer-events:none;
+      .note-document img {
+        pointer-events: none;
 
-    user-select:none;
-    -webkit-user-select:none;
+        user-select: none;
+        -webkit-user-select: none;
 
-    -webkit-user-drag:none;
-    -webkit-touch-callout:none;
+        -webkit-user-drag: none;
+        -webkit-touch-callout: none;
 
-    max-width:100%;
-}
+        max-width: 100%;
+      }
 
-
-/* ========================================
+      /* ========================================
    手書きCanvas
 ======================================== */
 
-.ink-overlay{
-    position:absolute;
+      .ink-overlay {
+        position: absolute;
 
-    inset:0;
+        inset: 0;
 
-    width:100%;
-    height:100%;
+        width: 100%;
+        height: 100%;
 
-    z-index:4;
+        z-index: 4;
 
-    pointer-events:none;
+        pointer-events: none;
 
-    touch-action:none;
-}
+        touch-action: none;
+      }
 
-.ink-overlay.is-drawing{
-    pointer-events:auto;
+      .ink-overlay.is-drawing {
+        pointer-events: auto;
 
-    cursor:crosshair;
-}
+        cursor: crosshair;
+      }
 
-
-/* ========================================
+      /* ========================================
    ノート上の自由配置画像
 ======================================== */
 
-.note-image-layer{
-    position:absolute;
+      .note-image-layer {
+        position: absolute;
 
-    inset:0;
+        inset: 0;
 
-    z-index:3;
+        z-index: 3;
 
-    overflow:hidden;
+        overflow: hidden;
 
-    pointer-events:none;
+        pointer-events: none;
 
-    border-radius:16px;
-}
+        border-radius: 16px;
+      }
 
-
-/*
+      /*
 画像はcontenteditableとは完全に別レイヤー。
 
 そのため、
@@ -488,1992 +402,1475 @@ if(
 
 構造にする。
 */
-.placed-note-image{
-    position:absolute;
+      .placed-note-image {
+        position: absolute;
 
-    min-width:72px;
+        min-width: 72px;
 
-    box-sizing:border-box;
+        box-sizing: border-box;
 
-    pointer-events:auto;
+        pointer-events: auto;
 
-    touch-action:none;
+        touch-action: none;
 
-    user-select:none;
-    -webkit-user-select:none;
-    -webkit-touch-callout:none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
 
-    cursor:grab;
+        cursor: grab;
 
-    border:
-        2px solid
-        transparent;
+        border: 2px solid transparent;
 
-    border-radius:12px;
+        border-radius: 12px;
 
-    background:transparent;
+        background: transparent;
 
-    box-shadow:none;
-}
+        box-shadow: none;
+      }
 
-
-/*
+      /*
 画像をタップした時だけ
 選択枠を表示
 */
-.placed-note-image.is-selected{
-    border-color:
-        var(--primary);
+      .placed-note-image.is-selected {
+        border-color: var(--primary);
 
-    box-shadow:
-        0
-        0
-        0
-        2px
-        color-mix(
-            in srgb,
-            var(--primary) 20%,
-            transparent
-        );
-}
+        box-shadow: 0 0 0 2px
+          color-mix(in srgb, var(--primary) 20%, transparent);
+      }
 
-/*
+      /*
 通常時は
 ×ボタンとリサイズハンドルを隠す
 */
-.placed-image-remove,
-.image-resize-handle{
-    opacity:0;
-    visibility:hidden;
-    pointer-events:none;
+      .placed-image-remove,
+      .image-resize-handle {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
 
-    transition:
-        opacity .12s ease,
-        visibility .12s ease;
-}
+        transition:
+          opacity 0.12s ease,
+          visibility 0.12s ease;
+      }
 
-
-/*
+      /*
 画像をタップした時だけ表示
 */
-.placed-note-image.is-selected
-.placed-image-remove,
+      .placed-note-image.is-selected .placed-image-remove,
+      .placed-note-image.is-selected .image-resize-handle {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
 
-.placed-note-image.is-selected
-.image-resize-handle{
-    opacity:1;
-    visibility:visible;
-    pointer-events:auto;
-}
+      .placed-note-image.is-moving,
+      .placed-note-image.is-resizing {
+        cursor: grabbing;
+      }
 
-.placed-note-image.is-moving,
-.placed-note-image.is-resizing{
-    cursor:grabbing;
-}
+      .placed-note-image > img {
+        display: block;
 
-.placed-note-image > img{
-    display:block;
+        width: 100%;
+        height: 100%;
 
-    width:100%;
-    height:100%;
+        object-fit: fill;
 
-    object-fit:fill;
+        border-radius: 10px;
 
-    border-radius:10px;
+        pointer-events: none;
 
-    pointer-events:none;
+        user-select: none;
+        -webkit-user-select: none;
 
-    user-select:none;
-    -webkit-user-select:none;
+        -webkit-user-drag: none;
+        -webkit-touch-callout: none;
+      }
 
-    -webkit-user-drag:none;
-    -webkit-touch-callout:none;
-}
-
-
-/* ========================================
+      /* ========================================
    画像削除ボタン
 ======================================== */
 
-.placed-image-remove{
-    position:absolute;
+      .placed-image-remove {
+        position: absolute;
 
-    z-index:15;
+        z-index: 15;
 
-    top:-17px;
-    right:-17px;
+        top: -17px;
+        right: -17px;
 
-    width:36px;
-    height:36px;
+        width: 36px;
+        height: 36px;
 
-    padding:0;
+        padding: 0;
 
-    display:flex;
-    align-items:center;
-    justify-content:center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
-    border:0;
+        border: 0;
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    background:#e5484d;
+        background: #e5484d;
 
-    color:#fff;
+        color: #fff;
 
-    font-size:24px;
+        font-size: 24px;
 
-    line-height:1;
+        line-height: 1;
 
-    font-weight:700;
+        font-weight: 700;
 
-    box-shadow:
-        0
-        2px
-        9px
-        rgba(0,0,0,.3);
+        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.3);
 
-    cursor:pointer;
+        cursor: pointer;
 
-    touch-action:manipulation;
+        touch-action: manipulation;
 
-    user-select:none;
-    -webkit-user-select:none;
-}
+        user-select: none;
+        -webkit-user-select: none;
+      }
 
-
-/* ========================================
+      /* ========================================
    画像リサイズハンドル
 ======================================== */
 
-.image-resize-handle{
-    position:absolute;
+      .image-resize-handle {
+        position: absolute;
 
-    z-index:14;
+        z-index: 14;
 
-    width:20px;
-    height:20px;
+        width: 20px;
+        height: 20px;
 
-    padding:0;
+        padding: 0;
 
-    box-sizing:border-box;
+        box-sizing: border-box;
 
-    border:
-        2px solid
-        var(--primary);
+        border: 2px solid var(--primary);
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    box-shadow:
-        0
-        1px
-        4px
-        rgba(0,0,0,.2);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 
-    touch-action:none;
+        touch-action: none;
 
-    user-select:none;
-    -webkit-user-select:none;
-}
+        user-select: none;
+        -webkit-user-select: none;
+      }
 
+      /* 左上 */
 
-/* 左上 */
+      .image-resize-handle[data-direction="nw"] {
+        left: -11px;
+        top: -11px;
 
-.image-resize-handle[data-direction="nw"]{
-    left:-11px;
-    top:-11px;
+        cursor: nwse-resize;
+      }
 
-    cursor:nwse-resize;
-}
+      /* 上 */
 
+      .image-resize-handle[data-direction="n"] {
+        left: 50%;
+        top: -11px;
 
-/* 上 */
+        transform: translateX(-50%);
 
-.image-resize-handle[data-direction="n"]{
-    left:50%;
-    top:-11px;
+        cursor: ns-resize;
+      }
 
-    transform:
-        translateX(-50%);
+      /* 右上 */
 
-    cursor:ns-resize;
-}
+      .image-resize-handle[data-direction="ne"] {
+        right: -11px;
+        top: -11px;
 
+        cursor: nesw-resize;
+      }
 
-/* 右上 */
+      /* 右 */
 
-.image-resize-handle[data-direction="ne"]{
-    right:-11px;
-    top:-11px;
+      .image-resize-handle[data-direction="e"] {
+        right: -11px;
+        top: 50%;
 
-    cursor:nesw-resize;
-}
+        transform: translateY(-50%);
 
+        cursor: ew-resize;
+      }
 
-/* 右 */
+      /* 右下 */
 
-.image-resize-handle[data-direction="e"]{
-    right:-11px;
-    top:50%;
+      .image-resize-handle[data-direction="se"] {
+        right: -11px;
+        bottom: -11px;
 
-    transform:
-        translateY(-50%);
+        cursor: nwse-resize;
+      }
 
-    cursor:ew-resize;
-}
+      /* 下 */
 
+      .image-resize-handle[data-direction="s"] {
+        left: 50%;
+        bottom: -11px;
 
-/* 右下 */
+        transform: translateX(-50%);
 
-.image-resize-handle[data-direction="se"]{
-    right:-11px;
-    bottom:-11px;
+        cursor: ns-resize;
+      }
 
-    cursor:nwse-resize;
-}
+      /* 左下 */
 
+      .image-resize-handle[data-direction="sw"] {
+        left: -11px;
+        bottom: -11px;
 
-/* 下 */
+        cursor: nesw-resize;
+      }
 
-.image-resize-handle[data-direction="s"]{
-    left:50%;
-    bottom:-11px;
+      /* 左 */
 
-    transform:
-        translateX(-50%);
+      .image-resize-handle[data-direction="w"] {
+        left: -11px;
+        top: 50%;
 
-    cursor:ns-resize;
-}
+        transform: translateY(-50%);
 
+        cursor: ew-resize;
+      }
 
-/* 左下 */
-
-.image-resize-handle[data-direction="sw"]{
-    left:-11px;
-    bottom:-11px;
-
-    cursor:nesw-resize;
-}
-
-
-/* 左 */
-
-.image-resize-handle[data-direction="w"]{
-    left:-11px;
-    top:50%;
-
-    transform:
-        translateY(-50%);
-
-    cursor:ew-resize;
-}
-
-
-/* ========================================
+      /* ========================================
    添付画像一覧
 ======================================== */
 
-.image-dock{
-    display:flex;
+      .image-dock {
+        display: flex;
 
-    gap:10px;
+        gap: 10px;
 
-    flex-wrap:wrap;
+        flex-wrap: wrap;
 
-    padding:10px;
+        padding: 10px;
 
-    border:
-        1px dashed
-        var(--border);
+        border: 1px dashed var(--border);
 
-    border-radius:14px;
+        border-radius: 14px;
 
-    min-height:64px;
-}
+        min-height: 64px;
+      }
 
-.note-image-card{
-    position:relative;
+      .note-image-card {
+        position: relative;
 
-    width:92px;
+        width: 92px;
 
-    user-select:none;
-    -webkit-user-select:none;
+        user-select: none;
+        -webkit-user-select: none;
 
-    -webkit-touch-callout:none;
-}
+        -webkit-touch-callout: none;
+      }
 
-.note-image-card img{
-    display:block;
+      .note-image-card img {
+        display: block;
 
-    width:100%;
-    height:72px;
+        width: 100%;
+        height: 72px;
 
-    object-fit:cover;
+        object-fit: cover;
 
-    border-radius:10px;
+        border-radius: 10px;
 
-    pointer-events:none;
+        pointer-events: none;
 
-    user-select:none;
-    -webkit-user-select:none;
+        user-select: none;
+        -webkit-user-select: none;
 
-    -webkit-user-drag:none;
-    -webkit-touch-callout:none;
-}
+        -webkit-user-drag: none;
+        -webkit-touch-callout: none;
+      }
 
-.note-image-card button{
-    position:absolute;
+      .note-image-card button {
+        position: absolute;
 
-    top:-8px;
-    right:-8px;
+        top: -8px;
+        right: -8px;
 
-    width:28px;
-    height:28px;
+        width: 28px;
+        height: 28px;
 
-    padding:0;
+        padding: 0;
 
-    border:0;
+        border: 0;
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    background:#e5484d;
+        background: #e5484d;
 
-    color:#fff;
+        color: #fff;
 
-    font-size:18px;
+        font-size: 18px;
 
-    font-weight:700;
+        font-weight: 700;
 
-    cursor:pointer;
+        cursor: pointer;
 
-    box-shadow:
-        0
-        2px
-        7px
-        rgba(0,0,0,.25);
-}
+        box-shadow: 0 2px 7px rgba(0, 0, 0, 0.25);
+      }
 
-
-/* ========================================
+      /* ========================================
    ノートツール
 ======================================== */
 
-.rich-note-tools{
-    display:flex;
+      .rich-note-tools {
+        display: flex;
 
-    align-items:center;
+        align-items: center;
 
-    gap:8px;
+        gap: 8px;
 
-    flex-wrap:wrap;
+        flex-wrap: wrap;
 
-    margin:
-        12px 0;
+        margin: 12px 0;
 
-    padding:12px;
+        padding: 12px;
 
-    border:
-        1px solid
-        var(--border);
+        border: 1px solid var(--border);
 
-    border-radius:14px;
+        border-radius: 14px;
 
-    background:
-        color-mix(
-            in srgb,
-            var(--primary) 4%,
-            var(--card)
-        );
-}
+        background: color-mix(in srgb, var(--primary) 4%, var(--card));
+      }
 
-.rich-note-tools button{
-    min-height:40px;
-}
+      .rich-note-tools button {
+        min-height: 40px;
+      }
 
-.drawing-tool{
-    border:
-        1px solid
-        var(--border);
+      .drawing-tool {
+        border: 1px solid var(--border);
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    color:
-        var(--text);
+        color: var(--text);
 
-    border-radius:10px;
+        border-radius: 10px;
 
-    min-height:40px;
+        min-height: 40px;
 
-    padding:
-        7px 11px;
+        padding: 7px 11px;
 
-    font-weight:700;
+        font-weight: 700;
 
-    cursor:pointer;
-}
+        cursor: pointer;
+      }
 
-.drawing-tool.active{
-    background:
-        var(--primary);
+      .drawing-tool.active {
+        background: var(--primary);
 
-    color:#fff;
+        color: #fff;
 
-    border-color:
-        var(--primary);
-}
+        border-color: var(--primary);
+      }
 
-
-/* ========================================
+      /* ========================================
    色
 ======================================== */
 
-.rich-note-tools [data-color]{
-    width:34px;
-    min-width:34px;
+      .rich-note-tools [data-color] {
+        width: 34px;
+        min-width: 34px;
 
-    height:34px;
-    min-height:34px;
+        height: 34px;
+        min-height: 34px;
 
-    padding:0!important;
+        padding: 0 !important;
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    font-size:0!important;
+        font-size: 0 !important;
 
-    border:
-        3px solid
-        var(--card);
+        border: 3px solid var(--card);
 
-    box-shadow:
-        0
-        0
-        0
-        1px
-        var(--border);
-}
+        box-shadow: 0 0 0 1px var(--border);
+      }
 
-.rich-note-tools [data-color].active{
-    box-shadow:
-        0
-        0
-        0
-        3px
-        var(--primary);
-}
+      .rich-note-tools [data-color].active {
+        box-shadow: 0 0 0 3px var(--primary);
+      }
 
-.rich-note-tools [data-color="#182338"]{
-    background:#182338;
-}
+      .rich-note-tools [data-color="#182338"] {
+        background: #182338;
+      }
 
-.rich-note-tools [data-color="#e53935"]{
-    background:#e53935;
-}
+      .rich-note-tools [data-color="#e53935"] {
+        background: #e53935;
+      }
 
-.rich-note-tools [data-color="#1976d2"]{
-    background:#1976d2;
-}
+      .rich-note-tools [data-color="#1976d2"] {
+        background: #1976d2;
+      }
 
-.rich-note-tools [data-color="#43a047"]{
-    background:#43a047;
-}
+      .rich-note-tools [data-color="#43a047"] {
+        background: #43a047;
+      }
 
-.rich-note-tools [data-color="#8e24aa"]{
-    background:#8e24aa;
-}
+      .rich-note-tools [data-color="#8e24aa"] {
+        background: #8e24aa;
+      }
 
-.rich-note-tools #penColor{
-    width:38px;
+      .rich-note-tools #penColor {
+        width: 38px;
 
-    height:38px;
+        height: 38px;
 
-    min-width:38px;
+        min-width: 38px;
 
-    padding:0;
+        padding: 0;
 
-    border:0;
+        border: 0;
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    overflow:hidden;
+        overflow: hidden;
 
-    background:
-        conic-gradient(
-            #f33,
-            #fc3,
-            #3c3,
-            #3cf,
-            #33f,
-            #c3f,
-            #f33
-        );
-}
+        background: conic-gradient(#f33, #fc3, #3c3, #3cf, #33f, #c3f, #f33);
+      }
 
-
-/* ========================================
+      /* ========================================
    画像追加
 ======================================== */
 
-.image-attach-button{
-    display:inline-flex!important;
+      .image-attach-button {
+        display: inline-flex !important;
 
-    align-items:center;
+        align-items: center;
 
-    justify-content:center;
+        justify-content: center;
 
-    min-height:42px!important;
+        min-height: 42px !important;
 
-    margin:0!important;
+        margin: 0 !important;
 
-    padding:
-        7px 13px;
+        padding: 7px 13px;
 
-    border-radius:11px;
+        border-radius: 11px;
 
-    background:
-        var(--primary);
+        background: var(--primary);
 
-    color:#fff!important;
+        color: #fff !important;
 
-    font-weight:700;
+        font-weight: 700;
 
-    cursor:pointer;
+        cursor: pointer;
 
-    box-sizing:border-box;
+        box-sizing: border-box;
 
-    box-shadow:
-        0
-        2px
-        8px
-        color-mix(
-            in srgb,
-            var(--primary) 28%,
-            transparent
-        );
-}
+        box-shadow: 0 2px 8px
+          color-mix(in srgb, var(--primary) 28%, transparent);
+      }
 
-.image-attach-button:hover{
-    filter:
-        brightness(.96);
-}
+      .image-attach-button:hover {
+        filter: brightness(0.96);
+      }
 
-.rich-note-tools label{
-    margin:0!important;
-}
+      .rich-note-tools label {
+        margin: 0 !important;
+      }
 
-
-/* ========================================
+      /* ========================================
    ペン太さ
 ======================================== */
 
-.tool-control{
-    display:grid!important;
+      .tool-control {
+        display: grid !important;
 
-    grid-template-columns:
-        auto
-        minmax(120px,1fr)
-        auto;
+        grid-template-columns:
+          auto
+          minmax(120px, 1fr)
+          auto;
 
-    gap:8px;
+        gap: 8px;
 
-    align-items:center;
+        align-items: center;
 
-    font-size:.82rem;
+        font-size: 0.82rem;
 
-    font-weight:700;
+        font-weight: 700;
 
-    min-width:280px;
-}
+        min-width: 280px;
+      }
 
-.tool-control input{
-    width:100%!important;
+      .tool-control input {
+        width: 100% !important;
 
-    margin:0!important;
-}
+        margin: 0 !important;
+      }
 
-.tool-control output{
-    min-width:42px;
+      .tool-control output {
+        min-width: 42px;
 
-    text-align:right;
+        text-align: right;
 
-    color:
-        var(--muted);
-}
+        color: var(--muted);
+      }
 
-
-/*
+      /*
 バーとつまみ位置を同じ割合で表示する。
 JSから--range-progressを変更する。
 */
-#penSize{
-    --range-progress:3.8%;
+      #penSize {
+        --range-progress: 3.8%;
 
-    appearance:none;
-    -webkit-appearance:none;
+        appearance: none;
+        -webkit-appearance: none;
 
-    width:100%;
+        width: 100%;
 
-    height:8px;
+        height: 8px;
 
-    margin:0;
+        margin: 0;
 
-    padding:0;
+        padding: 0;
 
-    border:0;
+        border: 0;
 
-    border-radius:999px;
+        border-radius: 999px;
 
-    outline:none;
+        outline: none;
 
-    background:
-        linear-gradient(
-            to right,
+        background: linear-gradient(
+          to right,
 
-            var(--primary)
-            0%,
+          var(--primary) 0%,
 
-            var(--primary)
-            var(--range-progress),
-
-            var(--border)
-            var(--range-progress),
-
-            var(--border)
-            100%
+          var(--primary) var(--range-progress),
+          var(--border) var(--range-progress),
+          var(--border) 100%
         );
 
-    cursor:pointer;
-}
+        cursor: pointer;
+      }
 
-#penSize::-webkit-slider-runnable-track{
-    height:8px;
+      #penSize::-webkit-slider-runnable-track {
+        height: 8px;
 
-    border-radius:999px;
+        border-radius: 999px;
 
-    background:
-        transparent;
-}
+        background: transparent;
+      }
 
-#penSize::-webkit-slider-thumb{
-    appearance:none;
-    -webkit-appearance:none;
+      #penSize::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
 
-    width:22px;
-    height:22px;
+        width: 22px;
+        height: 22px;
 
-    margin-top:-7px;
+        margin-top: -7px;
 
-    border:
-        3px solid
-        var(--card);
+        border: 3px solid var(--card);
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    background:
-        var(--primary);
+        background: var(--primary);
 
-    box-shadow:
-        0
-        1px
-        6px
-        rgba(0,0,0,.28);
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
 
-    cursor:grab;
-}
+        cursor: grab;
+      }
 
-#penSize::-webkit-slider-thumb:active{
-    cursor:grabbing;
-}
+      #penSize::-webkit-slider-thumb:active {
+        cursor: grabbing;
+      }
 
-#penSize::-moz-range-track{
-    height:8px;
+      #penSize::-moz-range-track {
+        height: 8px;
 
-    border-radius:999px;
+        border-radius: 999px;
 
-    background:
-        var(--border);
-}
+        background: var(--border);
+      }
 
-#penSize::-moz-range-progress{
-    height:8px;
+      #penSize::-moz-range-progress {
+        height: 8px;
 
-    border-radius:999px;
+        border-radius: 999px;
 
-    background:
-        var(--primary);
-}
+        background: var(--primary);
+      }
 
-#penSize::-moz-range-thumb{
-    width:18px;
-    height:18px;
+      #penSize::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
 
-    border:
-        3px solid
-        var(--card);
+        border: 3px solid var(--card);
 
-    border-radius:50%;
+        border-radius: 50%;
 
-    background:
-        var(--primary);
+        background: var(--primary);
 
-    cursor:grab;
-}
+        cursor: grab;
+      }
 
-
-/* ========================================
+      /* ========================================
    ツールバー
 ======================================== */
 
-.note-toolbar{
-    display:flex;
+      .note-toolbar {
+        display: flex;
 
-    gap:10px;
+        gap: 10px;
 
-    flex-wrap:wrap;
-}
+        flex-wrap: wrap;
+      }
 
-.note-toolbar .btn{
-    flex:1;
+      .note-toolbar .btn {
+        flex: 1;
 
-    min-width:148px;
+        min-width: 148px;
 
-    min-height:46px;
-}
+        min-height: 46px;
+      }
 
-
-/* ========================================
+      /* ========================================
    文字起こし
 ======================================== */
 
-.transcript-live{
-    min-height:300px;
+      .transcript-live {
+        min-height: 300px;
 
-    padding:16px;
+        padding: 16px;
 
-    border-radius:14px;
+        border-radius: 14px;
 
-    background:
-        color-mix(
-            in srgb,
-            var(--primary) 10%,
-            var(--card)
-        );
+        background: color-mix(in srgb, var(--primary) 10%, var(--card));
 
-    border:
-        1px dashed
-        var(--border);
+        border: 1px dashed var(--border);
 
-    /*
+        /*
     発話ごとに改行せず、
     普通の文章として横へ続ける。
     */
-    white-space:normal;
+        white-space: normal;
 
-    overflow-wrap:anywhere;
+        overflow-wrap: anywhere;
 
-    word-break:normal;
+        word-break: normal;
 
-    line-height:1.75;
+        line-height: 1.75;
 
-    user-select:text;
-    -webkit-user-select:text;
-}
+        user-select: text;
+        -webkit-user-select: text;
+      }
 
-.transcript-actions{
-    display:flex;
+      .transcript-actions {
+        display: flex;
 
-    justify-content:flex-end;
+        justify-content: flex-end;
 
-    margin-top:14px;
-}
+        margin-top: 14px;
+      }
 
-.transcript-actions .btn{
-    min-height:44px;
-}
+      .transcript-actions .btn {
+        min-height: 44px;
+      }
 
-
-/* ========================================
+      /* ========================================
    目隠し
 ======================================== */
 
-.mask-word{
-    border:0;
+      .mask-word {
+        border: 0;
 
-    background:
-        var(--primary);
+        background: var(--primary);
 
-    color:transparent;
+        color: transparent;
 
-    border-radius:5px;
+        border-radius: 5px;
 
-    padding:
-        1px 7px;
+        padding: 1px 7px;
 
-    cursor:pointer;
+        cursor: pointer;
 
-    min-height:28px;
-}
+        min-height: 28px;
+      }
 
-.mask-word.is-open{
-    color:inherit;
+      .mask-word.is-open {
+        color: inherit;
 
-    background:
-        transparent;
+        background: transparent;
 
-    text-decoration:
-        underline;
-}
+        text-decoration: underline;
+      }
 
-.note-preview{
-    white-space:pre-wrap;
+      .note-preview {
+        white-space: pre-wrap;
 
-    line-height:1.9;
+        line-height: 1.9;
 
-    padding:12px;
+        padding: 12px;
 
-    border-radius:12px;
+        border-radius: 12px;
 
-    background:
-        color-mix(
-            in srgb,
-            var(--primary) 6%,
-            var(--card)
-        );
+        background: color-mix(in srgb, var(--primary) 6%, var(--card));
 
-    min-height:50px;
-}
+        min-height: 50px;
+      }
 
-
-/* ========================================
+      /* ========================================
    ToDo
 ======================================== */
 
-.todo-list{
-    display:grid;
+      .todo-list {
+        display: grid;
 
-    gap:12px;
-}
+        gap: 12px;
+      }
 
-.todo-row{
-    display:grid;
+      .todo-row {
+        display: grid;
 
-    grid-template-columns:
-        30px
-        minmax(0,1fr)
-        82px;
+        grid-template-columns:
+          30px
+          minmax(0, 1fr)
+          82px;
 
-    gap:12px;
+        gap: 12px;
 
-    align-items:center;
+        align-items: center;
 
-    padding:
-        10px 12px;
+        padding: 10px 12px;
 
-    border:
-        1px solid
-        var(--border);
+        border: 1px solid var(--border);
 
-    border-radius:14px;
+        border-radius: 14px;
 
-    background:
-        color-mix(
-            in srgb,
-            var(--primary) 4%,
-            var(--card)
-        );
-}
+        background: color-mix(in srgb, var(--primary) 4%, var(--card));
+      }
 
-.todo-row input[type=checkbox]{
-    appearance:none;
+      .todo-row input[type="checkbox"] {
+        appearance: none;
 
-    width:26px;
+        width: 26px;
 
-    height:26px;
+        height: 26px;
 
-    min-height:26px;
+        min-height: 26px;
 
-    margin:0;
+        margin: 0;
 
-    border:
-        2px solid
-        var(--primary);
+        border: 2px solid var(--primary);
 
-    border-radius:8px;
+        border-radius: 8px;
 
-    background:
-        var(--card);
+        background: var(--card);
 
-    cursor:pointer;
-}
+        cursor: pointer;
+      }
 
-.todo-row input[type=checkbox]:checked{
-    background:
-        var(--primary);
+      .todo-row input[type="checkbox"]:checked {
+        background: var(--primary);
 
-    box-shadow:
-        inset
-        0
-        0
-        0
-        5px
-        var(--card);
-}
+        box-shadow: inset 0 0 0 5px var(--card);
+      }
 
-.todo-row input[data-todo-text]{
-    width:100%;
+      .todo-row input[data-todo-text] {
+        width: 100%;
 
-    min-width:0;
+        min-width: 0;
 
-    min-height:44px;
+        min-height: 44px;
 
-    margin:0;
-}
+        margin: 0;
+      }
 
-.todo-row .btn-danger{
-    width:82px;
+      .todo-row .btn-danger {
+        width: 82px;
 
-    min-height:44px;
+        min-height: 44px;
 
-    padding:7px;
-}
+        padding: 7px;
+      }
 
-
-/* ========================================
+      /* ========================================
    スマホ
 ======================================== */
 
-@media(max-width:720px){
+      @media (max-width: 720px) {
+        main {
+          padding-bottom: 104px;
+        }
 
-    main{
-        padding-bottom:104px;
-    }
+        .feature-switcher {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
 
-    .feature-switcher{
-        grid-template-columns:
-            repeat(
-                3,
-                minmax(0,1fr)
-            );
-    }
+        .feature-switch-button {
+          font-size: 0.8rem;
 
-    .feature-switch-button{
-        font-size:.8rem;
+          padding: 6px 3px;
+        }
 
-        padding:
-            6px 3px;
-    }
+        .note-toolbar {
+          display: grid;
 
-    .note-toolbar{
-        display:grid;
+          grid-template-columns: 1fr 1fr;
+        }
 
-        grid-template-columns:
-            1fr 1fr;
-    }
+        .note-document-wrap,
+        .note-document {
+          min-height: 380px;
+        }
 
-    .note-document-wrap,
-    .note-document{
-        min-height:380px;
-    }
+        .note-document {
+          padding: 16px;
 
-    .note-document{
-        padding:16px;
+          font-size: 16px;
+        }
 
-        font-size:16px;
-    }
+        .transcript-live {
+          min-height: 240px;
+        }
 
-    .transcript-live{
-        min-height:240px;
-    }
-
-    .todo-row{
-        grid-template-columns:
+        .todo-row {
+          grid-template-columns:
             30px
-            minmax(0,1fr);
+            minmax(0, 1fr);
 
-        gap:9px;
+          gap: 9px;
 
-        padding:10px;
-    }
+          padding: 10px;
+        }
 
-    .todo-row .btn-danger{
-        grid-column:2;
+        .todo-row .btn-danger {
+          grid-column: 2;
 
-        width:100%;
+          width: 100%;
 
-        min-height:40px;
-    }
+          min-height: 40px;
+        }
 
-    .todo-row input[data-todo-text]{
-        min-height:42px;
-    }
+        .todo-row input[data-todo-text] {
+          min-height: 42px;
+        }
 
-    .image-resize-handle{
-        width:24px;
-        height:24px;
-    }
+        .image-resize-handle {
+          width: 24px;
+          height: 24px;
+        }
 
-    .image-resize-handle[data-direction="nw"]{
-        left:-13px;
-        top:-13px;
-    }
+        .image-resize-handle[data-direction="nw"] {
+          left: -13px;
+          top: -13px;
+        }
 
-    .image-resize-handle[data-direction="n"]{
-        top:-13px;
-    }
+        .image-resize-handle[data-direction="n"] {
+          top: -13px;
+        }
 
-    .image-resize-handle[data-direction="ne"]{
-        right:-13px;
-        top:-13px;
-    }
+        .image-resize-handle[data-direction="ne"] {
+          right: -13px;
+          top: -13px;
+        }
 
-    .image-resize-handle[data-direction="e"]{
-        right:-13px;
-    }
+        .image-resize-handle[data-direction="e"] {
+          right: -13px;
+        }
 
-    .image-resize-handle[data-direction="se"]{
-        right:-13px;
-        bottom:-13px;
-    }
+        .image-resize-handle[data-direction="se"] {
+          right: -13px;
+          bottom: -13px;
+        }
 
-    .image-resize-handle[data-direction="s"]{
-        bottom:-13px;
-    }
+        .image-resize-handle[data-direction="s"] {
+          bottom: -13px;
+        }
 
-    .image-resize-handle[data-direction="sw"]{
-        left:-13px;
-        bottom:-13px;
-    }
+        .image-resize-handle[data-direction="sw"] {
+          left: -13px;
+          bottom: -13px;
+        }
 
-    .image-resize-handle[data-direction="w"]{
-        left:-13px;
-    }
+        .image-resize-handle[data-direction="w"] {
+          left: -13px;
+        }
 
-    .placed-image-remove{
-        width:38px;
-        height:38px;
+        .placed-image-remove {
+          width: 38px;
+          height: 38px;
 
-        top:-19px;
-        right:-19px;
-    }
+          top: -19px;
+          right: -19px;
+        }
+      }
 
-}
-
-
-/* ========================================
+      /* ========================================
    タブレット以下
 ======================================== */
 
-@media(max-width:899px){
+      @media (max-width: 899px) {
+        .rich-note-tools {
+          display: flex;
+        }
 
-    .rich-note-tools{
-        display:flex;
-    }
+        .tool-control {
+          min-width: 100%;
 
-    .tool-control{
-        min-width:100%;
+          width: 100%;
+        }
+      }
 
-        width:100%;
-    }
-
-}
-
-
-/* ========================================
+      /* ========================================
    PC
 ======================================== */
 
-@media(min-width:900px){
+      @media (min-width: 900px) {
+        .rich-note-tools {
+          display: grid;
 
-    .rich-note-tools{
-        display:grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
 
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(0,1fr)
-            );
-    }
+        .rich-note-tools .drawing-tool,
+        .rich-note-tools .image-attach-button {
+          justify-self: start;
+        }
 
-    .rich-note-tools .drawing-tool,
-    .rich-note-tools .image-attach-button{
-        justify-self:start;
-    }
+        .tool-control {
+          min-width: 0;
 
-    .tool-control{
-        min-width:0;
+          width: 100%;
+        }
+      }
 
-        width:100%;
-    }
+      @media (min-width: 1100px) {
+        main {
+          max-width: 1280px;
+        }
 
-}
+        .note-document-wrap,
+        .note-document {
+          min-height: 650px;
+        }
+      }
 
-
-@media(min-width:1100px){
-
-    main{
-        max-width:1280px;
-    }
-
-    .note-document-wrap,
-    .note-document{
-        min-height:650px;
-    }
-
-}
-
-
-/* ========================================
+      /* ========================================
    小画面
 ======================================== */
 
-@media(max-width:520px){
+      @media (max-width: 520px) {
+        .rich-note-tools {
+          padding: 10px;
 
-    .rich-note-tools{
-        padding:10px;
+          gap: 7px;
+        }
 
-        gap:7px;
-    }
+        .rich-note-tools [data-color] {
+          width: 30px;
+          min-width: 30px;
 
-    .rich-note-tools [data-color]{
-        width:30px;
-        min-width:30px;
+          height: 30px;
+          min-height: 30px;
+        }
 
-        height:30px;
-        min-height:30px;
-    }
+        .note-document {
+          font-size: 16px;
+        }
 
-    .note-document{
-        font-size:16px;
-    }
+        .image-dock {
+          gap: 8px;
+        }
 
-    .image-dock{
-        gap:8px;
-    }
+        .note-image-card {
+          width: calc(50% - 4px);
+        }
 
-    .note-image-card{
-        width:
-            calc(
-                50% - 4px
-            );
-    }
+        .note-image-card img {
+          height: 90px;
+        }
+      }
+    </style>
+  </head>
 
-    .note-image-card img{
-        height:90px;
-    }
-
-}
-
-</style>
-
-</head>
-
-
-<body class="page-loading">
-
-
-<!-- ========================================
+  <body class="page-loading">
+    <!-- ========================================
      上部
 ======================================== -->
 
-<div class="top-buttons">
-
-    <button
+    <div class="top-buttons">
+      <button
         id="noteMenuButton"
         class="circle-button"
-        aria-label="AIデジタルノートのメニューを開く">
+        aria-label="AIデジタルノートのメニューを開く"
+      >
         ☰
-    </button>
+      </button>
 
+      <div class="top-user-info">
+        <span id="userName"> 2510044さん </span>
 
-    <div class="top-user-info">
+        <span id="myRanking"> </span>
+      </div>
 
-        <span id="userName">
-            2510044さん
-        </span>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
-        <span id="myRanking">
-        </span>
-
+        <button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+            alt="プロフィール画像"
+          />
+        </button>
+      </div>
     </div>
 
-
-    <div class="top-right">
-
-        <button
-            id="themeButton"
-            class="circle-button">
-            🌙
-        </button>
-
-
-        <button
-            id="profileButton"
-            class="circle-button">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image"
-                alt="プロフィール画像">
-
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      ドロワー
 ======================================== -->
 
-<div
-    id="drawerBackdrop"
-    class="drawer-backdrop">
-</div>
+    <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
-
-<aside
-    id="noteDrawer"
-    class="note-drawer"
-    aria-label="AIデジタルノートのメニュー">
-
-
-    <div class="drawer-head">
-
-        <h2>
-            📝 AIデジタルノート
-        </h2>
-
+    <aside
+      id="noteDrawer"
+      class="note-drawer"
+      aria-label="AIデジタルノートのメニュー"
+    >
+      <div class="drawer-head">
+        <h2>📝 AIデジタルノート</h2>
 
         <button
-            id="closeDrawer"
-            class="circle-button"
-            aria-label="メニューを閉じる">
-            ×
+          id="closeDrawer"
+          class="circle-button"
+          aria-label="メニューを閉じる"
+        >
+          ×
         </button>
+      </div>
 
-    </div>
+      <div class="drawer-note-actions">
+        <b> ノート </b>
 
-
-    <div class="drawer-note-actions">
-
-        <b>
-            ノート
-        </b>
-
-
-        <button
-            id="newNoteDrawer"
-            class="btn btn-primary">
-
-            ＋ 新しいノート
-
+        <button id="newNoteDrawer" class="btn btn-primary">
+          ＋ 新しいノート
         </button>
+      </div>
 
-    </div>
+      <div id="drawerNotesMount"></div>
+    </aside>
 
-
-    <div id="drawerNotesMount">
-    </div>
-
-</aside>
-
-
-<!-- ========================================
+    <!-- ========================================
      ヘッダー
 ======================================== -->
 
-<header class="header">
+    <header class="header">
+      <div class="logo">📝</div>
 
-    <div class="logo">
-        📝
-    </div>
+      <h1>AIデジタルノート</h1>
 
-    <h1>
-        AIデジタルノート
-    </h1>
+      <p>書く・話す・覚えるを、ひとつのノートに。</p>
+    </header>
 
-    <p>
-        書く・話す・覚えるを、ひとつのノートに。
-    </p>
-
-</header>
-
-
-<main>
-
-
-<!-- ========================================
+    <main>
+      <!-- ========================================
      2510044限定
 ======================================== -->
 
-<section
-    id="denied"
-    class="card setting-card"
-    hidden>
+      <section id="denied" class="card setting-card" hidden>
+        <h2>利用できません</h2>
 
-    <h2>
-        利用できません
-    </h2>
+        <p>この機能は2510044専用です。</p>
+      </section>
 
-    <p>
-        この機能は2510044専用です。
-    </p>
-
-</section>
-
-
-<div
-    id="noteApp"
-    hidden>
-
-
-<!-- ========================================
+      <div id="noteApp" hidden>
+        <!-- ========================================
      メイン機能切替
 ======================================== -->
 
-<section class="card setting-card">
+        <section class="card setting-card">
+          <div class="feature-switcher">
+            <button
+              class="feature-switch-button active"
+              data-feature="typedPanel"
+            >
+              ノート
+            </button>
 
+            <button
+              class="feature-switch-button"
+              data-feature="transcriptPanel"
+            >
+              文字起こし
+            </button>
 
-    <div class="feature-switcher">
+            <button class="feature-switch-button" data-feature="todoPanel">
+              ToDo
+            </button>
+          </div>
 
-        <button
-            class="feature-switch-button active"
-            data-feature="typedPanel">
+          <div class="note-toolbar">
+            <button id="voiceButton" class="btn btn-secondary">
+              🎙 文字起こしを開始
+            </button>
 
-            ノート
+            <button id="saveNote" class="btn btn-secondary">保存</button>
 
-        </button>
+            <button id="deleteNote" class="btn btn-danger">
+              このノートを削除
+            </button>
+          </div>
 
+          <p id="voiceState" class="note-hint">
+            文字起こしと手書きは同時に使えます。
+            録音ファイル自体は保存しません。
+          </p>
+        </section>
 
-        <button
-            class="feature-switch-button"
-            data-feature="transcriptPanel">
-
-            文字起こし
-
-        </button>
-
-
-        <button
-            class="feature-switch-button"
-            data-feature="todoPanel">
-
-            ToDo
-
-        </button>
-
-    </div>
-
-
-    <div class="note-toolbar">
-
-
-        <button
-            id="voiceButton"
-            class="btn btn-secondary">
-
-            🎙 文字起こしを開始
-
-        </button>
-
-
-        <button
-            id="saveNote"
-            class="btn btn-secondary">
-
-            保存
-
-        </button>
-
-
-        <button
-            id="deleteNote"
-            class="btn btn-danger">
-
-            このノートを削除
-
-        </button>
-
-
-    </div>
-
-
-    <p
-        id="voiceState"
-        class="note-hint">
-
-        文字起こしと手書きは同時に使えます。
-        録音ファイル自体は保存しません。
-
-    </p>
-
-
-</section>
-
-
-<!-- ========================================
+        <!-- ========================================
      ノート本体
 ======================================== -->
 
-<section class="note-shell">
-
-
-<!-- ========================================
+        <section class="note-shell">
+          <!-- ========================================
      ノート一覧
 ======================================== -->
 
-<aside class="card setting-card">
+          <aside class="card setting-card">
+            <label>
+              ノートを検索
 
+              <input
+                id="noteSearch"
+                type="search"
+                placeholder="キーワードで検索"
+              />
+            </label>
 
-    <label>
+            <div id="noteList" class="note-list">読み込み中...</div>
+          </aside>
 
-        ノートを検索
-
-        <input
-            id="noteSearch"
-            type="search"
-            placeholder="キーワードで検索">
-
-    </label>
-
-
-    <div
-        id="noteList"
-        class="note-list">
-
-        読み込み中...
-
-    </div>
-
-
-</aside>
-
-
-<!-- ========================================
+          <!-- ========================================
      エディタ
 ======================================== -->
 
-<section class="card setting-card note-editor">
-
-
-<!-- ========================================
+          <section class="card setting-card note-editor">
+            <!-- ========================================
      ノート
 ======================================== -->
 
-<div
-    id="typedPanel"
-    class="workspace-panel active">
+            <div id="typedPanel" class="workspace-panel active">
+              <label>
+                タイトル
 
+                <input
+                  id="noteTitle"
+                  maxlength="120"
+                  placeholder="例：生理学 第3回"
+                />
+              </label>
 
-    <label>
-
-        タイトル
-
-        <input
-            id="noteTitle"
-            maxlength="120"
-            placeholder="例：生理学 第3回">
-
-    </label>
-
-
-    <!-- ====================================
+              <!-- ====================================
          手書き・画像ツール
     ===================================== -->
 
-    <div class="rich-note-tools">
+              <div class="rich-note-tools">
+                <button id="handwritingMode" class="drawing-tool">
+                  ✍️ 手書き：オフ
+                </button>
 
+                <button class="drawing-tool active" data-draw-tool="pen">
+                  ペン
+                </button>
 
-        <button
-            id="handwritingMode"
-            class="drawing-tool">
+                <button class="drawing-tool" data-draw-tool="marker">
+                  マーカー
+                </button>
 
-            ✍️ 手書き：オフ
+                <button class="drawing-tool" data-draw-tool="highlighter">
+                  蛍光ペン
+                </button>
 
-        </button>
-
-
-        <button
-            class="drawing-tool active"
-            data-draw-tool="pen">
-
-            ペン
-
-        </button>
-
-
-        <button
-            class="drawing-tool"
-            data-draw-tool="marker">
-
-            マーカー
-
-        </button>
-
-
-        <button
-            class="drawing-tool"
-            data-draw-tool="highlighter">
-
-            蛍光ペン
-
-        </button>
-
-
-        <!--
+                <!--
         押しただけでは全部消さない。
         JSでeraserツール選択として使用。
         -->
-        <button
-            id="eraseBoard"
-            class="drawing-tool"
-            data-draw-tool="eraser">
+                <button
+                  id="eraseBoard"
+                  class="drawing-tool"
+                  data-draw-tool="eraser"
+                >
+                  消しゴム
+                </button>
 
-            消しゴム
+                <!-- 色 -->
 
-        </button>
+                <button
+                  type="button"
+                  class="drawing-tool"
+                  data-color="#182338"
+                  aria-label="黒"
+                >
+                  黒
+                </button>
 
+                <button
+                  type="button"
+                  class="drawing-tool"
+                  data-color="#e53935"
+                  aria-label="赤"
+                >
+                  赤
+                </button>
 
-        <!-- 色 -->
+                <button
+                  type="button"
+                  class="drawing-tool"
+                  data-color="#1976d2"
+                  aria-label="青"
+                >
+                  青
+                </button>
 
-        <button
-            type="button"
-            class="drawing-tool"
-            data-color="#182338"
-            aria-label="黒">
-            黒
-        </button>
+                <button
+                  type="button"
+                  class="drawing-tool"
+                  data-color="#43a047"
+                  aria-label="緑"
+                >
+                  緑
+                </button>
 
+                <button
+                  type="button"
+                  class="drawing-tool"
+                  data-color="#8e24aa"
+                  aria-label="紫"
+                >
+                  紫
+                </button>
 
-        <button
-            type="button"
-            class="drawing-tool"
-            data-color="#e53935"
-            aria-label="赤">
-            赤
-        </button>
+                <input
+                  id="penColor"
+                  type="color"
+                  value="#182338"
+                  aria-label="手書きの色"
+                />
 
-
-        <button
-            type="button"
-            class="drawing-tool"
-            data-color="#1976d2"
-            aria-label="青">
-            青
-        </button>
-
-
-        <button
-            type="button"
-            class="drawing-tool"
-            data-color="#43a047"
-            aria-label="緑">
-            緑
-        </button>
-
-
-        <button
-            type="button"
-            class="drawing-tool"
-            data-color="#8e24aa"
-            aria-label="紫">
-            紫
-        </button>
-
-
-        <input
-            id="penColor"
-            type="color"
-            value="#182338"
-            aria-label="手書きの色">
-
-
-        <!--
+                <!--
         JS側でtool-controlへ移動する。
         -->
-        <input
-            id="penSize"
-            type="range"
-            min="1"
-            max="80"
-            value="4"
-            aria-label="手書きの太さ">
+                <input
+                  id="penSize"
+                  type="range"
+                  min="1"
+                  max="80"
+                  value="4"
+                  aria-label="手書きの太さ"
+                />
 
+                <output id="penSizeValue"> 4px </output>
 
-        <output
-            id="penSizeValue">
+                <label class="image-attach-button">
+                  画像を追加
 
-            4px
+                  <input
+                    id="noteImageInput"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    hidden
+                  />
+                </label>
+              </div>
 
-        </output>
+              <p id="noteImageState" class="note-hint">
+                追加した画像はノート内を自由に移動できます。
+                画像の周囲にある8個の丸をドラッグすると大きさを変更できます。
+                削除は画像右上の×ボタンから行います。
+              </p>
 
-
-        <label class="image-attach-button">
-
-            画像を追加
-
-            <input
-                id="noteImageInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                hidden>
-
-        </label>
-
-
-    </div>
-
-
-    <p
-        id="noteImageState"
-        class="note-hint">
-
-        追加した画像はノート内を自由に移動できます。
-        画像の周囲にある8個の丸をドラッグすると大きさを変更できます。
-        削除は画像右上の×ボタンから行います。
-
-    </p>
-
-
-    <!-- ====================================
+              <!-- ====================================
          ノート用紙
     ===================================== -->
 
-    <div
-        id="noteDocumentWrap"
-        class="note-document-wrap">
-
-
-        <!--
+              <div id="noteDocumentWrap" class="note-document-wrap">
+                <!--
         文字専用。
         新方式では画像をこの中へ入れない。
         -->
-        <div
-            id="noteDocument"
-            class="note-document"
-            contenteditable="true"
-            spellcheck="true"
-            data-placeholder="ここに講義メモを書きます。キーボード入力、手書き、画像を同じ一枚のノートに置けます。">
-        </div>
+                <div
+                  id="noteDocument"
+                  class="note-document"
+                  contenteditable="true"
+                  spellcheck="true"
+                  data-placeholder="ここに講義メモを書きます。キーボード入力、手書き、画像を同じ一枚のノートに置けます。"
+                ></div>
 
-
-        <!--
+                <!--
         画像専用レイヤー。
         contenteditableとは完全分離。
         -->
-        <div
-            id="noteImageLayer"
-            class="note-image-layer"
-            aria-label="ノート上の画像">
-        </div>
+                <div
+                  id="noteImageLayer"
+                  class="note-image-layer"
+                  aria-label="ノート上の画像"
+                ></div>
 
-
-        <!--
+                <!--
         手書き専用。
         -->
-        <canvas
-            id="inkOverlay"
-            class="ink-overlay">
-        </canvas>
+                <canvas id="inkOverlay" class="ink-overlay"> </canvas>
+              </div>
 
-
-    </div>
-
-
-    <!--
+              <!--
     プレーンテキスト同期用。
     -->
-    <textarea
-        id="noteBody"
-        hidden>
-    </textarea>
+              <textarea id="noteBody" hidden> </textarea>
 
-
-    <!--
+              <!--
     旧互換用。
     -->
-    <canvas
-        id="writingBoard"
-        hidden>
-    </canvas>
+              <canvas id="writingBoard" hidden> </canvas>
 
-
-    <!-- ====================================
+              <!-- ====================================
          添付画像
     ===================================== -->
 
-    <div
-        id="noteImageList"
-        class="image-dock"
-        aria-label="添付した画像">
-    </div>
+              <div
+                id="noteImageList"
+                class="image-dock"
+                aria-label="添付した画像"
+              ></div>
 
-
-    <!-- ====================================
+              <!-- ====================================
          目隠し
     ===================================== -->
 
-    <label>
+              <label>
+                目隠しする語句（カンマ区切り）
 
-        目隠しする語句（カンマ区切り）
+                <input id="maskTerms" placeholder="例：ミトコンドリア, 細胞" />
+              </label>
 
-        <input
-            id="maskTerms"
-            placeholder="例：ミトコンドリア, 細胞">
+              <p class="note-hint">
+                下の赤い部分をタップすると答えを表示できます。
+              </p>
 
-    </label>
+              <div id="notePreview" class="note-preview"></div>
 
-
-    <p class="note-hint">
-
-        下の赤い部分をタップすると答えを表示できます。
-
-    </p>
-
-
-    <div
-        id="notePreview"
-        class="note-preview">
-    </div>
-
-
-    <!-- ====================================
+              <!-- ====================================
          ChatGPT
     ===================================== -->
 
-    <div class="note-toolbar">
+              <div class="note-toolbar">
+                <button id="openSummary" class="btn btn-secondary">
+                  📋 要約をChatGPTで作る
+                </button>
 
+                <button id="openQuiz" class="btn btn-secondary">
+                  ❓ 問題をChatGPTで作る
+                </button>
+              </div>
+            </div>
 
-        <button
-            id="openSummary"
-            class="btn btn-secondary">
-
-            📋 要約をChatGPTで作る
-
-        </button>
-
-
-        <button
-            id="openQuiz"
-            class="btn btn-secondary">
-
-            ❓ 問題をChatGPTで作る
-
-        </button>
-
-
-    </div>
-
-
-</div>
-
-
-<!-- ========================================
+            <!-- ========================================
      文字起こし
 ======================================== -->
 
-<div
-    id="transcriptPanel"
-    class="workspace-panel">
+            <div id="transcriptPanel" class="workspace-panel">
+              <p class="note-hint">
+                文字起こしを開始すると、
+                リアルタイムで文章が続けて表示されます。
+                話すのを一度止めても、停止ボタンを押すまでは文字起こしを継続します。
+              </p>
 
+              <div id="liveTranscript" class="transcript-live">
+                まだ文字起こしは始まっていません。
+              </div>
 
-    <p class="note-hint">
+              <div class="transcript-actions">
+                <button
+                  id="copyTranscript"
+                  class="btn btn-secondary"
+                  type="button"
+                >
+                  📋 すべて選択してコピー
+                </button>
+              </div>
+            </div>
+          </section>
+        </section>
 
-        文字起こしを開始すると、
-        リアルタイムで文章が続けて表示されます。
-        話すのを一度止めても、停止ボタンを押すまでは文字起こしを継続します。
-
-    </p>
-
-
-    <div
-        id="liveTranscript"
-        class="transcript-live">
-
-        まだ文字起こしは始まっていません。
-
-    </div>
-
-
-    <div class="transcript-actions">
-
-
-        <button
-            id="copyTranscript"
-            class="btn btn-secondary"
-            type="button">
-
-            📋 すべて選択してコピー
-
-        </button>
-
-
-    </div>
-
-
-</div>
-
-
-</section>
-
-</section>
-
-
-<!-- ========================================
+        <!-- ========================================
      ToDo
 ======================================== -->
 
-<section
-    id="todoPanel"
-    class="card setting-card feature-section">
+        <section id="todoPanel" class="card setting-card feature-section">
+          <h2>✅ ToDo</h2>
 
+          <p class="note-hint">
+            講義ごとの提出物や予定をノートと一緒に残せます。
+          </p>
 
-    <h2>
-        ✅ ToDo
-    </h2>
+          <div id="todoList" class="todo-list"></div>
 
+          <button id="addTodo" class="btn btn-secondary">＋ ToDoを追加</button>
+        </section>
+      </div>
+    </main>
 
-    <p class="note-hint">
-
-        講義ごとの提出物や予定をノートと一緒に残せます。
-
-    </p>
-
-
-    <div
-        id="todoList"
-        class="todo-list">
-    </div>
-
-
-    <button
-        id="addTodo"
-        class="btn btn-secondary">
-
-        ＋ ToDoを追加
-
-    </button>
-
-
-</section>
-
-
-</div>
-
-
-</main>
-
-
-<!-- ========================================
+    <!-- ========================================
      下部ナビ
 ======================================== -->
 
-<nav class="bottom-nav">
-
-
-    <a href="index.html">
-
+    <nav class="bottom-nav">
+      <a href="index.html">
         <span class="nav-icon-wrap">
-
-            <span class="nav-icon">
-                🏠
-            </span>
-
+          <span class="nav-icon"> 🏠 </span>
         </span>
 
-        <span>
-            ホーム
-        </span>
+        <span> ホーム </span>
+      </a>
 
-    </a>
-
-
-    <a href="assignments.html">
-
+      <a href="assignments.html">
         <span class="nav-icon-wrap">
-
-            <span class="nav-icon">
-                📚
-            </span>
-
+          <span class="nav-icon"> 📚 </span>
         </span>
 
-        <span>
-            課題
-        </span>
+        <span> 課題 </span>
+      </a>
 
-    </a>
-
-
-    <a
-        href="requests.html"
-        class="active">
-
+      <a href="requests.html" class="active">
         <span class="nav-icon-wrap">
-
-            <span class="nav-icon">
-                💡
-            </span>
-
+          <span class="nav-icon"> 💡 </span>
         </span>
 
-        <span>
-            リクエスト
-        </span>
+        <span> リクエスト </span>
+      </a>
 
-    </a>
-
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
-
-            <span class="nav-icon">
-                📢
-            </span>
-
+          <span class="nav-icon"> 📢 </span>
         </span>
 
-        <span>
-            お知らせ
-        </span>
+        <span> お知らせ </span>
+      </a>
 
-    </a>
-
-
-    <a href="admin.html">
-
+      <a href="admin.html">
         <span class="nav-icon-wrap">
-
-            <span class="nav-icon">
-                👑
-            </span>
-
+          <span class="nav-icon"> 👑 </span>
         </span>
 
-        <span>
-            管理
-        </span>
+        <span> 管理 </span>
+      </a>
+    </nav>
 
-    </a>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-
-</nav>
-
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
-<script
-    type="module"
-    src="ai_notes.js">
-</script>
-
-
-</body>
-
+    <script type="module" src="ai_notes.js"></script>
+  </body>
 </html>

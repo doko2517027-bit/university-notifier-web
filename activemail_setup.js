@@ -1,14 +1,14 @@
 import {
-    db,
-    studentNumber,
-    initializePage,
-    encryptData,
-    setupOfflineAlert
+  db,
+  studentNumber,
+  initializePage,
+  encryptData,
+  setupOfflineAlert,
 } from "./common.js";
 
 import {
-    doc,
-    updateDoc
+  doc,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const mailAddress = document.getElementById("mailAddress");
@@ -19,48 +19,35 @@ const skipButton = document.getElementById("skipButton");
 await initializePage();
 
 if (!studentNumber) {
-    location.href = "login.html";
+  location.href = "login.html";
 }
 
-mailAddress.value =
-    `${studentNumber}@sums.ac.jp`;
+mailAddress.value = `${studentNumber}@sums.ac.jp`;
 
 saveButton.onclick = async () => {
+  const password = mailPassword.value.trim();
 
-    const password =
-        mailPassword.value.trim();
+  if (!password) {
+    alert("パスワードを入力してください。");
+    return;
+  }
 
-    if (!password) {
-        alert("パスワードを入力してください。");
-        return;
-    }
+  const encrypted = await encryptData(password);
 
-    const encrypted =
-        await encryptData(password);
+  await updateDoc(doc(db, "users", studentNumber), {
+    activeMailPasswordEncrypted: encrypted,
+    activeMailSetupSkipped: false,
+    activeMailResetRequired: false,
+  });
 
-    await updateDoc(
-        doc(db, "users", studentNumber),
-        {
-            activeMailPasswordEncrypted: encrypted,
-            activeMailSetupSkipped: false,
-            activeMailResetRequired: false
-        }
-    );
-
-    location.href = "index.html";
-
+  location.href = "index.html";
 };
 
 skipButton.onclick = async () => {
+  await updateDoc(doc(db, "users", studentNumber), {
+    activeMailSetupSkipped: true,
+    activeMailResetRequired: false,
+  });
 
-    await updateDoc(
-        doc(db, "users", studentNumber),
-        {
-            activeMailSetupSkipped: true,
-            activeMailResetRequired: false
-        }
-    );
-
-    location.href = "index.html";
-
+  location.href = "index.html";
 };

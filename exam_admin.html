@@ -1,192 +1,141 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<head>
+    <title>テスト管理 | CareMate</title>
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css" />
 
-<title>テスト管理 | CareMate</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<link rel="stylesheet" href="style.css">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
+      <h2>📚 テスト管理</h2>
 
-</head>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <button
-        id="backButton"
-        class="circle-button">
-
-        ←
-
-    </button>
-
-    <h2>📚 テスト管理</h2>
-
-    <div class="top-right">
-
-        <button
-            id="themeButton"
-            class="circle-button">
-
-            🌙
-
+        <button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-
-        <button
-            id="profileButton"
-            class="circle-button">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
-
-        </button>
-
+      </div>
     </div>
 
-</div>
+    <div class="card setting-card">
+      <h2>📚 テスト管理</h2>
 
-<div class="card setting-card">
+      <p>テスト期間やAI学習機能を管理します。</p>
+    </div>
 
-    <h2>
-        📚 テスト管理
-    </h2>
+    <div class="card setting-card">
+      <h3>⚙️ 基本設定</h3>
 
-    <p>
-        テスト期間やAI学習機能を管理します。
-    </p>
-
-</div>
-
-<div class="card setting-card">
-
-    <h3>⚙️ 基本設定</h3>
-
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>テストモード</b><br>
-            <small>ONにするとホームにテスト対策を表示します</small>
+          <b>テストモード</b><br />
+          <small>ONにするとホームにテスト対策を表示します</small>
         </span>
-        <input type="checkbox" id="examEnabled">
-    </label>
+        <input type="checkbox" id="examEnabled" />
+      </label>
 
-    <h3>試験名</h3>
+      <h3>試験名</h3>
 
-    <input
-        id="examTitle"
-        type="text"
-        placeholder="例：前期定期試験">
+      <input id="examTitle" type="text" placeholder="例：前期定期試験" />
 
-    <h3>開始日</h3>
+      <h3>開始日</h3>
 
-    <input
-        id="examStartDate"
-        type="date">
+      <input id="examStartDate" type="date" />
 
-    <h3>終了日</h3>
+      <h3>終了日</h3>
 
-    <input
-        id="examEndDate"
-        type="date">
+      <input id="examEndDate" type="date" />
 
-    <h3>試験スケジュール</h3>
+      <h3>試験スケジュール</h3>
 
-    <p>
+      <p>
         1行ずつ「日付｜科目名｜時間｜教室」の順で入力してください。
         例）2026-07-20｜成人看護学｜09:00〜10:30｜301教室
-    </p>
+      </p>
 
-    <textarea
+      <textarea
         id="examSchedule"
         rows="8"
         placeholder="例：
     2026-07-20｜成人看護学｜09:00〜10:30｜301教室
-    2026-07-21｜老年看護学｜13:00〜14:30｜講堂"></textarea>
+    2026-07-21｜老年看護学｜13:00〜14:30｜講堂"
+      ></textarea>
 
-    <br><br>
+      <br /><br />
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>初回ポップアップ</b><br>
-            <small>その日初めて開いた時に表示</small>
+          <b>初回ポップアップ</b><br />
+          <small>その日初めて開いた時に表示</small>
         </span>
-        <input type="checkbox" id="examShowPopup">
-    </label>
+        <input type="checkbox" id="examShowPopup" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>カウントダウン表示</b><br>
-            <small>ホーム上部にあと何日か表示</small>
+          <b>カウントダウン表示</b><br />
+          <small>ホーム上部にあと何日か表示</small>
         </span>
-        <input type="checkbox" id="examShowCountdown">
-    </label>
+        <input type="checkbox" id="examShowCountdown" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>テスト対策ボタン</b><br>
-            <small>ホームの天気横に表示</small>
+          <b>テスト対策ボタン</b><br />
+          <small>ホームの天気横に表示</small>
         </span>
-        <input type="checkbox" id="examShowHomeButton">
-    </label>
+        <input type="checkbox" id="examShowHomeButton" />
+      </label>
 
-    <label class="setting-row">
+      <label class="setting-row">
         <span>
-            <b>今日の1問</b><br>
-            <small>ホームに今日の1問を表示</small>
+          <b>今日の1問</b><br />
+          <small>ホームに今日の1問を表示</small>
         </span>
-        <input type="checkbox" id="examShowDailyQuestion">
-    </label>
+        <input type="checkbox" id="examShowDailyQuestion" />
+      </label>
 
-    <br>
+      <br />
 
-    <button id="saveExamSettings" class="btn btn-primary">
+      <button id="saveExamSettings" class="btn btn-primary">
         テスト設定を保存
-    </button>
-
-</div>
-
-<div class="card setting-card">
-
-    <h3>📖 科目管理</h3>
-
-    <input
-        id="subjectName"
-        type="text"
-        placeholder="科目名 例：病態学">
-
-    <br><br>
-
-    <button id="addSubject" class="btn btn-primary">
-        科目を追加
-    </button>
-
-    <br><br>
-
-    <div id="subjectList">
-        読み込み中...
+      </button>
     </div>
 
-</div>
+    <div class="card setting-card">
+      <h3>📖 科目管理</h3>
 
-<script
-    type="module"
-    src="exam_admin.js">
+      <input id="subjectName" type="text" placeholder="科目名 例：病態学" />
 
-</script>
+      <br /><br />
 
-</body>
+      <button id="addSubject" class="btn btn-primary">科目を追加</button>
 
+      <br /><br />
+
+      <div id="subjectList">読み込み中...</div>
+    </div>
+
+    <script type="module" src="exam_admin.js"></script>
+  </body>
 </html>

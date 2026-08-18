@@ -1,41 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<title>今日の1問 | CareMate</title>
+    <title>今日の1問 | CareMate</title>
 
-<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
-</head>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<body class="page-loading">
+  <body class="page-loading">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button">←</button>
 
-<div class="top-buttons">
+      <h2>🎯 今日の1問</h2>
 
-    <button id="backButton" class="circle-button">←</button>
-
-    <h2>🎯 今日の1問</h2>
-
-    <div class="top-right">
+      <div class="top-right">
         <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-            <img id="topProfileImage" src="images/default.png" class="header-profile-image">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
+      </div>
     </div>
 
-</div>
+    <div id="questionArea"></div>
 
-<div id="questionArea"></div>
-
-<script type="module" src="daily_question.js"></script>
-
-</body>
+    <script type="module" src="daily_question.js"></script>
+  </body>
 </html>

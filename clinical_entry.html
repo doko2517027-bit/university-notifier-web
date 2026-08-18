@@ -1,2 +1,110 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>CareMate Clinical</title><link rel="stylesheet" href="style.css"><script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")</script><style>.clinical-page{max-width:760px;margin:0 auto;padding:0 16px 96px}.clinical-choice{display:grid;gap:12px}.clinical-choice a{display:block;text-decoration:none;color:inherit}.clinical-choice .card{transition:transform .15s ease,border-color .15s ease}.clinical-choice .card:hover{transform:translateY(-2px);border-color:#0f766e}.clinical-choice h2{margin:0 0 8px}.clinical-choice p{margin:0;color:var(--subtext)}.clinical-note{color:var(--subtext);font-size:.9rem}</style></head><body class="page-loading"><div class="top-buttons"><div class="top-user-info"><span id="userName">読み込み中</span></div><div class="top-right"><button id="themeButton" class="circle-button">🌙</button><button id="profileButton" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image"></button></div></div><header class="header"><div class="logo">🏥</div><h1>CareMate Clinical</h1><p>医療機関向け電子カルテ</p></header><main class="clinical-page"><section class="card setting-card"><h2>Clinicalをはじめる</h2><p class="clinical-note">病院は最初の1件だけ登録できます。登録したCareMateアカウントが、その病院の唯一の管理者になります。</p></section><section class="clinical-choice"><a href="clinical_login.html" class="card setting-card"><h2>Clinicalへログイン</h2><p>病院管理者・職員として、職員IDとパスワードでログインします。</p></a><a href="clinical_register.html" class="card setting-card"><h2>病院を登録する</h2><p>病院名と病院IDを登録します。登録した本人が病院管理者になります。</p></a></section></main><nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="requests.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav><script type="module" src="clinical_entry.js"></script></body></html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>CareMate Clinical</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.classList.add("dark");
+    </script>
+    <style>
+      .clinical-page {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 16px 96px;
+      }
+      .clinical-choice {
+        display: grid;
+        gap: 12px;
+      }
+      .clinical-choice a {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+      }
+      .clinical-choice .card {
+        transition:
+          transform 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .clinical-choice .card:hover {
+        transform: translateY(-2px);
+        border-color: #0f766e;
+      }
+      .clinical-choice h2 {
+        margin: 0 0 8px;
+      }
+      .clinical-choice p {
+        margin: 0;
+        color: var(--subtext);
+      }
+      .clinical-note {
+        color: var(--subtext);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <div class="top-user-info"><span id="userName">読み込み中</span></div>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button
+        ><button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
+        </button>
+      </div>
+    </div>
+    <header class="header">
+      <div class="logo">🏥</div>
+      <h1>CareMate Clinical</h1>
+      <p>医療機関向け電子カルテ</p>
+    </header>
+    <main class="clinical-page">
+      <section class="card setting-card">
+        <h2>Clinicalをはじめる</h2>
+        <p class="clinical-note">
+          病院は最初の1件だけ登録できます。登録したCareMateアカウントが、その病院の唯一の管理者になります。
+        </p>
+      </section>
+      <section class="clinical-choice">
+        <a href="clinical_login.html" class="card setting-card"
+          ><h2>Clinicalへログイン</h2>
+          <p>病院管理者・職員として、職員IDとパスワードでログインします。</p></a
+        ><a href="clinical_register.html" class="card setting-card"
+          ><h2>病院を登録する</h2>
+          <p>
+            病院名と病院IDを登録します。登録した本人が病院管理者になります。
+          </p></a
+        >
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span
+        ><span>ホーム</span></a
+      ><a href="assignments.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span
+        ><span>課題</span></a
+      ><a href="requests.html" class="active"
+        ><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span
+        ><span>リクエスト</span></a
+      ><a href="news.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span
+        ><span>お知らせ</span></a
+      ><a id="settingsTab" href="settings.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span
+        ><span>設定</span></a
+      >
+    </nav>
+    <script type="module" src="clinical_entry.js"></script>
+  </body>
+</html>

@@ -1,1122 +1,630 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta charset="UTF-8">
+    <title>出席管理 | CareMateApp</title>
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css" />
 
-<title>出席管理 | CareMateApp</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<link
-    rel="stylesheet"
-    href="style.css">
-
-<script>
-
-if (
-    localStorage.getItem("theme") ===
-    "dark"
-) {
-
-    document
-        .documentElement
-        .classList
-        .add("dark");
-
-}
-
-</script>
-
-</head>
-
-
-<body class="page-loading attendance-page">
-
-
-<!-- ========================================
+  <body class="page-loading attendance-page">
+    <!-- ========================================
      上部
 ======================================== -->
 
-<div class="top-buttons">
-
-    <button
+    <div class="top-buttons">
+      <button
         id="backButton"
         class="circle-button"
         type="button"
-        aria-label="戻る">
-
+        aria-label="戻る"
+      >
         ←
+      </button>
 
-    </button>
+      <h2>🕒 出席管理</h2>
 
-
-    <h2>
-        🕒 出席管理
-    </h2>
-
-
-    <div class="top-right">
-
+      <div class="top-right">
         <button
-            id="themeButton"
-            class="circle-button"
-            type="button"
-            aria-label="テーマ切替">
-
-            🌙
-
+          id="themeButton"
+          class="circle-button"
+          type="button"
+          aria-label="テーマ切替"
+        >
+          🌙
         </button>
 
-
         <button
-            id="profileButton"
-            class="circle-button"
-            type="button"
-            aria-label="プロフィール">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image"
-                alt="プロフィール画像">
-
+          id="profileButton"
+          class="circle-button"
+          type="button"
+          aria-label="プロフィール"
+        >
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+            alt="プロフィール画像"
+          />
         </button>
-
+      </div>
     </div>
 
-</div>
+    <hr />
 
-
-<hr>
-
-
-<!-- ========================================
+    <!-- ========================================
      ページ見出し
 ======================================== -->
 
-<header class="header">
+    <header class="header">
+      <div class="logo">🕒</div>
 
-    <div class="logo">
-        🕒
-    </div>
+      <h1>出席管理</h1>
 
-    <h1>
-        出席管理
-    </h1>
+      <p>講義の開始・終了を打刻します</p>
+    </header>
 
-    <p>
-        講義の開始・終了を打刻します
-    </p>
-
-</header>
-
-
-<!-- ========================================
+    <!-- ========================================
      現在日時
 ======================================== -->
 
-<div
-    id="attendanceClockCard"
-    class="card setting-card">
+    <div id="attendanceClockCard" class="card setting-card">
+      <p>
+        <b id="attendanceCurrentDate"> 今日の日付を確認中... </b>
+      </p>
 
-    <p>
-        <b id="attendanceCurrentDate">
-            今日の日付を確認中...
-        </b>
-    </p>
-
-
-    <p
+      <p
         id="attendanceCurrentTime"
         style="
-            margin:8px 0;
-            font-size:34px;
-            font-weight:900;
-            letter-spacing:1px;
-        ">
-
+          margin: 8px 0;
+          font-size: 34px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        "
+      >
         --:--
+      </p>
 
-    </p>
-
-
-    <p
-        id="attendanceCurrentStatus"
-        style="
-            margin:0;
-            color:var(--subtext);
-        ">
-
+      <p id="attendanceCurrentStatus" style="margin: 0; color: var(--subtext)">
         今日の講義を確認しています。
+      </p>
+    </div>
 
-    </p>
-
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      注意
 ======================================== -->
 
-<div class="attendance-personal-notice">
+    <div class="attendance-personal-notice">
+      <b> 打刻時刻によって自動判定されます </b>
 
-    <b>
-        打刻時刻によって自動判定されます
-    </b>
+      <br />
 
-    <br>
+      開始打刻と終了打刻の両方を使って、 出席・遅刻・早退・欠席を判定します。
 
-    開始打刻と終了打刻の両方を使って、
-    出席・遅刻・早退・欠席を判定します。
+      <br />
 
-    <br>
+      講義中に退出する場合は、 通知を待たずにこの画面から早退を押してください。
+    </div>
 
-    講義中に退出する場合は、
-    通知を待たずにこの画面から早退を押してください。
-
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      通知状態
 ======================================== -->
 
-<div
-    id="attendanceNotificationCard"
-    class="attendance-notice-mini card setting-card">
+    <div
+      id="attendanceNotificationCard"
+      class="attendance-notice-mini card setting-card"
+    >
+      <div class="attendance-notice-header">
+        <b> 🔔 出席通知 </b>
 
+        <span id="attendanceNotificationState"> 確認中... </span>
+      </div>
 
-    <div class="attendance-notice-header">
+      <div class="attendance-notice-time">開始10分前　 / 終了5分前</div>
 
-        <b>
-            🔔 出席通知
-        </b>
-
-        <span
-            id="attendanceNotificationState">
-            確認中...
-        </span>
-
-    </div>
-
-
-    <div class="attendance-notice-time">
-
-        開始10分前　
-        /
-        終了5分前
-
-    </div>
-
-
-    <button
+      <button
         id="enableAttendanceNotifications"
         class="btn btn-primary"
         type="button"
-        hidden>
-
+        hidden
+      >
         🔔 有効化
+      </button>
+    </div>
 
-    </button>
-
-
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      今日の講義
 ======================================== -->
 
-<div class="attendance-section-header">
+    <div class="attendance-section-header">
+      <h2 style="margin: 0">📅 今日の講義</h2>
 
-    <h2 style="margin:0;">
-        📅 今日の講義
-    </h2>
-
-
-    <button
+      <button
         id="attendanceRefreshButton"
         class="btn btn-secondary"
-        type="button">
-
+        type="button"
+      >
         更新
-
-    </button>
-
-</div>
-
-
-<div
-    id="attendanceTodayList"
-    class="attendance-today-list">
-
-
-    <div class="card setting-card">
-
-        今日の履修済み講義を読み込んでいます。
-
+      </button>
     </div>
 
-</div>
+    <div id="attendanceTodayList" class="attendance-today-list">
+      <div class="card setting-card">
+        今日の履修済み講義を読み込んでいます。
+      </div>
+    </div>
 
+    <div id="attendanceEmptyState" class="card setting-card" hidden>
+      <h3>今日の講義はありません</h3>
 
-<div
-    id="attendanceEmptyState"
-    class="card setting-card"
-    hidden>
+      <p>履修登録済みの講義がある場合のみ表示されます。</p>
+    </div>
 
-    <h3>
-        今日の講義はありません
-    </h3>
-
-    <p>
-        履修登録済みの講義がある場合のみ表示されます。
-    </p>
-
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      今日の集計
 ======================================== -->
 
-<h2>
-    📊 今日の打刻状況
-</h2>
+    <h2>📊 今日の打刻状況</h2>
 
-
-<div
-    id="attendanceSummaryList"
-    class="attendance-summary-list">
-
-    <div class="card setting-card">
-
-        <small>
-            出席
-        </small>
+    <div id="attendanceSummaryList" class="attendance-summary-list">
+      <div class="card setting-card">
+        <small> 出席 </small>
 
         <p
-            id="attendanceSummaryPresent"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryPresent"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-    <div class="card setting-card">
-
-        <small>
-            遅刻
-        </small>
+      <div class="card setting-card">
+        <small> 遅刻 </small>
 
         <p
-            id="attendanceSummaryLate"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryLate"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-    <div class="card setting-card">
-
-        <small>
-            早退
-        </small>
+      <div class="card setting-card">
+        <small> 早退 </small>
 
         <p
-            id="attendanceSummaryEarlyLeave"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryEarlyLeave"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-    <div class="card setting-card">
-
-        <small>
-            欠席
-        </small>
+      <div class="card setting-card">
+        <small> 欠席 </small>
 
         <p
-            id="attendanceSummaryAbsent"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryAbsent"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-    <div class="card setting-card">
-
-        <small>
-            欠席打刻
-        </small>
+      <div class="card setting-card">
+        <small> 欠席打刻 </small>
 
         <p
-            id="attendanceSummaryManualAbsent"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryManualAbsent"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-
-    <div class="card setting-card">
-
-        <small>
-            換算欠席
-        </small>
+      <div class="card setting-card">
+        <small> 換算欠席 </small>
 
         <p
-            id="attendanceSummaryConvertedAbsent"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-
-            0
-
+          id="attendanceSummaryConvertedAbsent"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-
-    <div class="card setting-card">
-
-        <small>
-            欠席合計
-        </small>
+      <div class="card setting-card">
+        <small> 欠席合計 </small>
 
         <p
-            id="attendanceSummaryTotalAbsent"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryTotalAbsent"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
+      </div>
 
-    </div>
-
-
-    <div
-        class="card setting-card"
-        style="grid-column:1 / -1;">
-
-        <small>
-            判定待ち・未打刻
-        </small>
+      <div class="card setting-card" style="grid-column: 1 / -1">
+        <small> 判定待ち・未打刻 </small>
 
         <p
-            id="attendanceSummaryPending"
-            style="
-                margin:5px 0 0;
-                font-size:26px;
-                font-weight:900;
-            ">
-
-            0
-
+          id="attendanceSummaryPending"
+          style="margin: 5px 0 0; font-size: 26px; font-weight: 900"
+        >
+          0
         </p>
-
+      </div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      今日の記録
 ======================================== -->
 
-<h2>
-    📝 今日の記録
-</h2>
+    <h2>📝 今日の記録</h2>
 
-
-<div
-    id="attendanceRecordList"
-    class="attendance-record-list">
-
-    <div class="card setting-card">
-
-        出席記録を読み込んでいます。
-
+    <div id="attendanceRecordList" class="attendance-record-list">
+      <div class="card setting-card">出席記録を読み込んでいます。</div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      科目別の出席状況
 ======================================== -->
 
-<section
-    id="attendanceSubjectSection"
-    class="attendance-subject-section">
-
-    <div class="attendance-subject-heading">
-
+    <section id="attendanceSubjectSection" class="attendance-subject-section">
+      <div class="attendance-subject-heading">
         <div>
+          <h2>📚 科目別の出席状況</h2>
 
-            <h2>
-                📚 科目別の出席状況
-            </h2>
-
-            <p
-                id="attendanceTermLabel"
-                class="attendance-term-label">
-
-                年度・学年・学期を確認中...
-
-            </p>
-
+          <p id="attendanceTermLabel" class="attendance-term-label">
+            年度・学年・学期を確認中...
+          </p>
         </div>
+      </div>
 
-    </div>
+      <div class="attendance-term-switch">
+        <label for="attendanceTermSelect"> 表示する学期 </label>
 
-
-    <div class="attendance-term-switch">
-
-        <label for="attendanceTermSelect">
-            表示する学期
-        </label>
-
-        <select
-            id="attendanceTermSelect"
-            disabled>
-
-            <option value="">
-                履修学期を読み込んでいます...
-            </option>
-
+        <select id="attendanceTermSelect" disabled>
+          <option value="">履修学期を読み込んでいます...</option>
         </select>
+      </div>
 
-    </div>
-
-
-    <div
+      <div
         id="attendanceEnrollmentNotice"
         class="attendance-personal-notice"
-        hidden>
+        hidden
+      >
+        <b> 履修登録してください </b>
 
-        <b>
-            履修登録してください
-        </b>
+        <br />
 
-        <br>
-
-        管理者が設定している現在学期には、
-        履修登録済みの科目がありません。
+        管理者が設定している現在学期には、 履修登録済みの科目がありません。
         履修済みの別の学期へ切り替えることはできます。
+      </div>
 
-    </div>
-
-
-    <div
-        id="attendanceSubjectList"
-        class="attendance-subject-list">
-
+      <div id="attendanceSubjectList" class="attendance-subject-list">
         <div class="card setting-card">
-
-            履修科目の出席状況を読み込んでいます。
-
+          履修科目の出席状況を読み込んでいます。
         </div>
+      </div>
 
-    </div>
+      <div id="attendanceSubjectEmpty" class="card setting-card" hidden>
+        <p>この学期に表示できる履修科目がありません。</p>
+      </div>
+    </section>
 
-
-    <div
-        id="attendanceSubjectEmpty"
-        class="card setting-card"
-        hidden>
-
-        <p>
-            この学期に表示できる履修科目がありません。
-        </p>
-
-    </div>
-
-</section>
-
-
-<!-- ========================================
+    <!-- ========================================
      判定ルール表示
 ======================================== -->
 
-<div class="attendance-rule-help">
-
-    <button
+    <div class="attendance-rule-help">
+      <button
         id="attendanceRuleButton"
         class="attendance-rule-button"
-        type="button">
+        type="button"
+      >
         ⏱ 打刻基準？
-    </button>
+      </button>
 
-    <div
-        id="attendanceRulePopup"
-        class="attendance-rule-popup"
-        hidden>
+      <div id="attendanceRulePopup" class="attendance-rule-popup" hidden>
+        <p>正常開始<br />開始10分前〜開始</p>
 
-        <p>正常開始<br>開始10分前〜開始</p>
+        <p>遅刻<br />開始1〜30分後</p>
 
-        <p>遅刻<br>開始1〜30分後</p>
+        <p>欠席<br />開始31分後〜</p>
 
-        <p>欠席<br>開始31分後〜</p>
+        <p>早退<br />終了30〜6分前</p>
 
-        <p>早退<br>終了30〜6分前</p>
+        <p>正常終了<br />終了5分前〜10分後</p>
 
-        <p>正常終了<br>終了5分前〜10分後</p>
+        <p>換算欠席<br />遅刻・早退3回＝欠席1回換算</p>
 
-        <p>換算欠席<br>遅刻・早退3回＝欠席1回換算</p>
+        <p>欠席操作<br />編集で欠席と入力した場合</p>
 
-        <p>欠席操作<br>編集で欠席と入力した場合</p>
-
-        <p>通常科目 2/3未満<br>実習科目 4/5未満<br>評価資格なし</p>
-
+        <p>通常科目 2/3未満<br />実習科目 4/5未満<br />評価資格なし</p>
+      </div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      操作確認ポップアップ
 ======================================== -->
 
-<div
-    id="attendanceConfirmOverlay"
-    class="exam-popup-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="attendanceConfirmTitle"
-    hidden>
+    <div
+      id="attendanceConfirmOverlay"
+      class="exam-popup-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="attendanceConfirmTitle"
+      hidden
+    >
+      <div class="exam-popup-card attendance-choice-card">
+        <div id="attendanceConfirmIcon" class="exam-popup-icon">🕒</div>
 
-    <div class="exam-popup-card attendance-choice-card">
+        <p class="exam-popup-label">出席打刻</p>
 
-        <div
-            id="attendanceConfirmIcon"
-            class="exam-popup-icon">
-
-            🕒
-
-        </div>
-
-
-        <p class="exam-popup-label">
-
-            出席打刻
-
-        </p>
-
-
-        <h2
-            id="attendanceConfirmTitle"
-            class="attendance-choice-title">
-
-            この操作を実行しますか？
-
+        <h2 id="attendanceConfirmTitle" class="attendance-choice-title">
+          この操作を実行しますか？
         </h2>
 
-
         <p
-            id="attendanceConfirmSubject"
-            style="
-                margin:12px 0 5px;
-                font-size:18px;
-                font-weight:800;
-            ">
+          id="attendanceConfirmSubject"
+          style="margin: 12px 0 5px; font-size: 18px; font-weight: 800"
+        ></p>
 
-        </p>
-
-
-        <p
-            id="attendanceConfirmDetail"
-            class="attendance-choice-help">
-
-        </p>
-
+        <p id="attendanceConfirmDetail" class="attendance-choice-help"></p>
 
         <div
-            style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:10px;
-                margin-top:20px;
-            ">
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+          "
+        >
+          <button
+            id="attendanceCancelButton"
+            class="btn btn-secondary"
+            type="button"
+          >
+            キャンセル
+          </button>
 
-            <button
-                id="attendanceCancelButton"
-                class="btn btn-secondary"
-                type="button">
-
-                キャンセル
-
-            </button>
-
-
-            <button
-                id="attendanceConfirmButton"
-                class="btn btn-primary"
-                type="button">
-
-                打刻する
-
-            </button>
-
+          <button
+            id="attendanceConfirmButton"
+            class="btn btn-primary"
+            type="button"
+          >
+            打刻する
+          </button>
         </div>
-
+      </div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      結果ポップアップ
 ======================================== -->
 
-<div
-    id="attendanceResultOverlay"
-    class="exam-popup-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="attendanceResultTitle"
-    hidden>
+    <div
+      id="attendanceResultOverlay"
+      class="exam-popup-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="attendanceResultTitle"
+      hidden
+    >
+      <div class="exam-popup-card attendance-choice-card">
+        <div id="attendanceResultIcon" class="exam-popup-icon">✅</div>
 
-    <div class="exam-popup-card attendance-choice-card">
+        <p id="attendanceResultLabel" class="exam-popup-label">打刻結果</p>
 
-        <div
-            id="attendanceResultIcon"
-            class="exam-popup-icon">
-
-            ✅
-
-        </div>
-
-
-        <p
-            id="attendanceResultLabel"
-            class="exam-popup-label">
-
-            打刻結果
-
-        </p>
-
-
-        <h2
-            id="attendanceResultTitle"
-            class="attendance-choice-title">
-
-            打刻しました
-
+        <h2 id="attendanceResultTitle" class="attendance-choice-title">
+          打刻しました
         </h2>
 
-
         <p
-            id="attendanceResultStatus"
-            style="
-                margin:14px 0 6px;
-                font-size:22px;
-                font-weight:900;
-            ">
+          id="attendanceResultStatus"
+          style="margin: 14px 0 6px; font-size: 22px; font-weight: 900"
+        ></p>
 
-        </p>
+        <p id="attendanceResultMessage" class="attendance-choice-help"></p>
 
+        <div style="display: grid; gap: 10px; margin-top: 20px">
+          <button
+            id="attendanceResultClose"
+            class="btn btn-primary"
+            type="button"
+          >
+            出席管理に戻る
+          </button>
 
-        <p
-            id="attendanceResultMessage"
-            class="attendance-choice-help">
-
-        </p>
-
-
-        <div
-            style="
-                display:grid;
-                gap:10px;
-                margin-top:20px;
-            ">
-
-            <button
-                id="attendanceResultClose"
-                class="btn btn-primary"
-                type="button">
-
-                出席管理に戻る
-
-            </button>
-
-
-            <button
-                id="attendanceResultHome"
-                class="btn btn-secondary"
-                type="button">
-
-                ホームへ
-
-            </button>
-
+          <button
+            id="attendanceResultHome"
+            class="btn btn-secondary"
+            type="button"
+          >
+            ホームへ
+          </button>
         </div>
-
+      </div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      出席記録 編集ポップアップ
 ======================================== -->
 
-<div
-    id="attendanceEditOverlay"
-    class="attendance-edit-overlay"
-    hidden>
-
-    <div class="attendance-record-edit-card">
-
+    <div id="attendanceEditOverlay" class="attendance-edit-overlay" hidden>
+      <div class="attendance-record-edit-card">
         <button
-            id="attendanceEditCloseButton"
-            class="attendance-edit-close"
-            type="button"
-            aria-label="閉じる">
-
-            ×
-
+          id="attendanceEditCloseButton"
+          class="attendance-edit-close"
+          type="button"
+          aria-label="閉じる"
+        >
+          ×
         </button>
 
+        <p class="attendance-edit-label">出席記録の修正</p>
 
-        <p class="attendance-edit-label">
-            出席記録の修正
+        <h2 id="attendanceEditSubject">科目名</h2>
+
+        <p id="attendanceEditLectureInfo" class="attendance-edit-lecture-info">
+          2026/00/00・0限
         </p>
-
-
-        <h2 id="attendanceEditSubject">
-            科目名
-        </h2>
-
-
-        <p
-            id="attendanceEditLectureInfo"
-            class="attendance-edit-lecture-info">
-
-            2026/00/00・0限
-
-        </p>
-
 
         <div class="attendance-edit-current">
+          <small> 現在の判定 </small>
 
-            <small>
-                現在の判定
-            </small>
-
-            <strong id="attendanceEditCurrentStatus">
-                未打刻
-            </strong>
-
+          <strong id="attendanceEditCurrentStatus"> 未打刻 </strong>
         </div>
-
 
         <fieldset class="attendance-edit-status-list">
+          <legend>変更後の判定</legend>
 
-            <legend>
-                変更後の判定
-            </legend>
+          <label>
+            <input type="radio" name="attendanceEditStatus" value="present" />
 
+            <span> ✅ 出席 </span>
+          </label>
 
-            <label>
+          <label>
+            <input type="radio" name="attendanceEditStatus" value="late" />
 
-                <input
-                    type="radio"
-                    name="attendanceEditStatus"
-                    value="present">
+            <span> 🟡 遅刻 </span>
+          </label>
 
-                <span>
-                    ✅ 出席
-                </span>
+          <label>
+            <input
+              type="radio"
+              name="attendanceEditStatus"
+              value="early_leave"
+            />
 
-            </label>
+            <span> 🟠 早退 </span>
+          </label>
 
+          <label>
+            <input type="radio" name="attendanceEditStatus" value="absent" />
 
-            <label>
-
-                <input
-                    type="radio"
-                    name="attendanceEditStatus"
-                    value="late">
-
-                <span>
-                    🟡 遅刻
-                </span>
-
-            </label>
-
-
-            <label>
-
-                <input
-                    type="radio"
-                    name="attendanceEditStatus"
-                    value="early_leave">
-
-                <span>
-                    🟠 早退
-                </span>
-
-            </label>
-
-
-            <label>
-
-                <input
-                    type="radio"
-                    name="attendanceEditStatus"
-                    value="absent">
-
-                <span>
-                    ❌ 欠席
-                </span>
-
-            </label>
-
+            <span> ❌ 欠席 </span>
+          </label>
         </fieldset>
 
-
         <label class="attendance-edit-reason">
+          <span> 編集理由 </span>
 
-            <span>
-                編集理由
-            </span>
+          <textarea
+            id="attendanceEditReason"
+            rows="4"
+            maxlength="300"
+            placeholder="例：教員へ確認し、出席として修正"
+          >
+          </textarea>
 
-            <textarea
-                id="attendanceEditReason"
-                rows="4"
-                maxlength="300"
-                placeholder="例：教員へ確認し、出席として修正">
-
-            </textarea>
-
-            <small>
-                修正理由はFirebaseへ保存されます。
-            </small>
-
+          <small> 修正理由はFirebaseへ保存されます。 </small>
         </label>
 
-
-        <p
-            id="attendanceEditError"
-            class="attendance-edit-error"
-            hidden>
-
-            判定と編集理由を入力してください。
-
+        <p id="attendanceEditError" class="attendance-edit-error" hidden>
+          判定と編集理由を入力してください。
         </p>
 
-
         <div class="attendance-edit-actions">
+          <button
+            id="attendanceEditCancelButton"
+            class="btn btn-secondary"
+            type="button"
+          >
+            キャンセル
+          </button>
 
-            <button
-                id="attendanceEditCancelButton"
-                class="btn btn-secondary"
-                type="button">
-
-                キャンセル
-
-            </button>
-
-
-            <button
-                id="attendanceEditSaveButton"
-                class="btn btn-primary"
-                type="button">
-
-                保存する
-
-            </button>
-
+          <button
+            id="attendanceEditSaveButton"
+            class="btn btn-primary"
+            type="button"
+          >
+            保存する
+          </button>
         </div>
-
+      </div>
     </div>
 
-</div>
-
-
-<!-- ========================================
+    <!-- ========================================
      トースト
 ======================================== -->
 
-<div
-    id="attendanceToast"
-    class="toast"
-    hidden>
+    <div id="attendanceToast" class="toast" hidden></div>
 
-</div>
+    <footer id="version"></footer>
 
-
-<footer id="version"></footer>
-
-
-<!-- ========================================
+    <!-- ========================================
      下部ナビ
 ======================================== -->
 
-<nav class="bottom-nav">
-
-    <a href="index.html">
-
+    <nav class="bottom-nav">
+      <a href="index.html">
         <span class="nav-icon-wrap">
-            <span class="nav-icon">🏠</span>
+          <span class="nav-icon">🏠</span>
         </span>
 
-        <span>
-            ホーム
-        </span>
+        <span> ホーム </span>
+      </a>
 
-    </a>
-
-
-    <a href="assignments.html">
-
+      <a href="assignments.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 📚 </span>
 
-            <span class="nav-icon">
-                📚
-            </span>
-
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
-
-                0
-
-            </span>
-
+          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
-        <span>
-            課題
-        </span>
+        <span> 課題 </span>
+      </a>
 
-    </a>
-
-
-    <a href="requests.html">
-
+      <a href="requests.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 💡 </span>
 
-            <span class="nav-icon">
-                💡
-            </span>
-
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
-
-                0
-
-            </span>
-
+          <span id="shareNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
-        <span>
-            リクエスト
-        </span>
+        <span> リクエスト </span>
+      </a>
 
-    </a>
-
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 📢 </span>
 
-            <span class="nav-icon">
-                📢
-            </span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-
-                0
-
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
-        <span>
-            お知らせ
-        </span>
+        <span> お知らせ </span>
+      </a>
 
-    </a>
-
-
-    <a
-        id="settingsTab"
-        href="settings.html">
-
+      <a id="settingsTab" href="settings.html">
         <span class="nav-icon-wrap">
-            <span class="nav-icon">⚙️</span>
+          <span class="nav-icon">⚙️</span>
         </span>
 
-        <span>
-            設定
-        </span>
+        <span> 設定 </span>
+      </a>
+    </nav>
 
-    </a>
-
-</nav>
-
-
-<script
-    type="module"
-    src="attendance.js">
-</script>
-
-
-</body>
-
+    <script type="module" src="attendance.js"></script>
+  </body>
 </html>

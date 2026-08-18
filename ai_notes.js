@@ -1,678 +1,394 @@
-import {db,studentNumber,setupTheme,initializePage,loadProfileImage,loadUserName,loadMyRanking,setupAdminTab} from "./common.js";
-import {collection,doc,addDoc,deleteDoc,onSnapshot,orderBy,query,serverTimestamp,setDoc,updateDoc} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import {
+  db,
+  studentNumber,
+  setupTheme,
+  initializePage,
+  loadProfileImage,
+  loadUserName,
+  loadMyRanking,
+  setupAdminTab,
+} from "./common.js";
+import {
+  collection,
+  doc,
+  addDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const $=id=>document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-const state={
+const state = {
+  notes: [],
 
-    notes:[],
+  selected: null,
 
-    selected:null,
+  recognition: null,
 
-    recognition:null,
+  isListening: false,
 
-    isListening:false,
+  keepListening: false,
 
-    keepListening:false,
+  finalTranscript: "",
 
-    finalTranscript:"",
+  interim: "",
 
-    interim:"",
+  drawing: false,
 
-    drawing:false,
+  lastPoint: null,
 
-    lastPoint:null,
+  drawTool: "pen",
 
-    drawTool:"pen",
+  paper: "blank",
 
-    paper:"blank",
+  inkMode: false,
 
-    inkMode:false,
-
-    selectedPlacedImageId:null
-
+  selectedPlacedImageId: null,
 };
 
-const escapeHtml=value=>String(value??"").replace(
+const escapeHtml = (value) =>
+  String(value ?? "").replace(
     /[&<>\"']/g,
-    char=>({
-        "&":"&amp;",
-        "<":"&lt;",
-        ">":"&gt;",
-        "\"":"&quot;",
-        "'":"&#39;"
-    })[char]
-);
+    (char) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[char],
+  );
 
-setupTheme(
-    $("themeButton")
-);
+setupTheme($("themeButton"));
 
 await initializePage([
-    setupAdminTab(),
-    loadUserName(
-        $("userName")
-    ),
-    loadMyRanking(),
-    loadProfileImage(
-        $("topProfileImage")
-    )
+  setupAdminTab(),
+  loadUserName($("userName")),
+  loadMyRanking(),
+  loadProfileImage($("topProfileImage")),
 ]);
 
+if (studentNumber !== "2510044") {
+  $("denied").hidden = false;
 
-if(
-    studentNumber!=="2510044"
-){
+  document.body.classList.remove("page-loading");
+} else {
+  $("noteApp").hidden = false;
 
-    $("denied").hidden=false;
+  const notesRef = collection(db, "digitalNotes", "2510044", "notes");
 
-    document.body.classList.remove(
-        "page-loading"
-    );
+  onSnapshot(
+    query(notesRef, orderBy("updatedAt", "desc")),
+    (snapshot) => {
+      state.notes = snapshot.docs.map((item) => ({
+        id: item.id,
+        ...item.data(),
+      }));
 
-}else{
+      if (!state.selected && state.notes[0]) {
+        state.selected = state.notes[0].id;
+      }
 
-    $("noteApp").hidden=false;
+      render();
+    },
+    (error) => {
+      console.error(error);
 
+      $("noteList").textContent = "ノートを読み込めませんでした。";
+    },
+  );
 
-    const notesRef=
-        collection(
-            db,
-            "digitalNotes",
-            "2510044",
-            "notes"
-        );
+  $("newNoteDrawer").onclick = createNewNote;
 
+  async function createNewNote() {
+    const created = await addDoc(notesRef, {
+      title: "新しいノート",
 
-    onSnapshot(
-        query(
-            notesRef,
-            orderBy(
-                "updatedAt",
-                "desc"
-            )
-        ),
-        snapshot=>{
+      body: "",
 
-            state.notes=
-                snapshot.docs.map(
-                    item=>({
-                        id:item.id,
-                        ...item.data()
-                    })
-                );
+      bodyHtml: "",
 
+      transcript: "",
 
-            if(
-                !state.selected &&
-                state.notes[0]
-            ){
+      maskTerms: [],
 
-                state.selected=
-                    state.notes[0].id;
+      todos: [],
 
-            }
+      images: [],
 
+      placedImages: [],
 
-            render();
+      createdAt: serverTimestamp(),
 
-        },
-        error=>{
+      updatedAt: serverTimestamp(),
+    });
 
-            console.error(
-                error
-            );
+    state.selected = created.id;
 
-            $("noteList").textContent=
-                "ノートを読み込めませんでした。";
+    $("noteDrawer").classList.remove("is-open");
 
-        }
-    );
+    $("drawerBackdrop").classList.remove("is-open");
+  }
 
+  $("deleteNote").onclick = deleteCurrentNote;
 
-    $("newNoteDrawer").onclick=
-        createNewNote;
+  $("saveNote").onclick = saveCurrent;
 
+  $("noteSearch").oninput = renderList;
 
-    async function createNewNote(){
+  $("addTodo").onclick = () => {
+    const note = current();
 
-        const created=
-            await addDoc(
-                notesRef,
-                {
-
-                    title:
-                        "新しいノート",
-
-                    body:
-                        "",
-
-                    bodyHtml:
-                        "",
-
-                    transcript:
-                        "",
-
-                    maskTerms:
-                        [],
-
-                    todos:
-                        [],
-
-                    images:
-                        [],
-
-                    placedImages:
-                        [],
-
-                    createdAt:
-                        serverTimestamp(),
-
-                    updatedAt:
-                        serverTimestamp()
-
-                }
-            );
-
-
-        state.selected=
-            created.id;
-
-
-        $("noteDrawer")
-            .classList.remove(
-                "is-open"
-            );
-
-
-        $("drawerBackdrop")
-            .classList.remove(
-                "is-open"
-            );
-
+    if (!note) {
+      return;
     }
 
+    note.todos = [
+      ...(note.todos || []),
+      {
+        text: "",
+        done: false,
+      },
+    ];
 
-    $("deleteNote").onclick=
-        deleteCurrentNote;
+    renderTodos();
+  };
 
+  $("voiceButton").onclick = toggleVoice;
 
-    $("saveNote").onclick=
-        saveCurrent;
+  $("copyTranscript")?.addEventListener("click", copyTranscript);
 
+  $("openSummary").onclick = () => openChatGPT("要約");
 
-    $("noteSearch").oninput=
-        renderList;
+  $("openQuiz").onclick = () => openChatGPT("問題作成");
 
+  setupImages();
 
-    $("addTodo").onclick=
-        ()=>{
+  setupDrawer();
 
-            const note=
-                current();
-
-
-            if(!note){
-                return;
-            }
-
-
-            note.todos=[
-                ...(note.todos||[]),
-                {
-                    text:"",
-                    done:false
-                }
-            ];
-
-
-            renderTodos();
-
-        };
-
-
-    $("voiceButton").onclick=
-        toggleVoice;
-
-
-    $("copyTranscript")?.addEventListener(
-        "click",
-        copyTranscript
+  document
+    .querySelectorAll(".workspace-tab")
+    .forEach(
+      (button) => (button.onclick = () => selectPanel(button.dataset.panel)),
     );
 
+  document
+    .querySelectorAll("[data-feature]")
+    .forEach(
+      (button) => (button.onclick = () => selectPanel(button.dataset.feature)),
+    );
 
-    $("openSummary").onclick=
-        ()=>openChatGPT(
-            "要約"
-        );
+  $("penColor").oninput = () => setDrawTool("pen");
 
-
-    $("openQuiz").onclick=
-        ()=>openChatGPT(
-            "問題作成"
-        );
-
-
-    setupImages();
-
-    setupDrawer();
-
-
-    document
-        .querySelectorAll(
-            ".workspace-tab"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>selectPanel(
-                        button.dataset.panel
-                    )
-        );
-
-
-    document
-        .querySelectorAll(
-            "[data-feature]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>selectPanel(
-                        button.dataset.feature
-                    )
-        );
-
-
-    $("penColor").oninput=
-        ()=>setDrawTool(
-            "pen"
-        );
-
-
-    /*
+  /*
     ペン太さは setupToolControls() 側で
     バー・つまみ・数値をまとめて同期する。
     */
 
-
-    document
-        .querySelectorAll(
-            "[data-draw-tool]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>setDrawTool(
-                        button.dataset.drawTool
-                    )
-        );
-
-
-    document
-        .querySelectorAll(
-            "[data-color]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>{
-
-                        $("penColor").value=
-                            button.dataset.color;
-
-
-                        setDrawTool(
-                            "pen"
-                        );
-
-
-                        document
-                            .querySelectorAll(
-                                "[data-color]"
-                            )
-                            .forEach(
-                                item=>
-                                    item.classList.toggle(
-                                        "active",
-                                        item===button
-                                    )
-                            );
-
-                    }
-        );
-
-
-    document
-        .querySelectorAll(
-            "[data-paper]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>setPaper(
-                        button.dataset.paper
-                    )
-        );
-
-
-    $("clearBoard")
-        ?.addEventListener(
-            "click",
-            clearBoard
-        );
-
-
-    setupBoard();
-
-    setupUnifiedNote();
-
-    setupInkOverlay();
-
-    setupToolControls();
-
-
-    [
-        "noteTitle",
-        "noteBody",
-        "maskTerms"
-    ].forEach(
-        id=>
-            $(id).addEventListener(
-                "input",
-                renderPreview
-            )
+  document
+    .querySelectorAll("[data-draw-tool]")
+    .forEach(
+      (button) => (button.onclick = () => setDrawTool(button.dataset.drawTool)),
     );
 
+  document.querySelectorAll("[data-color]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        $("penColor").value = button.dataset.color;
 
-    $("noteDocument")
-        .addEventListener(
-            "input",
-            ()=>{
+        setDrawTool("pen");
 
-                syncPlainBody();
+        document
+          .querySelectorAll("[data-color]")
+          .forEach((item) => item.classList.toggle("active", item === button));
+      }),
+  );
 
-                renderPreview();
-
-            }
-        );
-
-
-    document.addEventListener(
-        "click",
-        event=>{
-
-            const select=
-                event.target.closest(
-                    ".note-entry"
-                );
-
-
-            if(select){
-
-                state.selected=
-                    select.dataset.id;
-
-
-                render();
-
-
-                $("noteDrawer")
-                    .classList.remove(
-                        "is-open"
-                    );
-
-
-                $("drawerBackdrop")
-                    .classList.remove(
-                        "is-open"
-                    );
-
-
-                return;
-
-            }
-
-
-            const mask=
-                event.target.closest(
-                    ".mask-word"
-                );
-
-
-            if(mask){
-
-                mask.classList.toggle(
-                    "is-open"
-                );
-
-            }
-
-        }
+  document
+    .querySelectorAll("[data-paper]")
+    .forEach(
+      (button) => (button.onclick = () => setPaper(button.dataset.paper)),
     );
 
+  $("clearBoard")?.addEventListener("click", clearBoard);
 
-    document.body.classList.remove(
-        "page-loading"
-    );
+  setupBoard();
 
-}
+  setupUnifiedNote();
 
+  setupInkOverlay();
 
-function current(){
+  setupToolControls();
 
-    return state.notes.find(
-        note=>
-            note.id===
-            state.selected
-    );
+  ["noteTitle", "noteBody", "maskTerms"].forEach((id) =>
+    $(id).addEventListener("input", renderPreview),
+  );
 
-}
+  $("noteDocument").addEventListener("input", () => {
+    syncPlainBody();
 
+    renderPreview();
+  });
 
-function render(){
+  document.addEventListener("click", (event) => {
+    const select = event.target.closest(".note-entry");
 
-    renderList();
+    if (select) {
+      state.selected = select.dataset.id;
 
+      render();
 
-    const note=
-        current();
+      $("noteDrawer").classList.remove("is-open");
 
+      $("drawerBackdrop").classList.remove("is-open");
 
-    if(!note){
-
-        $("noteTitle").value="";
-
-        $("noteBody").value="";
-
-        $("noteDocument").innerHTML="";
-
-
-        const imageLayer=
-            $("noteImageLayer");
-
-
-        if(imageLayer){
-
-            imageLayer.innerHTML="";
-
-        }
-
-
-        state.finalTranscript="";
-
-        state.interim="";
-
-
-        renderLiveTranscript();
-
-
-        $("maskTerms").value="";
-
-        $("todoList").innerHTML="";
-
-
-        renderImages();
-
-        renderPreview();
-
-        clearInkOverlay();
-
-
-        return;
-
+      return;
     }
 
+    const mask = event.target.closest(".mask-word");
 
-    /*
-    旧方式で本文内へ保存されていた画像を
-    新しい自由配置画像へ移行する。
-    */
-    migrateLegacyInlineImages(
-        note
-    );
+    if (mask) {
+      mask.classList.toggle("is-open");
+    }
+  });
 
+  document.body.classList.remove("page-loading");
+}
 
-    $("noteTitle").value=
-        note.title||"";
+function current() {
+  return state.notes.find((note) => note.id === state.selected);
+}
 
+function render() {
+  renderList();
 
-    setDocumentHtml(
-        note.bodyHtml||
-        plainTextToHtml(
-            note.body||""
-        )
-    );
+  const note = current();
 
+  if (!note) {
+    $("noteTitle").value = "";
 
-    /*
-    音声認識中にsnapshotが来ても
-    認識中の文章を巻き戻さない。
-    */
-    if(
-        !state.keepListening
-    ){
+    $("noteBody").value = "";
 
-        state.finalTranscript=
-            String(
-                note.transcript||
-                ""
-            )
-                .replace(
-                    /\s+/g,
-                    " "
-                )
-                .trim();
+    $("noteDocument").innerHTML = "";
 
+    const imageLayer = $("noteImageLayer");
 
-        state.interim="";
-
+    if (imageLayer) {
+      imageLayer.innerHTML = "";
     }
 
+    state.finalTranscript = "";
+
+    state.interim = "";
 
     renderLiveTranscript();
 
+    $("maskTerms").value = "";
 
-    $("maskTerms").value=
-        (note.maskTerms||[])
-            .join(
-                ", "
-            );
-
-
-    renderTodos();
+    $("todoList").innerHTML = "";
 
     renderImages();
 
-    renderPlacedImages();
-
     renderPreview();
 
-    restoreBoard();
+    clearInkOverlay();
 
-    restoreInkOverlay(
-        note.inkData||""
-    );
+    return;
+  }
 
+  /*
+    旧方式で本文内へ保存されていた画像を
+    新しい自由配置画像へ移行する。
+    */
+  migrateLegacyInlineImages(note);
+
+  $("noteTitle").value = note.title || "";
+
+  setDocumentHtml(note.bodyHtml || plainTextToHtml(note.body || ""));
+
+  /*
+    音声認識中にsnapshotが来ても
+    認識中の文章を巻き戻さない。
+    */
+  if (!state.keepListening) {
+    state.finalTranscript = String(note.transcript || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    state.interim = "";
+  }
+
+  renderLiveTranscript();
+
+  $("maskTerms").value = (note.maskTerms || []).join(", ");
+
+  renderTodos();
+
+  renderImages();
+
+  renderPlacedImages();
+
+  renderPreview();
+
+  restoreBoard();
+
+  restoreInkOverlay(note.inkData || "");
 }
 
+function renderList() {
+  const filter = $("noteSearch").value.trim().toLowerCase();
 
-function renderList(){
+  const notes = state.notes.filter((note) =>
+    `${note.title || ""}\n${note.body || ""}`.toLowerCase().includes(filter),
+  );
 
-    const filter=
-        $("noteSearch")
-            .value
-            .trim()
-            .toLowerCase();
-
-
-    const notes=
-        state.notes.filter(
-            note=>
-                `${note.title||""}\n${note.body||""}`
-                    .toLowerCase()
-                    .includes(
-                        filter
-                    )
-        );
-
-
-    $("noteList").innerHTML=
-        notes.length
-            ? notes.map(
-                note=>`
+  $("noteList").innerHTML = notes.length
+    ? notes
+        .map(
+          (note) => `
                     <button
                         class="note-entry ${
-                            note.id===state.selected
-                                ? "active"
-                                : ""
+                          note.id === state.selected ? "active" : ""
                         }"
                         data-id="${note.id}">
 
                         <b>
-                            ${escapeHtml(
-                                note.title||
-                                "無題のノート"
-                            )}
+                            ${escapeHtml(note.title || "無題のノート")}
                         </b>
 
                         <p>
-                            ${escapeHtml(
-                                note.body||
-                                "メモはまだありません"
-                            )}
+                            ${escapeHtml(note.body || "メモはまだありません")}
                         </p>
 
                         <small>
-                            ${dateLabel(
-                                note.updatedAt
-                            )}
+                            ${dateLabel(note.updatedAt)}
                         </small>
 
                     </button>
-                `
-            ).join("")
-            : "<p>該当するノートはありません。</p>";
-
+                `,
+        )
+        .join("")
+    : "<p>該当するノートはありません。</p>";
 }
 
+function renderTodos() {
+  const note = current();
 
-function renderTodos(){
-
-    const note=
-        current();
-
-
-    $("todoList").innerHTML=
-        (note?.todos||[])
-            .map(
-                (todo,index)=>`
+  $("todoList").innerHTML =
+    (note?.todos || [])
+      .map(
+        (todo, index) => `
                     <div class="todo-row">
 
                         <input
                             type="checkbox"
                             data-todo-done="${index}"
-                            ${todo.done?"checked":""}>
+                            ${todo.done ? "checked" : ""}>
 
                         <input
                             data-todo-text="${index}"
@@ -686,559 +402,257 @@ function renderTodos(){
                         </button>
 
                     </div>
-                `
-            )
-            .join("")||
-        "<p class=\"note-hint\">ToDoはまだありません。</p>";
+                `,
+      )
+      .join("") || '<p class="note-hint">ToDoはまだありません。</p>';
 
+  $("todoList")
+    .querySelectorAll("input,button")
+    .forEach((item) => item.addEventListener("change", todoChange));
 
-    $("todoList")
-        .querySelectorAll(
-            "input,button"
-        )
-        .forEach(
-            item=>
-                item.addEventListener(
-                    "change",
-                    todoChange
-                )
-        );
-
-
-    $("todoList")
-        .querySelectorAll(
-            "button"
-        )
-        .forEach(
-            item=>
-                item.addEventListener(
-                    "click",
-                    todoChange
-                )
-        );
-
+  $("todoList")
+    .querySelectorAll("button")
+    .forEach((item) => item.addEventListener("click", todoChange));
 }
 
+function todoChange(event) {
+  const note = current();
 
-function todoChange(
-    event
-){
+  const target = event.target;
 
-    const note=
-        current();
+  if (!note) {
+    return;
+  }
 
-    const target=
-        event.target;
+  const index = Number(
+    target.dataset.todoDone ??
+      target.dataset.todoText ??
+      target.dataset.todoDelete,
+  );
 
+  if (target.dataset.todoDelete !== undefined) {
+    note.todos.splice(index, 1);
+  } else if (target.dataset.todoDone !== undefined) {
+    note.todos[index].done = target.checked;
+  } else {
+    note.todos[index].text = target.value;
+  }
 
-    if(!note){
-        return;
-    }
-
-
-    const index=
-        Number(
-            target.dataset.todoDone ??
-            target.dataset.todoText ??
-            target.dataset.todoDelete
-        );
-
-
-    if(
-        target.dataset.todoDelete !==
-        undefined
-    ){
-
-        note.todos.splice(
-            index,
-            1
-        );
-
-    }else if(
-        target.dataset.todoDone !==
-        undefined
-    ){
-
-        note.todos[index].done=
-            target.checked;
-
-    }else{
-
-        note.todos[index].text=
-            target.value;
-
-    }
-
-
-    renderTodos();
-
+  renderTodos();
 }
 
+function setupImages() {
+  const input = $("noteImageInput");
 
-function setupImages(){
+  const editor = $("noteDocument");
 
-    const input=
-        $("noteImageInput");
+  if (input) {
+    input.onchange = uploadNoteImage;
+  }
 
+  if (!editor) {
+    return;
+  }
 
-    const editor=
-        $("noteDocument");
-
-
-    if(input){
-
-        input.onchange=
-            uploadNoteImage;
-
-    }
-
-
-    if(!editor){
-
-        return;
-
-    }
-
-
-    /*
+  /*
     contenteditable内へ
     ファイルを直接ドロップさせない。
     */
-    editor.addEventListener(
-        "dragover",
-        event=>{
+  editor.addEventListener("dragover", (event) => {
+    if (event.dataTransfer?.types?.includes("Files")) {
+      event.preventDefault();
+    }
+  });
 
-            if(
-                event.dataTransfer
-                    ?.types
-                    ?.includes(
-                        "Files"
-                    )
-            ){
+  editor.addEventListener("drop", (event) => {
+    if (event.dataTransfer?.files?.length) {
+      event.preventDefault();
+    }
+  });
 
-                event.preventDefault();
-
-            }
-
-        }
-    );
-
-
-    editor.addEventListener(
-        "drop",
-        event=>{
-
-            if(
-                event.dataTransfer
-                    ?.files
-                    ?.length
-            ){
-
-                event.preventDefault();
-
-            }
-
-        }
-    );
-
-
-    /*
+  /*
     クリップボードから画像だけを
     contenteditableへ直接貼り付ける処理も禁止。
 
     普通の文字コピー＆ペーストはそのまま使える。
     */
-    editor.addEventListener(
-        "paste",
-        event=>{
+  editor.addEventListener("paste", (event) => {
+    const items = [...(event.clipboardData?.items || [])];
 
-            const items=
-                [
-                    ...(
-                        event.clipboardData
-                            ?.items||
-                        []
-                    )
-                ];
-
-
-            const hasImageFile=
-                items.some(
-                    item=>
-                        String(
-                            item.type||
-                            ""
-                        ).startsWith(
-                            "image/"
-                        )
-                );
-
-
-            const html=
-                event.clipboardData
-                    ?.getData(
-                        "text/html"
-                    )||
-                "";
-
-
-            const hasHtmlImage=
-                /<img[\s>]/i.test(
-                    html
-                );
-
-
-            if(
-                hasImageFile||
-                hasHtmlImage
-            ){
-
-                event.preventDefault();
-
-            }
-
-        }
+    const hasImageFile = items.some((item) =>
+      String(item.type || "").startsWith("image/"),
     );
 
-    const wrap=
-        $("noteDocumentWrap");
+    const html = event.clipboardData?.getData("text/html") || "";
 
+    const hasHtmlImage = /<img[\s>]/i.test(html);
 
-    wrap?.addEventListener(
-        "pointerdown",
-        event=>{
+    if (hasImageFile || hasHtmlImage) {
+      event.preventDefault();
+    }
+  });
 
-            /*
+  const wrap = $("noteDocumentWrap");
+
+  wrap?.addEventListener("pointerdown", (event) => {
+    /*
             画像本体・×・リサイズ丸を
             タップした場合はそのまま。
             */
-            if(
-                event.target.closest(
-                    ".placed-note-image"
-                )
-            ){
+    if (event.target.closest(".placed-note-image")) {
+      return;
+    }
 
-                return;
-
-            }
-
-
-            /*
+    /*
             ノートの余白や文字部分を
             タップしたら選択解除。
             */
-            deselectPlacedImages();
+    deselectPlacedImages();
+  });
+}
 
-        }
+async function uploadNoteImage(event) {
+  const note = current();
+
+  const file = event.target.files?.[0];
+
+  const stateLabel = $("noteImageState");
+
+  if (!note) {
+    alert("先にノートを作成してください。");
+
+    return;
+  }
+
+  if (!file) {
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    alert("画像ファイルを選んでください。");
+
+    return;
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    alert("50MB以下の画像を選んでください。");
+
+    return;
+  }
+
+  event.target.disabled = true;
+
+  if (stateLabel) {
+    stateLabel.textContent = "画像を追加しています…";
+  }
+
+  try {
+    const form = new FormData();
+
+    form.append("file", file);
+
+    form.append("upload_preset", "caremate_upload");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
+      {
+        method: "POST",
+
+        body: form,
+      },
     );
 
+    const data = await response.json();
+
+    if (!response.ok || !data.secure_url) {
+      throw new Error(data.error?.message || "アップロードに失敗しました。");
+    }
+
+    const asset = {
+      id: createImageId(),
+
+      url: data.secure_url,
+
+      publicId: data.public_id || "",
+
+      width: Number(data.width || 0),
+
+      height: Number(data.height || 0),
+    };
+
+    const nextImages = [...(note.images || []), asset];
+
+    const nextPlacedImages = [
+      ...getPlacedImages(note),
+      createDefaultPlacement(asset, getPlacedImages(note).length),
+    ];
+
+    note.images = nextImages;
+
+    note.placedImages = nextPlacedImages;
+
+    renderImages();
+
+    renderPlacedImages();
+
+    await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+      images: nextImages,
+
+      placedImages: nextPlacedImages,
+
+      updatedAt: serverTimestamp(),
+    });
+
+    if (stateLabel) {
+      stateLabel.textContent =
+        "画像を追加しました。ドラッグで自由に移動、周囲の8個の丸で大きさを変更できます。";
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (stateLabel) {
+      stateLabel.textContent = "画像を追加できませんでした。";
+    }
+
+    alert(
+      `写真を追加できませんでした。\n${
+        error.message || "通信を確認して、もう一度お試しください。"
+      }`,
+    );
+  } finally {
+    event.target.value = "";
+
+    event.target.disabled = false;
+  }
 }
 
+function renderImages() {
+  const list = $("noteImageList");
 
-async function uploadNoteImage(
-    event
-){
+  if (!list) {
+    return;
+  }
 
-    const note=
-        current();
+  const note = current();
 
+  const images = note?.images || [];
 
-    const file=
-        event.target
-            .files?.[0];
+  if (!images.length) {
+    list.innerHTML = "";
 
+    return;
+  }
 
-    const stateLabel=
-        $("noteImageState");
-
-
-    if(!note){
-
-        alert(
-            "先にノートを作成してください。"
-        );
-
-        return;
-
-    }
-
-
-    if(!file){
-
-        return;
-
-    }
-
-
-    if(
-        !file.type.startsWith(
-            "image/"
-        )
-    ){
-
-        alert(
-            "画像ファイルを選んでください。"
-        );
-
-        return;
-
-    }
-
-
-    if(
-        file.size>
-        50*
-        1024*
-        1024
-    ){
-
-        alert(
-            "50MB以下の画像を選んでください。"
-        );
-
-        return;
-
-    }
-
-
-    event.target.disabled=
-        true;
-
-
-    if(stateLabel){
-
-        stateLabel.textContent=
-            "画像を追加しています…";
-
-    }
-
-
-    try{
-
-        const form=
-            new FormData();
-
-
-        form.append(
-            "file",
-            file
-        );
-
-
-        form.append(
-            "upload_preset",
-            "caremate_upload"
-        );
-
-
-        const response=
-            await fetch(
-                "https://api.cloudinary.com/v1_1/vpctonjf/image/upload",
-                {
-                    method:
-                        "POST",
-
-                    body:
-                        form
-                }
-            );
-
-
-        const data=
-            await response.json();
-
-
-        if(
-            !response.ok||
-            !data.secure_url
-        ){
-
-            throw new Error(
-                data.error
-                    ?.message||
-                "アップロードに失敗しました。"
-            );
-
-        }
-
-
-        const asset={
-
-            id:
-                createImageId(),
-
-            url:
-                data.secure_url,
-
-            publicId:
-                data.public_id||
-                "",
-
-            width:
-                Number(
-                    data.width||
-                    0
-                ),
-
-            height:
-                Number(
-                    data.height||
-                    0
-                )
-
-        };
-
-
-        const nextImages=[
-            ...(
-                note.images||
-                []
-            ),
-            asset
-        ];
-
-
-        const nextPlacedImages=[
-            ...getPlacedImages(
-                note
-            ),
-            createDefaultPlacement(
-                asset,
-                getPlacedImages(
-                    note
-                ).length
-            )
-        ];
-
-
-        note.images=
-            nextImages;
-
-
-        note.placedImages=
-            nextPlacedImages;
-
-
-        renderImages();
-
-        renderPlacedImages();
-
-
-        await updateDoc(
-            doc(
-                db,
-                "digitalNotes",
-                "2510044",
-                "notes",
-                note.id
-            ),
-            {
-
-                images:
-                    nextImages,
-
-                placedImages:
-                    nextPlacedImages,
-
-                updatedAt:
-                    serverTimestamp()
-
-            }
-        );
-
-
-        if(stateLabel){
-
-            stateLabel.textContent=
-                "画像を追加しました。ドラッグで自由に移動、周囲の8個の丸で大きさを変更できます。";
-
-        }
-
-
-    }catch(error){
-
-        console.error(
-            error
-        );
-
-
-        if(stateLabel){
-
-            stateLabel.textContent=
-                "画像を追加できませんでした。";
-
-        }
-
-
-        alert(
-            `写真を追加できませんでした。\n${
-                error.message||
-                "通信を確認して、もう一度お試しください。"
-            }`
-        );
-
-
-    }finally{
-
-        event.target.value="";
-
-        event.target.disabled=
-            false;
-
-    }
-
-}
-
-
-function renderImages(){
-
-    const list=
-        $("noteImageList");
-
-
-    if(!list){
-
-        return;
-
-    }
-
-
-    const note=
-        current();
-
-
-    const images=
-        note?.images||
-        [];
-
-
-    if(
-        !images.length
-    ){
-
-        list.innerHTML="";
-
-        return;
-
-    }
-
-
-    list.innerHTML=
-        images
-            .map(
-                (
-                    image,
-                    index
-                )=>`
+  list.innerHTML = images
+    .map(
+      (image, index) => `
 
                     <div
                         class="note-image-card"
                         data-image-index="${index}">
 
                         <img
-                            src="${escapeHtml(
-                                image.url
-                            )}"
+                            src="${escapeHtml(image.url)}"
                             alt="添付画像"
                             draggable="false">
 
@@ -1251,453 +665,191 @@ function renderImages(){
 
                     </div>
 
-                `
-            )
-            .join("");
+                `,
+    )
+    .join("");
 
+  list.querySelectorAll("[data-image-delete]").forEach((button) => {
+    button.onclick = (event) => {
+      event.preventDefault();
 
-    list
-        .querySelectorAll(
-            "[data-image-delete]"
-        )
-        .forEach(
-            button=>{
+      event.stopPropagation();
 
-                button.onclick=
-                    event=>{
+      removeAttachmentImage(Number(button.dataset.imageDelete));
+    };
+  });
 
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-
-                        removeAttachmentImage(
-                            Number(
-                                button.dataset
-                                    .imageDelete
-                            )
-                        );
-
-                    };
-
-            }
-        );
-
-
-    /*
+  /*
     長押し画像メニューを出さない。
     */
-    list.oncontextmenu=
-        event=>
-            event.preventDefault();
-
+  list.oncontextmenu = (event) => event.preventDefault();
 }
 
+function createImageId() {
+  if (window.crypto?.randomUUID) {
+    return crypto.randomUUID();
+  }
 
-function createImageId(){
-
-    if(
-        window.crypto
-            ?.randomUUID
-    ){
-
-        return crypto.randomUUID();
-
-    }
-
-
-    return (
-        `note-image-${Date.now()}-`+
-        Math.random()
-            .toString(36)
-            .slice(2)
-    );
-
+  return `note-image-${Date.now()}-` + Math.random().toString(36).slice(2);
 }
 
+function getPlacedImages(note) {
+  if (!note) {
+    return [];
+  }
 
-function getPlacedImages(
-    note
-){
+  if (!Array.isArray(note.placedImages)) {
+    note.placedImages = [];
+  }
 
-    if(!note){
-
-        return [];
-
-    }
-
-
-    if(
-        !Array.isArray(
-            note.placedImages
-        )
-    ){
-
-        note.placedImages=[];
-
-    }
-
-
-    return note.placedImages;
-
+  return note.placedImages;
 }
 
+function createDefaultPlacement(asset, index = 0) {
+  const layer = $("noteImageLayer");
 
-function createDefaultPlacement(
-    asset,
-    index=0
-){
+  const layerWidth = layer?.clientWidth || 700;
 
-    const layer=
-        $("noteImageLayer");
+  const layerHeight = layer?.clientHeight || 560;
 
+  const imageWidth = Number(asset.width || 0);
 
-    const layerWidth=
-        layer?.clientWidth||
-        700;
+  const imageHeight = Number(asset.height || 0);
 
+  const ratio =
+    imageWidth > 0 && imageHeight > 0 ? imageWidth / imageHeight : 4 / 3;
 
-    const layerHeight=
-        layer?.clientHeight||
-        560;
+  const widthPercent = 42;
 
+  const pixelWidth = (layerWidth * widthPercent) / 100;
 
-    const imageWidth=
-        Number(
-            asset.width||
-            0
-        );
+  const pixelHeight = pixelWidth / ratio;
 
+  const heightPercent = Math.min(
+    70,
+    Math.max(15, (pixelHeight / layerHeight) * 100),
+  );
 
-    const imageHeight=
-        Number(
-            asset.height||
-            0
-        );
+  return {
+    id: createImageId(),
 
+    assetId: asset.id || "",
 
-    const ratio=
-        imageWidth>0&&
-        imageHeight>0
-            ? imageWidth/
-              imageHeight
-            : 4/3;
+    url: asset.url,
 
+    publicId: asset.publicId || "",
 
-    const widthPercent=
-        42;
+    x: Math.min(10 + index * 4, 45),
 
+    y: Math.min(8 + index * 5, 55),
 
-    const pixelWidth=
-        layerWidth*
-        widthPercent/
-        100;
+    width: widthPercent,
 
-
-    const pixelHeight=
-        pixelWidth/
-        ratio;
-
-
-    const heightPercent=
-        Math.min(
-            70,
-            Math.max(
-                15,
-                pixelHeight/
-                layerHeight*
-                100
-            )
-        );
-
-
-    return{
-
-        id:
-            createImageId(),
-
-        assetId:
-            asset.id||
-            "",
-
-        url:
-            asset.url,
-
-        publicId:
-            asset.publicId||
-            "",
-
-        x:
-            Math.min(
-                10+
-                index*
-                4,
-                45
-            ),
-
-        y:
-            Math.min(
-                8+
-                index*
-                5,
-                55
-            ),
-
-        width:
-            widthPercent,
-
-        height:
-            heightPercent
-
-    };
-
+    height: heightPercent,
+  };
 }
-
 
 /*
 旧bodyHtmlの中にある画像を
 contenteditable外へ移行する。
 */
-function migrateLegacyInlineImages(
-    note
-){
+function migrateLegacyInlineImages(note) {
+  if (!note || !note.bodyHtml) {
+    return;
+  }
 
-    if(
-        !note||
-        !note.bodyHtml
-    ){
+  const container = document.createElement("div");
 
-        return;
+  container.innerHTML = note.bodyHtml;
 
+  const oldImages = [...container.querySelectorAll("img")];
+
+  if (!oldImages.length) {
+    return;
+  }
+
+  const assets = [...(note.images || [])];
+
+  const placements = [...getPlacedImages(note)];
+
+  oldImages.forEach((image, index) => {
+    const url = image.getAttribute("src") || image.src;
+
+    if (!url) {
+      image.remove();
+
+      return;
     }
 
+    let asset = assets.find((item) => item.url === url);
 
-    const container=
-        document.createElement(
-            "div"
-        );
+    if (!asset) {
+      asset = {
+        id: createImageId(),
 
+        url,
 
-    container.innerHTML=
-        note.bodyHtml;
+        publicId: "",
 
+        width: 0,
 
-    const oldImages=[
-        ...container
-            .querySelectorAll(
-                "img"
-            )
-    ];
+        height: 0,
+      };
 
-
-    if(
-        !oldImages.length
-    ){
-
-        return;
-
+      assets.push(asset);
     }
 
-
-    const assets=[
-        ...(
-            note.images||
-            []
-        )
-    ];
-
-
-    const placements=[
-        ...getPlacedImages(
-            note
-        )
-    ];
-
-
-    oldImages.forEach(
-        (
-            image,
-            index
-        )=>{
-
-            const url=
-                image.getAttribute(
-                    "src"
-                )||
-                image.src;
-
-
-            if(!url){
-
-                image.remove();
-
-                return;
-
-            }
-
-
-            let asset=
-                assets.find(
-                    item=>
-                        item.url===
-                        url
-                );
-
-
-            if(!asset){
-
-                asset={
-
-                    id:
-                        createImageId(),
-
-                    url,
-
-                    publicId:
-                        "",
-
-                    width:
-                        0,
-
-                    height:
-                        0
-
-                };
-
-
-                assets.push(
-                    asset
-                );
-
-            }
-
-
-            const alreadyPlaced=
-                placements.some(
-                    item=>
-                        item.assetId===
-                        asset.id||
-                        item.url===
-                        url
-                );
-
-
-            if(
-                !alreadyPlaced
-            ){
-
-                placements.push(
-                    createDefaultPlacement(
-                        asset,
-                        index
-                    )
-                );
-
-            }
-
-
-            /*
-            旧画像を本文から完全に外す。
-            */
-            image.remove();
-
-        }
+    const alreadyPlaced = placements.some(
+      (item) => item.assetId === asset.id || item.url === url,
     );
 
-
-    note.images=
-        assets;
-
-
-    note.placedImages=
-        placements;
-
-
-    note.bodyHtml=
-        container.innerHTML;
-
-}
-
-
-function renderPlacedImages(){
-
-    const layer=
-        $("noteImageLayer");
-
-
-    const note=
-        current();
-
-
-    if(
-        !layer||
-        !note
-    ){
-
-        return;
-
+    if (!alreadyPlaced) {
+      placements.push(createDefaultPlacement(asset, index));
     }
 
+    /*
+            旧画像を本文から完全に外す。
+            */
+    image.remove();
+  });
 
-    const placements=
-        getPlacedImages(
-            note
-        );
+  note.images = assets;
 
+  note.placedImages = placements;
 
-    layer.innerHTML=
-        placements
-            .map(
-                placement=>{
+  note.bodyHtml = container.innerHTML;
+}
 
-                    const x=
-                        clampNumber(
-                            placement.x,
-                            0,
-                            95
-                        );
+function renderPlacedImages() {
+  const layer = $("noteImageLayer");
 
+  const note = current();
 
-                    const y=
-                        clampNumber(
-                            placement.y,
-                            0,
-                            95
-                        );
+  if (!layer || !note) {
+    return;
+  }
 
+  const placements = getPlacedImages(note);
 
-                    const width=
-                        clampNumber(
-                            placement.width,
-                            10,
-                            95
-                        );
+  layer.innerHTML = placements
+    .map((placement) => {
+      const x = clampNumber(placement.x, 0, 95);
 
+      const y = clampNumber(placement.y, 0, 95);
 
-                    const height=
-                        clampNumber(
-                            placement.height,
-                            10,
-                            95
-                        );
+      const width = clampNumber(placement.width, 10, 95);
 
+      const height = clampNumber(placement.height, 10, 95);
 
-                    const selected=
-                        state.selectedPlacedImageId===
-                        placement.id;
+      const selected = state.selectedPlacedImageId === placement.id;
 
-
-                    return`
+      return `
 
                         <div
                             class="placed-note-image ${
-                                selected
-                                    ? "is-selected"
-                                    : ""
+                              selected ? "is-selected" : ""
                             }"
-                            data-placement-id="${escapeHtml(
-                                placement.id
-                            )}"
+                            data-placement-id="${escapeHtml(placement.id)}"
                             style="
                                 left:${x}%;
                                 top:${y}%;
@@ -1706,9 +858,7 @@ function renderPlacedImages(){
                             ">
 
                             <img
-                                src="${escapeHtml(
-                                    placement.url
-                                )}"
+                                src="${escapeHtml(placement.url)}"
                                 alt="ノート画像"
                                 draggable="false">
 
@@ -1724,2890 +874,1273 @@ function renderPlacedImages(){
                         </div>
 
                     `;
+    })
+    .join("");
 
-                }
-            )
-            .join("");
+  const nodes = [...layer.querySelectorAll(".placed-note-image")];
 
-
-    const nodes=[
-        ...layer.querySelectorAll(
-            ".placed-note-image"
-        )
-    ];
-
-
-    placements.forEach(
-        placement=>{
-
-            const node=
-                nodes.find(
-                    element=>
-                        element.dataset
-                            .placementId===
-                        placement.id
-                );
-
-
-            if(!node){
-
-                return;
-
-            }
-
-
-            setupPlacedImageInteraction(
-                node,
-                placement
-            );
-
-        }
+  placements.forEach((placement) => {
+    const node = nodes.find(
+      (element) => element.dataset.placementId === placement.id,
     );
 
+    if (!node) {
+      return;
+    }
 
-    layer.oncontextmenu=
-        event=>
-            event.preventDefault();
+    setupPlacedImageInteraction(node, placement);
+  });
 
+  layer.oncontextmenu = (event) => event.preventDefault();
 }
 
+function selectPlacedImage(placementId) {
+  state.selectedPlacedImageId = placementId;
 
-function selectPlacedImage(
-    placementId
-){
-
-    state.selectedPlacedImageId=
-        placementId;
-
-
-    document
-        .querySelectorAll(
-            ".placed-note-image"
-        )
-        .forEach(
-            element=>{
-
-                element.classList.toggle(
-                    "is-selected",
-                    element.dataset
-                        .placementId===
-                    placementId
-                );
-
-            }
-        );
-
+  document.querySelectorAll(".placed-note-image").forEach((element) => {
+    element.classList.toggle(
+      "is-selected",
+      element.dataset.placementId === placementId,
+    );
+  });
 }
 
+function deselectPlacedImages() {
+  state.selectedPlacedImageId = null;
 
-function deselectPlacedImages(){
-
-    state.selectedPlacedImageId=
-        null;
-
-
-    document
-        .querySelectorAll(
-            ".placed-note-image"
-        )
-        .forEach(
-            element=>{
-
-                element.classList.remove(
-                    "is-selected"
-                );
-
-            }
-        );
-
+  document.querySelectorAll(".placed-note-image").forEach((element) => {
+    element.classList.remove("is-selected");
+  });
 }
 
-
-function renderResizeHandles(){
-
-    return[
-        "nw",
-        "n",
-        "ne",
-        "e",
-        "se",
-        "s",
-        "sw",
-        "w"
-    ]
-        .map(
-            direction=>`
+function renderResizeHandles() {
+  return ["nw", "n", "ne", "e", "se", "s", "sw", "w"]
+    .map(
+      (direction) => `
 
                 <span
                     class="image-resize-handle"
                     data-direction="${direction}">
                 </span>
 
-            `
-        )
-        .join("");
-
+            `,
+    )
+    .join("");
 }
 
+function setupPlacedImageInteraction(node, placement) {
+  const removeButton = node.querySelector(".placed-image-remove");
 
-function setupPlacedImageInteraction(
-    node,
-    placement
-){
+  removeButton?.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
 
-    const removeButton=
-        node.querySelector(
-            ".placed-image-remove"
-        );
+    event.stopPropagation();
+  });
 
+  removeButton?.addEventListener("click", (event) => {
+    event.preventDefault();
 
-    removeButton?.addEventListener(
-        "pointerdown",
-        event=>{
+    event.stopPropagation();
 
-            event.preventDefault();
+    removePlacedImage(placement.id);
+  });
 
-            event.stopPropagation();
-
-        }
-    );
-
-
-    removeButton?.addEventListener(
-        "click",
-        event=>{
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-
-            removePlacedImage(
-                placement.id
-            );
-
-        }
-    );
-
-
-    /*
+  /*
     ブラウザ標準の画像ドラッグや選択を禁止。
     */
-    node.addEventListener(
-        "dragstart",
-        event=>
-            event.preventDefault()
-    );
+  node.addEventListener("dragstart", (event) => event.preventDefault());
 
+  node.addEventListener("selectstart", (event) => event.preventDefault());
 
-    node.addEventListener(
-        "selectstart",
-        event=>
-            event.preventDefault()
-    );
+  node.addEventListener("contextmenu", (event) => event.preventDefault());
 
-
-    node.addEventListener(
-        "contextmenu",
-        event=>
-            event.preventDefault()
-    );
-
-
-    /*
+  /*
     画像本体ドラッグ = 移動
     */
-    node.addEventListener(
-        "pointerdown",
-        event=>{
-
-            /*
+  node.addEventListener("pointerdown", (event) => {
+    /*
             まず画像を選択。
             ×とリサイズ丸を表示する。
             */
-            selectPlacedImage(
-                placement.id
-            );
+    selectPlacedImage(placement.id);
 
+    if (
+      event.target.closest(".placed-image-remove") ||
+      event.target.closest(".image-resize-handle")
+    ) {
+      return;
+    }
 
-            if(
-                event.target.closest(
-                    ".placed-image-remove"
-                )||
-                event.target.closest(
-                    ".image-resize-handle"
-                )
-            ){
+    startImageMove(event, node, placement);
+  });
 
-                return;
-
-            }
-
-
-            startImageMove(
-                event,
-                node,
-                placement
-            );
-
-        }
-    );
-
-
-    /*
+  /*
     8方向リサイズ
     */
-    node
-        .querySelectorAll(
-            ".image-resize-handle"
-        )
-        .forEach(
-            handle=>{
+  node.querySelectorAll(".image-resize-handle").forEach((handle) => {
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
 
-                handle.addEventListener(
-                    "pointerdown",
-                    event=>{
+      event.stopPropagation();
 
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-
-                        startImageResize(
-                            event,
-                            node,
-                            placement,
-                            handle.dataset
-                                .direction
-                        );
-
-                    }
-                );
-
-            }
-        );
-
+      startImageResize(event, node, placement, handle.dataset.direction);
+    });
+  });
 }
 
+function startImageMove(event, node, placement) {
+  event.preventDefault();
 
-function startImageMove(
-    event,
-    node,
-    placement
-){
+  const layer = $("noteImageLayer");
 
-    event.preventDefault();
+  if (!layer) {
+    return;
+  }
 
+  const startPointerX = event.clientX;
 
-    const layer=
-        $("noteImageLayer");
+  const startPointerY = event.clientY;
 
+  const startLeft = node.offsetLeft;
 
-    if(!layer){
+  const startTop = node.offsetTop;
 
-        return;
+  node.classList.add("is-moving");
 
+  const move = (moveEvent) => {
+    moveEvent.preventDefault();
+
+    const deltaX = moveEvent.clientX - startPointerX;
+
+    const deltaY = moveEvent.clientY - startPointerY;
+
+    const maxLeft = Math.max(0, layer.clientWidth - node.offsetWidth);
+
+    const maxTop = Math.max(0, layer.clientHeight - node.offsetHeight);
+
+    const left = clampNumber(startLeft + deltaX, 0, maxLeft);
+
+    const top = clampNumber(startTop + deltaY, 0, maxTop);
+
+    node.style.left = `${left}px`;
+
+    node.style.top = `${top}px`;
+
+    placement.x = layer.clientWidth ? (left / layer.clientWidth) * 100 : 0;
+
+    placement.y = layer.clientHeight ? (top / layer.clientHeight) * 100 : 0;
+  };
+
+  const finish = () => {
+    node.classList.remove("is-moving");
+
+    window.removeEventListener("pointermove", move);
+
+    window.removeEventListener("pointerup", finish);
+
+    window.removeEventListener("pointercancel", finish);
+
+    const note = current();
+
+    if (note) {
+      persistImageState(note);
     }
+  };
 
+  window.addEventListener("pointermove", move, {
+    passive: false,
+  });
 
-    const startPointerX=
-        event.clientX;
+  window.addEventListener("pointerup", finish, {
+    once: true,
+  });
 
-
-    const startPointerY=
-        event.clientY;
-
-
-    const startLeft=
-        node.offsetLeft;
-
-
-    const startTop=
-        node.offsetTop;
-
-
-    node.classList.add(
-        "is-moving"
-    );
-
-
-    const move=
-        moveEvent=>{
-
-            moveEvent.preventDefault();
-
-
-            const deltaX=
-                moveEvent.clientX-
-                startPointerX;
-
-
-            const deltaY=
-                moveEvent.clientY-
-                startPointerY;
-
-
-            const maxLeft=
-                Math.max(
-                    0,
-                    layer.clientWidth-
-                    node.offsetWidth
-                );
-
-
-            const maxTop=
-                Math.max(
-                    0,
-                    layer.clientHeight-
-                    node.offsetHeight
-                );
-
-
-            const left=
-                clampNumber(
-                    startLeft+
-                    deltaX,
-                    0,
-                    maxLeft
-                );
-
-
-            const top=
-                clampNumber(
-                    startTop+
-                    deltaY,
-                    0,
-                    maxTop
-                );
-
-
-            node.style.left=
-                `${left}px`;
-
-
-            node.style.top=
-                `${top}px`;
-
-
-            placement.x=
-                layer.clientWidth
-                    ? left/
-                      layer.clientWidth*
-                      100
-                    : 0;
-
-
-            placement.y=
-                layer.clientHeight
-                    ? top/
-                      layer.clientHeight*
-                      100
-                    : 0;
-
-        };
-
-
-    const finish=
-        ()=>{
-
-            node.classList.remove(
-                "is-moving"
-            );
-
-
-            window.removeEventListener(
-                "pointermove",
-                move
-            );
-
-
-            window.removeEventListener(
-                "pointerup",
-                finish
-            );
-
-
-            window.removeEventListener(
-                "pointercancel",
-                finish
-            );
-
-
-            const note=
-                current();
-
-
-            if(note){
-
-                persistImageState(
-                    note
-                );
-
-            }
-
-        };
-
-
-    window.addEventListener(
-        "pointermove",
-        move,
-        {
-            passive:false
-        }
-    );
-
-
-    window.addEventListener(
-        "pointerup",
-        finish,
-        {
-            once:true
-        }
-    );
-
-
-    window.addEventListener(
-        "pointercancel",
-        finish,
-        {
-            once:true
-        }
-    );
-
+  window.addEventListener("pointercancel", finish, {
+    once: true,
+  });
 }
 
+function startImageResize(event, node, placement, direction) {
+  event.preventDefault();
 
-function startImageResize(
-    event,
-    node,
-    placement,
-    direction
-){
+  const layer = $("noteImageLayer");
 
-    event.preventDefault();
+  if (!layer) {
+    return;
+  }
 
+  const startPointerX = event.clientX;
 
-    const layer=
-        $("noteImageLayer");
+  const startPointerY = event.clientY;
 
+  const startLeft = node.offsetLeft;
 
-    if(!layer){
+  const startTop = node.offsetTop;
 
-        return;
+  const startWidth = node.offsetWidth;
 
-    }
+  const startHeight = node.offsetHeight;
 
+  const minimumWidth = 72;
 
-    const startPointerX=
-        event.clientX;
+  const minimumHeight = 60;
 
+  node.classList.add("is-resizing");
 
-    const startPointerY=
-        event.clientY;
+  const move = (moveEvent) => {
+    moveEvent.preventDefault();
 
+    const dx = moveEvent.clientX - startPointerX;
 
-    const startLeft=
-        node.offsetLeft;
+    const dy = moveEvent.clientY - startPointerY;
 
+    let left = startLeft;
 
-    const startTop=
-        node.offsetTop;
+    let top = startTop;
 
+    let width = startWidth;
 
-    const startWidth=
-        node.offsetWidth;
-
-
-    const startHeight=
-        node.offsetHeight;
-
-
-    const minimumWidth=
-        72;
-
-
-    const minimumHeight=
-        60;
-
-
-    node.classList.add(
-        "is-resizing"
-    );
-
-
-    const move=
-        moveEvent=>{
-
-            moveEvent.preventDefault();
-
-
-            const dx=
-                moveEvent.clientX-
-                startPointerX;
-
-
-            const dy=
-                moveEvent.clientY-
-                startPointerY;
-
-
-            let left=
-                startLeft;
-
-
-            let top=
-                startTop;
-
-
-            let width=
-                startWidth;
-
-
-            let height=
-                startHeight;
-
-
-            /*
-            右
-            */
-            if(
-                direction.includes(
-                    "e"
-                )
-            ){
-
-                width=
-                    startWidth+
-                    dx;
-
-            }
-
-
-            /*
-            左
-            */
-            if(
-                direction.includes(
-                    "w"
-                )
-            ){
-
-                width=
-                    startWidth-
-                    dx;
-
-
-                left=
-                    startLeft+
-                    dx;
-
-            }
-
-
-            /*
-            下
-            */
-            if(
-                direction.includes(
-                    "s"
-                )
-            ){
-
-                height=
-                    startHeight+
-                    dy;
-
-            }
-
-
-            /*
-            上
-            */
-            if(
-                direction.includes(
-                    "n"
-                )
-            ){
-
-                height=
-                    startHeight-
-                    dy;
-
-
-                top=
-                    startTop+
-                    dy;
-
-            }
-
-
-            /*
-            最小サイズ
-            */
-            if(
-                width<
-                minimumWidth
-            ){
-
-                if(
-                    direction.includes(
-                        "w"
-                    )
-                ){
-
-                    left=
-                        startLeft+
-                        startWidth-
-                        minimumWidth;
-
-                }
-
-
-                width=
-                    minimumWidth;
-
-            }
-
-
-            if(
-                height<
-                minimumHeight
-            ){
-
-                if(
-                    direction.includes(
-                        "n"
-                    )
-                ){
-
-                    top=
-                        startTop+
-                        startHeight-
-                        minimumHeight;
-
-                }
-
-
-                height=
-                    minimumHeight;
-
-            }
-
-
-            /*
-            左上を領域内へ。
-            */
-            if(
-                left<0
-            ){
-
-                if(
-                    direction.includes(
-                        "w"
-                    )
-                ){
-
-                    width+=
-                        left;
-
-                }
-
-
-                left=0;
-
-            }
-
-
-            if(
-                top<0
-            ){
-
-                if(
-                    direction.includes(
-                        "n"
-                    )
-                ){
-
-                    height+=
-                        top;
-
-                }
-
-
-                top=0;
-
-            }
-
-
-            /*
-            右端を超えない。
-            */
-            if(
-                left+
-                width>
-                layer.clientWidth
-            ){
-
-                width=
-                    layer.clientWidth-
-                    left;
-
-            }
-
-
-            /*
-            下端を超えない。
-            */
-            if(
-                top+
-                height>
-                layer.clientHeight
-            ){
-
-                height=
-                    layer.clientHeight-
-                    top;
-
-            }
-
-
-            width=
-                Math.max(
-                    minimumWidth,
-                    width
-                );
-
-
-            height=
-                Math.max(
-                    minimumHeight,
-                    height
-                );
-
-
-            node.style.left=
-                `${left}px`;
-
-
-            node.style.top=
-                `${top}px`;
-
-
-            node.style.width=
-                `${width}px`;
-
-
-            node.style.height=
-                `${height}px`;
-
-
-            placement.x=
-                layer.clientWidth
-                    ? left/
-                      layer.clientWidth*
-                      100
-                    : 0;
-
-
-            placement.y=
-                layer.clientHeight
-                    ? top/
-                      layer.clientHeight*
-                      100
-                    : 0;
-
-
-            placement.width=
-                layer.clientWidth
-                    ? width/
-                      layer.clientWidth*
-                      100
-                    : placement.width;
-
-
-            placement.height=
-                layer.clientHeight
-                    ? height/
-                      layer.clientHeight*
-                      100
-                    : placement.height;
-
-        };
-
-
-    const finish=
-        ()=>{
-
-            node.classList.remove(
-                "is-resizing"
-            );
-
-
-            window.removeEventListener(
-                "pointermove",
-                move
-            );
-
-
-            window.removeEventListener(
-                "pointerup",
-                finish
-            );
-
-
-            window.removeEventListener(
-                "pointercancel",
-                finish
-            );
-
-
-            const note=
-                current();
-
-
-            if(note){
-
-                persistImageState(
-                    note
-                );
-
-            }
-
-        };
-
-
-    window.addEventListener(
-        "pointermove",
-        move,
-        {
-            passive:false
-        }
-    );
-
-
-    window.addEventListener(
-        "pointerup",
-        finish,
-        {
-            once:true
-        }
-    );
-
-
-    window.addEventListener(
-        "pointercancel",
-        finish,
-        {
-            once:true
-        }
-    );
-
-}
-
-
-async function removePlacedImage(
-    placementId
-){
-
-    const note=
-        current();
-
-
-    if(!note){
-
-        return;
-
-    }
-
-
-    const placement=
-        getPlacedImages(
-            note
-        ).find(
-            item=>
-                item.id===
-                placementId
-        );
-
-
-    if(!placement){
-
-        return;
-
-    }
-
-
-    if(
-        state.selectedPlacedImageId===
-        placementId
-    ){
-
-        state.selectedPlacedImageId=
-            null;
-
-    }
-
+    let height = startHeight;
 
     /*
+            右
+            */
+    if (direction.includes("e")) {
+      width = startWidth + dx;
+    }
+
+    /*
+            左
+            */
+    if (direction.includes("w")) {
+      width = startWidth - dx;
+
+      left = startLeft + dx;
+    }
+
+    /*
+            下
+            */
+    if (direction.includes("s")) {
+      height = startHeight + dy;
+    }
+
+    /*
+            上
+            */
+    if (direction.includes("n")) {
+      height = startHeight - dy;
+
+      top = startTop + dy;
+    }
+
+    /*
+            最小サイズ
+            */
+    if (width < minimumWidth) {
+      if (direction.includes("w")) {
+        left = startLeft + startWidth - minimumWidth;
+      }
+
+      width = minimumWidth;
+    }
+
+    if (height < minimumHeight) {
+      if (direction.includes("n")) {
+        top = startTop + startHeight - minimumHeight;
+      }
+
+      height = minimumHeight;
+    }
+
+    /*
+            左上を領域内へ。
+            */
+    if (left < 0) {
+      if (direction.includes("w")) {
+        width += left;
+      }
+
+      left = 0;
+    }
+
+    if (top < 0) {
+      if (direction.includes("n")) {
+        height += top;
+      }
+
+      top = 0;
+    }
+
+    /*
+            右端を超えない。
+            */
+    if (left + width > layer.clientWidth) {
+      width = layer.clientWidth - left;
+    }
+
+    /*
+            下端を超えない。
+            */
+    if (top + height > layer.clientHeight) {
+      height = layer.clientHeight - top;
+    }
+
+    width = Math.max(minimumWidth, width);
+
+    height = Math.max(minimumHeight, height);
+
+    node.style.left = `${left}px`;
+
+    node.style.top = `${top}px`;
+
+    node.style.width = `${width}px`;
+
+    node.style.height = `${height}px`;
+
+    placement.x = layer.clientWidth ? (left / layer.clientWidth) * 100 : 0;
+
+    placement.y = layer.clientHeight ? (top / layer.clientHeight) * 100 : 0;
+
+    placement.width = layer.clientWidth
+      ? (width / layer.clientWidth) * 100
+      : placement.width;
+
+    placement.height = layer.clientHeight
+      ? (height / layer.clientHeight) * 100
+      : placement.height;
+  };
+
+  const finish = () => {
+    node.classList.remove("is-resizing");
+
+    window.removeEventListener("pointermove", move);
+
+    window.removeEventListener("pointerup", finish);
+
+    window.removeEventListener("pointercancel", finish);
+
+    const note = current();
+
+    if (note) {
+      persistImageState(note);
+    }
+  };
+
+  window.addEventListener("pointermove", move, {
+    passive: false,
+  });
+
+  window.addEventListener("pointerup", finish, {
+    once: true,
+  });
+
+  window.addEventListener("pointercancel", finish, {
+    once: true,
+  });
+}
+
+async function removePlacedImage(placementId) {
+  const note = current();
+
+  if (!note) {
+    return;
+  }
+
+  const placement = getPlacedImages(note).find(
+    (item) => item.id === placementId,
+  );
+
+  if (!placement) {
+    return;
+  }
+
+  if (state.selectedPlacedImageId === placementId) {
+    state.selectedPlacedImageId = null;
+  }
+
+  /*
     ×を押した時だけ
     画像を削除する。
     */
-    note.placedImages=
-        getPlacedImages(
-            note
-        ).filter(
-            item=>
-                item.id!==
-                placementId
-        );
+  note.placedImages = getPlacedImages(note).filter(
+    (item) => item.id !== placementId,
+  );
 
-
-    /*
+  /*
     同じ画像が他の配置で使われているか確認。
     */
-    const stillUsed=
-        note.placedImages.some(
-            item=>
-                (
-                    placement.assetId&&
-                    item.assetId===
-                    placement.assetId
-                )||
-                item.url===
-                placement.url
-        );
+  const stillUsed = note.placedImages.some(
+    (item) =>
+      (placement.assetId && item.assetId === placement.assetId) ||
+      item.url === placement.url,
+  );
 
+  if (!stillUsed) {
+    note.images = (note.images || []).filter((image) => {
+      if (placement.assetId && image.id === placement.assetId) {
+        return false;
+      }
 
-    if(
-        !stillUsed
-    ){
+      return image.url !== placement.url;
+    });
+  }
 
-        note.images=
-            (
-                note.images||
-                []
-            ).filter(
-                image=>{
+  renderPlacedImages();
 
-                    if(
-                        placement.assetId&&
-                        image.id===
-                        placement.assetId
-                    ){
+  renderImages();
 
-                        return false;
-
-                    }
-
-
-                    return (
-                        image.url!==
-                        placement.url
-                    );
-
-                }
-            );
-
-    }
-
-
-    renderPlacedImages();
-
-    renderImages();
-
-
-    await persistImageState(
-        note
-    );
-
+  await persistImageState(note);
 }
 
+async function removeAttachmentImage(index) {
+  const note = current();
 
-async function removeAttachmentImage(
-    index
-){
+  if (!note) {
+    return;
+  }
 
-    const note=
-        current();
+  const images = [...(note.images || [])];
 
+  const asset = images[index];
 
-    if(!note){
+  if (!asset) {
+    return;
+  }
 
-        return;
+  images.splice(index, 1);
 
-    }
+  note.images = images;
 
-
-    const images=[
-        ...(
-            note.images||
-            []
-        )
-    ];
-
-
-    const asset=
-        images[index];
-
-
-    if(!asset){
-
-        return;
-
-    }
-
-
-    images.splice(
-        index,
-        1
-    );
-
-
-    note.images=
-        images;
-
-
-    /*
+  /*
     下の添付一覧の×を押した場合も
     ノート上から同じ画像を削除。
     */
-    note.placedImages=
-        getPlacedImages(
-            note
-        ).filter(
-            placement=>{
+  note.placedImages = getPlacedImages(note).filter((placement) => {
+    if (asset.id && placement.assetId === asset.id) {
+      return false;
+    }
 
-                if(
-                    asset.id&&
-                    placement.assetId===
-                    asset.id
-                ){
+    return placement.url !== asset.url;
+  });
 
-                    return false;
+  renderImages();
 
-                }
+  renderPlacedImages();
 
+  await persistImageState(note);
+}
 
-                return (
-                    placement.url!==
-                    asset.url
-                );
+async function persistImageState(note) {
+  if (!note?.id) {
+    return;
+  }
 
-            }
-        );
+  try {
+    await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+      images: note.images || [],
 
+      placedImages: getPlacedImages(note),
 
-    renderImages();
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("画像位置の保存に失敗しました。", error);
+  }
+}
 
-    renderPlacedImages();
+function clampNumber(value, minimum, maximum) {
+  const number = Number(value);
 
+  if (!Number.isFinite(number)) {
+    return minimum;
+  }
 
-    await persistImageState(
-        note
+  return Math.min(maximum, Math.max(minimum, number));
+}
+
+async function deleteCurrentNote() {
+  const note = current();
+
+  if (!note) {
+    return alert("削除するノートを選んでください。");
+  }
+
+  if (
+    !confirm(
+      `「${note.title || "無題のノート"}」を削除しますか？\n本文とこの端末の手書きは元に戻せません。`,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(`careMateHandwriting:${note.id}`);
+
+    localStorage.removeItem(`careMatePaper:${note.id}`);
+
+    await deleteDoc(doc(db, "digitalNotes", "2510044", "notes", note.id));
+
+    state.selected = null;
+
+    alert("ノートを削除しました。");
+  } catch (error) {
+    console.error(error);
+
+    alert("ノートを削除できませんでした。");
+  }
+}
+
+function selectPanel(id) {
+  const external = id === "todoPanel";
+
+  $("todoPanel")?.classList.toggle("active", id === "todoPanel");
+
+  const shell = document.querySelector(".note-shell");
+
+  if (shell) {
+    shell.hidden = external;
+  }
+
+  document.querySelectorAll(".workspace-tab").forEach((item) => {
+    item.classList.toggle("active", item.dataset.panel === id);
+  });
+
+  document.querySelectorAll(".workspace-panel").forEach((item) => {
+    item.classList.toggle("active", item.id === id);
+  });
+
+  document.querySelectorAll("[data-feature]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.feature === id);
+  });
+
+  if (id === "typedPanel") {
+    requestAnimationFrame(() => {
+      resizeBoard();
+
+      renderPlacedImages();
+    });
+  }
+}
+
+function setupDrawer() {
+  const drawer = $("noteDrawer");
+
+  const backdrop = $("drawerBackdrop");
+
+  const open = () => {
+    drawer.classList.add("is-open");
+
+    backdrop.classList.add("is-open");
+  };
+
+  const close = () => {
+    drawer.classList.remove("is-open");
+
+    backdrop.classList.remove("is-open");
+  };
+
+  $("noteMenuButton").onclick = open;
+
+  $("closeDrawer").onclick = close;
+
+  backdrop.onclick = close;
+
+  const noteAside = document.querySelector(".note-shell>aside");
+
+  if (noteAside) {
+    $("drawerNotesMount").append(noteAside);
+  }
+
+  document.querySelectorAll("[data-drawer-panel]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        selectPanel(button.dataset.drawerPanel);
+
+        close();
+      }),
+  );
+
+  document.querySelectorAll("[data-drawer-target]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        const target =
+          button.dataset.drawerTarget === "todos"
+            ? $("todoList").closest("section")
+            : $("todoList").closest("section").nextElementSibling;
+
+        target?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+
+        close();
+      }),
+  );
+}
+
+function setupBoard() {
+  const board = $("writingBoard");
+
+  [
+    "pointerdown",
+    "pointermove",
+    "pointerup",
+    "pointercancel",
+    "pointerleave",
+  ].forEach((type) => board.addEventListener(type, drawPointer));
+
+  window.addEventListener("resize", resizeBoard);
+
+  resizeBoard();
+}
+
+function setupUnifiedNote() {
+  const button = $("handwritingMode");
+
+  const overlay = $("inkOverlay");
+
+  if (!button || !overlay) {
+    return;
+  }
+
+  button.onclick = () => {
+    state.inkMode = !state.inkMode;
+
+    overlay.classList.toggle("is-drawing", state.inkMode);
+
+    button.classList.toggle("active", state.inkMode);
+
+    button.textContent = state.inkMode
+      ? "手書き中（押すと文字入力）"
+      : "手書きモード";
+
+    button.title = state.inkMode
+      ? "今はノート上に手書きできます。もう一度押すと文字入力へ戻ります。"
+      : "押すとノート上に手書きできます。";
+  };
+
+  document
+    .querySelectorAll("[data-drawer-panel],[data-drawer-target]")
+    .forEach((item) => item.remove());
+}
+
+async function convertHandwriting() {
+  const button = $("convertHandwriting");
+
+  const board = $("writingBoard");
+
+  if (!window.Tesseract) {
+    return alert(
+      "活字化の準備がまだできていません。接続を確認してもう一度お試しください。",
+    );
+  }
+
+  button.disabled = true;
+
+  button.textContent = "活字化しています…";
+
+  try {
+    const result = await window.Tesseract.recognize(
+      board.toDataURL("image/png"),
+      "jpn",
     );
 
+    const text = result.data.text.trim();
+
+    if (!text) {
+      return alert(
+        "文字を読み取れませんでした。濃く大きく書いてお試しください。",
+      );
+    }
+
+    $("noteBody").value += `${$("noteBody").value ? "\n" : ""}${text}`;
+
+    renderPreview();
+
+    selectPanel("typedPanel");
+
+    alert("読み取った文字を本文へ追加しました。");
+  } catch (error) {
+    console.error(error);
+
+    alert("活字化に失敗しました。手書きはそのまま残っています。");
+  } finally {
+    button.disabled = false;
+
+    button.textContent = "🔤 手書きを活字化して本文へ入れる";
+  }
 }
 
+function resizeBoard() {
+  const board = $("writingBoard");
 
-async function persistImageState(
-    note
-){
+  const rect = board?.getBoundingClientRect();
 
-    if(
-        !note?.id
-    ){
+  if (!board || !rect?.width || !rect?.height) {
+    return;
+  }
 
-        return;
+  const previous = board.toDataURL();
 
-    }
+  const ratio = window.devicePixelRatio || 1;
 
+  const width = Math.round(rect.width * ratio);
 
-    try{
+  const height = Math.round(rect.height * ratio);
 
-        await updateDoc(
-            doc(
-                db,
-                "digitalNotes",
-                "2510044",
-                "notes",
-                note.id
-            ),
-            {
+  if (board.width === width && board.height === height) {
+    return;
+  }
 
-                images:
-                    note.images||
-                    [],
+  board.width = width;
 
-                placedImages:
-                    getPlacedImages(
-                        note
-                    ),
+  board.height = height;
 
-                updatedAt:
-                    serverTimestamp()
+  const ctx = board.getContext("2d");
 
-            }
-        );
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
+  if (previous && previous !== "data:,") {
+    const image = new Image();
 
-    }catch(error){
+    image.onload = () => ctx.drawImage(image, 0, 0, rect.width, rect.height);
 
-        console.error(
-            "画像位置の保存に失敗しました。",
-            error
-        );
-
-    }
-
+    image.src = previous;
+  }
 }
 
+function setDrawTool(tool) {
+  state.drawTool = tool;
 
-function clampNumber(
-    value,
-    minimum,
-    maximum
-){
+  document.querySelectorAll("[data-draw-tool]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.drawTool === tool);
+  });
 
-    const number=
-        Number(
-            value
-        );
-
-
-    if(
-        !Number.isFinite(
-            number
-        )
-    ){
-
-        return minimum;
-
-    }
-
-
-    return Math.min(
-        maximum,
-        Math.max(
-            minimum,
-            number
-        )
-    );
-
+  updateToolSizeLabel();
 }
 
+function configureDrawingTool(ctx, tool, base) {
+  ctx.lineCap = "round";
 
-async function deleteCurrentNote(){
+  ctx.lineJoin = "round";
 
-    const note=
-        current();
-
-
-    if(!note){
-
-        return alert(
-            "削除するノートを選んでください。"
-        );
-
-    }
-
-
-    if(
-        !confirm(
-            `「${note.title||"無題のノート"}」を削除しますか？\n本文とこの端末の手書きは元に戻せません。`
-        )
-    ){
-
-        return;
-
-    }
-
-
-    try{
-
-        localStorage.removeItem(
-            `careMateHandwriting:${note.id}`
-        );
-
-
-        localStorage.removeItem(
-            `careMatePaper:${note.id}`
-        );
-
-
-        await deleteDoc(
-            doc(
-                db,
-                "digitalNotes",
-                "2510044",
-                "notes",
-                note.id
-            )
-        );
-
-
-        state.selected=
-            null;
-
-
-        alert(
-            "ノートを削除しました。"
-        );
-
-
-    }catch(error){
-
-        console.error(
-            error
-        );
-
-
-        alert(
-            "ノートを削除できませんでした。"
-        );
-
-    }
-
-}
-
-
-function selectPanel(
-    id
-){
-
-    const external=
-        id===
-        "todoPanel";
-
-
-    $("todoPanel")
-        ?.classList.toggle(
-            "active",
-            id===
-            "todoPanel"
-        );
-
-
-    const shell=
-        document.querySelector(
-            ".note-shell"
-        );
-
-
-    if(shell){
-
-        shell.hidden=
-            external;
-
-    }
-
-
-    document
-        .querySelectorAll(
-            ".workspace-tab"
-        )
-        .forEach(
-            item=>{
-
-                item.classList.toggle(
-                    "active",
-                    item.dataset.panel===
-                    id
-                );
-
-            }
-        );
-
-
-    document
-        .querySelectorAll(
-            ".workspace-panel"
-        )
-        .forEach(
-            item=>{
-
-                item.classList.toggle(
-                    "active",
-                    item.id===
-                    id
-                );
-
-            }
-        );
-
-
-    document
-        .querySelectorAll(
-            "[data-feature]"
-        )
-        .forEach(
-            item=>{
-
-                item.classList.toggle(
-                    "active",
-                    item.dataset.feature===
-                    id
-                );
-
-            }
-        );
-
-
-    if(
-        id===
-        "typedPanel"
-    ){
-
-        requestAnimationFrame(
-            ()=>{
-
-                resizeBoard();
-
-                renderPlacedImages();
-
-            }
-        );
-
-    }
-
-}
-
-
-function setupDrawer(){
-
-    const drawer=
-        $("noteDrawer");
-
-
-    const backdrop=
-        $("drawerBackdrop");
-
-
-    const open=
-        ()=>{
-
-            drawer.classList.add(
-                "is-open"
-            );
-
-            backdrop.classList.add(
-                "is-open"
-            );
-
-        };
-
-
-    const close=
-        ()=>{
-
-            drawer.classList.remove(
-                "is-open"
-            );
-
-            backdrop.classList.remove(
-                "is-open"
-            );
-
-        };
-
-
-    $("noteMenuButton").onclick=
-        open;
-
-
-    $("closeDrawer").onclick=
-        close;
-
-
-    backdrop.onclick=
-        close;
-
-
-    const noteAside=
-        document.querySelector(
-            ".note-shell>aside"
-        );
-
-
-    if(noteAside){
-
-        $("drawerNotesMount")
-            .append(
-                noteAside
-            );
-
-    }
-
-
-    document
-        .querySelectorAll(
-            "[data-drawer-panel]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>{
-
-                        selectPanel(
-                            button.dataset.drawerPanel
-                        );
-
-                        close();
-
-                    }
-        );
-
-
-    document
-        .querySelectorAll(
-            "[data-drawer-target]"
-        )
-        .forEach(
-            button=>
-                button.onclick=
-                    ()=>{
-
-                        const target=
-                            button.dataset.drawerTarget==="todos"
-                                ? $("todoList").closest("section")
-                                : $("todoList")
-                                    .closest("section")
-                                    .nextElementSibling;
-
-
-                        target?.scrollIntoView({
-                            behavior:"smooth",
-                            block:"start"
-                        });
-
-
-                        close();
-
-                    }
-        );
-
-}
-
-
-function setupBoard(){
-
-    const board=
-        $("writingBoard");
-
-
-    [
-        "pointerdown",
-        "pointermove",
-        "pointerup",
-        "pointercancel",
-        "pointerleave"
-    ].forEach(
-        type=>
-            board.addEventListener(
-                type,
-                drawPointer
-            )
-    );
-
-
-    window.addEventListener(
-        "resize",
-        resizeBoard
-    );
-
-
-    resizeBoard();
-
-}
-
-
-function setupUnifiedNote(){
-
-    const button=
-        $("handwritingMode");
-
-
-    const overlay=
-        $("inkOverlay");
-
-
-    if(
-        !button ||
-        !overlay
-    ){
-
-        return;
-
-    }
-
-
-    button.onclick=
-        ()=>{
-
-            state.inkMode=
-                !state.inkMode;
-
-
-            overlay.classList.toggle(
-                "is-drawing",
-                state.inkMode
-            );
-
-
-            button.classList.toggle(
-                "active",
-                state.inkMode
-            );
-
-
-            button.textContent=
-                state.inkMode
-                    ? "手書き中（押すと文字入力）"
-                    : "手書きモード";
-
-
-            button.title=
-                state.inkMode
-                    ? "今はノート上に手書きできます。もう一度押すと文字入力へ戻ります。"
-                    : "押すとノート上に手書きできます。";
-
-        };
-
-
-    document
-        .querySelectorAll(
-            "[data-drawer-panel],[data-drawer-target]"
-        )
-        .forEach(
-            item=>
-                item.remove()
-        );
-
-}
-
-
-async function convertHandwriting(){
-
-    const button=
-        $("convertHandwriting");
-
-
-    const board=
-        $("writingBoard");
-
-
-    if(
-        !window.Tesseract
-    ){
-
-        return alert(
-            "活字化の準備がまだできていません。接続を確認してもう一度お試しください。"
-        );
-
-    }
-
-
-    button.disabled=
-        true;
-
-
-    button.textContent=
-        "活字化しています…";
-
-
-    try{
-
-        const result=
-            await window.Tesseract.recognize(
-                board.toDataURL(
-                    "image/png"
-                ),
-                "jpn"
-            );
-
-
-        const text=
-            result.data.text.trim();
-
-
-        if(!text){
-
-            return alert(
-                "文字を読み取れませんでした。濃く大きく書いてお試しください。"
-            );
-
-        }
-
-
-        $("noteBody").value+=
-            `${
-                $("noteBody").value
-                    ? "\n"
-                    : ""
-            }${text}`;
-
-
-        renderPreview();
-
-
-        selectPanel(
-            "typedPanel"
-        );
-
-
-        alert(
-            "読み取った文字を本文へ追加しました。"
-        );
-
-
-    }catch(error){
-
-        console.error(
-            error
-        );
-
-
-        alert(
-            "活字化に失敗しました。手書きはそのまま残っています。"
-        );
-
-
-    }finally{
-
-        button.disabled=
-            false;
-
-
-        button.textContent=
-            "🔤 手書きを活字化して本文へ入れる";
-
-    }
-
-}
-
-
-function resizeBoard(){
-
-    const board=
-        $("writingBoard");
-
-
-    const rect=
-        board?.getBoundingClientRect();
-
-
-    if(
-        !board ||
-        !rect?.width ||
-        !rect?.height
-    ){
-
-        return;
-
-    }
-
-
-    const previous=
-        board.toDataURL();
-
-
-    const ratio=
-        window.devicePixelRatio||1;
-
-
-    const width=
-        Math.round(
-            rect.width*ratio
-        );
-
-
-    const height=
-        Math.round(
-            rect.height*ratio
-        );
-
-
-    if(
-        board.width===width &&
-        board.height===height
-    ){
-
-        return;
-
-    }
-
-
-    board.width=
-        width;
-
-
-    board.height=
-        height;
-
-
-    const ctx=
-        board.getContext(
-            "2d"
-        );
-
-
-    ctx.setTransform(
-        ratio,
-        0,
-        0,
-        ratio,
-        0,
-        0
-    );
-
-
-    if(
-        previous &&
-        previous!=="data:,"
-    ){
-
-        const image=
-            new Image();
-
-
-        image.onload=
-            ()=>ctx.drawImage(
-                image,
-                0,
-                0,
-                rect.width,
-                rect.height
-            );
-
-
-        image.src=
-            previous;
-
-    }
-
-}
-
-
-function setDrawTool(
-    tool
-){
-
-    state.drawTool=
-        tool;
-
-
-    document
-        .querySelectorAll(
-            "[data-draw-tool]"
-        )
-        .forEach(
-            item=>{
-
-                item.classList.toggle(
-                    "active",
-                    item.dataset.drawTool===
-                    tool
-                );
-
-            }
-        );
-
-
-    updateToolSizeLabel();
-
-}
-
-
-function configureDrawingTool(
-    ctx,
-    tool,
-    base
-){
-
-    ctx.lineCap=
-        "round";
-
-
-    ctx.lineJoin=
-        "round";
-
-
-    /*
+  /*
     ibisPaintの消しゴムと同じ考え方。
 
     白で塗るのではなく、
     なぞった部分だけ透明にする。
     */
-    if(
-        tool===
-        "eraser"
-    ){
+  if (tool === "eraser") {
+    ctx.lineWidth = Math.max(4, base * 2);
 
-        ctx.lineWidth=
-            Math.max(
-                4,
-                base*2
-            );
+    ctx.globalCompositeOperation = "destination-out";
 
+    ctx.globalAlpha = 1;
 
-        ctx.globalCompositeOperation=
-            "destination-out";
+    return;
+  }
 
+  ctx.globalCompositeOperation = "source-over";
 
-        ctx.globalAlpha=
-            1;
+  if (tool === "highlighter") {
+    ctx.lineWidth = base * 3;
 
+    ctx.globalAlpha = 0.28;
+  } else if (tool === "marker") {
+    ctx.lineWidth = base * 1.7;
 
-        return;
+    ctx.globalAlpha = 0.58;
+  } else {
+    ctx.lineWidth = base;
 
-    }
+    ctx.globalAlpha = 1;
+  }
 
-
-    ctx.globalCompositeOperation=
-        "source-over";
-
-
-    if(
-        tool===
-        "highlighter"
-    ){
-
-        ctx.lineWidth=
-            base*3;
-
-
-        ctx.globalAlpha=
-            .28;
-
-
-    }else if(
-        tool===
-        "marker"
-    ){
-
-        ctx.lineWidth=
-            base*1.7;
-
-
-        ctx.globalAlpha=
-            .58;
-
-
-    }else{
-
-        ctx.lineWidth=
-            base;
-
-
-        ctx.globalAlpha=
-            1;
-
-    }
-
-
-    ctx.strokeStyle=
-        $("penColor").value;
-
+  ctx.strokeStyle = $("penColor").value;
 }
 
+function setPaper(paper) {
+  state.paper = paper;
 
-function setPaper(
-    paper
-){
-
-    state.paper=
-        paper;
-
-
-    document
-        .querySelectorAll(
-            "[data-paper]"
-        )
-        .forEach(
-            item=>
-                item.classList.toggle(
-                    "active",
-                    item.dataset.paper===paper
-                )
-        );
-
-
-    const board=
-        $("writingBoard");
-
-
-    board.classList.toggle(
-        "is-lined",
-        paper==="lined"
+  document
+    .querySelectorAll("[data-paper]")
+    .forEach((item) =>
+      item.classList.toggle("active", item.dataset.paper === paper),
     );
 
+  const board = $("writingBoard");
 
-    board.classList.toggle(
-        "is-grid",
-        paper==="grid"
-    );
+  board.classList.toggle("is-lined", paper === "lined");
 
+  board.classList.toggle("is-grid", paper === "grid");
 
-    const note=
-        current();
+  const note = current();
 
-
-    if(note){
-
-        localStorage.setItem(
-            `careMatePaper:${note.id}`,
-            paper
-        );
-
-    }
-
+  if (note) {
+    localStorage.setItem(`careMatePaper:${note.id}`, paper);
+  }
 }
 
+function drawPointer(event) {
+  const board = $("writingBoard");
 
-function drawPointer(
-    event
-){
+  if (!board) {
+    return;
+  }
 
-    const board=
-        $("writingBoard");
+  const rect = board.getBoundingClientRect();
 
+  const point = {
+    x: event.clientX - rect.left,
 
-    if(!board){
+    y: event.clientY - rect.top,
+  };
 
-        return;
+  if (event.type === "pointerdown") {
+    state.drawing = true;
 
-    }
+    state.lastPoint = point;
 
+    try {
+      board.setPointerCapture(event.pointerId);
+    } catch {}
 
-    const rect=
-        board.getBoundingClientRect();
+    return;
+  }
 
+  if (!state.drawing) {
+    return;
+  }
 
-    const point={
+  if (event.type === "pointermove") {
+    const ctx = board.getContext("2d");
 
-        x:
-            event.clientX-
-            rect.left,
+    const base = Number($("penSize").value);
 
-        y:
-            event.clientY-
-            rect.top
+    configureDrawingTool(ctx, state.drawTool, base);
 
-    };
+    ctx.beginPath();
 
+    ctx.moveTo(state.lastPoint.x, state.lastPoint.y);
 
-    if(
-        event.type===
-        "pointerdown"
-    ){
+    ctx.lineTo(point.x, point.y);
 
-        state.drawing=
-            true;
+    ctx.stroke();
 
+    ctx.globalAlpha = 1;
 
-        state.lastPoint=
-            point;
+    state.lastPoint = point;
 
+    return;
+  }
 
-        try{
+  state.drawing = false;
 
-            board.setPointerCapture(
-                event.pointerId
-            );
+  state.lastPoint = null;
 
-        }catch{}
-
-
-        return;
-
-    }
-
-
-    if(
-        !state.drawing
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        event.type===
-        "pointermove"
-    ){
-
-        const ctx=
-            board.getContext(
-                "2d"
-            );
-
-
-        const base=
-            Number(
-                $("penSize").value
-            );
-
-
-        configureDrawingTool(
-            ctx,
-            state.drawTool,
-            base
-        );
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            state.lastPoint.x,
-            state.lastPoint.y
-        );
-
-
-        ctx.lineTo(
-            point.x,
-            point.y
-        );
-
-
-        ctx.stroke();
-
-
-        ctx.globalAlpha=
-            1;
-
-
-        state.lastPoint=
-            point;
-
-
-        return;
-
-    }
-
-
-    state.drawing=
-        false;
-
-
-    state.lastPoint=
-        null;
-
-
-    saveBoard();
-
+  saveBoard();
 }
 
-
-function boardKey(){
-
-    return state.selected
-        ? `careMateHandwriting:${state.selected}`
-        : "";
-
+function boardKey() {
+  return state.selected ? `careMateHandwriting:${state.selected}` : "";
 }
 
+function saveBoard() {
+  const key = boardKey();
 
-function saveBoard(){
+  if (!key) {
+    return;
+  }
 
-    const key=
-        boardKey();
+  try {
+    localStorage.setItem(key, $("writingBoard").toDataURL("image/png"));
 
+    const status = $("boardStatus");
 
-    if(!key){
-        return;
+    if (status) {
+      status.textContent = "この端末に手書きを保存しました。";
     }
+  } catch (error) {
+    console.warn(error);
 
+    const status = $("boardStatus");
 
-    try{
-
-        localStorage.setItem(
-            key,
-            $("writingBoard").toDataURL(
-                "image/png"
-            )
-        );
-
-
-        const status=
-            $("boardStatus");
-
-
-        if(status){
-
-            status.textContent=
-                "この端末に手書きを保存しました。";
-
-        }
-
-
-    }catch(error){
-
-        console.warn(
-            error
-        );
-
-
-        const status=
-            $("boardStatus");
-
-
-        if(status){
-
-            status.textContent=
-                "手書きの保存容量が不足しています。";
-
-        }
-
+    if (status) {
+      status.textContent = "手書きの保存容量が不足しています。";
     }
-
+  }
 }
 
+function restoreBoard() {
+  const board = $("writingBoard");
 
-function restoreBoard(){
+  const key = boardKey();
 
-    const board=
-        $("writingBoard");
+  if (!board || !key) {
+    return;
+  }
 
+  setPaper(localStorage.getItem(`careMatePaper:${state.selected}`) || "blank");
 
-    const key=
-        boardKey();
+  const ctx = board.getContext("2d");
 
+  ctx.clearRect(0, 0, board.clientWidth, board.clientHeight);
 
-    if(
-        !board ||
-        !key
-    ){
+  const data = localStorage.getItem(key);
 
-        return;
+  if (!data) {
+    return;
+  }
 
-    }
+  const image = new Image();
 
+  image.onload = () =>
+    ctx.drawImage(image, 0, 0, board.clientWidth, board.clientHeight);
 
-    setPaper(
-        localStorage.getItem(
-            `careMatePaper:${state.selected}`
-        )||
-        "blank"
-    );
-
-
-    const ctx=
-        board.getContext(
-            "2d"
-        );
-
-
-    ctx.clearRect(
-        0,
-        0,
-        board.clientWidth,
-        board.clientHeight
-    );
-
-
-    const data=
-        localStorage.getItem(
-            key
-        );
-
-
-    if(!data){
-        return;
-    }
-
-
-    const image=
-        new Image();
-
-
-    image.onload=
-        ()=>ctx.drawImage(
-            image,
-            0,
-            0,
-            board.clientWidth,
-            board.clientHeight
-        );
-
-
-    image.src=
-        data;
-
+  image.src = data;
 }
 
+function clearBoard() {
+  const key = boardKey();
 
-function clearBoard(){
+  if (!key || !confirm("このノートの手書きをすべて消しますか？")) {
+    return;
+  }
 
-    const key=
-        boardKey();
+  const board = $("writingBoard");
 
+  board.getContext("2d").clearRect(0, 0, board.clientWidth, board.clientHeight);
 
-    if(
-        !key ||
-        !confirm(
-            "このノートの手書きをすべて消しますか？"
-        )
-    ){
+  localStorage.removeItem(key);
 
-        return;
+  const status = $("boardStatus");
 
-    }
-
-
-    const board=
-        $("writingBoard");
-
-
-    board.getContext(
-        "2d"
-    ).clearRect(
-        0,
-        0,
-        board.clientWidth,
-        board.clientHeight
-    );
-
-
-    localStorage.removeItem(
-        key
-    );
-
-
-    const status=
-        $("boardStatus");
-
-
-    if(status){
-
-        status.textContent=
-            "手書きを消しました。";
-
-    }
-
+  if (status) {
+    status.textContent = "手書きを消しました。";
+  }
 }
 
+function renderPreview() {
+  let text = $("noteBody").value || "";
 
-function renderPreview(){
+  const terms = $("maskTerms")
+    .value.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
 
-    let text=
-        $("noteBody").value||"";
+  const escaped = escapeHtml(text);
 
+  if (!terms.length) {
+    $("notePreview").textContent = text;
 
-    const terms=
-        $("maskTerms")
-            .value
-            .split(",")
-            .map(
-                value=>
-                    value.trim()
-            )
-            .filter(
-                Boolean
-            )
-            .sort(
-                (a,b)=>
-                    b.length-
-                    a.length
-            );
+    return;
+  }
 
+  const pattern = new RegExp(
+    `(${terms
+      .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|")})`,
+    "g",
+  );
 
-    const escaped=
-        escapeHtml(
-            text
-        );
-
-
-    if(
-        !terms.length
-    ){
-
-        $("notePreview").textContent=
-            text;
-
-        return;
-
-    }
-
-
-    const pattern=
-        new RegExp(
-            `(${
-                terms
-                    .map(
-                        term=>
-                            term.replace(
-                                /[.*+?^${}()|[\]\\]/g,
-                                "\\$&"
-                            )
-                    )
-                    .join("|")
-            })`,
-            "g"
-        );
-
-
-    $("notePreview").innerHTML=
-        escaped.replace(
-            pattern,
-            "<button class=\"mask-word\" type=\"button\">$1</button>"
-        );
-
+  $("notePreview").innerHTML = escaped.replace(
+    pattern,
+    '<button class="mask-word" type="button">$1</button>',
+  );
 }
 
+async function saveCurrent() {
+  const note = current();
 
-async function saveCurrent(){
+  if (!note) {
+    return;
+  }
 
-    const note=
-        current();
+  syncPlainBody();
 
+  const title = $("noteTitle").value.trim() || "無題のノート";
 
-    if(!note){
+  const body = $("noteBody").value;
 
-        return;
+  const bodyHtml = $("noteDocument").innerHTML;
 
-    }
+  const maskTerms = $("maskTerms")
+    .value.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
 
-
-    syncPlainBody();
-
-
-    const title=
-        $("noteTitle")
-            .value
-            .trim()||
-        "無題のノート";
-
-
-    const body=
-        $("noteBody").value;
-
-
-    const bodyHtml=
-        $("noteDocument")
-            .innerHTML;
-
-
-    const maskTerms=
-        $("maskTerms")
-            .value
-            .split(",")
-            .map(
-                value=>
-                    value.trim()
-            )
-            .filter(
-                Boolean
-            );
-
-
-    /*
+  /*
     interimは保存しない。
     確定文章だけ保存する。
     */
-    const transcript=
-        String(
-            state.finalTranscript||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
+  const transcript = String(state.finalTranscript || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
+  await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+    title,
 
-    await updateDoc(
-        doc(
-            db,
-            "digitalNotes",
-            "2510044",
-            "notes",
-            note.id
-        ),
-        {
+    body,
 
-            title,
+    bodyHtml,
 
-            body,
+    inkData: $("inkOverlay").toDataURL("image/png"),
 
-            bodyHtml,
+    transcript,
 
-            inkData:
-                $("inkOverlay")
-                    .toDataURL(
-                        "image/png"
-                    ),
+    maskTerms,
 
-            transcript,
+    todos: note.todos || [],
 
-            maskTerms,
+    images: note.images || [],
 
-            todos:
-                note.todos||
-                [],
+    placedImages: getPlacedImages(note),
 
-            images:
-                note.images||
-                [],
+    updatedAt: serverTimestamp(),
+  });
 
-            placedImages:
-                getPlacedImages(
-                    note
-                ),
-
-            updatedAt:
-                serverTimestamp()
-
-        }
-    );
-
-
-    alert(
-        "ノートを保存しました。"
-    );
-
+  alert("ノートを保存しました。");
 }
-
 
 /* ========================================
    連続リアルタイム文字起こし
 ======================================== */
 
-function toggleVoice(){
+function toggleVoice() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const SpeechRecognition=
-        window.SpeechRecognition||
-        window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert(
+      "このブラウザではリアルタイム文字起こしに対応していません。Chromeなどの対応ブラウザでお試しください。",
+    );
 
+    return;
+  }
 
-    if(
-        !SpeechRecognition
-    ){
-
-        alert(
-            "このブラウザではリアルタイム文字起こしに対応していません。Chromeなどの対応ブラウザでお試しください。"
-        );
-
-        return;
-
-    }
-
-
-    /*
+  /*
     すでに文字起こし中なら
     今回はユーザーによる停止。
     */
-    if(
-        state.keepListening
-    ){
+  if (state.keepListening) {
+    state.keepListening = false;
 
-        state.keepListening=
-            false;
+    state.isListening = false;
 
+    state.interim = "";
 
-        state.isListening=
-            false;
-
-
-        state.interim=
-            "";
-
-
-        try{
-
-            state.recognition?.stop();
-
-        }catch(error){
-
-            console.warn(
-                "音声認識停止エラー:",
-                error
-            );
-
-        }
-
-
-        $("voiceButton").textContent=
-            "🎙 文字起こしを開始";
-
-
-        $("voiceState").textContent=
-            "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
-
-
-        renderLiveTranscript();
-
-
-        return;
-
+    try {
+      state.recognition?.stop();
+    } catch (error) {
+      console.warn("音声認識停止エラー:", error);
     }
 
+    $("voiceButton").textContent = "🎙 文字起こしを開始";
 
-    /*
+    $("voiceState").textContent =
+      "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
+
+    renderLiveTranscript();
+
+    return;
+  }
+
+  /*
     保存済み文字起こしがあれば
     そこから続きを開始する。
     */
-    const existingText=
-        $("liveTranscript")
-            .textContent
-            .replace(
-                "まだ文字起こしは始まっていません。",
-                ""
-            )
-            .trim();
+  const existingText = $("liveTranscript")
+    .textContent.replace("まだ文字起こしは始まっていません。", "")
+    .trim();
 
+  state.finalTranscript = existingText;
 
-    state.finalTranscript=
-        existingText;
+  state.interim = "";
 
+  state.keepListening = true;
 
-    state.interim=
-        "";
+  startSpeechRecognition();
 
-
-    state.keepListening=
-        true;
-
-
-    startSpeechRecognition();
-
-
-    function startSpeechRecognition(){
-
-        /*
+  function startSpeechRecognition() {
+    /*
         停止ボタンが押されていたら
         再起動しない。
         */
-        if(
-            !state.keepListening
-        ){
+    if (!state.keepListening) {
+      return;
+    }
 
-            return;
+    const recognition = new SpeechRecognition();
 
-        }
+    state.recognition = recognition;
 
+    recognition.lang = "ja-JP";
 
-        const recognition=
-            new SpeechRecognition();
-
-
-        state.recognition=
-            recognition;
-
-
-        recognition.lang=
-            "ja-JP";
-
-
-        /*
+    /*
         聞き取り途中もリアルタイム表示。
         */
-        recognition.interimResults=
-            true;
+    recognition.interimResults = true;
 
-
-        /*
+    /*
         対応ブラウザでは
         できるだけ長く認識を続ける。
         */
-        recognition.continuous=
-            true;
+    recognition.continuous = true;
 
+    recognition.maxAlternatives = 1;
 
-        recognition.maxAlternatives=
-            1;
+    recognition.onstart = () => {
+      state.isListening = true;
 
+      $("voiceButton").textContent = "■ 文字起こしを停止";
 
-        recognition.onstart=
-            ()=>{
+      $("liveTranscript").hidden = false;
 
-                state.isListening=
-                    true;
+      $("voiceState").textContent =
+        "文字起こし中です。話すのを止めても、そのまま聞き取りを続けます。";
+    };
 
+    recognition.onresult = (event) => {
+      let newFinal = "";
 
-                $("voiceButton").textContent=
-                    "■ 文字起こしを停止";
+      let newInterim = "";
 
-
-                $("liveTranscript").hidden=
-                    false;
-
-
-                $("voiceState").textContent=
-                    "文字起こし中です。話すのを止めても、そのまま聞き取りを続けます。";
-
-            };
-
-
-        recognition.onresult=
-            event=>{
-
-                let newFinal=
-                    "";
-
-
-                let newInterim=
-                    "";
-
-
-                /*
+      /*
                 今回更新された認識結果だけ処理。
                 過去の認識結果を再追加しない。
                 */
-                for(
-                    let i=
-                        event.resultIndex;
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
 
-                    i<
-                        event.results.length;
+        const text = result[0]?.transcript?.trim() || "";
 
-                    i++
-                ){
+        if (!text) {
+          continue;
+        }
 
-                    const result=
-                        event.results[i];
-
-
-                    const text=
-                        result[0]
-                            ?.transcript
-                            ?.trim()||
-                        "";
-
-
-                    if(
-                        !text
-                    ){
-
-                        continue;
-
-                    }
-
-
-                    /*
+        /*
                     確定した文章。
                     */
-                    if(
-                        result.isFinal
-                    ){
+        if (result.isFinal) {
+          newFinal += (newFinal ? " " : "") + text;
 
-                        newFinal+=
-                            (
-                                newFinal
-                                    ? " "
-                                    : ""
-                            )+
-                            text;
-
-
-                    /*
+          /*
                     まだ聞き取り途中の文章。
                     */
-                    }else{
+        } else {
+          newInterim += (newInterim ? " " : "") + text;
+        }
+      }
 
-                        newInterim+=
-                            (
-                                newInterim
-                                    ? " "
-                                    : ""
-                            )+
-                            text;
-
-                    }
-
-                }
-
-
-                /*
+      /*
                 確定した文章だけ
                 本文へ追加する。
 
                 interimはここには絶対に入れない。
                 */
-                if(
-                    newFinal
-                ){
+      if (newFinal) {
+        state.finalTranscript = appendTranscriptText(
+          state.finalTranscript,
+          newFinal,
+        );
+      }
 
-                    state.finalTranscript=
-                        appendTranscriptText(
-                            state.finalTranscript,
-                            newFinal
-                        );
+      state.interim = newInterim;
 
-                }
+      renderLiveTranscript();
+    };
 
+    recognition.onerror = (event) => {
+      console.warn("音声認識エラー:", event.error);
 
-                state.interim=
-                    newInterim;
-
-
-                renderLiveTranscript();
-
-            };
-
-
-        recognition.onerror=
-            event=>{
-
-                console.warn(
-                    "音声認識エラー:",
-                    event.error
-                );
-
-
-                /*
+      /*
                 マイク権限など、
                 自動再起動しても直らない場合。
                 */
-                if(
-                    [
-                        "not-allowed",
-                        "service-not-allowed",
-                        "audio-capture"
-                    ].includes(
-                        event.error
-                    )
-                ){
+      if (
+        ["not-allowed", "service-not-allowed", "audio-capture"].includes(
+          event.error,
+        )
+      ) {
+        state.keepListening = false;
 
-                    state.keepListening=
-                        false;
+        state.isListening = false;
 
+        state.interim = "";
 
-                    state.isListening=
-                        false;
+        $("voiceButton").textContent = "🎙 文字起こしを開始";
 
+        $("voiceState").textContent =
+          `文字起こしを開始できませんでした：${event.error}`;
 
-                    state.interim=
-                        "";
+        renderLiveTranscript();
 
+        return;
+      }
 
-                    $("voiceButton").textContent=
-                        "🎙 文字起こしを開始";
-
-
-                    $("voiceState").textContent=
-                        `文字起こしを開始できませんでした：${event.error}`;
-
-
-                    renderLiveTranscript();
-
-
-                    return;
-
-                }
-
-
-                /*
+      /*
                 no-speech / network等で
                 認識セッションが終了しても、
                 onend側で必要なら再開する。
                 */
+    };
 
-            };
+    recognition.onend = () => {
+      state.isListening = false;
 
-
-        recognition.onend=
-            ()=>{
-
-                state.isListening=
-                    false;
-
-
-                /*
+      /*
                 終了した認識セッションの
                 仮文字列だけ消す。
 
                 確定文字列は残す。
                 */
-                state.interim=
-                    "";
+      state.interim = "";
 
+      renderLiveTranscript();
 
-                renderLiveTranscript();
-
-
-                /*
+      /*
                 ユーザーが停止していない場合は
                 自動的に新しい認識セッションを開始。
 
                 これで話していない時間があっても
                 「文字起こし中」の状態を継続する。
                 */
-                if(
-                    state.keepListening
-                ){
+      if (state.keepListening) {
+        $("voiceState").textContent = "文字起こしを継続しています…";
 
-                    $("voiceState").textContent=
-                        "文字起こしを継続しています…";
+        setTimeout(() => {
+          if (state.keepListening) {
+            startSpeechRecognition();
+          }
+        }, 250);
 
+        return;
+      }
 
-                    setTimeout(
-                        ()=>{
+      $("voiceButton").textContent = "🎙 文字起こしを開始";
 
-                            if(
-                                state.keepListening
-                            ){
+      $("voiceState").textContent =
+        "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
+    };
 
-                                startSpeechRecognition();
+    try {
+      recognition.start();
+    } catch (error) {
+      console.warn("音声認識開始エラー:", error);
 
-                            }
-
-                        },
-                        250
-                    );
-
-
-                    return;
-
-                }
-
-
-                $("voiceButton").textContent=
-                    "🎙 文字起こしを開始";
-
-
-                $("voiceState").textContent=
-                    "文字起こしを停止しました。保存すると文字起こしタブへ残ります。";
-
-            };
-
-
-        try{
-
-            recognition.start();
-
-
-        }catch(error){
-
-            console.warn(
-                "音声認識開始エラー:",
-                error
-            );
-
-
-            /*
+      /*
             セッション切替直後などに
             start()が失敗した場合は
             少し待って再試行。
             */
-            if(
-                state.keepListening
-            ){
-
-                setTimeout(
-                    startSpeechRecognition,
-                    500
-                );
-
-            }
-
-        }
-
+      if (state.keepListening) {
+        setTimeout(startSpeechRecognition, 500);
+      }
     }
-
+  }
 }
-
 
 /*
 確定した発話を
@@ -4621,53 +2154,25 @@ function toggleVoice(){
 横幅いっぱいになったら
 CSS/ブラウザが自動的に折り返す。
 */
-function appendTranscriptText(
-    current,
-    addition
-){
+function appendTranscriptText(current, addition) {
+  const before = String(current || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-    const before=
-        String(
-            current||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
+  const next = String(addition || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
+  if (!next) {
+    return before;
+  }
 
-    const next=
-        String(
-            addition||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
+  if (!before) {
+    return next;
+  }
 
-
-    if(!next){
-
-        return before;
-
-    }
-
-
-    if(!before){
-
-        return next;
-
-    }
-
-
-    return `${before} ${next}`;
-
+  return `${before} ${next}`;
 }
-
 
 /*
 確定文章＋聞き取り途中を
@@ -4676,614 +2181,257 @@ function appendTranscriptText(
 interimは画面上にだけ存在し、
 確定すると置き換わる。
 */
-function renderLiveTranscript(){
+function renderLiveTranscript() {
+  const element = $("liveTranscript");
 
-    const element=
-        $("liveTranscript");
+  if (!element) {
+    return;
+  }
 
+  const finalText = String(state.finalTranscript || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-    if(!element){
+  const interimText = String(state.interim || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-        return;
+  if (!finalText && !interimText) {
+    element.textContent = "まだ文字起こしは始まっていません。";
 
-    }
+    return;
+  }
 
-
-    const finalText=
-        String(
-            state.finalTranscript||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
-
-
-    const interimText=
-        String(
-            state.interim||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
-
-
-    if(
-        !finalText&&
-        !interimText
-    ){
-
-        element.textContent=
-            "まだ文字起こしは始まっていません。";
-
-
-        return;
-
-    }
-
-
-    element.textContent=
-        finalText+
-        (
-            interimText
-                ? `${
-                    finalText
-                        ? " "
-                        : ""
-                }${interimText}`
-                : ""
-        );
-
+  element.textContent =
+    finalText + (interimText ? `${finalText ? " " : ""}${interimText}` : "");
 }
 
+async function copyTranscript() {
+  const element = $("liveTranscript");
 
-async function copyTranscript(){
+  const button = $("copyTranscript");
 
-    const element=
-        $("liveTranscript");
+  if (!element || !button) {
+    return;
+  }
 
+  const text = String(state.finalTranscript || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-    const button=
-        $("copyTranscript");
+  if (!text) {
+    alert("コピーする文字起こしがありません。");
 
+    return;
+  }
 
-    if(
-        !element||
-        !button
-    ){
-
-        return;
-
-    }
-
-
-    const text=
-        String(
-            state.finalTranscript||
-            ""
-        )
-            .replace(
-                /\s+/g,
-                " "
-            )
-            .trim();
-
-
-    if(!text){
-
-        alert(
-            "コピーする文字起こしがありません。"
-        );
-
-        return;
-
-    }
-
-
-    /*
+  /*
     画面上でも全文選択する。
     */
-    const selection=
-        window.getSelection();
+  const selection = window.getSelection();
 
+  const range = document.createRange();
 
-    const range=
-        document.createRange();
+  range.selectNodeContents(element);
 
+  selection.removeAllRanges();
 
-    range.selectNodeContents(
-        element
-    );
+  selection.addRange(range);
 
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      document.execCommand("copy");
+    }
 
-    selection.removeAllRanges();
+    const before = button.textContent;
 
+    button.textContent = "✓ 全文コピーしました";
 
-    selection.addRange(
-        range
-    );
+    setTimeout(() => {
+      button.textContent = before;
+    }, 1500);
+  } catch (error) {
+    console.error(error);
 
-
-    try{
-
-        if(
-            navigator.clipboard
-                ?.writeText
-        ){
-
-            await navigator.clipboard.writeText(
-                text
-            );
-
-
-        }else{
-
-            document.execCommand(
-                "copy"
-            );
-
-        }
-
-
-        const before=
-            button.textContent;
-
-
-        button.textContent=
-            "✓ 全文コピーしました";
-
-
-        setTimeout(
-            ()=>{
-
-                button.textContent=
-                    before;
-
-            },
-            1500
-        );
-
-
-    }catch(error){
-
-        console.error(
-            error
-        );
-
-
-        /*
+    /*
         選択状態は残すので
         手動コピーも可能。
         */
-        alert(
-            "全文を選択しました。コピー操作をしてください。"
-        );
-
-    }
-
+    alert("全文を選択しました。コピー操作をしてください。");
+  }
 }
 
+async function openChatGPT(kind) {
+  const note = current();
 
-async function openChatGPT(
-    kind
-){
+  if (!note) {
+    return alert("先にノートを作成してください。");
+  }
 
-    const note=
-        current();
+  const body = $("noteBody").value.trim();
 
+  if (!body) {
+    return alert("メモを入力してから使ってください。");
+  }
 
-    if(!note){
+  const prompt =
+    kind === "要約"
+      ? `以下の講義メモを、重要語句・要点・次に確認することに分けて日本語で要約してください。\n\n${body}`
+      : `以下の講義メモから、4択問題と穴埋め問題を作成してください。各問題に答えと簡潔な解説を付け、JSONでも出力してください。\n\n${body}`;
 
-        return alert(
-            "先にノートを作成してください。"
-        );
+  try {
+    await navigator.clipboard.writeText(prompt);
+  } catch (error) {
+    console.warn(error);
+  }
 
-    }
+  window.open("https://chatgpt.com/", "_blank", "noopener");
 
-
-    const body=
-        $("noteBody")
-            .value
-            .trim();
-
-
-    if(!body){
-
-        return alert(
-            "メモを入力してから使ってください。"
-        );
-
-    }
-
-
-    const prompt=
-        kind==="要約"
-            ? `以下の講義メモを、重要語句・要点・次に確認することに分けて日本語で要約してください。\n\n${body}`
-            : `以下の講義メモから、4択問題と穴埋め問題を作成してください。各問題に答えと簡潔な解説を付け、JSONでも出力してください。\n\n${body}`;
-
-
-    try{
-
-        await navigator.clipboard.writeText(
-            prompt
-        );
-
-    }catch(error){
-
-        console.warn(
-            error
-        );
-
-    }
-
-
-    window.open(
-        "https://chatgpt.com/",
-        "_blank",
-        "noopener"
-    );
-
-
-    alert(
-        `${kind}用の指示とメモをコピーしました。開いたChatGPTに貼り付けてください。`
-    );
-
+  alert(
+    `${kind}用の指示とメモをコピーしました。開いたChatGPTに貼り付けてください。`,
+  );
 }
 
-
-function dateLabel(
-    value
-){
-
-    return typeof value?.toDate==="function"
-        ? value.toDate().toLocaleString(
-            "ja-JP"
-        )
-        : "更新日時未設定";
-
+function dateLabel(value) {
+  return typeof value?.toDate === "function"
+    ? value.toDate().toLocaleString("ja-JP")
+    : "更新日時未設定";
 }
 
-
-function plainTextToHtml(
-    text
-){
-
-    return escapeHtml(
-        text
-    ).replace(
-        /\n/g,
-        "<br>"
-    );
-
+function plainTextToHtml(text) {
+  return escapeHtml(text).replace(/\n/g, "<br>");
 }
 
+function setupInkOverlay() {
+  const canvas = $("inkOverlay");
 
-function setupInkOverlay(){
+  const wrap = $("noteDocumentWrap");
 
-    const canvas=
-        $("inkOverlay");
+  if (!canvas || !wrap) {
+    return;
+  }
 
+  const resize = () => {
+    const rect = wrap.getBoundingClientRect();
 
-    const wrap=
-        $("noteDocumentWrap");
-
-
-    if(
-        !canvas||
-        !wrap
-    ){
-
-        return;
-
+    if (!rect.width || !rect.height) {
+      return;
     }
 
+    const previous = canvas.toDataURL();
 
-    const resize=
-        ()=>{
+    const ratio = window.devicePixelRatio || 1;
 
-            const rect=
-                wrap
-                    .getBoundingClientRect();
+    canvas.width = Math.round(rect.width * ratio);
 
+    canvas.height = Math.round(rect.height * ratio);
 
-            if(
-                !rect.width||
-                !rect.height
-            ){
+    const ctx = canvas.getContext("2d");
 
-                return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-            }
+    if (previous !== "data:,") {
+      const image = new Image();
 
+      image.onload = () => {
+        ctx.drawImage(image, 0, 0, rect.width, rect.height);
+      };
 
-            const previous=
-                canvas.toDataURL();
+      image.src = previous;
+    }
+  };
 
+  resize();
 
-            const ratio=
-                window.devicePixelRatio||
-                1;
+  window.addEventListener("resize", resize);
 
+  let drawing = false;
 
-            canvas.width=
-                Math.round(
-                    rect.width*
-                    ratio
-                );
+  let last = null;
 
+  const getPoint = (event) => {
+    const rect = canvas.getBoundingClientRect();
 
-            canvas.height=
-                Math.round(
-                    rect.height*
-                    ratio
-                );
+    return {
+      x: event.clientX - rect.left,
 
+      y: event.clientY - rect.top,
+    };
+  };
 
-            const ctx=
-                canvas.getContext(
-                    "2d"
-                );
+  canvas.addEventListener("pointerdown", (event) => {
+    drawing = true;
 
+    last = getPoint(event);
 
-            ctx.setTransform(
-                ratio,
-                0,
-                0,
-                ratio,
-                0,
-                0
-            );
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {}
 
-
-            if(
-                previous!==
-                "data:,"
-            ){
-
-                const image=
-                    new Image();
-
-
-                image.onload=
-                    ()=>{
-
-                        ctx.drawImage(
-                            image,
-                            0,
-                            0,
-                            rect.width,
-                            rect.height
-                        );
-
-                    };
-
-
-                image.src=
-                    previous;
-
-            }
-
-        };
-
-
-    resize();
-
-
-    window.addEventListener(
-        "resize",
-        resize
-    );
-
-
-    let drawing=
-        false;
-
-
-    let last=
-        null;
-
-
-    const getPoint=
-        event=>{
-
-            const rect=
-                canvas
-                    .getBoundingClientRect();
-
-
-            return{
-
-                x:
-                    event.clientX-
-                    rect.left,
-
-                y:
-                    event.clientY-
-                    rect.top
-
-            };
-
-        };
-
-
-    canvas.addEventListener(
-        "pointerdown",
-        event=>{
-
-            drawing=
-                true;
-
-
-            last=
-                getPoint(
-                    event
-                );
-
-
-            try{
-
-                canvas.setPointerCapture(
-                    event.pointerId
-                );
-
-            }catch{}
-
-
-            /*
+    /*
             タップしただけでも
             ペン・消しゴムが反映されるように点を描く。
             */
-            const ctx=
-                canvas.getContext(
-                    "2d"
-                );
+    const ctx = canvas.getContext("2d");
 
+    const base = Number($("penSize").value);
 
-            const base=
-                Number(
-                    $("penSize").value
-                );
+    configureDrawingTool(ctx, state.drawTool, base);
 
+    ctx.beginPath();
 
-            configureDrawingTool(
-                ctx,
-                state.drawTool,
-                base
-            );
+    ctx.moveTo(last.x, last.y);
 
+    ctx.lineTo(last.x + 0.01, last.y + 0.01);
 
-            ctx.beginPath();
+    ctx.stroke();
 
+    ctx.globalAlpha = 1;
 
-            ctx.moveTo(
-                last.x,
-                last.y
-            );
+    event.preventDefault();
+  });
 
+  canvas.addEventListener("pointermove", (event) => {
+    if (!drawing || !last) {
+      return;
+    }
 
-            ctx.lineTo(
-                last.x+
-                .01,
-                last.y+
-                .01
-            );
+    const next = getPoint(event);
 
+    const ctx = canvas.getContext("2d");
 
-            ctx.stroke();
+    const base = Number($("penSize").value);
 
+    configureDrawingTool(ctx, state.drawTool, base);
 
-            ctx.globalAlpha=
-                1;
+    ctx.beginPath();
 
+    ctx.moveTo(last.x, last.y);
 
-            event.preventDefault();
+    ctx.lineTo(next.x, next.y);
 
-        }
-    );
+    ctx.stroke();
 
+    ctx.globalAlpha = 1;
 
-    canvas.addEventListener(
-        "pointermove",
-        event=>{
+    last = next;
 
-            if(
-                !drawing||
-                !last
-            ){
+    event.preventDefault();
+  });
 
-                return;
+  const finish = () => {
+    drawing = false;
 
-            }
+    last = null;
+  };
 
+  canvas.addEventListener("pointerup", finish);
 
-            const next=
-                getPoint(
-                    event
-                );
+  canvas.addEventListener("pointercancel", finish);
 
-
-            const ctx=
-                canvas.getContext(
-                    "2d"
-                );
-
-
-            const base=
-                Number(
-                    $("penSize").value
-                );
-
-
-            configureDrawingTool(
-                ctx,
-                state.drawTool,
-                base
-            );
-
-
-            ctx.beginPath();
-
-
-            ctx.moveTo(
-                last.x,
-                last.y
-            );
-
-
-            ctx.lineTo(
-                next.x,
-                next.y
-            );
-
-
-            ctx.stroke();
-
-
-            ctx.globalAlpha=
-                1;
-
-
-            last=
-                next;
-
-
-            event.preventDefault();
-
-        }
-    );
-
-
-    const finish=
-        ()=>{
-
-            drawing=
-                false;
-
-
-            last=
-                null;
-
-        };
-
-
-    canvas.addEventListener(
-        "pointerup",
-        finish
-    );
-
-
-    canvas.addEventListener(
-        "pointercancel",
-        finish
-    );
-
-
-    /*
+  /*
     重要：
 
     eraseBoardクリック時のclearRectは
@@ -5293,499 +2441,215 @@ function setupInkOverlay(){
     data-draw-tool="eraser" によって
     消しゴムを選択するだけ。
     */
-
 }
 
+function setupToolControls() {
+  const tools = document.querySelector(".rich-note-tools");
 
-function setupToolControls(){
+  const pen = $("penSize");
 
-    const tools=
-        document.querySelector(
-            ".rich-note-tools"
-        );
+  if (!tools || !pen) {
+    return;
+  }
 
+  pen.min = "1";
 
-    const pen=
-        $("penSize");
+  pen.max = "80";
 
-
-    if(
-        !tools||
-        !pen
-    ){
-
-        return;
-
-    }
-
-
-    pen.min=
-        "1";
-
-
-    pen.max=
-        "80";
-
-
-    /*
+  /*
     すでにtool-controlへ移動済みなら
     二重生成しない。
     */
-    let control=
-        pen.closest(
-            ".tool-control"
-        );
+  let control = pen.closest(".tool-control");
 
+  let label;
 
-    let label;
+  let output;
 
+  if (!control) {
+    const oldOutput = $("penSizeValue");
 
-    let output;
+    const parent = pen.parentNode;
 
+    control = document.createElement("label");
 
-    if(!control){
+    control.className = "tool-control";
 
-        const oldOutput=
-            $("penSizeValue");
+    label = document.createElement("span");
 
+    label.id = "toolSizeLabel";
 
-        const parent=
-            pen.parentNode;
+    output = document.createElement("output");
 
+    output.id = "penSizeValue";
 
-        control=
-            document.createElement(
-                "label"
-            );
+    parent.insertBefore(control, pen);
 
+    control.append(label, pen, output);
 
-        control.className=
-            "tool-control";
+    oldOutput?.remove();
+  } else {
+    label = $("toolSizeLabel");
 
+    if (!label) {
+      label = document.createElement("span");
 
-        label=
-            document.createElement(
-                "span"
-            );
+      label.id = "toolSizeLabel";
 
-
-        label.id=
-            "toolSizeLabel";
-
-
-        output=
-            document.createElement(
-                "output"
-            );
-
-
-        output.id=
-            "penSizeValue";
-
-
-        parent.insertBefore(
-            control,
-            pen
-        );
-
-
-        control.append(
-            label,
-            pen,
-            output
-        );
-
-
-        oldOutput?.remove();
-
-
-    }else{
-
-        label=
-            $("toolSizeLabel");
-
-
-        if(!label){
-
-            label=
-                document.createElement(
-                    "span"
-                );
-
-
-            label.id=
-                "toolSizeLabel";
-
-
-            control.prepend(
-                label
-            );
-
-        }
-
-
-        output=
-            $("penSizeValue");
-
-
-        if(!output){
-
-            output=
-                document.createElement(
-                    "output"
-                );
-
-
-            output.id=
-                "penSizeValue";
-
-
-            control.append(
-                output
-            );
-
-        }
-
+      control.prepend(label);
     }
 
+    output = $("penSizeValue");
 
-    const update=
-        ()=>{
+    if (!output) {
+      output = document.createElement("output");
 
-            const minimum=
-                Number(
-                    pen.min
-                );
+      output.id = "penSizeValue";
 
+      control.append(output);
+    }
+  }
 
-            const maximum=
-                Number(
-                    pen.max
-                );
+  const update = () => {
+    const minimum = Number(pen.min);
 
+    const maximum = Number(pen.max);
 
-            const value=
-                Number(
-                    pen.value
-                );
+    const value = Number(pen.value);
 
+    const progress = ((value - minimum) / (maximum - minimum)) * 100;
 
-            const progress=
-                (
-                    (
-                        value-
-                        minimum
-                    )/
-                    (
-                        maximum-
-                        minimum
-                    )
-                )*
-                100;
-
-
-            /*
+    /*
             バーの塗りと
             つまみの値を完全同期。
             */
-            pen.style.setProperty(
-                "--range-progress",
-                `${progress}%`
-            );
+    pen.style.setProperty("--range-progress", `${progress}%`);
 
+    output.textContent = `${value}px`;
 
-            output.textContent=
-                `${value}px`;
+    updateToolSizeLabel();
+  };
 
-
-            updateToolSizeLabel();
-
-        };
-
-
-    /*
+  /*
     以前のoninputを上書き。
     */
-    pen.oninput=
-        update;
+  pen.oninput = update;
 
+  pen.onchange = update;
 
-    pen.onchange=
-        update;
+  update();
 
+  const handwritingButton = $("handwritingMode");
 
-    update();
+  if (handwritingButton) {
+    handwritingButton.textContent = "手書きモード";
 
+    handwritingButton.title =
+      "押すと手書き開始、もう一度押すと文字入力へ戻ります";
+  }
 
-    const handwritingButton=
-        $("handwritingMode");
+  document.querySelectorAll("[data-color]").forEach((button) => {
+    button.textContent = "";
 
-
-    if(handwritingButton){
-
-        handwritingButton.textContent=
-            "手書きモード";
-
-
-        handwritingButton.title=
-            "押すと手書き開始、もう一度押すと文字入力へ戻ります";
-
-    }
-
-
-    document
-        .querySelectorAll(
-            "[data-color]"
-        )
-        .forEach(
-            button=>{
-
-                button.textContent="";
-
-
-                button.title=
-                    button.getAttribute(
-                        "aria-label"
-                    )||
-                    "色を選ぶ";
-
-            }
-        );
-
+    button.title = button.getAttribute("aria-label") || "色を選ぶ";
+  });
 }
 
+function updateToolSizeLabel() {
+  const label = $("toolSizeLabel");
 
-function updateToolSizeLabel(){
+  if (!label) {
+    return;
+  }
 
-    const label=
-        $("toolSizeLabel");
-
-
-    if(!label){
-
-        return;
-
-    }
-
-
-    if(
-        state.drawTool===
-        "eraser"
-    ){
-
-        label.textContent=
-            "消しゴムの太さ";
-
-
-    }else if(
-        state.drawTool===
-        "highlighter"
-    ){
-
-        label.textContent=
-            "蛍光ペンの太さ";
-
-
-    }else if(
-        state.drawTool===
-        "marker"
-    ){
-
-        label.textContent=
-            "マーカーの太さ";
-
-
-    }else{
-
-        label.textContent=
-            "ペンの太さ";
-
-    }
-
+  if (state.drawTool === "eraser") {
+    label.textContent = "消しゴムの太さ";
+  } else if (state.drawTool === "highlighter") {
+    label.textContent = "蛍光ペンの太さ";
+  } else if (state.drawTool === "marker") {
+    label.textContent = "マーカーの太さ";
+  } else {
+    label.textContent = "ペンの太さ";
+  }
 }
 
+function clearInkOverlay() {
+  const canvas = $("inkOverlay");
 
-function clearInkOverlay(){
+  if (!canvas) {
+    return;
+  }
 
-    const canvas=
-        $("inkOverlay");
+  const ctx = canvas.getContext("2d");
 
+  const rect = canvas.getBoundingClientRect();
 
-    if(!canvas){
-        return;
-    }
-
-
-    const ctx=
-        canvas.getContext(
-            "2d"
-        );
-
-
-    const rect=
-        canvas.getBoundingClientRect();
-
-
-    ctx.clearRect(
-        0,
-        0,
-        rect.width,
-        rect.height
-    );
-
+  ctx.clearRect(0, 0, rect.width, rect.height);
 }
 
+function restoreInkOverlay(data) {
+  clearInkOverlay();
 
-function restoreInkOverlay(
-    data
-){
+  if (!data) {
+    return;
+  }
 
-    clearInkOverlay();
+  const canvas = $("inkOverlay");
 
+  const rect = canvas.getBoundingClientRect();
 
-    if(!data){
-        return;
-    }
+  const ctx = canvas.getContext("2d");
 
+  const image = new Image();
 
-    const canvas=
-        $("inkOverlay");
+  image.onload = () => ctx.drawImage(image, 0, 0, rect.width, rect.height);
 
-
-    const rect=
-        canvas.getBoundingClientRect();
-
-
-    const ctx=
-        canvas.getContext(
-            "2d"
-        );
-
-
-    const image=
-        new Image();
-
-
-    image.onload=
-        ()=>ctx.drawImage(
-            image,
-            0,
-            0,
-            rect.width,
-            rect.height
-        );
-
-
-    image.src=
-        data;
-
+  image.src = data;
 }
 
-
-function syncPlainBody(){
-
-    $("noteBody").value=
-        $("noteDocument").innerText||
-        "";
-
+function syncPlainBody() {
+  $("noteBody").value = $("noteDocument").innerText || "";
 }
 
+function setDocumentHtml(html) {
+  $("noteDocument").innerHTML = html || "";
 
-function setDocumentHtml(
-    html
-){
-
-    $("noteDocument").innerHTML=
-        html||"";
-
-
-    syncPlainBody();
-
+  syncPlainBody();
 }
 
+function insertNodeAtCursor(node) {
+  const editor = $("noteDocument");
 
-function insertNodeAtCursor(
-    node
-){
+  const selection = window.getSelection();
 
-    const editor=
-        $("noteDocument");
+  if (!selection.rangeCount || !editor.contains(selection.anchorNode)) {
+    editor.append(node);
 
+    return;
+  }
 
-    const selection=
-        window.getSelection();
+  const range = selection.getRangeAt(0);
 
+  range.deleteContents();
 
-    if(
-        !selection.rangeCount ||
-        !editor.contains(
-            selection.anchorNode
-        )
-    ){
+  range.insertNode(node);
 
-        editor.append(
-            node
-        );
+  range.setStartAfter(node);
 
+  range.collapse(true);
 
-        return;
+  selection.removeAllRanges();
 
-    }
-
-
-    const range=
-        selection.getRangeAt(
-            0
-        );
-
-
-    range.deleteContents();
-
-
-    range.insertNode(
-        node
-    );
-
-
-    range.setStartAfter(
-        node
-    );
-
-
-    range.collapse(
-        true
-    );
-
-
-    selection.removeAllRanges();
-
-
-    selection.addRange(
-        range
-    );
-
+  selection.addRange(range);
 }
 
+function insertTextAtCursor(text) {
+  const editor = $("noteDocument");
 
-function insertTextAtCursor(
-    text
-){
+  editor.focus();
 
-    const editor=
-        $("noteDocument");
-
-
-    editor.focus();
-
-
-    insertNodeAtCursor(
-        document.createTextNode(
-            text
-        )
-    );
-
+  insertNodeAtCursor(document.createTextNode(text));
 }
-
 
 /*
 削除。
@@ -5795,246 +2659,101 @@ noteImageLayer内の
 placed-note-imageとして管理する。
 */
 
+function enableInlineDrawing(canvas) {
+  const ctx = canvas.getContext("2d");
 
-function enableInlineDrawing(
-    canvas
-){
+  const ratio = window.devicePixelRatio || 1;
 
-    const ctx=
-        canvas.getContext(
-            "2d"
-        );
+  const resize = () => {
+    const width = canvas.clientWidth || 720;
 
+    const height = (width * 300) / 720;
 
-    const ratio=
-        window.devicePixelRatio||1;
+    const data = canvas.toDataURL();
 
+    canvas.width = Math.round(width * ratio);
 
-    const resize=
-        ()=>{
+    canvas.height = Math.round(height * ratio);
 
-            const width=
-                canvas.clientWidth||
-                720;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
+    if (data !== "data:,") {
+      const image = new Image();
 
-            const height=
-                width*
-                300/
-                720;
+      image.onload = () => ctx.drawImage(image, 0, 0, width, height);
 
+      image.src = data;
+    }
+  };
 
-            const data=
-                canvas.toDataURL();
+  resize();
 
+  let drawing = false;
 
-            canvas.width=
-                Math.round(
-                    width*ratio
-                );
+  let last;
 
+  const point = (event) => {
+    const rect = canvas.getBoundingClientRect();
 
-            canvas.height=
-                Math.round(
-                    height*ratio
-                );
+    return {
+      x: event.clientX - rect.left,
 
+      y: event.clientY - rect.top,
+    };
+  };
 
-            ctx.setTransform(
-                ratio,
-                0,
-                0,
-                ratio,
-                0,
-                0
-            );
+  canvas.addEventListener("pointerdown", (event) => {
+    drawing = true;
 
+    last = point(event);
 
-            if(
-                data!=="data:,"
-            ){
+    canvas.setPointerCapture(event.pointerId);
 
-                const image=
-                    new Image();
+    event.preventDefault();
+  });
 
+  canvas.addEventListener("pointermove", (event) => {
+    if (!drawing) {
+      return;
+    }
 
-                image.onload=
-                    ()=>ctx.drawImage(
-                        image,
-                        0,
-                        0,
-                        width,
-                        height
-                    );
+    const next = point(event);
 
+    const tool = state.drawTool;
 
-                image.src=
-                    data;
+    const base = Number($("penSize").value);
 
-            }
+    ctx.lineCap = "round";
 
-        };
+    ctx.lineJoin = "round";
 
+    ctx.lineWidth =
+      tool === "highlighter" ? base * 3 : tool === "marker" ? base * 1.7 : base;
 
-    resize();
+    ctx.globalCompositeOperation =
+      tool === "eraser" ? "destination-out" : "source-over";
 
+    ctx.globalAlpha =
+      tool === "highlighter" ? 0.28 : tool === "marker" ? 0.58 : 1;
 
-    let drawing=
-        false;
+    ctx.strokeStyle = $("penColor").value;
 
+    ctx.beginPath();
 
-    let last;
+    ctx.moveTo(last.x, last.y);
 
+    ctx.lineTo(next.x, next.y);
 
-    const point=
-        event=>{
+    ctx.stroke();
 
-            const rect=
-                canvas.getBoundingClientRect();
+    ctx.globalAlpha = 1;
 
+    last = next;
 
-            return{
-                x:
-                    event.clientX-
-                    rect.left,
+    event.preventDefault();
+  });
 
-                y:
-                    event.clientY-
-                    rect.top
-            };
-
-        };
-
-
-    canvas.addEventListener(
-        "pointerdown",
-        event=>{
-
-            drawing=
-                true;
-
-
-            last=
-                point(
-                    event
-                );
-
-
-            canvas.setPointerCapture(
-                event.pointerId
-            );
-
-
-            event.preventDefault();
-
-        }
-    );
-
-
-    canvas.addEventListener(
-        "pointermove",
-        event=>{
-
-            if(
-                !drawing
-            ){
-
-                return;
-
-            }
-
-
-            const next=
-                point(
-                    event
-                );
-
-
-            const tool=
-                state.drawTool;
-
-
-            const base=
-                Number(
-                    $("penSize").value
-                );
-
-
-            ctx.lineCap=
-                "round";
-
-
-            ctx.lineJoin=
-                "round";
-
-
-            ctx.lineWidth=
-                tool==="highlighter"
-                    ? base*3
-                    : tool==="marker"
-                        ? base*1.7
-                        : base;
-
-
-            ctx.globalCompositeOperation=
-                tool==="eraser"
-                    ? "destination-out"
-                    : "source-over";
-
-
-            ctx.globalAlpha=
-                tool==="highlighter"
-                    ? .28
-                    : tool==="marker"
-                        ? .58
-                        : 1;
-
-
-            ctx.strokeStyle=
-                $("penColor").value;
-
-
-            ctx.beginPath();
-
-
-            ctx.moveTo(
-                last.x,
-                last.y
-            );
-
-
-            ctx.lineTo(
-                next.x,
-                next.y
-            );
-
-
-            ctx.stroke();
-
-
-            ctx.globalAlpha=
-                1;
-
-
-            last=
-                next;
-
-
-            event.preventDefault();
-
-        }
-    );
-
-
-    [
-        "pointerup",
-        "pointercancel"
-    ].forEach(
-        type=>
-            canvas.addEventListener(
-                type,
-                ()=>drawing=false
-            )
-    );
-
+  ["pointerup", "pointercancel"].forEach((type) =>
+    canvas.addEventListener(type, () => (drawing = false)),
+  );
 }

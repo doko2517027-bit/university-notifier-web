@@ -1,288 +1,173 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
+  <head>
+    <meta charset="UTF-8" />
 
-<meta charset="UTF-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ユーザー管理 | CareMateApp</title>
 
-<title>ユーザー管理 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<script>
-if (localStorage.getItem("theme") === "dark") {
-    document.documentElement.classList.add("dark");
-}
-</script>
-
-</head>
-
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <div class="top-user-info">
-
-        <span id="userName">
-            Unknownさん
-        </span>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <div class="top-user-info">
+        <span id="userName"> Unknownさん </span>
 
         <span id="myRanking"></span>
+      </div>
 
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
+
+        <button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+            alt="プロフィール"
+          />
+        </button>
+      </div>
     </div>
 
-    <div class="top-right">
+    <header class="header">
+      <div class="logo">👥</div>
 
-        <button
-            id="themeButton"
-            class="circle-button">
-            🌙
-        </button>
+      <h1>ユーザー管理</h1>
 
-        <button
-            id="profileButton"
-            class="circle-button">
+      <p>学生情報・利用状況・アカウント管理</p>
+    </header>
 
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image"
-                alt="プロフィール">
+    <div class="card setting-card">
+      <div class="admin-user-page-actions">
+        <button id="backButton" class="btn">← 管理画面へ戻る</button>
 
-        </button>
-
+        <button id="addUserButton" class="btn btn-primary">＋ 学生登録</button>
+      </div>
     </div>
 
-</div>
+    <h2>📊 利用状況</h2>
 
-
-<header class="header">
-
-    <div class="logo">👥</div>
-
-    <h1>ユーザー管理</h1>
-
-    <p>
-        学生情報・利用状況・アカウント管理
-    </p>
-
-</header>
-
-
-<div class="card setting-card">
-
-    <div class="admin-user-page-actions">
-
-        <button
-            id="backButton"
-            class="btn">
-
-            ← 管理画面へ戻る
-
-        </button>
-
-        <button
-            id="addUserButton"
-            class="btn btn-primary">
-
-            ＋ 学生登録
-
-        </button>
-
-    </div>
-
-</div>
-
-
-<h2>📊 利用状況</h2>
-
-<div class="admin-user-summary-grid">
-
-    <div class="card setting-card admin-user-summary-card">
-
+    <div class="admin-user-summary-grid">
+      <div class="card setting-card admin-user-summary-card">
         <small>登録ユーザー</small>
 
-        <strong id="userTotalCount">
-            --
-        </strong>
+        <strong id="userTotalCount"> -- </strong>
+      </div>
 
-    </div>
-
-    <div class="card setting-card admin-user-summary-card">
-
+      <div class="card setting-card admin-user-summary-card">
         <small>オンライン</small>
 
-        <strong id="onlineUserCount">
-            --
-        </strong>
+        <strong id="onlineUserCount"> -- </strong>
+      </div>
 
-    </div>
-
-    <div class="card setting-card admin-user-summary-card">
-
+      <div class="card setting-card admin-user-summary-card">
         <small>バックグラウンド</small>
 
-        <strong id="awayUserCount">
-            --
-        </strong>
+        <strong id="awayUserCount"> -- </strong>
+      </div>
 
-    </div>
-
-    <div class="card setting-card admin-user-summary-card">
-
+      <div class="card setting-card admin-user-summary-card">
         <small>オフライン</small>
 
-        <strong id="offlineUserCount">
-            --
-        </strong>
-
+        <strong id="offlineUserCount"> -- </strong>
+      </div>
     </div>
 
-</div>
+    <h2>🔍 学生検索</h2>
 
-
-<h2>🔍 学生検索</h2>
-
-<div class="card setting-card">
-
-    <label for="userSearchInput">
+    <div class="card setting-card">
+      <label for="userSearchInput">
         <b>学籍番号・名前・ニックネームで検索</b>
-    </label>
+      </label>
 
-    <br><br>
+      <br /><br />
 
-    <input
+      <input
         id="userSearchInput"
         type="search"
         placeholder="例：2510000"
-        autocomplete="off">
+        autocomplete="off"
+      />
 
-    <br><br>
+      <br /><br />
 
-    <div class="admin-user-filter-grid">
-
+      <div class="admin-user-filter-grid">
         <div>
+          <label for="departmentFilter">
+            <b>所属</b>
+          </label>
 
-            <label for="departmentFilter">
-                <b>所属</b>
-            </label>
+          <select id="departmentFilter">
+            <option value="">すべて</option>
 
-            <select id="departmentFilter">
+            <option value="看護学科">看護学科</option>
 
-                <option value="">
-                    すべて
-                </option>
+            <option value="理学療法学専攻">理学療法学専攻</option>
 
-                <option value="看護学科">
-                    看護学科
-                </option>
-
-                <option value="理学療法学専攻">
-                    理学療法学専攻
-                </option>
-
-                <option value="作業療法学専攻">
-                    作業療法学専攻
-                </option>
-
-            </select>
-
+            <option value="作業療法学専攻">作業療法学専攻</option>
+          </select>
         </div>
 
         <div>
+          <label for="gradeFilter">
+            <b>学年</b>
+          </label>
 
-            <label for="gradeFilter">
-                <b>学年</b>
-            </label>
+          <select id="gradeFilter">
+            <option value="">すべて</option>
 
-            <select id="gradeFilter">
+            <option value="1">1年</option>
 
-                <option value="">
-                    すべて
-                </option>
+            <option value="2">2年</option>
 
-                <option value="1">
-                    1年
-                </option>
+            <option value="3">3年</option>
 
-                <option value="2">
-                    2年
-                </option>
-
-                <option value="3">
-                    3年
-                </option>
-
-                <option value="4">
-                    4年
-                </option>
-
-            </select>
-
+            <option value="4">4年</option>
+          </select>
         </div>
 
         <div>
+          <label for="statusFilter">
+            <b>接続状態</b>
+          </label>
 
-            <label for="statusFilter">
-                <b>接続状態</b>
-            </label>
+          <select id="statusFilter">
+            <option value="">すべて</option>
 
-            <select id="statusFilter">
+            <option value="online">オンライン</option>
 
-                <option value="">
-                    すべて
-                </option>
+            <option value="away">バックグラウンド</option>
 
-                <option value="online">
-                    オンライン
-                </option>
+            <option value="offline">オフライン</option>
 
-                <option value="away">
-                    バックグラウンド
-                </option>
-
-                <option value="offline">
-                    オフライン
-                </option>
-
-                <option value="unknown">
-                    接続履歴なし
-                </option>
-
-            </select>
-
+            <option value="unknown">接続履歴なし</option>
+          </select>
         </div>
-
+      </div>
     </div>
 
-</div>
+    <h2>👥 学生一覧</h2>
 
+    <div class="card setting-card">
+      <div class="admin-user-list-header">
+        <span id="filteredUserCount"> 読み込み中... </span>
 
-<h2>👥 学生一覧</h2>
+        <button id="refreshUsersButton" class="btn">↻ 更新</button>
+      </div>
 
-<div class="card setting-card">
-
-    <div class="admin-user-list-header">
-
-        <span id="filteredUserCount">
-            読み込み中...
-        </span>
-
-        <button
-            id="refreshUsersButton"
-            class="btn">
-
-            ↻ 更新
-
-        </button>
-
-    </div>
-
-    <div class="admin-presence-legend">
-
+      <div class="admin-presence-legend">
         <span>🟢 オンライン</span>
 
         <span>🟡 バックグラウンド</span>
@@ -290,111 +175,63 @@ if (localStorage.getItem("theme") === "dark") {
         <span>🔴 オフライン</span>
 
         <span>⚫ 接続履歴なし</span>
+      </div>
 
+      <div id="userList">
+        <div class="admin-user-loading">ユーザー情報を読み込んでいます...</div>
+      </div>
     </div>
 
-    <div id="userList">
-
-        <div class="admin-user-loading">
-            ユーザー情報を読み込んでいます...
-        </div>
-
-    </div>
-
-</div>
-
-
-<nav class="bottom-nav">
-
-    <a href="index.html">
-
-        🏠<br>
+    <nav class="bottom-nav">
+      <a href="index.html">
+        🏠<br />
 
         <span>ホーム</span>
+      </a>
 
-    </a>
-
-    <a href="assignments.html">
-
+      <a href="assignments.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 📚 </span>
 
-            <span class="nav-icon">
-                📚
-            </span>
-
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>課題</span>
+      </a>
 
-    </a>
-
-    <a href="requests.html">
-
+      <a href="requests.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 💡 </span>
 
-            <span class="nav-icon">
-                💡
-            </span>
-
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="shareNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>リクエスト</span>
+      </a>
 
-    </a>
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon"> 📢 </span>
 
-            <span class="nav-icon">
-                📢
-            </span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a
-        id="settingsTab"
-        href="admin.html"
-        class="active">
-
-        👑<br>
+      <a id="settingsTab" href="admin.html" class="active">
+        👑<br />
 
         <span>管理</span>
+      </a>
+    </nav>
 
-    </a>
-
-</nav>
-
-
-<script
-    type="module"
-    src="users_admin.js">
-</script>
-
-</body>
+    <script type="module" src="users_admin.js"></script>
+  </body>
 </html>

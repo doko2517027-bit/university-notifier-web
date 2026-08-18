@@ -1,147 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>課題</title>
 
-<title>課題</title>
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
 
-<script>
-if(localStorage.getItem("theme")==="dark"){
-    document.documentElement.classList.add("dark");
-}
-</script>
-
-</head>
-
-<body class="page-loading">
-
-<div class="top-buttons">
-
-    <div class="top-user-info">
-
-        <span id="userName">
-            Unknownさん
-        </span>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <div class="top-user-info">
+        <span id="userName"> Unknownさん </span>
 
         <span id="myRanking"></span>
+      </div>
 
-    </div>
-
-   <div class="top-right">
-
-        <button id="themeButton" class="circle-button">
-            🌙
-        </button>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button>
 
         <button id="profileButton" class="circle-button">
-
-            <img
-                id="topProfileImage"
-                src="images/default.png"
-                class="header-profile-image">
-
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
         </button>
-        
+      </div>
     </div>
 
-</div>
+    <header class="header">
+      <div class="logo">📚</div>
 
-<header class="header">
+      <h1>課題</h1>
 
-    <div class="logo">📚</div>
+      <p>未提出課題一覧</p>
+    </header>
 
-    <h1>課題</h1>
+    <div id="assignmentList">読み込み中...</div>
 
-    <p>未提出課題一覧</p>
-
-</header>
-
-<div id="assignmentList">
-
-読み込み中...
-
-</div>
-
-<nav class="bottom-nav">
-
-    <a href="index.html">
-        🏠<br>
+    <nav class="bottom-nav">
+      <a href="index.html">
+        🏠<br />
         <span>ホーム</span>
-    </a>
+      </a>
 
-    <a href="assignments.html" class="active">
-
+      <a href="assignments.html" class="active">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📚</span>
 
-            <span class="nav-icon">📚</span>
-
-            <span
-                id="assignmentNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>課題</span>
+      </a>
 
-    </a>
-
-    <a href="requests.html">
-
+      <a href="requests.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">💡</span>
 
-            <span class="nav-icon">💡</span>
-
-            <span
-                id="shareNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="shareNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>リクエスト</span>
+      </a>
 
-    </a>
-
-    <a href="news.html">
-
+      <a href="news.html">
         <span class="nav-icon-wrap">
+          <span class="nav-icon">📢</span>
 
-            <span class="nav-icon">📢</span>
-
-            <span
-                id="newsNavBadge"
-                class="nav-notification-badge"
-                hidden>
-                0
-            </span>
-
+          <span id="newsNavBadge" class="nav-notification-badge" hidden>
+            0
+          </span>
         </span>
 
         <span>お知らせ</span>
+      </a>
 
-    </a>
-
-    <a 
-	    id="settingsTab"
-	    href="settings.html">
-        ⚙️<br>
+      <a id="settingsTab" href="settings.html">
+        ⚙️<br />
         <span>設定</span>
-    </a>
+      </a>
+    </nav>
 
-</nav>
-
-<script type="module" src="assignments.js"></script>
-
-</body>
+    <script type="module" src="assignments.js"></script>
+  </body>
 </html>
