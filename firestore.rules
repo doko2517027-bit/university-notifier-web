@@ -590,12 +590,21 @@ service cloud.firestore {
     }
 
     /* ========================================
-       2510044専用 AIデジタルノート
+       対象ユーザー専用 AIデジタルノート
+       各学生は自分のノートと問題だけを利用できる。
     ======================================== */
     match /digitalNotes/{studentId}/notes/{noteId} {
       allow read, create, update, delete: if request.auth != null
-        && request.auth.token.studentNumber == "2510044"
-        && studentId == "2510044";
+        && (request.auth.token.studentNumber == "2510044"
+          || request.auth.token.studentNumber == "2510054")
+        && studentId == request.auth.token.studentNumber;
+
+      match /questions/{questionId} {
+        allow read, create, update, delete: if request.auth != null
+          && (request.auth.token.studentNumber == "2510044"
+            || request.auth.token.studentNumber == "2510054")
+          && studentId == request.auth.token.studentNumber;
+      }
     }
 
   }

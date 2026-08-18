@@ -23,6 +23,10 @@ import {
 
 const $ = (id) => document.getElementById(id);
 
+const NOTE_USERS = new Set(["2510044", "2510054"]);
+
+let notesRef = null;
+
 const state = {
   notes: [],
 
@@ -49,6 +53,28 @@ const state = {
   inkMode: false,
 
   selectedPlacedImageId: null,
+
+  questions: [],
+
+  questionUnsubscribe: null,
+
+  questionsNoteId: null,
+
+  problemView: "solve",
+
+  problemType: "quiz",
+
+  questionFilter: "all",
+
+  questionIndex: 0,
+
+  selectedAnswer: null,
+
+  quizAnswered: false,
+
+  answerVisible: false,
+
+  editingQuestionId: null,
 };
 
 const escapeHtml = (value) =>
@@ -73,14 +99,14 @@ await initializePage([
   loadProfileImage($("topProfileImage")),
 ]);
 
-if (studentNumber !== "2510044") {
+if (!NOTE_USERS.has(studentNumber)) {
   $("denied").hidden = false;
 
   document.body.classList.remove("page-loading");
 } else {
   $("noteApp").hidden = false;
 
-  const notesRef = collection(db, "digitalNotes", "2510044", "notes");
+  notesRef = collection(db, "digitalNotes", studentNumber, "notes");
 
   onSnapshot(
     query(notesRef, orderBy("updatedAt", "desc")),
@@ -93,6 +119,8 @@ if (studentNumber !== "2510044") {
       if (!state.selected && state.notes[0]) {
         state.selected = state.notes[0].id;
       }
+
+      subscribeQuestions(state.selected);
 
       render();
     },
@@ -241,6 +269,8 @@ if (studentNumber !== "2510044") {
     if (select) {
       state.selected = select.dataset.id;
 
+      subscribeQuestions(state.selected);
+
       render();
 
       $("noteDrawer").classList.remove("is-open");
@@ -254,6 +284,24 @@ if (studentNumber !== "2510044") {
 
     if (mask) {
       mask.classList.toggle("is-open");
+    }
+
+    handleProblemAction(event);
+  });
+
+  document.addEventListener("change", handleProblemChange);
+
+  document.addEventListener("submit", async (event) => {
+    const form = event.target;
+    if (form.id !== "questionForm") {
+      return;
+    }
+    event.preventDefault();
+    try {
+      await saveQuestion(form);
+    } catch (error) {
+      console.error(error);
+      alert("問題を保存できませんでした。");
     }
   });
 
@@ -595,7 +643,7 @@ async function uploadNoteImage(event) {
 
     renderPlacedImages();
 
-    await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+    await updateDoc(doc(notesRef, note.id), {
       images: nextImages,
 
       placedImages: nextPlacedImages,
@@ -1337,7 +1385,7 @@ async function persistImageState(note) {
   }
 
   try {
-    await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+    await updateDoc(doc(notesRef, note.id), {
       images: note.images || [],
 
       placedImages: getPlacedImages(note),
@@ -1375,11 +1423,11 @@ async function deleteCurrentNote() {
   }
 
   try {
-    localStorage.removeItem(`careMateHandwriting:${note.id}`);
+    localStorage.removeItem(`careMateHandwriting:${studentNumber}:${note.id}`);
 
-    localStorage.removeItem(`careMatePaper:${note.id}`);
+    localStorage.removeItem(`careMatePaper:${studentNumber}:${note.id}`);
 
-    await deleteDoc(doc(db, "digitalNotes", "2510044", "notes", note.id));
+    await deleteDoc(doc(notesRef, note.id));
 
     state.selected = null;
 
@@ -1392,9 +1440,11 @@ async function deleteCurrentNote() {
 }
 
 function selectPanel(id) {
-  const external = id === "todoPanel";
+  const external = id === "todoPanel" || id === "problemPanel";
 
   $("todoPanel")?.classList.toggle("active", id === "todoPanel");
+
+  $("problemPanel")?.classList.toggle("active", id === "problemPanel");
 
   const shell = document.querySelector(".note-shell");
 
@@ -1421,6 +1471,297 @@ function selectPanel(id) {
       renderPlacedImages();
     });
   }
+
+  if (id === "problemPanel") {
+    renderQuestions();
+  }
+}
+
+function questionCollection(noteId = state.selected) {
+  return noteId && notesRef
+    ? collection(notesRef, noteId, "questions")
+    : null;
+}
+
+function subscribeQuestions(noteId) {
+  if (state.questionsNoteId === noteId) {
+    return;
+  }
+
+  state.questionUnsubscribe?.();
+  state.questionUnsubscribe = null;
+  state.questionsNoteId = noteId || null;
+  state.questions = [];
+  state.questionIndex = 0;
+  state.selectedAnswer = null;
+  state.quizAnswered = false;
+  state.answerVisible = false;
+
+  const questionsRef = questionCollection(noteId);
+  if (!questionsRef) {
+    renderQuestions();
+    return;
+  }
+
+  state.questionUnsubscribe = onSnapshot(
+    query(questionsRef, orderBy("updatedAt", "desc")),
+    (snapshot) => {
+      state.questions = snapshot.docs.map((item) => ({
+        id: item.id,
+        ...item.data(),
+      }));
+      state.questionIndex = Math.min(
+        state.questionIndex,
+        Math.max(state.questions.length - 1, 0),
+      );
+      renderQuestions();
+    },
+    (error) => {
+      console.error(error);
+      $("problemApp").innerHTML =
+        '<p class="note-hint">問題を読み込めませんでした。</p>';
+    },
+  );
+}
+
+function filteredQuestions() {
+  return state.questions.filter(
+    (item) => state.questionFilter === "all" || item.type === state.questionFilter,
+  );
+}
+
+function safeAnswerColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || ""))
+    ? value
+    : "#1976d2";
+}
+
+function blankSentence(sentence, blankWord, answerColor, reveal) {
+  const escapedWord = escapeHtml(blankWord);
+  const parts = escapeHtml(sentence).split(escapedWord);
+  if (parts.length < 2) {
+    return escapeHtml(sentence);
+  }
+  const replacement = reveal
+    ? `<strong class="blank-answer" style="color:${safeAnswerColor(answerColor)}">${escapedWord}</strong>`
+    : '<span class="blank-slot">（　　　）</span>';
+  return parts.join(replacement);
+}
+
+function renderQuestions() {
+  const root = $("problemApp");
+  if (!root) {
+    return;
+  }
+
+  const note = current();
+  if (!note) {
+    root.innerHTML = '<p class="note-hint">ノートを選択してから問題を使ってください。</p>';
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="problem-heading">
+      <div>
+        <p class="problem-eyebrow">ノート専用問題集</p>
+        <h2>${escapeHtml(note.title || "無題のノート")}</h2>
+      </div>
+      <div class="problem-view-switch" role="tablist" aria-label="問題の画面切替">
+        <button class="${state.problemView === "solve" ? "active" : ""}" data-problem-action="view-solve">問題を解く</button>
+        <button class="${state.problemView === "create" ? "active" : ""}" data-problem-action="view-create">問題を作る</button>
+      </div>
+    </div>
+    ${state.problemView === "create" ? renderQuestionEditor() : renderQuestionSolver()}
+  `;
+}
+
+function renderQuestionSolver() {
+  const questions = filteredQuestions();
+  const question = questions[state.questionIndex];
+  const controls = `
+    <div class="problem-filter" aria-label="問題形式の絞り込み">
+      ${[
+        ["all", "すべて"],
+        ["quiz", "四択のみ"],
+        ["fill_blank", "穴埋めのみ"],
+      ]
+        .map(
+          ([value, label]) => `<button class="${state.questionFilter === value ? "active" : ""}" data-problem-filter="${value}">${label}</button>`,
+        )
+        .join("")}
+    </div>`;
+
+  if (!question) {
+    return `${controls}<div class="problem-empty"><p>まだ問題がありません。</p><button class="btn btn-secondary" data-problem-action="view-create">問題を作成する</button></div>`;
+  }
+
+  const position = `<p class="problem-position">問題 ${state.questionIndex + 1} / ${questions.length}</p>`;
+  const navigation = `<div class="problem-navigation"><button class="btn btn-secondary" data-problem-action="previous-question" ${state.questionIndex === 0 ? "disabled" : ""}>← 前の問題</button><button class="btn btn-secondary" data-problem-action="next-question" ${state.questionIndex >= questions.length - 1 ? "disabled" : ""}>次の問題 →</button></div>`;
+
+  if (question.type === "fill_blank") {
+    return `${controls}${position}
+      <article class="problem-card">
+        <p class="problem-type">穴埋め問題</p>
+        <p class="fill-sentence">${blankSentence(question.sentence, question.blankWord, question.answerColor, state.answerVisible)}</p>
+        <button class="btn btn-primary" data-problem-action="toggle-fill-answer">${state.answerVisible ? "回答を隠す" : "回答を見る"}</button>
+      </article>${navigation}`;
+  }
+
+  const choiceList = (question.choices || [])
+    .map(
+      (choice, index) => {
+        const selected = state.selectedAnswer === index + 1;
+        const correct = state.quizAnswered && question.answer === index + 1;
+        const incorrect = state.quizAnswered && selected && !correct;
+        return `<button class="quiz-choice ${selected ? "selected" : ""} ${correct ? "correct" : ""} ${incorrect ? "incorrect" : ""}" data-problem-choice="${index + 1}" ${state.quizAnswered ? "disabled" : ""}><span>${index + 1}</span>${escapeHtml(choice)}</button>`;
+      })
+    .join("");
+  const answerResult = state.quizAnswered
+    ? `<div class="quiz-result ${state.selectedAnswer === question.answer ? "is-correct" : "is-incorrect"}"><b>${state.selectedAnswer === question.answer ? "正解です" : "不正解です"}</b><p>正解：${escapeHtml((question.choices || [])[question.answer - 1] || "")}</p>${question.explanation ? `<p>解説：${escapeHtml(question.explanation)}</p>` : ""}</div>`
+    : "";
+  return `${controls}${position}
+    <article class="problem-card"><p class="problem-type">四択問題</p><h3>${escapeHtml(question.question)}</h3><div class="quiz-choices">${choiceList}</div>${answerResult}<button class="btn btn-primary" data-problem-action="answer-quiz" ${state.selectedAnswer ? "" : "disabled"}>回答する</button></article>${navigation}`;
+}
+
+function renderQuestionEditor() {
+  const editing = state.questions.find((item) => item.id === state.editingQuestionId);
+  const type = editing?.type || state.problemType;
+  const quiz = type === "quiz";
+  const questionList = state.questions.length
+    ? state.questions
+        .map(
+          (item) => `<li><div><b>${item.type === "quiz" ? "四択" : "穴埋め"}</b><span>${escapeHtml(item.question || item.sentence || "無題の問題")}</span></div><div><button data-problem-action="edit-question" data-question-id="${item.id}">編集</button><button class="danger-link" data-problem-action="delete-question" data-question-id="${item.id}">削除</button></div></li>`,
+        )
+        .join("")
+    : '<li class="note-hint">このノートにはまだ問題がありません。</li>';
+  return `
+    <div class="problem-type-switch"><button class="${quiz ? "active" : ""}" data-problem-action="set-quiz">四択問題</button><button class="${!quiz ? "active" : ""}" data-problem-action="set-fill">穴埋め問題</button></div>
+    <form id="questionForm" class="question-editor">
+      ${quiz ? `
+        <label>問題文<textarea name="question" required placeholder="問題文を入力">${escapeHtml(editing?.question || "")}</textarea></label>
+        ${[0, 1, 2, 3].map((index) => `<label>選択肢${index + 1}<input name="choice${index + 1}" required value="${escapeHtml(editing?.choices?.[index] || "")}" /></label>`).join("")}
+        <label>正解<select name="answer" required>${[1, 2, 3, 4].map((value) => `<option value="${value}" ${Number(editing?.answer || 1) === value ? "selected" : ""}>選択肢${value}</option>`).join("")}</select></label>
+        <label>解説<textarea name="explanation" placeholder="解説を入力（任意）">${escapeHtml(editing?.explanation || "")}</textarea></label>
+      ` : `
+        <label>文章<textarea name="sentence" required placeholder="例：心臓は全身に血液を送り出すポンプとして働く。">${escapeHtml(editing?.sentence || "")}</textarea></label>
+        <label>穴埋めにする語句<input name="blankWord" required value="${escapeHtml(editing?.blankWord || "")}" placeholder="例：心臓" /></label>
+        <label class="answer-color-label">回答の色<input name="answerColor" type="color" value="${safeAnswerColor(editing?.answerColor)}" /><span>回答を見るときの色</span></label>
+      `}
+      <div class="question-editor-actions"><button class="btn btn-primary" type="submit">${editing ? "問題を更新する" : "問題を保存する"}</button>${editing ? '<button class="btn btn-secondary" type="button" data-problem-action="cancel-edit">編集をやめる</button>' : ""}</div>
+    </form>
+    <section class="question-manage"><h3>このノートの問題</h3><ul>${questionList}</ul></section>`;
+}
+
+async function saveQuestion(form) {
+  const note = current();
+  const questionsRef = questionCollection();
+  if (!note || !questionsRef) {
+    return;
+  }
+  const formData = new FormData(form);
+  const type = state.editingQuestionId
+    ? state.questions.find((item) => item.id === state.editingQuestionId)?.type
+    : state.problemType;
+  let payload;
+  if (type === "quiz") {
+    const choices = [1, 2, 3, 4].map((index) => String(formData.get(`choice${index}`) || "").trim());
+    const question = String(formData.get("question") || "").trim();
+    if (!question || choices.some((choice) => !choice)) {
+      alert("問題文と4つの選択肢を入力してください。");
+      return;
+    }
+    payload = { type: "quiz", question, choices, answer: Number(formData.get("answer")), explanation: String(formData.get("explanation") || "").trim() };
+  } else {
+    const sentence = String(formData.get("sentence") || "").trim();
+    const blankWord = String(formData.get("blankWord") || "").trim();
+    if (!sentence || !blankWord || !sentence.includes(blankWord)) {
+      alert("文章と、文章内に含まれる穴埋め語句を入力してください。");
+      return;
+    }
+    payload = { type: "fill_blank", sentence, blankWord, answerColor: safeAnswerColor(formData.get("answerColor")) };
+  }
+  if (state.editingQuestionId) {
+    await updateDoc(doc(questionsRef, state.editingQuestionId), { ...payload, updatedAt: serverTimestamp() });
+  } else {
+    await addDoc(questionsRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  }
+  state.editingQuestionId = null;
+  state.problemView = "solve";
+}
+
+function handleProblemChange(event) {
+  if (event.target.id === "questionForm") {
+    return;
+  }
+  if (event.target.closest("#questionForm")) {
+    return;
+  }
+}
+
+async function handleProblemAction(event) {
+  const form = event.target.closest("#questionForm");
+  if (form && event.target.type === "submit") {
+    event.preventDefault();
+    try {
+      await saveQuestion(form);
+    } catch (error) {
+      console.error(error);
+      alert("問題を保存できませんでした。");
+    }
+    return;
+  }
+  const button = event.target.closest("[data-problem-action], [data-problem-filter], [data-problem-choice]");
+  if (!button) return;
+  if (button.dataset.problemFilter) {
+    state.questionFilter = button.dataset.problemFilter;
+    state.questionIndex = 0;
+    state.selectedAnswer = null;
+    state.quizAnswered = false;
+    state.answerVisible = false;
+    renderQuestions();
+    return;
+  }
+  if (button.dataset.problemChoice) {
+    state.selectedAnswer = Number(button.dataset.problemChoice);
+    renderQuestions();
+    return;
+  }
+  const action = button.dataset.problemAction;
+  if (!action) return;
+  if (action === "view-solve" || action === "view-create") {
+    state.problemView = action === "view-solve" ? "solve" : "create";
+    state.editingQuestionId = null;
+  } else if (action === "set-quiz" || action === "set-fill") {
+    state.problemType = action === "set-quiz" ? "quiz" : "fill_blank";
+    state.editingQuestionId = null;
+  } else if (action === "previous-question" || action === "next-question") {
+    const questions = filteredQuestions();
+    state.questionIndex += action === "previous-question" ? -1 : 1;
+    state.questionIndex = Math.max(0, Math.min(state.questionIndex, questions.length - 1));
+    state.selectedAnswer = null;
+    state.quizAnswered = false;
+    state.answerVisible = false;
+  } else if (action === "answer-quiz") {
+    state.quizAnswered = true;
+  } else if (action === "toggle-fill-answer") {
+    state.answerVisible = !state.answerVisible;
+  } else if (action === "edit-question") {
+    state.editingQuestionId = button.dataset.questionId;
+    state.problemView = "create";
+  } else if (action === "cancel-edit") {
+    state.editingQuestionId = null;
+  } else if (action === "delete-question") {
+    const item = state.questions.find((question) => question.id === button.dataset.questionId);
+    if (item && confirm("この問題を削除しますか？")) {
+      try {
+        await deleteDoc(doc(questionCollection(), item.id));
+      } catch (error) {
+        console.error(error);
+        alert("問題を削除できませんでした。");
+      }
+    }
+  }
+  renderQuestions();
 }
 
 function setupDrawer() {
@@ -1678,7 +2019,7 @@ function setPaper(paper) {
   const note = current();
 
   if (note) {
-    localStorage.setItem(`careMatePaper:${note.id}`, paper);
+    localStorage.setItem(`careMatePaper:${studentNumber}:${note.id}`, paper);
   }
 }
 
@@ -1743,7 +2084,9 @@ function drawPointer(event) {
 }
 
 function boardKey() {
-  return state.selected ? `careMateHandwriting:${state.selected}` : "";
+  return state.selected
+    ? `careMateHandwriting:${studentNumber}:${state.selected}`
+    : "";
 }
 
 function saveBoard() {
@@ -1781,13 +2124,30 @@ function restoreBoard() {
     return;
   }
 
-  setPaper(localStorage.getItem(`careMatePaper:${state.selected}`) || "blank");
+  const paperKey = `careMatePaper:${studentNumber}:${state.selected}`;
+  const legacyPaperKey = `careMatePaper:${state.selected}`;
+  const savedPaper =
+    localStorage.getItem(paperKey) ||
+    (studentNumber === "2510044" ? localStorage.getItem(legacyPaperKey) : null) ||
+    "blank";
+  if (studentNumber === "2510044" && !localStorage.getItem(paperKey)) {
+    localStorage.setItem(paperKey, savedPaper);
+  }
+  setPaper(savedPaper);
 
   const ctx = board.getContext("2d");
 
   ctx.clearRect(0, 0, board.clientWidth, board.clientHeight);
 
-  const data = localStorage.getItem(key);
+  const data =
+    localStorage.getItem(key) ||
+    (studentNumber === "2510044"
+      ? localStorage.getItem(`careMateHandwriting:${state.selected}`)
+      : null);
+
+  if (data && studentNumber === "2510044" && !localStorage.getItem(key)) {
+    localStorage.setItem(key, data);
+  }
 
   if (!data) {
     return;
@@ -1879,7 +2239,7 @@ async function saveCurrent() {
     .replace(/\s+/g, " ")
     .trim();
 
-  await updateDoc(doc(db, "digitalNotes", "2510044", "notes", note.id), {
+  await updateDoc(doc(notesRef, note.id), {
     title,
 
     body,

@@ -126,7 +126,7 @@
       .feature-switcher {
         display: grid;
 
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
 
         gap: 8px;
 
@@ -164,6 +164,227 @@
 
       .feature-section.active {
         display: block;
+      }
+
+      /* ========================================
+   ノート専用問題
+======================================== */
+
+      .problem-heading,
+      .problem-view-switch,
+      .problem-type-switch,
+      .problem-filter,
+      .problem-navigation,
+      .question-editor-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .problem-heading {
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .problem-heading h2,
+      .problem-card h3 {
+        margin: 0;
+      }
+
+      .problem-eyebrow,
+      .problem-position,
+      .problem-type {
+        margin: 0 0 5px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+
+      .problem-view-switch button,
+      .problem-type-switch button,
+      .problem-filter button {
+        min-height: 38px;
+        padding: 8px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .problem-view-switch button.active,
+      .problem-type-switch button.active,
+      .problem-filter button.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .problem-card,
+      .problem-empty,
+      .question-manage {
+        margin-top: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--card) 94%, var(--primary));
+      }
+
+      .problem-empty {
+        text-align: center;
+      }
+
+      .problem-card h3,
+      .fill-sentence {
+        margin: 8px 0 20px;
+        font-size: clamp(1.05rem, 2vw, 1.32rem);
+        line-height: 1.9;
+      }
+
+      .blank-slot {
+        display: inline-block;
+        min-width: 6.2em;
+        padding: 0 0.22em;
+        border-bottom: 2px solid var(--primary);
+        text-align: center;
+      }
+
+      .quiz-choices {
+        display: grid;
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .quiz-choice {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 52px;
+        padding: 11px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--text);
+        text-align: left;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .quiz-choice span {
+        display: grid;
+        place-items: center;
+        flex: 0 0 28px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--surface);
+      }
+
+      .quiz-choice.selected {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent);
+      }
+
+      .quiz-choice.correct {
+        border-color: #178a55;
+        background: #e6f7ee;
+      }
+
+      .quiz-choice.incorrect {
+        border-color: #c93636;
+        background: #ffeded;
+      }
+
+      .quiz-result {
+        margin: 14px 0;
+        padding: 13px;
+        border-radius: 12px;
+      }
+
+      .quiz-result p {
+        margin: 6px 0 0;
+      }
+
+      .quiz-result.is-correct {
+        background: #e6f7ee;
+        color: #12663f;
+      }
+
+      .quiz-result.is-incorrect {
+        background: #ffeded;
+        color: #9b2525;
+      }
+
+      .problem-navigation {
+        justify-content: space-between;
+        margin-top: 16px;
+      }
+
+      .question-editor {
+        display: grid;
+        gap: 13px;
+        margin-top: 16px;
+      }
+
+      .question-editor textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .answer-color-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .answer-color-label input {
+        width: 50px;
+        min-height: 38px;
+        padding: 2px;
+      }
+
+      .answer-color-label span {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .question-manage ul {
+        display: grid;
+        gap: 9px;
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .question-manage li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      .question-manage li div:last-child {
+        display: flex;
+        gap: 8px;
+      }
+
+      .question-manage li button {
+        border: 0;
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 7px 9px;
+        cursor: pointer;
+      }
+
+      .question-manage .danger-link {
+        color: #bc2e2e;
       }
 
       /* ========================================
@@ -1205,7 +1426,7 @@ JSから--range-progressを変更する。
         }
 
         .feature-switcher {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .feature-switch-button {
@@ -1477,13 +1698,13 @@ JSから--range-progressを変更する。
 
     <main>
       <!-- ========================================
-     2510044限定
+     対象ユーザー限定
 ======================================== -->
 
       <section id="denied" class="card setting-card" hidden>
         <h2>利用できません</h2>
 
-        <p>この機能は2510044専用です。</p>
+        <p>この機能は対象ユーザー専用です。</p>
       </section>
 
       <div id="noteApp" hidden>
@@ -1509,6 +1730,10 @@ JSから--range-progressを変更する。
 
             <button class="feature-switch-button" data-feature="todoPanel">
               ToDo
+            </button>
+
+            <button class="feature-switch-button" data-feature="problemPanel">
+              問題
             </button>
           </div>
 
@@ -1819,6 +2044,14 @@ JSから--range-progressを変更する。
           <div id="todoList" class="todo-list"></div>
 
           <button id="addTodo" class="btn btn-secondary">＋ ToDoを追加</button>
+        </section>
+
+        <!-- ========================================
+     ノート専用問題
+======================================== -->
+
+        <section id="problemPanel" class="card setting-card feature-section">
+          <div id="problemApp"></div>
         </section>
       </div>
     </main>
