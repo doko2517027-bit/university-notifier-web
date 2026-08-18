@@ -11,7 +11,10 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   query,
+  serverTimestamp,
+  setDoc,
   where,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -44,10 +47,38 @@ await initializePage([
   loadProfileImage(topProfileImage),
 ]);
 const digitalNoteCard = document.getElementById("digitalNoteCard");
-if (studentNumber === "2510044") {
+const digitalNoteUsers = new Set(["2510044", "2510054"]);
+if (digitalNoteUsers.has(studentNumber)) {
   digitalNoteCard.classList.add("is-available");
   digitalNoteCard.setAttribute("aria-hidden", "false");
 }
+
+/*
+  2510054には、AIデジタルノート利用分として
+  最初の無料枠を一度だけ送信済みリクエストにする。
+  固定IDなので、画面を開き直しても重複作成されない。
+*/
+async function ensure2510054DigitalNoteRequest() {
+  if (studentNumber !== "2510054") return;
+  const reference = doc(db, "featureRequests", "2510054-ai-digital-notes");
+  const existing = await getDoc(reference);
+  if (existing.exists()) return;
+  await setDoc(reference, {
+    studentNumber: "2510054",
+    title: "AIデジタルノート",
+    description:
+      "AIデジタルノートの利用・専用機能の追加をリクエストしています。",
+    useCase: "いつでも使える",
+    status: "submitted",
+    slotIndex: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+ensure2510054DigitalNoteRequest().catch((error) => {
+  console.error("AIデジタルノート用リクエストを作成できませんでした。", error);
+});
 const clinicalCard = document.getElementById("clinicalCard");
 if (studentNumber === "2510044") {
   clinicalCard.classList.add("is-available");
