@@ -804,7 +804,75 @@ export function showPage() {
   document.body.classList.add("page-loaded");
 }
 
+function setupAutoBackButton() {
+  if (
+    document.getElementById("backButton") ||
+    document.querySelector(".bottom-nav") ||
+    document.querySelector("[data-no-auto-back]")
+  ) {
+    return;
+  }
+
+  const fileName = location.pathname.split("/").pop() || "index.html";
+  const topLevelPages = new Set([
+    "index.html",
+    "login.html",
+    "register.html",
+    "clinical_login.html",
+    "clinical_entry.html",
+    "clinical_portal.html",
+  ]);
+
+  if (topLevelPages.has(fileName)) {
+    return;
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "auto-back-button";
+  button.setAttribute("aria-label", "前の画面に戻る");
+  button.textContent = "← 戻る";
+  button.onclick = () => {
+    if (history.length > 1) {
+      history.back();
+    } else {
+      location.href = "index.html";
+    }
+  };
+
+  document.body.prepend(button);
+
+  if (!document.getElementById("autoBackButtonStyle")) {
+    const style = document.createElement("style");
+    style.id = "autoBackButtonStyle";
+    style.textContent = `
+      .auto-back-button {
+        position: fixed;
+        z-index: 1000;
+        top: max(14px, env(safe-area-inset-top));
+        left: max(14px, env(safe-area-inset-left));
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--border, #d8e1e6);
+        border-radius: 999px;
+        background: var(--card, #fff);
+        color: var(--text, #13213b);
+        box-shadow: 0 6px 20px rgba(15, 23, 42, .12);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .auto-back-button:hover { transform: translateY(-1px); }
+      @media (max-width: 780px) {
+        .auto-back-button { min-height: 38px; padding: 0 12px; font-size: .9rem; }
+      }
+    `;
+    document.head.append(style);
+  }
+}
+
 export async function initializePage(tasks = []) {
+  setupAutoBackButton();
   showPage();
 
   await Promise.all(tasks).catch((error) => {
