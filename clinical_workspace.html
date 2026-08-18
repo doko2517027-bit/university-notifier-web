@@ -1,2 +1,233 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Clinical ワークスペース</title><link rel="stylesheet" href="style.css"><style>body:has(.clinical-workspace){max-width:none;margin:0;padding:20px 28px 96px}.clinical-workspace{width:100%;max-width:none;margin:0;padding:0}.clinical-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px}.clinical-sidebar{align-self:start;position:sticky;top:12px}.clinical-patient{display:block;width:100%;text-align:left;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:11px;margin:8px 0;cursor:pointer}.clinical-patient.active{border-color:#0f766e;background:#ecfdf5}.clinical-patient small{display:block;color:var(--subtext);margin-top:3px}.clinical-tabs{display:flex;gap:8px;overflow:auto;margin:12px 0}.clinical-tabs button{white-space:nowrap;min-height:40px;border:1px solid var(--border);background:var(--card);border-radius:10px;padding:0 12px;cursor:pointer}.clinical-tabs button.active{background:#0f766e;border-color:#0f766e;color:#fff}.clinical-patient-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.clinical-patient-head h2{margin:0}.clinical-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.clinical-badge{padding:4px 8px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:.8rem;font-weight:700}.clinical-data-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.clinical-data-grid .card{margin:0}.clinical-data-grid b{display:block;margin-top:5px}.clinical-entry{border-left:3px solid #0f766e;background:color-mix(in srgb,#0f766e 5%,var(--card));border-radius:0 10px 10px 0;padding:10px 12px;margin-top:10px}.clinical-entry small{color:var(--subtext)}.clinical-chart{height:180px;display:flex;gap:8px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(to top,rgba(15,118,110,.08) 1px,transparent 1px);background-size:100% 25%}.clinical-chart i{flex:1;min-width:12px;border-radius:6px 6px 2px 2px;background:linear-gradient(#2dd4bf,#0f766e)}.clinical-empty{padding:32px;text-align:center;color:var(--subtext);border:1px dashed var(--border);border-radius:12px}.clinical-notice{border-left:4px solid #d97706;background:#fffbeb;color:#713f12}.hidden{display:none!important}.bottom-nav{max-width:none}@media(max-width:760px){body:has(.clinical-workspace){padding:14px 12px 92px}.clinical-layout{grid-template-columns:1fr}.clinical-sidebar{position:static}.clinical-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.clinical-patient-head{flex-direction:column}}</style></head><body class="page-loading"><div class="top-buttons"><div class="top-user-info"><span id="userName">読み込み中</span></div><div class="top-right"><button id="themeButton" class="circle-button">🌙</button><button id="profileButton" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image"></button></div></div><header class="header"><div class="logo">🏥</div><h1>CareMate Clinical</h1><p id="roleLabel">Clinical権限を確認中…</p></header><main class="clinical-workspace"><section class="card setting-card clinical-notice"><b>Clinical検証ワークスペース</b><br><small>実在患者の氏名・診療情報・処方・請求情報は入力しないでください。ここでは画面構成と職種別権限を検証します。</small></section><div class="clinical-layout"><aside class="card setting-card clinical-sidebar"><h2>患者一覧</h2><p><input id="patientSearch" placeholder="ケース番号で検索"></p><button id="addPatient" class="btn btn-primary hidden">＋ 検証ケースを追加</button><div id="patientList"></div></aside><section class="card setting-card"><div id="workspace"></div></section></div></main><nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="requests.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav><script type="module" src="clinical_workspace.js"></script></body></html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Clinical ワークスペース</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body:has(.clinical-workspace) {
+        max-width: none;
+        margin: 0;
+        padding: 20px 28px 96px;
+      }
+      .clinical-workspace {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+      .clinical-layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 20px;
+      }
+      .clinical-sidebar {
+        align-self: start;
+        position: sticky;
+        top: 12px;
+      }
+      .clinical-patient {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        padding: 11px;
+        margin: 8px 0;
+        cursor: pointer;
+      }
+      .clinical-patient.active {
+        border-color: #0f766e;
+        background: #ecfdf5;
+      }
+      .clinical-patient small {
+        display: block;
+        color: var(--subtext);
+        margin-top: 3px;
+      }
+      .clinical-tabs {
+        display: flex;
+        gap: 8px;
+        overflow: auto;
+        margin: 12px 0;
+      }
+      .clinical-tabs button {
+        white-space: nowrap;
+        min-height: 40px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        border-radius: 10px;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+      .clinical-tabs button.active {
+        background: #0f766e;
+        border-color: #0f766e;
+        color: #fff;
+      }
+      .clinical-patient-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .clinical-patient-head h2 {
+        margin: 0;
+      }
+      .clinical-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .clinical-badge {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #e0f2fe;
+        color: #075985;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .clinical-data-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .clinical-data-grid .card {
+        margin: 0;
+      }
+      .clinical-data-grid b {
+        display: block;
+        margin-top: 5px;
+      }
+      .clinical-entry {
+        border-left: 3px solid #0f766e;
+        background: color-mix(in srgb, #0f766e 5%, var(--card));
+        border-radius: 0 10px 10px 0;
+        padding: 10px 12px;
+        margin-top: 10px;
+      }
+      .clinical-entry small {
+        color: var(--subtext);
+      }
+      .clinical-chart {
+        height: 180px;
+        display: flex;
+        gap: 8px;
+        align-items: end;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: linear-gradient(
+          to top,
+          rgba(15, 118, 110, 0.08) 1px,
+          transparent 1px
+        );
+        background-size: 100% 25%;
+      }
+      .clinical-chart i {
+        flex: 1;
+        min-width: 12px;
+        border-radius: 6px 6px 2px 2px;
+        background: linear-gradient(#2dd4bf, #0f766e);
+      }
+      .clinical-empty {
+        padding: 32px;
+        text-align: center;
+        color: var(--subtext);
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+      }
+      .clinical-notice {
+        border-left: 4px solid #d97706;
+        background: #fffbeb;
+        color: #713f12;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .bottom-nav {
+        max-width: none;
+      }
+      @media (max-width: 760px) {
+        body:has(.clinical-workspace) {
+          padding: 14px 12px 92px;
+        }
+        .clinical-layout {
+          grid-template-columns: 1fr;
+        }
+        .clinical-sidebar {
+          position: static;
+        }
+        .clinical-data-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .clinical-patient-head {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons">
+      <div class="top-user-info"><span id="userName">読み込み中</span></div>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button">🌙</button
+        ><button id="profileButton" class="circle-button">
+          <img
+            id="topProfileImage"
+            src="images/default.png"
+            class="header-profile-image"
+          />
+        </button>
+      </div>
+    </div>
+    <header class="header">
+      <div class="logo">🏥</div>
+      <h1>CareMate Clinical</h1>
+      <p id="roleLabel">Clinical権限を確認中…</p>
+    </header>
+    <main class="clinical-workspace">
+      <section class="card setting-card clinical-notice">
+        <b>Clinical検証ワークスペース</b><br /><small
+          >実在患者の氏名・診療情報・処方・請求情報は入力しないでください。ここでは画面構成と職種別権限を検証します。</small
+        >
+      </section>
+      <div class="clinical-layout">
+        <aside class="card setting-card clinical-sidebar">
+          <h2>患者一覧</h2>
+          <p><input id="patientSearch" placeholder="ケース番号で検索" /></p>
+          <button id="addPatient" class="btn btn-primary hidden">
+            ＋ 検証ケースを追加
+          </button>
+          <div id="patientList"></div>
+        </aside>
+        <section class="card setting-card"><div id="workspace"></div></section>
+      </div>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span
+        ><span>ホーム</span></a
+      ><a href="assignments.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span
+        ><span>課題</span></a
+      ><a href="requests.html" class="active"
+        ><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span
+        ><span>リクエスト</span></a
+      ><a href="news.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span
+        ><span>お知らせ</span></a
+      ><a id="settingsTab" href="settings.html"
+        ><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span
+        ><span>設定</span></a
+      >
+    </nav>
+    <script type="module" src="clinical_workspace.js"></script>
+  </body>
+</html>
