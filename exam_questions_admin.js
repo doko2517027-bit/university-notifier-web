@@ -324,6 +324,10 @@ function renderQuizItem(item, index = null, type = "quiz") {
 
   let answer = Number.isInteger(Number(item.answer)) ? Number(item.answer) : 0;
 
+  const answers = Array.isArray(item.answers) && item.answers.length
+    ? item.answers.map(Number).filter((value) => Number.isInteger(value))
+    : [answer];
+
   answer = Math.max(0, Math.min(choices.length - 1, answer));
 
   return `
@@ -394,15 +398,13 @@ function renderQuizItem(item, index = null, type = "quiz") {
                 ＋ 選択肢を追加
             </button>
 
-            <p>正解番号</p>
+            <p>正解番号（複数正解はカンマ区切り）</p>
 
             <input
-                class="edit-quiz-answer"
+                class="edit-quiz-answers"
                 data-index="${quizIndex}"
-                type="number"
-                min="1"
-                max="${choices.length}"
-                value="${answer + 1}">
+                inputmode="numeric"
+                value="${answers.map((value) => value + 1).join(", ")}">
 
             <p>解説</p>
 
@@ -451,19 +453,23 @@ function updateQuizChoiceIndexes(card) {
     }
   });
 
-  const answerInput = card.querySelector(".edit-quiz-answer");
+  const answerInput = card.querySelector(".edit-quiz-answers");
 
   if (!answerInput) {
     return;
   }
 
-  answerInput.max = Math.max(1, rows.length);
-
-  let answer = Number(answerInput.value || 1);
-
-  answer = Math.max(1, Math.min(rows.length, answer));
-
-  answerInput.value = answer;
+  const answers = String(answerInput.value || "1")
+    .split(",")
+    .map((value) => Number(value.trim()))
+    .filter(
+      (value, index, values) =>
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= rows.length &&
+        values.indexOf(value) === index,
+    );
+  answerInput.value = (answers.length ? answers : [1]).join(", ");
 }
 
 function renderFillBlankItem(item, index) {
@@ -933,15 +939,22 @@ saveEditedQuestions.onclick = async () => {
         card.querySelectorAll(".edit-quiz-choice"),
       ).map((input) => input.value.trim());
 
-      const answerInput = card.querySelector(".edit-quiz-answer");
+      const answerInput = card.querySelector(".edit-quiz-answers");
 
       const explanation =
         card.querySelector(".edit-quiz-explanation")?.value.trim() || "";
 
-      const answer = Math.max(
-        0,
-        Math.min(choices.length - 1, Number(answerInput?.value || 1) - 1),
-      );
+      const answers = String(answerInput?.value || "1")
+        .split(",")
+        .map((value) => Number(value.trim()) - 1)
+        .filter(
+          (value, index, values) =>
+            Number.isInteger(value) &&
+            value >= 0 &&
+            value < choices.length &&
+            values.indexOf(value) === index,
+        );
+      const answer = answers[0] ?? 0;
 
       const imageData = readImageData(card);
 
@@ -949,6 +962,7 @@ saveEditedQuestions.onclick = async () => {
         question,
         choices,
         answer,
+        ...(answers.length > 1 ? { answers } : {}),
         explanation,
 
         ...imageData,
@@ -976,12 +990,19 @@ saveEditedQuestions.onclick = async () => {
       todayCard.querySelectorAll(".edit-quiz-choice"),
     ).map((input) => input.value.trim());
 
-    const answerInput = todayCard.querySelector(".edit-quiz-answer");
+    const answerInput = todayCard.querySelector(".edit-quiz-answers");
 
-    const answer = Math.max(
-      0,
-      Math.min(choices.length - 1, Number(answerInput?.value || 1) - 1),
-    );
+    const answers = String(answerInput?.value || "1")
+      .split(",")
+      .map((value) => Number(value.trim()) - 1)
+      .filter(
+        (value, index, values) =>
+          Number.isInteger(value) &&
+          value >= 0 &&
+          value < choices.length &&
+          values.indexOf(value) === index,
+      );
+    const answer = answers[0] ?? 0;
 
     const explanation =
       todayCard.querySelector(".edit-quiz-explanation")?.value.trim() || "";
@@ -993,6 +1014,7 @@ saveEditedQuestions.onclick = async () => {
         question,
         choices,
         answer,
+        ...(answers.length > 1 ? { answers } : {}),
         explanation,
 
         ...imageData,
@@ -1290,9 +1312,12 @@ document.addEventListener("click", (e) => {
 
     const deletedNumber = Number(row?.dataset.choiceIndex || 0) + 1;
 
-    const answerInput = card.querySelector(".edit-quiz-answer");
+    const answerInput = card.querySelector(".edit-quiz-answers");
 
-    let currentAnswer = Number(answerInput?.value || 1);
+    const currentAnswers = String(answerInput?.value || "1")
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter(Number.isInteger);
 
     const nextBreak = row?.nextElementSibling;
 
@@ -1302,14 +1327,12 @@ document.addEventListener("click", (e) => {
       nextBreak.remove();
     }
 
-    if (currentAnswer > deletedNumber) {
-      currentAnswer--;
-    } else if (currentAnswer === deletedNumber) {
-      currentAnswer = 1;
-    }
+    const nextAnswers = currentAnswers
+      .filter((value) => value !== deletedNumber)
+      .map((value) => (value > deletedNumber ? value - 1 : value));
 
     if (answerInput) {
-      answerInput.value = currentAnswer;
+      answerInput.value = (nextAnswers.length ? nextAnswers : [1]).join(", ");
     }
 
     updateQuizChoiceIndexes(card);

@@ -158,9 +158,14 @@ function renderQuestionImage(question) {
 function renderQuestion() {
   const q = visibleQuiz[currentIndex];
   const choiceOrder = quizSession?.choiceOrders?.[q._sessionId] || q.choices.map((_, index) => index);
+  const correctAnswers =
+    Array.isArray(q.answers) && q.answers.length > 1
+      ? q.answers.map(Number)
+      : [Number(q.answer)];
+  const isMultiple = correctAnswers.length > 1;
   quizArea.innerHTML = `
         <div class="test-progress"><span style="width:${((currentIndex + 1) / visibleQuiz.length) * 100}%"></span></div>
-        <div class="card setting-card test-focus-card quiz-card" data-answer="${Number(q.answer)}">
+        <div class="card setting-card test-focus-card quiz-card" data-answers='${JSON.stringify(correctAnswers)}' data-multiple="${isMultiple}">
             <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
@@ -171,6 +176,7 @@ function renderQuestion() {
             <div class="test-choice-list">
                 ${choiceOrder.map((choiceIndex, displayIndex) => `<button class="test-choice quiz-answer" data-index="${choiceIndex}"><b>${displayIndex + 1}</b><span>${escapeHtml(q.choices[choiceIndex])}</span></button>`).join("")}
             </div>
+            ${isMultiple ? '<button class="btn btn-primary check-quiz" disabled>選択した答えを判定</button>' : ""}
             <div class="test-result-panel" hidden>
                 <div class="test-mark" aria-hidden="true"></div>
                 <div class="test-result-label"></div>
@@ -255,19 +261,34 @@ document.addEventListener("click", async (event) => {
   }
 
   const answerButton = event.target.closest(".quiz-answer");
-  if (!answerButton) return;
-  const card = answerButton.closest(".quiz-card");
+  const checkButton = event.target.closest(".check-quiz");
+  if (!answerButton && !checkButton) return;
+  const card = (answerButton || checkButton).closest(".quiz-card");
   if (card.dataset.finished === "true") return;
+  const correctAnswers = JSON.parse(card.dataset.answers || "[]").map(Number);
+  if (answerButton && card.dataset.multiple === "true") {
+    answerButton.classList.toggle("is-selected");
+    const selected = card.querySelectorAll(".quiz-answer.is-selected").length;
+    card.querySelector(".check-quiz").disabled = selected === 0;
+    return;
+  }
+  const selectedAnswers = answerButton
+    ? [Number(answerButton.dataset.index)]
+    : Array.from(card.querySelectorAll(".quiz-answer.is-selected")).map(
+        (button) => Number(button.dataset.index),
+      );
+  if (!selectedAnswers.length) return;
   card.dataset.finished = "true";
-  const selected = Number(answerButton.dataset.index);
-  const correct = Number(card.dataset.answer);
-  const isCorrect = selected === correct;
+  const isCorrect =
+    selectedAnswers.length === correctAnswers.length &&
+    correctAnswers.every((answer) => selectedAnswers.includes(answer));
   card.querySelectorAll(".test-choice").forEach((button) => {
     button.disabled = true;
     const choiceIndex = Number(button.dataset.index);
-    if (choiceIndex === correct) button.classList.add("is-correct");
-    if (choiceIndex === selected && !isCorrect) button.classList.add("is-wrong");
+    if (correctAnswers.includes(choiceIndex)) button.classList.add("is-correct");
+    if (selectedAnswers.includes(choiceIndex) && !correctAnswers.includes(choiceIndex)) button.classList.add("is-wrong");
   });
+  checkButton?.remove();
   const panel = card.querySelector(".test-result-panel");
   panel.hidden = false;
   panel.classList.add(isCorrect ? "correct" : "wrong");
