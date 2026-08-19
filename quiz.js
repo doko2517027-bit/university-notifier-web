@@ -6,7 +6,8 @@ import {
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import {
-  loadTestProgress,
+  loadTestSession,
+  createNewTestSession,
   saveTestProgress,
   scrubberHtml,
   setupScrubber,
@@ -30,6 +31,8 @@ let currentIndex = 0;
 let completed = false;
 let subjectName = "科目";
 let sessionPoints = 0;
+let quizSession = null;
+let sourceQuiz = [];
 
 setupTheme(themeButton);
 document.getElementById("backButton").onclick = () => history.back();
@@ -62,7 +65,8 @@ async function loadQuiz() {
     quizArea.textContent = "四択問題はまだありません。";
     return;
   }
-  visibleQuiz = (snap.data().quiz || []).filter(
+  sourceQuiz = (snap.data().quiz || [])
+    .filter(
     (q) =>
       q &&
       String(q.question || "").trim() &&
@@ -70,19 +74,45 @@ async function loadQuiz() {
       q.choices.length &&
       q.answer !== undefined &&
       q.answer !== null,
-  );
-  if (!visibleQuiz.length) {
+    )
+    .map((question, index) => ({
+      ...question,
+      _sessionId: String(question.id ?? `quiz-${index}`),
+    }));
+  if (!sourceQuiz.length) {
     quizArea.textContent = "四択問題はまだありません。";
     return;
   }
   sessionStorage.setItem("quizPlaying", "true");
-  currentIndex = await loadTestProgress(
+  quizSession = await loadTestSession(
     "quiz",
     subjectId,
+    subjectName,
     unitId,
-    visibleQuiz.length,
+    sourceQuiz.map((question) => ({
+      id: question._sessionId,
+      choiceCount: question.choices.length,
+    })),
   );
+  applyQuizSession();
   renderQuestion();
+}
+
+function applyQuizSession() {
+  const byId = new Map(sourceQuiz.map((question) => [question._sessionId, question]));
+  visibleQuiz = quizSession.questionOrder.map((id) => byId.get(id)).filter(Boolean);
+  currentIndex = Math.min(quizSession.currentIndex, Math.max(visibleQuiz.length - 1, 0));
+}
+
+async function startNewQuizSession() {
+  quizSession = createNewTestSession(
+    sourceQuiz.map((question) => ({
+      id: question._sessionId,
+      choiceCount: question.choices.length,
+    })),
+  );
+  applyQuizSession();
+  await saveTestProgress("quiz", subjectId, subjectName, unitId, currentIndex, visibleQuiz.length, false, quizSession);
 }
 
 function escapeHtml(value) {
@@ -127,6 +157,7 @@ function renderQuestionImage(question) {
 
 function renderQuestion() {
   const q = visibleQuiz[currentIndex];
+  const choiceOrder = quizSession?.choiceOrders?.[q._sessionId] || q.choices.map((_, index) => index);
   quizArea.innerHTML = `
         <div class="test-progress"><span style="width:${((currentIndex + 1) / visibleQuiz.length) * 100}%"></span></div>
         <div class="card setting-card test-focus-card quiz-card" data-answer="${Number(q.answer)}">
@@ -138,7 +169,7 @@ function renderQuestion() {
             ${renderQuestionImage(q)}
 
             <div class="test-choice-list">
-                ${q.choices.map((choice, index) => `<button class="test-choice quiz-answer" data-index="${index}"><b>${index + 1}</b><span>${escapeHtml(choice)}</span></button>`).join("")}
+                ${choiceOrder.map((choiceIndex, displayIndex) => `<button class="test-choice quiz-answer" data-index="${choiceIndex}"><b>${displayIndex + 1}</b><span>${escapeHtml(q.choices[choiceIndex])}</span></button>`).join("")}
             </div>
             <div class="test-result-panel" hidden>
                 <div class="test-mark" aria-hidden="true"></div>
@@ -158,6 +189,8 @@ function renderQuestion() {
       unitId,
       currentIndex,
       visibleQuiz.length,
+      false,
+      quizSession,
     );
   });
   setupStudyTools(quizArea);
@@ -190,6 +223,8 @@ document.addEventListener("click", async (event) => {
         unitId,
         currentIndex,
         visibleQuiz.length,
+        false,
+        quizSession,
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -203,12 +238,13 @@ document.addEventListener("click", async (event) => {
         currentIndex,
         visibleQuiz.length,
         true,
+        quizSession,
       );
       finishTest(
         sessionPoints,
-        () => {
+        async () => {
           completed = false;
-          currentIndex = 0;
+          await startNewQuizSession();
           sessionPoints = 0;
           renderQuestion();
         },
@@ -226,10 +262,11 @@ document.addEventListener("click", async (event) => {
   const selected = Number(answerButton.dataset.index);
   const correct = Number(card.dataset.answer);
   const isCorrect = selected === correct;
-  card.querySelectorAll(".test-choice").forEach((button, index) => {
+  card.querySelectorAll(".test-choice").forEach((button) => {
     button.disabled = true;
-    if (index === correct) button.classList.add("is-correct");
-    if (index === selected && !isCorrect) button.classList.add("is-wrong");
+    const choiceIndex = Number(button.dataset.index);
+    if (choiceIndex === correct) button.classList.add("is-correct");
+    if (choiceIndex === selected && !isCorrect) button.classList.add("is-wrong");
   });
   const panel = card.querySelector(".test-result-panel");
   panel.hidden = false;
@@ -263,6 +300,8 @@ document.addEventListener("click", async (event) => {
     unitId,
     currentIndex,
     visibleQuiz.length,
+    false,
+    quizSession,
   );
 });
 

@@ -75,6 +75,8 @@ const state = {
   answerVisible: false,
 
   editingQuestionId: null,
+
+  problemSession: null,
 };
 
 const escapeHtml = (value) =>
@@ -1473,6 +1475,7 @@ function selectPanel(id) {
   }
 
   if (id === "problemPanel") {
+    ensureProblemSession();
     renderQuestions();
   }
 }
@@ -1493,6 +1496,7 @@ function subscribeQuestions(noteId) {
   state.questionsNoteId = noteId || null;
   state.questions = [];
   state.questionIndex = 0;
+  state.problemSession = null;
   state.selectedAnswer = null;
   state.quizAnswered = false;
   state.answerVisible = false;
@@ -1515,6 +1519,9 @@ function subscribeQuestions(noteId) {
         Math.max(state.questions.length - 1, 0),
       );
       renderQuestions();
+      ensureProblemSession().catch((error) => {
+        console.error("問題演習の並び順を保存できませんでした。", error);
+      });
     },
     (error) => {
       console.error(error);
@@ -1525,9 +1532,91 @@ function subscribeQuestions(noteId) {
 }
 
 function filteredQuestions() {
-  return state.questions.filter(
+  const note = current();
+  const session = state.problemSession || note?.problemSession;
+  const byId = new Map(state.questions.map((item) => [item.id, item]));
+  const ordered = Array.isArray(session?.questionOrder)
+    ? session.questionOrder.map((id) => byId.get(id)).filter(Boolean)
+    : state.questions;
+  return ordered.filter(
     (item) => state.questionFilter === "all" || item.type === state.questionFilter,
   );
+}
+
+function shuffleQuestions(values) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+  return result;
+}
+
+function newProblemSession() {
+  const questionOrder = shuffleQuestions(state.questions.map((item) => item.id));
+  const choiceOrders = Object.fromEntries(
+    state.questions
+      .filter((item) => item.type === "quiz")
+      .map((item) => [
+        item.id,
+        shuffleQuestions((item.choices || []).map((_, index) => index)),
+      ]),
+  );
+  return { questionOrder, choiceOrders, currentQuestionId: questionOrder[0] || "" };
+}
+
+function hasUsableProblemSession(session) {
+  const ids = state.questions.map((item) => item.id);
+  return (
+    Array.isArray(session?.questionOrder) &&
+    session.questionOrder.length === ids.length &&
+    new Set(session.questionOrder).size === ids.length &&
+    ids.every((id) => session.questionOrder.includes(id))
+  );
+}
+
+async function persistProblemSession(session) {
+  const note = current();
+  if (!note) return;
+  state.problemSession = session;
+  note.problemSession = session;
+  await updateDoc(doc(notesRef, note.id), {
+    problemSession: session,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+async function ensureProblemSession() {
+  const note = current();
+  if (!note || !state.questions.length) return;
+  const existing = state.problemSession || note.problemSession;
+  if (hasUsableProblemSession(existing)) {
+    state.problemSession = existing;
+    const visible = filteredQuestions();
+    const index = visible.findIndex((item) => item.id === existing.currentQuestionId);
+    if (index >= 0) state.questionIndex = index;
+    return;
+  }
+  const session = newProblemSession();
+  await persistProblemSession(session);
+  state.questionIndex = 0;
+}
+
+async function startNewProblemSession() {
+  const session = newProblemSession();
+  await persistProblemSession(session);
+  state.questionIndex = 0;
+  state.selectedAnswer = null;
+  state.quizAnswered = false;
+  state.answerVisible = false;
+}
+
+async function saveProblemPosition(questions) {
+  const session = state.problemSession || current()?.problemSession;
+  const item = questions[state.questionIndex];
+  if (!session || !item) return;
+  session.currentQuestionId = item.id;
+  await persistProblemSession(session);
 }
 
 function safeAnswerColor(value) {
@@ -1595,7 +1684,7 @@ function renderQuestionSolver() {
     return `${controls}<div class="problem-empty"><p>まだ問題がありません。</p><button class="btn btn-secondary" data-problem-action="view-create">問題を作成する</button></div>`;
   }
 
-  const position = `<p class="problem-position">問題 ${state.questionIndex + 1} / ${questions.length}</p>`;
+  const position = `<div class="problem-position-row"><p class="problem-position">問題 ${state.questionIndex + 1} / ${questions.length}</p><button class="btn btn-secondary" data-problem-action="start-new-session">新しく始める</button></div>`;
   const navigation = `<div class="problem-navigation"><button class="btn btn-secondary" data-problem-action="previous-question" ${state.questionIndex === 0 ? "disabled" : ""}>← 前の問題</button><button class="btn btn-secondary" data-problem-action="next-question" ${state.questionIndex >= questions.length - 1 ? "disabled" : ""}>次の問題 →</button></div>`;
 
   if (question.type === "fill_blank") {
@@ -1607,13 +1696,17 @@ function renderQuestionSolver() {
       </article>${navigation}`;
   }
 
-  const choiceList = (question.choices || [])
+  const choiceOrder =
+    state.problemSession?.choiceOrders?.[question.id] ||
+    (question.choices || []).map((_, index) => index);
+  const choiceList = choiceOrder
     .map(
-      (choice, index) => {
-        const selected = state.selectedAnswer === index + 1;
-        const correct = state.quizAnswered && question.answer === index + 1;
+      (choiceIndex, displayIndex) => {
+        const choice = (question.choices || [])[choiceIndex];
+        const selected = state.selectedAnswer === choiceIndex + 1;
+        const correct = state.quizAnswered && question.answer === choiceIndex + 1;
         const incorrect = state.quizAnswered && selected && !correct;
-        return `<button class="quiz-choice ${selected ? "selected" : ""} ${correct ? "correct" : ""} ${incorrect ? "incorrect" : ""}" data-problem-choice="${index + 1}" ${state.quizAnswered ? "disabled" : ""}><span>${index + 1}</span>${escapeHtml(choice)}</button>`;
+        return `<button class="quiz-choice ${selected ? "selected" : ""} ${correct ? "correct" : ""} ${incorrect ? "incorrect" : ""}" data-problem-choice="${choiceIndex + 1}" ${state.quizAnswered ? "disabled" : ""}><span>${displayIndex + 1}</span>${escapeHtml(choice)}</button>`;
       })
     .join("");
   const answerResult = state.quizAnswered
@@ -1741,6 +1834,9 @@ async function handleProblemAction(event) {
     state.selectedAnswer = null;
     state.quizAnswered = false;
     state.answerVisible = false;
+    await saveProblemPosition(questions);
+  } else if (action === "start-new-session") {
+    await startNewProblemSession();
   } else if (action === "answer-quiz") {
     state.quizAnswered = true;
   } else if (action === "toggle-fill-answer") {

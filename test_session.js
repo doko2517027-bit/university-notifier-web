@@ -35,6 +35,94 @@ export async function loadTestProgress(type, subjectId, unitId, total) {
     ? index
     : 0;
 }
+
+function shuffle(values) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+  return result;
+}
+
+function newSession(items) {
+  const questionOrder = shuffle(items.map((item) => item.id));
+  const choiceOrders = Object.fromEntries(
+    items
+      .filter((item) => Number(item.choiceCount) > 0)
+      .map((item) => [
+        item.id,
+        shuffle(Array.from({ length: Number(item.choiceCount) }, (_, index) => index)),
+      ]),
+  );
+  return { questionOrder, choiceOrders, currentIndex: 0 };
+}
+
+function validSession(saved, items) {
+  const ids = items.map((item) => item.id);
+  const order = Array.isArray(saved?.questionOrder)
+    ? saved.questionOrder.map(String)
+    : [];
+  if (order.length !== ids.length || new Set(order).size !== ids.length) return null;
+  if (!ids.every((id) => order.includes(id))) return null;
+  const choiceOrders = {};
+  for (const item of items) {
+    if (!Number(item.choiceCount)) continue;
+    const choiceOrder = saved?.choiceOrders?.[item.id];
+    if (
+      !Array.isArray(choiceOrder) ||
+      choiceOrder.length !== Number(item.choiceCount) ||
+      new Set(choiceOrder).size !== Number(item.choiceCount)
+    )
+      return null;
+    choiceOrders[item.id] = choiceOrder.map(Number);
+  }
+  return {
+    questionOrder: order,
+    choiceOrders,
+    currentIndex: Math.max(
+      0,
+      Math.min(order.length - 1, Number(saved?.currentIndex || 0)),
+    ),
+  };
+}
+
+export async function loadTestSession(type, subjectId, subjectName, unitId, items) {
+  if (!studentNumber) return newSession(items);
+  const ref = doc(
+    db,
+    "users",
+    studentNumber,
+    "examProgress",
+    await idFor(type, subjectId, unitId),
+  );
+  const snap = await getDoc(ref);
+  const restored = snap.exists() && !snap.data().completed
+    ? validSession(snap.data(), items)
+    : null;
+  if (restored) {
+    const continueFromHere = confirm(
+      `前回は問題${restored.currentIndex + 1}まで進みました。\nOK：続きから　キャンセル：新しく始める`,
+    );
+    if (continueFromHere) return restored;
+  }
+  const session = newSession(items);
+  await saveTestProgress(
+    type,
+    subjectId,
+    subjectName,
+    unitId,
+    session.currentIndex,
+    items.length,
+    false,
+    session,
+  );
+  return session;
+}
+
+export function createNewTestSession(items) {
+  return newSession(items);
+}
 export async function saveTestProgress(
   type,
   subjectId,
@@ -43,6 +131,7 @@ export async function saveTestProgress(
   currentIndex,
   total,
   completed = false,
+  session = null,
 ) {
   if (!studentNumber) return;
   await setDoc(
@@ -61,6 +150,12 @@ export async function saveTestProgress(
       currentIndex,
       totalQuestions: total,
       completed,
+      ...(session
+        ? {
+            questionOrder: session.questionOrder,
+            choiceOrders: session.choiceOrders || {},
+          }
+        : {}),
       updatedAt: serverTimestamp(),
     },
     { merge: true },

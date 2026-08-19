@@ -4,7 +4,8 @@ import {
   getDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import {
-  loadTestProgress,
+  loadTestSession,
+  createNewTestSession,
   saveTestProgress,
   scrubberHtml,
   setupScrubber,
@@ -20,6 +21,8 @@ const unitId = params.get("unitId");
 let questions = [];
 let currentIndex = 0;
 let subjectName = "科目";
+let qaSession = null;
+let sourceQuestions = [];
 
 setupTheme(themeButton);
 document.getElementById("backButton").onclick = () => history.back();
@@ -47,22 +50,33 @@ async function loadQuestions() {
     getDoc(doc(db, "examSubjects", subjectId)),
   ]);
   subjectName = subjectSnap.data()?.name || subjectId;
-  questions = (questionSnap.data()?.qa || []).filter(
+  sourceQuestions = (questionSnap.data()?.qa || [])
+    .filter(
     (item) =>
       item &&
       String(item.question || "").trim() &&
       String(item.answer || "").trim(),
-  );
-  if (!questions.length) {
+    )
+    .map((question, index) => ({
+      ...question,
+      _sessionId: String(question.id ?? `qa-${index}`),
+    }));
+  if (!sourceQuestions.length) {
     qaArea.textContent = "一問一答はまだありません。";
     return;
   }
-  currentIndex = await loadTestProgress(
+  qaSession = await loadTestSession(
     "qa",
     subjectId,
+    subjectName,
     unitId,
-    questions.length,
+    sourceQuestions.map((question) => ({ id: question._sessionId })),
   );
+  const byId = new Map(
+    sourceQuestions.map((question) => [question._sessionId, question]),
+  );
+  questions = qaSession.questionOrder.map((id) => byId.get(id)).filter(Boolean);
+  currentIndex = qaSession.currentIndex;
   renderQuestion();
 }
 
@@ -101,6 +115,8 @@ function renderQuestion() {
       unitId,
       currentIndex,
       questions.length,
+      false,
+      qaSession,
     );
   });
   setupStudyTools(qaArea);
@@ -113,7 +129,20 @@ qaArea.addEventListener("click", async (event) => {
     return;
   }
   if (!event.target.closest(".qa-next")) return;
-  currentIndex = currentIndex + 1 < questions.length ? currentIndex + 1 : 0;
+  if (currentIndex + 1 < questions.length) {
+    currentIndex += 1;
+  } else {
+    qaSession = createNewTestSession(
+      sourceQuestions.map((question) => ({ id: question._sessionId })),
+    );
+    const byId = new Map(
+      sourceQuestions.map((question) => [question._sessionId, question]),
+    );
+    questions = qaSession.questionOrder
+      .map((id) => byId.get(id))
+      .filter(Boolean);
+    currentIndex = 0;
+  }
   renderQuestion();
   await saveTestProgress(
     "qa",
@@ -122,6 +151,8 @@ qaArea.addEventListener("click", async (event) => {
     unitId,
     currentIndex,
     questions.length,
+    false,
+    qaSession,
   );
   window.scrollTo({ top: 0, behavior: "smooth" });
 });

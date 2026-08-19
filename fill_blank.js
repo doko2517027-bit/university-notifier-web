@@ -8,7 +8,8 @@ import {
 import { reportWrongAnswer } from "./question_report.js";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import {
-  loadTestProgress,
+  loadTestSession,
+  createNewTestSession,
   saveTestProgress,
   scrubberHtml,
   setupScrubber,
@@ -33,6 +34,8 @@ let currentFillIndex = 0;
 let fillCompleted = false;
 let subjectName = "科目";
 let sessionPoints = 0;
+let fillSession = null;
+let sourceFillBlank = [];
 
 setupTheme(themeButton);
 
@@ -86,22 +89,57 @@ async function loadQuestions() {
         q.answers.some((answer) => String(answer).trim() !== "")) ||
         String(q.answer || "").trim() !== ""),
   );
-  visibleFillBlank = fillBlank;
+  sourceFillBlank = fillBlank.map((question, index) => ({
+    ...question,
+    _sessionId: String(question.id ?? `fill-${index}`),
+  }));
 
-  if (!fillBlank.length) {
+  if (!sourceFillBlank.length) {
     questions.textContent = "AI問題がありません。";
     return;
   }
 
-  currentFillIndex = await loadTestProgress(
+  fillSession = await loadTestSession(
     "fillBlank",
     subjectId,
+    subjectName,
     unitId,
-    visibleFillBlank.length,
+    sourceFillBlank.map((question) => ({ id: question._sessionId })),
   );
+  applyFillSession();
   renderFillQuestion();
 
   sessionStorage.setItem("quizPlaying", "true");
+}
+
+function applyFillSession() {
+  const byId = new Map(
+    sourceFillBlank.map((question) => [question._sessionId, question]),
+  );
+  visibleFillBlank = fillSession.questionOrder
+    .map((id) => byId.get(id))
+    .filter(Boolean);
+  currentFillIndex = Math.min(
+    fillSession.currentIndex,
+    Math.max(visibleFillBlank.length - 1, 0),
+  );
+}
+
+async function startNewFillSession() {
+  fillSession = createNewTestSession(
+    sourceFillBlank.map((question) => ({ id: question._sessionId })),
+  );
+  applyFillSession();
+  await saveTestProgress(
+    "fillBlank",
+    subjectId,
+    subjectName,
+    unitId,
+    currentFillIndex,
+    visibleFillBlank.length,
+    false,
+    fillSession,
+  );
 }
 
 function escapeHtml(value) {
@@ -205,6 +243,8 @@ function renderFillQuestion() {
       unitId,
       currentFillIndex,
       visibleFillBlank.length,
+      false,
+      fillSession,
     );
   });
   setupStudyTools(questions);
@@ -222,6 +262,8 @@ document.addEventListener("click", async (e) => {
         unitId,
         currentFillIndex,
         visibleFillBlank.length,
+        false,
+        fillSession,
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -235,12 +277,13 @@ document.addEventListener("click", async (e) => {
         currentFillIndex,
         visibleFillBlank.length,
         true,
+        fillSession,
       );
       finishTest(
         sessionPoints,
-        () => {
+        async () => {
           fillCompleted = false;
-          currentFillIndex = 0;
+          await startNewFillSession();
           sessionPoints = 0;
           renderFillQuestion();
         },
@@ -332,6 +375,8 @@ document.addEventListener("click", async (e) => {
     unitId,
     currentFillIndex,
     visibleFillBlank.length,
+    false,
+    fillSession,
   );
 });
 
