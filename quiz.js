@@ -174,7 +174,20 @@ function renderQuestion() {
             ${renderQuestionImage(q)}
 
             <div class="test-choice-list">
-                ${choiceOrder.map((choiceIndex, displayIndex) => `<button class="test-choice quiz-answer" data-index="${choiceIndex}"><b>${displayIndex + 1}</b><span>${escapeHtml(q.choices[choiceIndex])}</span></button>`).join("")}
+                ${choiceOrder.map(
+                  (choiceIndex, displayIndex) => `
+                    <button
+                      type="button"
+                      class="test-choice quiz-answer"
+                      data-index="${choiceIndex}"
+                      aria-pressed="false"
+                    >
+                      <b>${displayIndex + 1}</b>
+                      <span>${escapeHtml(q.choices[choiceIndex])}</span>
+                      <span class="quiz-selected-mark" aria-hidden="true">✓</span>
+                    </button>
+                  `,
+                ).join("")}
             </div>
             ${isMultiple ? '<button class="btn btn-primary check-quiz" disabled>選択した答えを判定</button>' : ""}
             <div class="test-result-panel" hidden>
@@ -267,9 +280,23 @@ document.addEventListener("click", async (event) => {
   if (card.dataset.finished === "true") return;
   const correctAnswers = JSON.parse(card.dataset.answers || "[]").map(Number);
   if (answerButton && card.dataset.multiple === "true") {
-    answerButton.classList.toggle("is-selected");
-    const selected = card.querySelectorAll(".quiz-answer.is-selected").length;
-    card.querySelector(".check-quiz").disabled = selected === 0;
+
+    const selectedNow =
+      answerButton.classList.toggle("is-selected");
+
+    answerButton.setAttribute(
+      "aria-pressed",
+      selectedNow ? "true" : "false",
+    );
+
+    const selected =
+      card.querySelectorAll(
+        ".quiz-answer.is-selected",
+      ).length;
+
+    card.querySelector(".check-quiz").disabled =
+      selected === 0;
+
     return;
   }
   const selectedAnswers = answerButton
