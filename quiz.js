@@ -184,7 +184,6 @@ function renderQuestion() {
                     >
                       <b>${displayIndex + 1}</b>
                       <span>${escapeHtml(q.choices[choiceIndex])}</span>
-                      <span class="quiz-selected-mark" aria-hidden="true">✓</span>
                     </button>
                   `,
                 ).join("")}
