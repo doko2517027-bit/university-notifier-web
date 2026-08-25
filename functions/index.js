@@ -20,10 +20,6 @@ const webpush = require("web-push");
 
 const crypto = require("node:crypto");
 
-const chromium = require("@sparticuz/chromium");
-
-const { chromium: playwrightChromium } = require("playwright-core");
-
 const {
   PERIOD_TIMES,
   normalizeCourseName,
@@ -429,6 +425,11 @@ exports.verifyStudentPageCredentials = onRequest(
     let browser;
 
     try {
+      // 大きなブラウザ依存は、この認証確認を実行する時だけ読み込む。
+      // 他の関数やデプロイ解析の起動を遅らせない。
+      const chromium = require("@sparticuz/chromium");
+      const { chromium: playwrightChromium } = require("playwright-core");
+
       browser = await playwrightChromium.launch({
         args: chromium.args,
         executablePath: await chromium.executablePath(),
