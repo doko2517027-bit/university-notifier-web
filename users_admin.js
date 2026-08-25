@@ -1,6 +1,8 @@
 import {
   db,
   realtimeDb,
+  functions,
+  auth,
   setupTheme,
   initializePage,
   loadProfileImage,
@@ -25,6 +27,8 @@ import {
   getDocs,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
   ref,
@@ -71,6 +75,10 @@ let presenceTimer = null;
 
 let stopUsersListener = null;
 
+let deviceRiskSummaries = {};
+
+let deviceAuditEnabled = false;
+
 const adminScope = readAdminScopeFromUrl();
 
 setupTheme(themeButton);
@@ -95,6 +103,8 @@ await initializePage([
   updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
+
+await initializeDeviceRiskSummariesIfAuthorized();
 
 if (departmentFilter) {
   departmentFilter.value = adminScope.major || adminScope.department || "";
@@ -197,6 +207,10 @@ function setupEvents() {
 
       await loadUsers();
 
+      if (deviceAuditEnabled) {
+        await loadDeviceRiskSummaries();
+      }
+
       refreshUsersButton.disabled = false;
 
       refreshUsersButton.textContent = "↻ 更新";
@@ -232,6 +246,49 @@ function setupEvents() {
         "?studentNumber=" +
         encodeURIComponent(selectedStudentNumber);
     });
+  }
+}
+
+async function initializeDeviceRiskSummariesIfAuthorized() {
+  try {
+    await auth.authStateReady();
+    const token = await auth.currentUser?.getIdTokenResult();
+    deviceAuditEnabled =
+      auth.currentUser?.uid === "caremate-2510044" &&
+      token?.claims?.studentNumber === "2510044" &&
+      token?.claims?.admin === true;
+
+    if (deviceAuditEnabled) await loadDeviceRiskSummaries();
+  } catch (error) {
+    console.error("端末確認サマリー初期化エラー:", error);
+    deviceAuditEnabled = false;
+    deviceRiskSummaries = {};
+  }
+}
+
+async function loadDeviceRiskSummaries() {
+  try {
+    const listDeviceRiskSummaries = httpsCallable(
+      functions,
+      "listDeviceRiskSummaries",
+    );
+    const result = await listDeviceRiskSummaries();
+    const summaries = Array.isArray(result.data?.summaries)
+      ? result.data.summaries
+      : [];
+
+    deviceRiskSummaries = Object.fromEntries(
+      summaries.map((summary) => [summary.studentNumber, summary]),
+    );
+    renderUsers();
+  } catch (error) {
+    console.error("端末確認サマリー取得エラー:", error);
+
+    if (String(error?.code || "").includes("permission-denied")) {
+      deviceAuditEnabled = false;
+      deviceRiskSummaries = {};
+      renderUsers();
+    }
   }
 }
 
@@ -353,6 +410,18 @@ function createUserHtml(user) {
 
   const grade = user.grade ? `${user.grade}` : "学年未設定";
 
+  const deviceRisk = deviceAuditEnabled ? deviceRiskSummaries[user.id] : null;
+
+  const deviceRiskHtml =
+    deviceRisk?.level === "review" && deviceRisk.reasons?.length
+      ? `
+          <div class="admin-user-device-risk">
+            <strong>⚠️ アカウント共有の可能性・要確認</strong>
+            <span>${escapeHtml(deviceRisk.reasons.join("・"))}</span>
+          </div>
+        `
+      : "";
+
   return `
         <div class="admin-user-item">
 
@@ -392,6 +461,8 @@ function createUserHtml(user) {
                     ${escapeHtml(grade)}
 
                 </p>
+
+                ${deviceRiskHtml}
 
                 <div class="admin-user-presence-detail">
 

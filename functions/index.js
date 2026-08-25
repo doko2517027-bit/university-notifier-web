@@ -30,11 +30,19 @@ const {
   slotId,
 } = require("./attendance_policy");
 
+const {
+  createDeviceSessionStore,
+  normalizeDeviceId,
+  isPrimaryDeviceAuditAdminIdentity,
+} = require("./device_sessions");
+
 initializeApp();
 
 const db = getFirestore();
 
 const adminAuth = getAuth();
+
+const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 
 const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
@@ -161,6 +169,7 @@ exports.authenticateCareMate = onCall(
   async (request) => {
     const studentNumber = String(request.data?.studentNumber || "").trim();
     const password = String(request.data?.password || "");
+    const deviceId = normalizeDeviceId(request.data?.deviceId);
 
     if (!/^\d{7}$/.test(studentNumber) || !password) {
       throw new HttpsError(
@@ -201,7 +210,161 @@ exports.authenticateCareMate = onCall(
       },
     );
 
+    if (deviceId) {
+      try {
+        await deviceSessionStore.recordDeviceSession({
+          studentNumber,
+          deviceId,
+          rawRequest: request.rawRequest,
+          eventType: "login",
+        });
+      } catch (error) {
+        console.warn(
+          "ログイン端末記録失敗:",
+          error?.message || "unknown",
+        );
+      }
+    }
+
     return { token, admin };
+  },
+);
+
+function requireAuthenticatedCareMateStudent(request) {
+  const studentNumber = String(request.auth?.token?.studentNumber || "");
+  const expectedUid = `caremate-${studentNumber}`;
+
+  if (
+    !/^\d{7}$/.test(studentNumber) ||
+    !request.auth?.uid ||
+    request.auth.uid !== expectedUid
+  ) {
+    throw new HttpsError("unauthenticated", "ログインが必要です。");
+  }
+
+  return studentNumber;
+}
+
+async function requirePrimaryDeviceAuditAdmin(request) {
+  const studentNumber = requireAuthenticatedCareMateStudent(request);
+
+  if (
+    studentNumber !== "2510044" ||
+    request.auth?.uid !== "caremate-2510044" ||
+    request.auth?.token?.admin !== true
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "端末情報を確認できるアカウントではありません。",
+    );
+  }
+
+  const [adminSnapshot, profileSnapshot] = await Promise.all([
+    db.collection("admins").doc(studentNumber).get(),
+    db.collection("users").doc(studentNumber).get(),
+  ]);
+  const profileStudentNumber = String(
+    profileSnapshot.data()?.studentNumber || studentNumber,
+  );
+
+  if (
+    !isPrimaryDeviceAuditAdminIdentity({
+      uid: request.auth?.uid,
+      tokenStudentNumber: studentNumber,
+      adminClaim: request.auth?.token?.admin,
+      adminEnabled: adminSnapshot.exists && adminSnapshot.data()?.enabled,
+      profileExists: profileSnapshot.exists,
+      profileStudentNumber,
+    })
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "管理者権限を確認できませんでした。",
+    );
+  }
+
+  return studentNumber;
+}
+
+exports.touchCareMateDevice = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const deviceId = normalizeDeviceId(request.data?.deviceId);
+
+    if (!deviceId) {
+      throw new HttpsError("invalid-argument", "端末IDが正しくありません。");
+    }
+
+    try {
+      await deviceSessionStore.recordDeviceSession({
+        studentNumber,
+        deviceId,
+        rawRequest: request.rawRequest,
+        eventType: "activity",
+      });
+    } catch (error) {
+      console.warn("端末利用時刻更新失敗:", error?.message || "unknown");
+      return { ok: false };
+    }
+
+    return { ok: true };
+  },
+);
+
+exports.listUserLoginDevices = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError("invalid-argument", "学籍番号が正しくありません。");
+    }
+
+    return deviceSessionStore.listUserDevices(targetStudentNumber);
+  },
+);
+
+exports.listDeviceRiskSummaries = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    return { summaries: await deviceSessionStore.listRiskSummaries() };
+  },
+);
+
+exports.deleteUserLoginDevice = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+    const deviceId = normalizeDeviceId(request.data?.deviceId);
+
+    if (!/^\d{7}$/.test(targetStudentNumber) || !deviceId) {
+      throw new HttpsError("invalid-argument", "削除対象が正しくありません。");
+    }
+
+    return deviceSessionStore.deleteUserDevice(
+      targetStudentNumber,
+      deviceId,
+    );
+  },
+);
+
+exports.cleanupStaleLoginDevices = onSchedule(
+  {
+    region: "asia-northeast1",
+    schedule: "every day 04:20",
+    timeZone: "Asia/Tokyo",
+  },
+  async () => {
+    const result = await deviceSessionStore.cleanupExpiredRecords();
+    console.log("古いログイン端末情報を削除しました", result);
   },
 );
 

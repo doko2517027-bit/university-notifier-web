@@ -202,6 +202,32 @@ service cloud.firestore {
 
 
     /* ========================================
+       ログイン端末・IP推定地域
+       Webクライアントからの直接アクセスは禁止し、
+       2510044を照合するCloud Functionsだけが管理する。
+    ======================================== */
+
+    match /userDeviceSessions/{userId} {
+
+      allow read, write: if false;
+
+      match /loginDevices/{deviceId} {
+
+        allow read, write: if false;
+
+      }
+
+    }
+
+
+    match /ipGeolocationCache/{cacheId} {
+
+      allow read, write: if false;
+
+    }
+
+
+    /* ========================================
        公開ユーザー情報
     ======================================== */
 

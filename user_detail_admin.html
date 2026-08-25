@@ -255,6 +255,41 @@
       </div>
     </div>
 
+    <section id="deviceAuditSection" hidden>
+      <h2>🔐 ログイン端末</h2>
+
+      <div class="card setting-card admin-device-audit-card">
+        <div class="admin-device-audit-header">
+          <div>
+            <h3 id="deviceAuditStudentHeading">端末情報</h3>
+            <p id="deviceSessionSummary" class="admin-device-summary">
+              端末情報を確認しています...
+            </p>
+          </div>
+
+          <button id="refreshDeviceSessionsButton" type="button" class="btn">
+            ↻ 更新
+          </button>
+        </div>
+
+        <div id="deviceRiskNotice" class="admin-device-risk" hidden>
+          <strong>アカウント共有の可能性・要確認</strong>
+          <ul id="deviceRiskReasons"></ul>
+          <small>
+            自動的な利用停止や違反判定は行いません。端末・時刻・推定地域を比較して確認してください。
+          </small>
+        </div>
+
+        <div id="deviceSessionList" class="admin-device-list">
+          <div class="admin-user-loading">端末情報を読み込んでいます...</div>
+        </div>
+
+        <p class="admin-device-privacy-help">
+          「推定地域」は接続元IPから推定した国・都道府県・市区町村です。携帯回線、VPN、学校Wi-Fiなどでは実際の場所と異なる場合があります。GPS・緯度経度・端末指紋は収集しません。IP・推定地域は原則24時間ごと、またはネットワーク変更時に更新し、取得失敗時は前回値を保持します。端末履歴は最終利用から30日間保持します。
+        </p>
+      </div>
+    </section>
+
     <h2>📧 Active!Mailパスワード</h2>
 
     <div class="card setting-card">

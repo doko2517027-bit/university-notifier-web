@@ -94,15 +94,57 @@ export const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber = localStorage.getItem("studentNumber");
 
+const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
+const DEVICE_TOUCH_STORAGE_KEY = "careMateDeviceLastTouchAt";
+const DEVICE_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+
+export function getOrCreateCareMateDeviceId() {
+  const storedDeviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "";
+
+  if (/^[a-zA-Z0-9_-]{16,80}$/.test(storedDeviceId)) {
+    return storedDeviceId;
+  }
+
+  const generatedDeviceId = crypto.randomUUID
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(20)), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join("");
+
+  localStorage.setItem(DEVICE_ID_STORAGE_KEY, generatedDeviceId);
+  return generatedDeviceId;
+}
+
 export async function signInCareMateAuth(studentNumber, password) {
   const authenticateCareMate = httpsCallable(functions, "authenticateCareMate");
 
   const result = await authenticateCareMate({
     studentNumber: String(studentNumber || "").trim(),
     password: String(password || ""),
+    deviceId: getOrCreateCareMateDeviceId(),
   });
 
   await signInWithCustomToken(auth, result.data.token);
+}
+
+async function touchCareMateDevice() {
+  if (!studentNumber || localStorage.getItem("loggedIn") !== "true") return;
+
+  const now = Date.now();
+  const lastTouchAt = Number(localStorage.getItem(DEVICE_TOUCH_STORAGE_KEY) || 0);
+  if (now - lastTouchAt < DEVICE_TOUCH_INTERVAL_MS) return;
+
+  try {
+    await auth.authStateReady();
+    if (auth.currentUser?.uid !== `caremate-${studentNumber}`) return;
+
+    localStorage.setItem(DEVICE_TOUCH_STORAGE_KEY, String(now));
+    const touchDevice = httpsCallable(functions, "touchCareMateDevice");
+    await touchDevice({ deviceId: getOrCreateCareMateDeviceId() });
+  } catch (error) {
+    // 端末履歴の更新失敗は、アプリの通常利用を妨げない。
+    console.warn("端末の最終利用時刻を更新できませんでした:", error);
+  }
 }
 
 export async function refreshAdminClaim() {
@@ -1585,6 +1627,18 @@ if (studentNumber && localStorage.getItem("loggedIn") === "true") {
   setupPresence().catch((error) => {
     console.error("Presence開始エラー:", error);
   });
+
+  touchCareMateDevice();
+
+  window.addEventListener("focus", () => touchCareMateDevice());
+  window.addEventListener("online", () => touchCareMateDevice());
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) touchCareMateDevice();
+  });
+
+  setInterval(() => {
+    if (!document.hidden) touchCareMateDevice();
+  }, DEVICE_TOUCH_INTERVAL_MS);
 }
 
 // ======================

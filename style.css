@@ -19093,3 +19093,235 @@ course-tagが付いたspanには適用しない。
   background-color: rgba(239, 68, 68, .1);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
 }
+
+/* ========================================
+   ログイン端末・アカウント共有の確認
+======================================== */
+
+.login-device-privacy-note {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 94%, var(--accent));
+  color: var(--subtext);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.admin-device-audit-header,
+.admin-device-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-device-audit-header h3,
+.admin-device-summary {
+  margin: 0;
+}
+
+.admin-device-summary {
+  margin-top: 5px;
+  color: var(--subtext);
+  font-size: 13px;
+}
+
+.admin-device-audit-header .btn,
+.admin-device-item-heading .btn {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.admin-device-risk,
+.admin-user-device-risk,
+.admin-device-card-review {
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, .1);
+  color: #92400e;
+}
+
+.admin-device-risk {
+  margin: 18px 0;
+  padding: 14px 16px;
+}
+
+.admin-device-risk[hidden] {
+  display: none;
+}
+
+.admin-device-risk > strong {
+  display: block;
+  font-size: 16px;
+}
+
+.admin-device-risk ul {
+  margin: 8px 0;
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
+.admin-device-risk small {
+  display: block;
+  line-height: 1.6;
+}
+
+.admin-user-device-risk {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.admin-device-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.admin-device-item {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 97%, var(--accent));
+}
+
+.admin-device-item-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-device-item-heading > div > strong {
+  font-size: 18px;
+}
+
+.admin-device-state {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, .12);
+  color: var(--subtext);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-device-state-active {
+  background: rgba(34, 197, 94, .14);
+  color: #15803d;
+}
+
+.admin-device-state-recent {
+  background: rgba(59, 130, 246, .13);
+  color: #1d4ed8;
+}
+
+.admin-device-delete-button {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.admin-device-field-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.admin-device-field-grid > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: rgba(100, 116, 139, .07);
+}
+
+.admin-device-field-grid small,
+.admin-device-field-grid b,
+.admin-device-field-grid em {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.admin-device-field-grid small {
+  margin-bottom: 5px;
+  color: var(--subtext);
+  font-size: 11px;
+}
+
+.admin-device-field-grid b {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-device-field-grid em {
+  margin-top: 4px;
+  color: #b45309;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.admin-device-region-field {
+  grid-column: span 2;
+}
+
+.admin-device-card-review {
+  margin-top: 12px;
+  padding: 9px 11px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.admin-device-privacy-help {
+  margin: 18px 0 0;
+  color: var(--subtext);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.dark .admin-device-risk,
+.dark .admin-user-device-risk,
+.dark .admin-device-card-review {
+  color: #fcd34d;
+}
+
+.dark .admin-device-state-active {
+  color: #86efac;
+}
+
+.dark .admin-device-state-recent {
+  color: #93c5fd;
+}
+
+@media (max-width: 900px) {
+  .admin-device-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-device-audit-header,
+  .admin-device-item-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-device-audit-header .btn,
+  .admin-device-item-heading .btn {
+    width: 100%;
+  }
+
+  .admin-device-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-device-region-field {
+    grid-column: auto;
+  }
+}

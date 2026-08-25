@@ -2,6 +2,7 @@ import {
   db,
   realtimeDb,
   functions,
+  auth,
   studentNumber as adminStudentNumber,
   setupTheme,
   initializePage,
@@ -166,6 +167,24 @@ const deleteConfirmNo2 = document.getElementById("deleteConfirmNo2");
 
 const deleteConfirmYes2 = document.getElementById("deleteConfirmYes2");
 
+const deviceAuditSection = document.getElementById("deviceAuditSection");
+
+const deviceAuditStudentHeading = document.getElementById(
+  "deviceAuditStudentHeading",
+);
+
+const deviceSessionSummary = document.getElementById("deviceSessionSummary");
+
+const deviceRiskNotice = document.getElementById("deviceRiskNotice");
+
+const deviceRiskReasons = document.getElementById("deviceRiskReasons");
+
+const deviceSessionList = document.getElementById("deviceSessionList");
+
+const refreshDeviceSessionsButton = document.getElementById(
+  "refreshDeviceSessionsButton",
+);
+
 /* ========================================
    状態
 ======================================== */
@@ -238,6 +257,8 @@ await initializePage([
   updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
+
+await initializeDeviceAuditIfAuthorized();
 
 startPresenceListener();
 
@@ -388,6 +409,217 @@ function renderUserInformation() {
 }
 
 /* ========================================
+   2510044専用・ログイン端末確認
+======================================== */
+
+async function initializeDeviceAuditIfAuthorized() {
+  if (!deviceAuditSection) return;
+
+  try {
+    await auth.authStateReady();
+    const currentUser = auth.currentUser;
+    const token = await currentUser?.getIdTokenResult();
+    const isPrimaryAuditAdmin =
+      currentUser?.uid === "caremate-2510044" &&
+      token?.claims?.studentNumber === "2510044" &&
+      token?.claims?.admin === true;
+
+    if (!isPrimaryAuditAdmin) return;
+
+    deviceAuditSection.hidden = false;
+    updateDeviceAuditHeading();
+    await loadDeviceSessions();
+  } catch (error) {
+    console.error("端末確認機能の初期化エラー:", error);
+    deviceAuditSection.hidden = true;
+  }
+}
+
+function updateDeviceAuditHeading() {
+  if (!deviceAuditStudentHeading) return;
+
+  const displayName = getStudentName(targetUserData || {});
+  deviceAuditStudentHeading.textContent = displayName
+    ? `${displayName}（${targetStudentNumber}）の端末`
+    : `${targetStudentNumber} の端末`;
+}
+
+async function loadDeviceSessions() {
+  if (!deviceSessionList || deviceAuditSection?.hidden) return;
+
+  setText(deviceSessionSummary, "端末情報を確認しています...");
+  deviceSessionList.innerHTML =
+    '<div class="admin-user-loading">端末情報を読み込んでいます...</div>';
+
+  try {
+    const listUserLoginDevices = httpsCallable(
+      functions,
+      "listUserLoginDevices",
+    );
+    const result = await listUserLoginDevices({
+      studentNumber: targetStudentNumber,
+    });
+    renderDeviceSessions(result.data || {});
+  } catch (error) {
+    console.error("端末情報取得エラー:", error);
+
+    if (String(error?.code || "").includes("permission-denied")) {
+      deviceAuditSection.hidden = true;
+      return;
+    }
+
+    setText(deviceSessionSummary, "端末情報を取得できませんでした");
+    deviceSessionList.innerHTML = `
+      <div class="admin-user-loading">
+        一時的に端末情報を取得できません。時間をおいて更新してください。
+      </div>
+    `;
+  }
+}
+
+function renderDeviceSessions(data) {
+  const devices = Array.isArray(data.devices) ? data.devices : [];
+  const risk = data.risk || {};
+
+  setText(
+    deviceSessionSummary,
+    devices.length
+      ? `${devices.length}台・最終利用順（最終利用から${Number(data.retentionDays || 30)}日間保持）`
+      : "記録された端末はありません",
+  );
+
+  renderDeviceRisk(risk);
+
+  if (!devices.length) {
+    deviceSessionList.innerHTML = `
+      <div class="admin-user-loading">
+        次回ログインまたはアプリ利用時から端末が記録されます。
+      </div>
+    `;
+    return;
+  }
+
+  const typeTotals = devices.reduce((totals, device) => {
+    const type = String(device.deviceType || "端末");
+    totals[type] = (totals[type] || 0) + 1;
+    return totals;
+  }, {});
+  const typeIndexes = {};
+
+  deviceSessionList.innerHTML = devices
+    .map((device) => {
+      const type = String(device.deviceType || "端末");
+      typeIndexes[type] = (typeIndexes[type] || 0) + 1;
+      const numberedType =
+        typeTotals[type] > 1 ? `${type} ${typeIndexes[type]}` : type;
+      const locationParts = [
+        device.regionCountry,
+        device.regionName,
+        device.regionCity,
+      ].filter((part, index, values) => part && values.indexOf(part) === index);
+      const estimatedRegion = locationParts.length
+        ? locationParts.join(" / ")
+        : "不明";
+      const state = formatDeviceState(device.state);
+      const regionUpdatedAt = device.regionLookedUpAt
+        ? formatAuditDate(device.regionLookedUpAt)
+        : "取得履歴なし";
+      const regionAttemptNote =
+        device.regionLastAttemptStatus &&
+        device.regionLastAttemptStatus !== "estimated"
+          ? `（直近の再取得失敗：${formatAuditDate(device.regionLastAttemptAt)}）`
+          : "";
+      const reviewText =
+        risk.level === "review" && Array.isArray(risk.reasons)
+          ? `
+            <div class="admin-device-card-review">
+              <b>要確認理由：</b>${escapeAuditHtml(risk.reasons.join("・"))}
+            </div>
+          `
+          : "";
+
+      return `
+        <article class="admin-device-item">
+          <div class="admin-device-item-heading">
+            <div>
+              <strong>${escapeAuditHtml(numberedType)}</strong>
+              <span class="admin-device-state admin-device-state-${escapeAuditHtml(device.state || "history")}">
+                ${escapeAuditHtml(state)}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-danger admin-device-delete-button"
+              data-device-id="${escapeAuditHtml(device.deviceId || "")}"
+              data-device-label="${escapeAuditHtml(numberedType)}"
+            >
+              履歴を削除
+            </button>
+          </div>
+
+          <div class="admin-device-field-grid">
+            <div><small>端末・機種</small><b>${escapeAuditHtml(device.model || "詳細不明")}</b></div>
+            <div><small>OS</small><b>${escapeAuditHtml(device.os || "不明")}</b></div>
+            <div><small>ブラウザ</small><b>${escapeAuditHtml(device.browser || "不明")}</b></div>
+            <div>
+              <small>マスク済みIP</small>
+              <b>${escapeAuditHtml(device.maskedIp || "不明")}</b>
+              <em>最終更新：${escapeAuditHtml(formatAuditDate(device.ipUpdatedAt))}</em>
+            </div>
+            <div class="admin-device-region-field">
+              <small>推定地域（国 / 都道府県 / 市区町村）</small>
+              <b>${escapeAuditHtml(estimatedRegion)}</b>
+            </div>
+            <div><small>初回確認</small><b>${escapeAuditHtml(formatAuditDate(device.firstSeenAt))}</b></div>
+            <div><small>最終利用</small><b>${escapeAuditHtml(formatAuditDate(device.lastSeenAt))}</b></div>
+            <div>
+              <small>推定地域の最終更新</small>
+              <b>${escapeAuditHtml(regionUpdatedAt)}</b>
+              ${regionAttemptNote ? `<em>${escapeAuditHtml(regionAttemptNote)}</em>` : ""}
+            </div>
+          </div>
+          ${reviewText}
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderDeviceRisk(risk) {
+  const isReview = risk?.level === "review";
+  if (deviceRiskNotice) deviceRiskNotice.hidden = !isReview;
+  if (!deviceRiskReasons) return;
+
+  deviceRiskReasons.innerHTML = isReview
+    ? (risk.reasons || [])
+        .map((reason) => `<li>${escapeAuditHtml(reason)}</li>`)
+        .join("")
+    : "";
+}
+
+function formatDeviceState(state) {
+  if (state === "active") return "現在利用中";
+  if (state === "recent") return "最近利用";
+  return "履歴";
+}
+
+function formatAuditDate(timestamp) {
+  if (!timestamp) return "記録なし";
+
+  const date = new Date(Number(timestamp));
+  return Number.isNaN(date.getTime()) ? "日時不明" : date.toLocaleString("ja-JP");
+}
+
+function escapeAuditHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* ========================================
    リアルタイム利用状況
 ======================================== */
 
@@ -462,6 +694,51 @@ function setupEvents() {
 
   if (saveUserButton) {
     saveUserButton.onclick = saveUserChanges;
+  }
+
+  if (refreshDeviceSessionsButton) {
+    refreshDeviceSessionsButton.onclick = async () => {
+      refreshDeviceSessionsButton.disabled = true;
+      refreshDeviceSessionsButton.textContent = "更新中...";
+      await loadDeviceSessions();
+      refreshDeviceSessionsButton.disabled = false;
+      refreshDeviceSessionsButton.textContent = "↻ 更新";
+    };
+  }
+
+  if (deviceSessionList) {
+    deviceSessionList.addEventListener("click", async (event) => {
+      const button = event.target.closest(".admin-device-delete-button");
+      if (!button) return;
+
+      const deviceId = button.dataset.deviceId || "";
+      const deviceLabel = button.dataset.deviceLabel || "この端末";
+      const confirmed = confirm(
+        `${deviceLabel}（${targetStudentNumber}）の端末履歴を削除しますか？\nこの操作は元に戻せません。`,
+      );
+      if (!confirmed) return;
+
+      button.disabled = true;
+      button.textContent = "削除中...";
+
+      try {
+        const deleteUserLoginDevice = httpsCallable(
+          functions,
+          "deleteUserLoginDevice",
+        );
+        await deleteUserLoginDevice({
+          studentNumber: targetStudentNumber,
+          deviceId,
+        });
+        showToast(`${deviceLabel}の履歴を削除しました`);
+        await loadDeviceSessions();
+      } catch (error) {
+        console.error("端末履歴削除エラー:", error);
+        alert("端末履歴を削除できませんでした。時間をおいて再度お試しください。");
+        button.disabled = false;
+        button.textContent = "履歴を削除";
+      }
+    });
   }
 
   if (deleteUserButton) {
