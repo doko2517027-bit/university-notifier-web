@@ -19136,7 +19136,6 @@ course-tagが付いたspanには適用しない。
 }
 
 .admin-device-risk,
-.admin-user-device-risk,
 .admin-device-card-review {
   border: 1px solid #f59e0b;
   border-radius: 12px;
@@ -19169,13 +19168,200 @@ course-tagが付いたspanには適用しない。
   line-height: 1.6;
 }
 
-.admin-user-device-risk {
-  display: grid;
-  gap: 3px;
+.admin-user-device-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 10px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 96%, var(--accent));
+}
+
+.admin-user-device-summary > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+  min-width: 0;
+}
+
+.admin-user-device-summary-label {
+  width: 100%;
+  color: var(--subtext);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-user-device-summary strong {
+  font-size: 14px;
+}
+
+.admin-user-device-summary small {
+  width: 100%;
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.admin-user-device-review-badge,
+.admin-user-device-normal-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-user-device-review-badge {
+  background: rgba(245, 158, 11, .15);
+  color: #92400e;
+}
+
+.admin-user-device-normal-badge {
+  background: rgba(34, 197, 94, .13);
+  color: #15803d;
+}
+
+.admin-user-device-summary.is-review {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, .08);
+}
+
+.admin-user-device-summary.is-loading {
+  color: var(--subtext);
+}
+
+.admin-user-device-summary.is-error {
+  border-color: rgba(239, 68, 68, .45);
+}
+
+.admin-user-device-detail-button {
+  width: auto;
+  min-width: 120px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.admin-user-device-panel {
+  margin: -2px 0 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 98%, var(--accent));
+}
+
+.admin-user-device-panel.is-error {
+  border-color: rgba(239, 68, 68, .45);
+}
+
+.admin-user-device-panel .admin-user-loading {
+  padding: 18px 10px;
+}
+
+.admin-user-device-panel-risk,
+.admin-user-device-panel-normal {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
   padding: 10px 12px;
+  border-radius: 10px;
   font-size: 12px;
   line-height: 1.55;
+}
+
+.admin-user-device-panel-risk {
+  border: 1px solid #f59e0b;
+  background: rgba(245, 158, 11, .1);
+  color: #92400e;
+}
+
+.admin-user-device-panel-normal {
+  background: rgba(34, 197, 94, .1);
+  color: #15803d;
+  font-weight: 700;
+}
+
+.admin-user-device-panel-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-device-panel-item {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.admin-user-device-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-user-device-panel-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.admin-user-device-panel-heading span {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, .12);
+  color: var(--subtext);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-user-device-delete-button {
+  width: auto;
+  margin: 0;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.admin-user-device-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-user-device-panel-grid > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(100, 116, 139, .07);
+}
+
+.admin-user-device-panel-grid small,
+.admin-user-device-panel-grid b {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.admin-user-device-panel-grid small {
+  margin-bottom: 4px;
+  color: var(--subtext);
+  font-size: 10px;
+}
+
+.admin-user-device-panel-grid b {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-user-device-panel-note {
+  margin: 12px 0 0;
+  color: var(--subtext);
+  font-size: 10px;
+  line-height: 1.6;
 }
 
 .admin-device-list {
@@ -19286,9 +19472,25 @@ course-tagが付いたspanには適用しない。
 }
 
 .dark .admin-device-risk,
-.dark .admin-user-device-risk,
 .dark .admin-device-card-review {
   color: #fcd34d;
+}
+
+.dark .admin-user-device-summary small,
+.dark .admin-user-device-review-badge {
+  color: #fcd34d;
+}
+
+.dark .admin-user-device-normal-badge {
+  color: #86efac;
+}
+
+.dark .admin-user-device-panel-risk {
+  color: #fcd34d;
+}
+
+.dark .admin-user-device-panel-normal {
+  color: #86efac;
 }
 
 .dark .admin-device-state-active {
@@ -19306,15 +19508,31 @@ course-tagが付いたspanには適用しない。
 }
 
 @media (max-width: 600px) {
+  .admin-user-device-summary,
   .admin-device-audit-header,
   .admin-device-item-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .admin-user-device-detail-button,
   .admin-device-audit-header .btn,
   .admin-device-item-heading .btn {
     width: 100%;
+    margin-top: 0;
+  }
+
+  .admin-user-device-panel-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-user-device-delete-button {
+    width: 100%;
+  }
+
+  .admin-user-device-panel-grid {
+    grid-template-columns: 1fr;
   }
 
   .admin-device-field-grid {

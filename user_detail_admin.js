@@ -33,6 +33,8 @@ import {
 
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
+import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
+
 import {
   ref,
   onValue,
@@ -167,23 +169,23 @@ const deleteConfirmNo2 = document.getElementById("deleteConfirmNo2");
 
 const deleteConfirmYes2 = document.getElementById("deleteConfirmYes2");
 
-const deviceAuditSection = document.getElementById("deviceAuditSection");
+const deviceAuditMount = document.getElementById("deviceAuditMount");
 
-const deviceAuditStudentHeading = document.getElementById(
-  "deviceAuditStudentHeading",
-);
+const deviceAuditTemplate = document.getElementById("deviceAuditTemplate");
 
-const deviceSessionSummary = document.getElementById("deviceSessionSummary");
+let deviceAuditSection = null;
 
-const deviceRiskNotice = document.getElementById("deviceRiskNotice");
+let deviceAuditStudentHeading = null;
 
-const deviceRiskReasons = document.getElementById("deviceRiskReasons");
+let deviceSessionSummary = null;
 
-const deviceSessionList = document.getElementById("deviceSessionList");
+let deviceRiskNotice = null;
 
-const refreshDeviceSessionsButton = document.getElementById(
-  "refreshDeviceSessionsButton",
-);
+let deviceRiskReasons = null;
+
+let deviceSessionList = null;
+
+let refreshDeviceSessionsButton = null;
 
 /* ========================================
    状態
@@ -192,6 +194,8 @@ const refreshDeviceSessionsButton = document.getElementById(
 let targetUserData = null;
 
 let stopPresenceListener = null;
+
+let deviceAuditAuthorized = false;
 
 /*
 FirestoreのWeb SDKでは、存在するサブコレクションを
@@ -413,26 +417,50 @@ function renderUserInformation() {
 ======================================== */
 
 async function initializeDeviceAuditIfAuthorized() {
-  if (!deviceAuditSection) return;
+  if (!deviceAuditMount || !deviceAuditTemplate) return;
 
   try {
     await auth.authStateReady();
     const currentUser = auth.currentUser;
     const token = await currentUser?.getIdTokenResult();
-    const isPrimaryAuditAdmin =
-      currentUser?.uid === "caremate-2510044" &&
-      token?.claims?.studentNumber === "2510044" &&
-      token?.claims?.admin === true;
+    const isPrimaryAuditAdmin = isPrimaryDeviceAuditViewer(
+      currentUser,
+      token?.claims,
+    );
 
     if (!isPrimaryAuditAdmin) return;
 
-    deviceAuditSection.hidden = false;
+    deviceAuditAuthorized = true;
+    mountDeviceAuditSection();
     updateDeviceAuditHeading();
     await loadDeviceSessions();
   } catch (error) {
     console.error("端末確認機能の初期化エラー:", error);
-    deviceAuditSection.hidden = true;
+
+    if (!deviceAuditAuthorized) {
+      deviceAuditSection.hidden = true;
+      return;
+    }
+
+    renderDeviceSessionError("error");
   }
+}
+
+function mountDeviceAuditSection() {
+  if (deviceAuditSection || !deviceAuditMount || !deviceAuditTemplate) return;
+
+  deviceAuditMount.append(deviceAuditTemplate.content.cloneNode(true));
+  deviceAuditSection = document.getElementById("deviceAuditSection");
+  deviceAuditStudentHeading = document.getElementById(
+    "deviceAuditStudentHeading",
+  );
+  deviceSessionSummary = document.getElementById("deviceSessionSummary");
+  deviceRiskNotice = document.getElementById("deviceRiskNotice");
+  deviceRiskReasons = document.getElementById("deviceRiskReasons");
+  deviceSessionList = document.getElementById("deviceSessionList");
+  refreshDeviceSessionsButton = document.getElementById(
+    "refreshDeviceSessionsButton",
+  );
 }
 
 function updateDeviceAuditHeading() {
@@ -445,9 +473,10 @@ function updateDeviceAuditHeading() {
 }
 
 async function loadDeviceSessions() {
-  if (!deviceSessionList || deviceAuditSection?.hidden) return;
+  if (!deviceSessionList || !deviceAuditAuthorized) return;
 
   setText(deviceSessionSummary, "端末情報を確認しています...");
+  renderDeviceRisk({});
   deviceSessionList.innerHTML =
     '<div class="admin-user-loading">端末情報を読み込んでいます...</div>';
 
@@ -464,17 +493,33 @@ async function loadDeviceSessions() {
     console.error("端末情報取得エラー:", error);
 
     if (String(error?.code || "").includes("permission-denied")) {
-      deviceAuditSection.hidden = true;
+      renderDeviceSessionError("permission-denied");
       return;
     }
 
-    setText(deviceSessionSummary, "端末情報を取得できませんでした");
+    renderDeviceSessionError("error");
+  }
+}
+
+function renderDeviceSessionError(state) {
+  renderDeviceRisk({});
+
+  if (state === "permission-denied") {
+    setText(deviceSessionSummary, "端末情報を表示する権限を確認できませんでした");
     deviceSessionList.innerHTML = `
       <div class="admin-user-loading">
-        一時的に端末情報を取得できません。時間をおいて更新してください。
+        権限がないため端末情報を取得できません。
       </div>
     `;
+    return;
   }
+
+  setText(deviceSessionSummary, "端末情報の取得エラー");
+  deviceSessionList.innerHTML = `
+    <div class="admin-user-loading">
+      一時的に端末情報を取得できません。時間をおいて更新してください。
+    </div>
+  `;
 }
 
 function renderDeviceSessions(data) {
@@ -485,7 +530,7 @@ function renderDeviceSessions(data) {
     deviceSessionSummary,
     devices.length
       ? `${devices.length}台・最終利用順（最終利用から${Number(data.retentionDays || 30)}日間保持）`
-      : "記録された端末はありません",
+      : "端末履歴なし",
   );
 
   renderDeviceRisk(risk);
@@ -493,7 +538,7 @@ function renderDeviceSessions(data) {
   if (!devices.length) {
     deviceSessionList.innerHTML = `
       <div class="admin-user-loading">
-        次回ログインまたはアプリ利用時から端末が記録されます。
+        この学生の端末履歴はまだありません。次回ログイン後に記録されます。
       </div>
     `;
     return;

@@ -22,6 +22,8 @@ import {
   withAdminScope,
 } from "./admin_scope.js";
 
+import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
+
 import {
   collection,
   getDocs,
@@ -78,6 +80,12 @@ let stopUsersListener = null;
 let deviceRiskSummaries = {};
 
 let deviceAuditEnabled = false;
+
+let deviceSummaryLoadState = "hidden";
+
+let expandedDeviceStudentNumber = "";
+
+let deviceDetailsByStudent = {};
 
 const adminScope = readAdminScopeFromUrl();
 
@@ -209,6 +217,10 @@ function setupEvents() {
 
       if (deviceAuditEnabled) {
         await loadDeviceRiskSummaries();
+
+        if (expandedDeviceStudentNumber) {
+          await loadUserDeviceDetails(expandedDeviceStudentNumber);
+        }
       }
 
       refreshUsersButton.disabled = false;
@@ -228,7 +240,25 @@ function setupEvents() {
     });
 
   if (userList) {
-    userList.addEventListener("click", (event) => {
+    userList.addEventListener("click", async (event) => {
+      const deleteButton = event.target.closest(
+        ".admin-user-device-delete-button",
+      );
+
+      if (deleteButton) {
+        await deleteUserDeviceFromList(deleteButton);
+        return;
+      }
+
+      const toggleButton = event.target.closest(
+        ".admin-user-device-toggle-button",
+      );
+
+      if (toggleButton) {
+        await toggleUserDeviceDetails(toggleButton.dataset.studentNumber || "");
+        return;
+      }
+
       const button = event.target.closest(".admin-user-detail-button");
 
       if (!button) {
@@ -253,20 +283,32 @@ async function initializeDeviceRiskSummariesIfAuthorized() {
   try {
     await auth.authStateReady();
     const token = await auth.currentUser?.getIdTokenResult();
-    deviceAuditEnabled =
-      auth.currentUser?.uid === "caremate-2510044" &&
-      token?.claims?.studentNumber === "2510044" &&
-      token?.claims?.admin === true;
+    deviceAuditEnabled = isPrimaryDeviceAuditViewer(
+      auth.currentUser,
+      token?.claims,
+    );
 
-    if (deviceAuditEnabled) await loadDeviceRiskSummaries();
+    if (!deviceAuditEnabled) return;
+
+    deviceSummaryLoadState = "loading";
+    renderUsers();
+    await loadDeviceRiskSummaries();
   } catch (error) {
     console.error("端末確認サマリー初期化エラー:", error);
     deviceAuditEnabled = false;
+    deviceSummaryLoadState = "hidden";
     deviceRiskSummaries = {};
   }
 }
 
-async function loadDeviceRiskSummaries() {
+async function loadDeviceRiskSummaries(showLoading = true) {
+  if (!deviceAuditEnabled) return;
+
+  if (showLoading) {
+    deviceSummaryLoadState = "loading";
+    renderUsers();
+  }
+
   try {
     const listDeviceRiskSummaries = httpsCallable(
       functions,
@@ -280,15 +322,19 @@ async function loadDeviceRiskSummaries() {
     deviceRiskSummaries = Object.fromEntries(
       summaries.map((summary) => [summary.studentNumber, summary]),
     );
+    deviceSummaryLoadState = "ready";
     renderUsers();
   } catch (error) {
     console.error("端末確認サマリー取得エラー:", error);
 
     if (String(error?.code || "").includes("permission-denied")) {
-      deviceAuditEnabled = false;
-      deviceRiskSummaries = {};
-      renderUsers();
+      deviceSummaryLoadState = "permission-denied";
+    } else {
+      deviceSummaryLoadState = "error";
     }
+
+    deviceRiskSummaries = {};
+    renderUsers();
   }
 }
 
@@ -410,17 +456,7 @@ function createUserHtml(user) {
 
   const grade = user.grade ? `${user.grade}` : "学年未設定";
 
-  const deviceRisk = deviceAuditEnabled ? deviceRiskSummaries[user.id] : null;
-
-  const deviceRiskHtml =
-    deviceRisk?.level === "review" && deviceRisk.reasons?.length
-      ? `
-          <div class="admin-user-device-risk">
-            <strong>⚠️ アカウント共有の可能性・要確認</strong>
-            <span>${escapeHtml(deviceRisk.reasons.join("・"))}</span>
-          </div>
-        `
-      : "";
+  const deviceSummaryHtml = createDeviceSummaryHtml(user);
 
   return `
         <div class="admin-user-item">
@@ -462,7 +498,7 @@ function createUserHtml(user) {
 
                 </p>
 
-                ${deviceRiskHtml}
+                ${deviceSummaryHtml}
 
                 <div class="admin-user-presence-detail">
 
@@ -513,6 +549,303 @@ function createUserHtml(user) {
 
         </div>
     `;
+}
+
+function createDeviceSummaryHtml(user) {
+  if (!deviceAuditEnabled) return "";
+
+  const isExpanded = expandedDeviceStudentNumber === user.id;
+  const detailButton = `
+    <button
+      type="button"
+      class="btn admin-user-device-toggle-button admin-user-device-detail-button"
+      data-student-number="${escapeHtml(user.id)}"
+      aria-expanded="${isExpanded ? "true" : "false"}">
+      ${isExpanded ? "端末情報を閉じる" : "端末情報を見る"}
+    </button>
+  `;
+  const expandedPanel = createExpandedDevicePanelHtml(user.id);
+
+  if (deviceSummaryLoadState === "loading") {
+    return `
+      <div class="admin-user-device-summary is-loading">
+        <div>
+          <span class="admin-user-device-summary-label">🔐 端末情報</span>
+          <strong>読み込み中...</strong>
+        </div>
+        ${detailButton}
+      </div>
+      ${expandedPanel}
+    `;
+  }
+
+  if (deviceSummaryLoadState === "permission-denied") {
+    return `
+      <div class="admin-user-device-summary is-error">
+        <div>
+          <span class="admin-user-device-summary-label">🔐 端末情報</span>
+          <strong>権限を確認できませんでした</strong>
+        </div>
+        ${detailButton}
+      </div>
+      ${expandedPanel}
+    `;
+  }
+
+  if (deviceSummaryLoadState === "error") {
+    return `
+      <div class="admin-user-device-summary is-error">
+        <div>
+          <span class="admin-user-device-summary-label">🔐 端末情報</span>
+          <strong>取得エラー</strong>
+        </div>
+        ${detailButton}
+      </div>
+      ${expandedPanel}
+    `;
+  }
+
+  const summary = deviceRiskSummaries[user.id] || null;
+  const deviceCount = Math.max(0, Number(summary?.deviceCount || 0));
+  const needsReview =
+    summary?.level === "review" && summary?.reasons?.length > 0;
+  const statusText = deviceCount ? `端末${deviceCount}台` : "端末履歴なし";
+  const reviewHtml = needsReview
+    ? `
+        <span class="admin-user-device-review-badge">要確認</span>
+        <small>${escapeHtml(summary.reasons.join("・"))}</small>
+      `
+    : '<span class="admin-user-device-normal-badge">要確認なし</span>';
+
+  return `
+    <div class="admin-user-device-summary${needsReview ? " is-review" : ""}">
+      <div>
+        <span class="admin-user-device-summary-label">🔐 端末情報</span>
+        <strong>${escapeHtml(statusText)}</strong>
+        ${reviewHtml}
+      </div>
+      ${detailButton}
+    </div>
+    ${expandedPanel}
+  `;
+}
+
+function createExpandedDevicePanelHtml(studentNumber) {
+  if (expandedDeviceStudentNumber !== studentNumber) return "";
+
+  const detail = deviceDetailsByStudent[studentNumber];
+
+  if (!detail || detail.state === "loading") {
+    return `
+      <div class="admin-user-device-panel">
+        <div class="admin-user-loading">端末情報を読み込んでいます...</div>
+      </div>
+    `;
+  }
+
+  if (detail.state === "permission-denied") {
+    return `
+      <div class="admin-user-device-panel is-error">
+        <div class="admin-user-loading">権限がないため端末情報を取得できません。</div>
+      </div>
+    `;
+  }
+
+  if (detail.state === "error") {
+    return `
+      <div class="admin-user-device-panel is-error">
+        <div class="admin-user-loading">端末情報の取得に失敗しました。時間をおいて再度お試しください。</div>
+      </div>
+    `;
+  }
+
+  const devices = Array.isArray(detail.data?.devices)
+    ? detail.data.devices
+    : [];
+  const risk = detail.data?.risk || {};
+  const reasons = Array.isArray(risk.reasons) ? risk.reasons : [];
+  const riskHtml =
+    risk.level === "review" && reasons.length
+      ? `
+          <div class="admin-user-device-panel-risk">
+            <strong>⚠️ アカウント共有の可能性・要確認</strong>
+            <span>${escapeHtml(reasons.join("・"))}</span>
+          </div>
+        `
+      : '<div class="admin-user-device-panel-normal">要確認となる利用状況はありません。</div>';
+
+  if (!devices.length) {
+    return `
+      <div class="admin-user-device-panel">
+        ${riskHtml}
+        <div class="admin-user-loading">
+          この学生の端末履歴はまだありません。次回ログイン後に記録されます。
+        </div>
+      </div>
+    `;
+  }
+
+  const typeTotals = devices.reduce((totals, device) => {
+    const type = String(device.deviceType || "端末");
+    totals[type] = (totals[type] || 0) + 1;
+    return totals;
+  }, {});
+  const typeIndexes = {};
+  const deviceCards = devices
+    .map((device) => {
+      const type = String(device.deviceType || "端末");
+      typeIndexes[type] = (typeIndexes[type] || 0) + 1;
+      const deviceName =
+        typeTotals[type] > 1 ? `${type} ${typeIndexes[type]}` : type;
+      const locationParts = [
+        device.regionCountry,
+        device.regionName,
+        device.regionCity,
+      ].filter((part, index, values) => part && values.indexOf(part) === index);
+      const estimatedRegion = locationParts.length
+        ? locationParts.join(" / ")
+        : "不明";
+      const stateLabel = formatAuditDeviceState(device.state);
+
+      return `
+        <article class="admin-user-device-panel-item">
+          <div class="admin-user-device-panel-heading">
+            <div>
+              <strong>${escapeHtml(deviceName)}</strong>
+              <span>${escapeHtml(stateLabel)}</span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-danger admin-user-device-delete-button"
+              data-student-number="${escapeHtml(studentNumber)}"
+              data-device-id="${escapeHtml(device.deviceId || "")}"
+              data-device-label="${escapeHtml(deviceName)}">
+              履歴を削除
+            </button>
+          </div>
+          <div class="admin-user-device-panel-grid">
+            <div><small>端末・機種</small><b>${escapeHtml(device.model || device.displayName || "詳細不明")}</b></div>
+            <div><small>マスク済みIP</small><b>${escapeHtml(device.maskedIp || "不明")}</b></div>
+            <div><small>推定地域</small><b>${escapeHtml(estimatedRegion)}</b></div>
+            <div><small>最終利用</small><b>${escapeHtml(formatDeviceAuditDate(device.lastSeenAt))}</b></div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="admin-user-device-panel">
+      ${riskHtml}
+      <div class="admin-user-device-panel-list">${deviceCards}</div>
+      <p class="admin-user-device-panel-note">
+        推定地域はIP由来で、実際の場所と異なる場合があります。GPS・緯度経度は収集していません。
+      </p>
+    </div>
+  `;
+}
+
+async function toggleUserDeviceDetails(studentNumber) {
+  if (!deviceAuditEnabled || !/^\d{7}$/.test(studentNumber)) return;
+
+  if (expandedDeviceStudentNumber === studentNumber) {
+    expandedDeviceStudentNumber = "";
+    renderUsers();
+    return;
+  }
+
+  expandedDeviceStudentNumber = studentNumber;
+  renderUsers();
+
+  if (deviceDetailsByStudent[studentNumber]?.state !== "ready") {
+    await loadUserDeviceDetails(studentNumber);
+  }
+}
+
+async function loadUserDeviceDetails(studentNumber) {
+  if (!deviceAuditEnabled || !/^\d{7}$/.test(studentNumber)) return;
+
+  deviceDetailsByStudent[studentNumber] = { state: "loading" };
+  renderUsers();
+
+  try {
+    const listUserLoginDevices = httpsCallable(
+      functions,
+      "listUserLoginDevices",
+    );
+    const result = await listUserLoginDevices({ studentNumber });
+    deviceDetailsByStudent[studentNumber] = {
+      state: "ready",
+      data: result.data || {},
+    };
+  } catch (error) {
+    console.error("端末詳細取得エラー:", error);
+    deviceDetailsByStudent[studentNumber] = {
+      state: String(error?.code || "").includes("permission-denied")
+        ? "permission-denied"
+        : "error",
+    };
+  }
+
+  renderUsers();
+}
+
+async function deleteUserDeviceFromList(button) {
+  if (!deviceAuditEnabled) return;
+
+  const studentNumber = button.dataset.studentNumber || "";
+  const deviceId = button.dataset.deviceId || "";
+  const deviceLabel = button.dataset.deviceLabel || "この端末";
+
+  if (!/^\d{7}$/.test(studentNumber) || !deviceId) return;
+  if (
+    !confirm(
+      `${deviceLabel}（${studentNumber}）の端末履歴を削除しますか？\nこの操作は元に戻せません。`,
+    )
+  ) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "削除中...";
+
+  try {
+    const deleteUserLoginDevice = httpsCallable(
+      functions,
+      "deleteUserLoginDevice",
+    );
+    await deleteUserLoginDevice({ studentNumber, deviceId });
+    showToast(`${deviceLabel}の履歴を削除しました`);
+    await loadUserDeviceDetails(studentNumber);
+    await loadDeviceRiskSummaries(false);
+  } catch (error) {
+    console.error("端末履歴削除エラー:", error);
+    alert("端末履歴を削除できませんでした。時間をおいて再度お試しください。");
+    button.disabled = false;
+    button.textContent = "履歴を削除";
+  }
+}
+
+function formatAuditDeviceState(state) {
+  if (state === "active") return "現在利用中";
+  if (state === "recent") return "最近利用";
+  return "履歴";
+}
+
+function formatDeviceAuditDate(value) {
+  const timestamp = Number(value || 0);
+  if (!timestamp) return "不明";
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "不明";
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function updateSummary() {
