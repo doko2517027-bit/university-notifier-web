@@ -19081,9 +19081,15 @@ course-tagが付いたspanには適用しない。
     transform .1s ease;
 }
 
-.quiz-card:not([data-finished="true"]) .quiz-answer.is-selected {
+.quiz-card .quiz-answer.is-selected {
   border-color: #16a34a;
   background-color: rgba(34, 197, 94, .1);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, .16);
   transform: translateY(-1px);
+}
+
+.quiz-card[data-finished="true"] .quiz-answer.is-selected.is-wrong {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, .1);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
 }

@@ -311,8 +311,13 @@ document.addEventListener("click", async (event) => {
   card.querySelectorAll(".test-choice").forEach((button) => {
     button.disabled = true;
     const choiceIndex = Number(button.dataset.index);
+    const wasSelected = selectedAnswers.includes(choiceIndex);
+    if (card.dataset.multiple === "true") {
+      button.classList.toggle("is-selected", wasSelected);
+      button.setAttribute("aria-pressed", wasSelected ? "true" : "false");
+    }
     if (correctAnswers.includes(choiceIndex)) button.classList.add("is-correct");
-    if (selectedAnswers.includes(choiceIndex) && !correctAnswers.includes(choiceIndex)) button.classList.add("is-wrong");
+    if (wasSelected && !correctAnswers.includes(choiceIndex)) button.classList.add("is-wrong");
   });
   checkButton?.remove();
   const panel = card.querySelector(".test-result-panel");
