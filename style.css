@@ -19094,21 +19094,6 @@ course-tagが付いたspanには適用しない。
   box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
 }
 
-/* ========================================
-   ログイン端末・アカウント共有の確認
-======================================== */
-
-.login-device-privacy-note {
-  margin: 16px 0 0;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--card) 94%, var(--accent));
-  color: var(--subtext);
-  font-size: 12px;
-  line-height: 1.7;
-}
-
 .admin-device-audit-header,
 .admin-device-item-heading {
   display: flex;
