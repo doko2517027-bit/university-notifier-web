@@ -43,6 +43,12 @@ import {
 
 import { registerDevicePushSubscription } from "./push_subscription.js";
 
+import {
+  createCareMateDeviceTouchController,
+  isVerifiedCareMateDeviceTouchIdentity,
+  shouldStartCareMateDeviceTouch,
+} from "./device_touch_controller.mjs";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -95,8 +101,6 @@ export const functions = getFunctions(app, "asia-northeast1");
 export const studentNumber = localStorage.getItem("studentNumber");
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
-const DEVICE_TOUCH_STORAGE_KEY = "careMateDeviceLastTouchAt";
-const DEVICE_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 
 export function getOrCreateCareMateDeviceId() {
   const storedDeviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "";
@@ -121,30 +125,83 @@ export async function signInCareMateAuth(studentNumber, password) {
   const result = await authenticateCareMate({
     studentNumber: String(studentNumber || "").trim(),
     password: String(password || ""),
-    deviceId: getOrCreateCareMateDeviceId(),
   });
 
   await signInWithCustomToken(auth, result.data.token);
 }
 
-async function touchCareMateDevice() {
-  if (!studentNumber || localStorage.getItem("loggedIn") !== "true") return;
+function shouldStartDeviceTouchOnCurrentPage() {
+  return shouldStartCareMateDeviceTouch({
+    studentNumber,
+    loggedIn: localStorage.getItem("loggedIn") === "true",
+    pathname: location.pathname,
+  });
+}
 
-  const now = Date.now();
-  const lastTouchAt = Number(localStorage.getItem(DEVICE_TOUCH_STORAGE_KEY) || 0);
-  if (now - lastTouchAt < DEVICE_TOUCH_INTERVAL_MS) return;
+async function verifyCareMateDeviceTouchIdentity() {
+  await auth.authStateReady();
 
-  try {
-    await auth.authStateReady();
-    if (auth.currentUser?.uid !== `caremate-${studentNumber}`) return;
+  const currentUser = auth.currentUser;
+  if (!currentUser || currentUser.uid !== `caremate-${studentNumber}`) {
+    return false;
+  }
 
-    localStorage.setItem(DEVICE_TOUCH_STORAGE_KEY, String(now));
+  const token = await getIdTokenResult(currentUser);
+  const tokenStudentNumber = String(token.claims?.studentNumber || "");
+  if (tokenStudentNumber !== studentNumber) return false;
+
+  const profileSnapshot = await getDoc(doc(db, "users", studentNumber));
+  const profileStudentNumber = String(
+    profileSnapshot.data()?.studentNumber || studentNumber,
+  );
+
+  return isVerifiedCareMateDeviceTouchIdentity({
+    uid: currentUser.uid,
+    studentNumber,
+    tokenStudentNumber,
+    profileExists: profileSnapshot.exists(),
+    profileStudentNumber,
+  });
+}
+
+const runCareMateDeviceTouch = createCareMateDeviceTouchController({
+  storage: localStorage,
+  shouldStart: shouldStartDeviceTouchOnCurrentPage,
+  verifyIdentity: verifyCareMateDeviceTouchIdentity,
+  getDeviceId: getOrCreateCareMateDeviceId,
+  sendTouch: async (deviceId) => {
     const touchDevice = httpsCallable(functions, "touchCareMateDevice");
-    await touchDevice({ deviceId: getOrCreateCareMateDeviceId() });
-  } catch (error) {
+    const result = await touchDevice({ deviceId });
+    return result.data?.ok === true;
+  },
+  onError: (error) => {
     // 端末履歴の更新失敗は、アプリの通常利用を妨げない。
     console.warn("端末の最終利用時刻を更新できませんでした:", error);
-  }
+  },
+});
+
+export async function touchCareMateDevice() {
+  return runCareMateDeviceTouch();
+}
+
+let deviceTouchLifecycleInitialized = false;
+
+function initializeCareMateDeviceTouch() {
+  if (deviceTouchLifecycleInitialized) return;
+  if (!shouldStartDeviceTouchOnCurrentPage()) return;
+
+  deviceTouchLifecycleInitialized = true;
+  const requestTouch = () => void touchCareMateDevice();
+
+  requestTouch();
+  window.addEventListener("focus", requestTouch);
+  window.addEventListener("online", requestTouch);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) requestTouch();
+  });
+  setInterval(() => {
+    if (!document.hidden) requestTouch();
+  }, 5 * 60 * 1000);
 }
 
 export async function refreshAdminClaim() {
@@ -920,6 +977,8 @@ export async function initializePage(tasks = []) {
   await Promise.all(tasks).catch((error) => {
     console.error("初期読み込みエラー:", error);
   });
+
+  initializeCareMateDeviceTouch();
 }
 
 export function showNewsSkeleton(target, count = 3) {
@@ -1628,17 +1687,7 @@ if (studentNumber && localStorage.getItem("loggedIn") === "true") {
     console.error("Presence開始エラー:", error);
   });
 
-  touchCareMateDevice();
-
-  window.addEventListener("focus", () => touchCareMateDevice());
-  window.addEventListener("online", () => touchCareMateDevice());
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) touchCareMateDevice();
-  });
-
-  setInterval(() => {
-    if (!document.hidden) touchCareMateDevice();
-  }, DEVICE_TOUCH_INTERVAL_MS);
+  initializeCareMateDeviceTouch();
 }
 
 // ======================
