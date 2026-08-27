@@ -6,6 +6,7 @@ import {
   DEVICE_TOUCH_PENDING_KEY,
   DEVICE_TOUCH_INTERVAL_MS,
   createCareMateDeviceTouchController,
+  isCareMateForceLogoutCheckDue,
   isVerifiedCareMateDeviceTouchIdentity,
   shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
@@ -190,5 +191,33 @@ test("強制ログアウト要求より前の認証だけを対象にする", ()
       allDevicesRequestedAt: 2_500,
     }),
     false,
+  );
+  assert.equal(
+    shouldForceLogoutCareMateSession({
+      authTimeMillis: 0,
+      allDevicesRequestedAt: 2_000,
+    }),
+    true,
+  );
+});
+
+test("強制ログアウトの補助確認は1分間隔に抑制する", () => {
+  assert.equal(
+    isCareMateForceLogoutCheckDue({ now: 100_000, lastCheckedAt: 0 }),
+    true,
+  );
+  assert.equal(
+    isCareMateForceLogoutCheckDue({
+      now: 150_000,
+      lastCheckedAt: 100_000,
+    }),
+    false,
+  );
+  assert.equal(
+    isCareMateForceLogoutCheckDue({
+      now: 160_000,
+      lastCheckedAt: 100_000,
+    }),
+    true,
   );
 });

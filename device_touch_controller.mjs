@@ -71,6 +71,14 @@ export function shouldForceLogoutCareMateSession({
   return requestedAt > 0 && (!authenticatedAt || authenticatedAt <= requestedAt);
 }
 
+export function isCareMateForceLogoutCheckDue({
+  now,
+  lastCheckedAt,
+  intervalMs = 60 * 1000,
+}) {
+  return !(lastCheckedAt > 0 && now - lastCheckedAt < intervalMs);
+}
+
 export function createCareMateDeviceTouchController({
   storage,
   shouldStart,

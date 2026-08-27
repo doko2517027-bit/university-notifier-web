@@ -318,6 +318,45 @@ exports.touchCareMateDevice = onCall(
   },
 );
 
+// 既存のローカルログイン状態など、Firestoreのリアルタイム監視を
+// 開始できない端末にも強制ログアウトを届ける読み取り専用フォールバック。
+// 未認証時も、推測困難な端末IDと学籍番号が一致する既存端末だけを確認する。
+exports.checkCareMateDeviceLogout = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+    const deviceId = normalizeDeviceId(request.data?.deviceId);
+
+    if (!/^\d{7}$/.test(targetStudentNumber) || !deviceId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "端末情報が正しくありません。",
+      );
+    }
+
+    if (request.auth) {
+      const authenticatedStudentNumber =
+        requireAuthenticatedCareMateStudent(request);
+      if (authenticatedStudentNumber !== targetStudentNumber) {
+        throw new HttpsError(
+          "permission-denied",
+          "他の学生の端末状態は確認できません。",
+        );
+      }
+    }
+
+    const result = await deviceSessionStore.checkDeviceLogout(
+      targetStudentNumber,
+      deviceId,
+      Number(request.auth?.token?.auth_time || 0) * 1000,
+    );
+
+    return { forceLogout: result.forceLogout === true };
+  },
+);
+
 exports.listUserLoginDevices = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {

@@ -48,6 +48,7 @@ import {
   DEVICE_TOUCH_LAST_SUCCESS_KEY,
   DEVICE_TOUCH_PENDING_KEY,
   createCareMateDeviceTouchController,
+  isCareMateForceLogoutCheckDue,
   isVerifiedCareMateDeviceTouchIdentity,
   shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
@@ -105,6 +106,8 @@ export const functions = getFunctions(app, "asia-northeast1");
 export const studentNumber = localStorage.getItem("studentNumber");
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
+const FORCE_LOGOUT_CHECK_STORAGE_KEY = "careMateForceLogoutCheckedAt";
+const FORCE_LOGOUT_CHECK_INTERVAL_MS = 60 * 1000;
 
 export function getOrCreateCareMateDeviceId() {
   const storedDeviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "";
@@ -190,6 +193,7 @@ async function forceLogoutCurrentCareMateDevice() {
   localStorage.removeItem("loggedIn");
   localStorage.removeItem(DEVICE_TOUCH_LAST_SUCCESS_KEY);
   localStorage.removeItem(DEVICE_TOUCH_PENDING_KEY);
+  localStorage.removeItem(FORCE_LOGOUT_CHECK_STORAGE_KEY);
 
   try {
     await signOut(auth);
@@ -202,6 +206,58 @@ async function forceLogoutCurrentCareMateDevice() {
 
 let forceLogoutWatcherInitialized = false;
 let forceLogoutWatcherStarting = null;
+let forceLogoutCheckInFlight = null;
+
+async function checkCareMateDeviceLogout() {
+  if (!shouldStartDeviceTouchOnCurrentPage()) return false;
+  if (forceLogoutCheckInFlight) return forceLogoutCheckInFlight;
+
+  const now = Date.now();
+  const lastCheckedAt = Number(
+    localStorage.getItem(FORCE_LOGOUT_CHECK_STORAGE_KEY) || 0,
+  );
+  if (
+    !isCareMateForceLogoutCheckDue({
+      now,
+      lastCheckedAt,
+      intervalMs: FORCE_LOGOUT_CHECK_INTERVAL_MS,
+    })
+  ) {
+    return false;
+  }
+
+  localStorage.setItem(FORCE_LOGOUT_CHECK_STORAGE_KEY, String(now));
+  const task = (async () => {
+    try {
+      const checkDeviceLogout = httpsCallable(
+        functions,
+        "checkCareMateDeviceLogout",
+      );
+      const result = await checkDeviceLogout({
+        studentNumber,
+        deviceId: getOrCreateCareMateDeviceId(),
+      });
+
+      if (result.data?.forceLogout === true) {
+        await forceLogoutCurrentCareMateDevice();
+        return true;
+      }
+    } catch (error) {
+      // 旧ログイン状態向けの補助確認なので、失敗しても画面を止めない。
+      console.warn("強制ログアウトの補助確認に失敗しました:", error);
+    }
+
+    return false;
+  })();
+
+  forceLogoutCheckInFlight = task;
+
+  try {
+    return await task;
+  } finally {
+    if (forceLogoutCheckInFlight === task) forceLogoutCheckInFlight = null;
+  }
+}
 
 function initializeCareMateForceLogoutWatcher() {
   if (forceLogoutWatcherInitialized || forceLogoutWatcherStarting) return;
@@ -294,6 +350,7 @@ function initializeCareMateDeviceTouch() {
   deviceTouchLifecycleInitialized = true;
   const requestTouch = () => {
     initializeCareMateForceLogoutWatcher();
+    void checkCareMateDeviceLogout();
     void touchCareMateDevice();
   };
 
@@ -306,6 +363,9 @@ function initializeCareMateDeviceTouch() {
   setInterval(() => {
     if (!document.hidden) requestTouch();
   }, 5 * 60 * 1000);
+  setInterval(() => {
+    if (!document.hidden) void checkCareMateDeviceLogout();
+  }, FORCE_LOGOUT_CHECK_INTERVAL_MS);
 }
 
 export async function refreshAdminClaim() {

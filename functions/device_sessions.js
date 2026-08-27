@@ -447,6 +447,20 @@ function createDeviceSessionStore(db, FieldValue) {
     };
   }
 
+  async function checkDeviceLogout(studentNumber, rawDeviceId, authTimeMillis) {
+    const deviceId = normalizeDeviceId(rawDeviceId);
+    if (!deviceId) return { forceLogout: false };
+
+    const deviceSnapshot = await rootCollection
+      .doc(studentNumber)
+      .collection("loginDevices")
+      .doc(deviceId)
+      .get();
+    if (!deviceSnapshot.exists) return { forceLogout: false };
+
+    return readForceLogoutState(studentNumber, deviceId, authTimeMillis);
+  }
+
   async function getApproximateRegion(ip) {
     if (!ip) return createUnknownRegion("unavailable");
 
@@ -854,6 +868,7 @@ function createDeviceSessionStore(db, FieldValue) {
 
   return {
     recordDeviceSession,
+    checkDeviceLogout,
     listUserDevices,
     deleteUserDevice,
     requestDeviceLogout,
