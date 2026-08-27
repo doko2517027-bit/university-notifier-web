@@ -8,6 +8,7 @@ import {
   createCareMateDeviceTouchController,
   isCareMateForceLogoutCheckDue,
   isVerifiedCareMateDeviceTouchIdentity,
+  requiresCareMateReauthentication,
   shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
 } from "./device_touch_controller.mjs";
@@ -75,6 +76,41 @@ test("認証UID・トークン・プロフィールがすべて本人と一致�
     isVerifiedCareMateDeviceTouchIdentity({
       ...identity,
       profileExists: false,
+    }),
+    false,
+  );
+});
+
+test("旧ローカルログインだけが再ログイン対象になる", () => {
+  assert.equal(
+    requiresCareMateReauthentication({
+      studentNumber: "2510001",
+      loggedIn: true,
+      uid: "",
+    }),
+    true,
+  );
+  assert.equal(
+    requiresCareMateReauthentication({
+      studentNumber: "2510001",
+      loggedIn: true,
+      uid: "caremate-2519999",
+    }),
+    true,
+  );
+  assert.equal(
+    requiresCareMateReauthentication({
+      studentNumber: "2510001",
+      loggedIn: true,
+      uid: "caremate-2510001",
+    }),
+    false,
+  );
+  assert.equal(
+    requiresCareMateReauthentication({
+      studentNumber: "2510001",
+      loggedIn: false,
+      uid: "",
     }),
     false,
   );

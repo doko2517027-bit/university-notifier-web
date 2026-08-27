@@ -45,6 +45,20 @@ export function isVerifiedCareMateDeviceTouchIdentity({
   );
 }
 
+export function requiresCareMateReauthentication({
+  studentNumber,
+  loggedIn,
+  uid,
+}) {
+  const normalizedStudentNumber = String(studentNumber || "");
+
+  return (
+    loggedIn === true &&
+    /^\d{7}$/.test(normalizedStudentNumber) &&
+    uid !== `caremate-${normalizedStudentNumber}`
+  );
+}
+
 export function isCareMateDeviceTouchDue({
   now,
   lastSuccessAt,

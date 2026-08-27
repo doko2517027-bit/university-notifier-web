@@ -50,6 +50,7 @@ import {
   createCareMateDeviceTouchController,
   isCareMateForceLogoutCheckDue,
   isVerifiedCareMateDeviceTouchIdentity,
+  requiresCareMateReauthentication,
   shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
 } from "./device_touch_controller.mjs";
@@ -207,6 +208,46 @@ async function forceLogoutCurrentCareMateDevice() {
 let forceLogoutWatcherInitialized = false;
 let forceLogoutWatcherStarting = null;
 let forceLogoutCheckInFlight = null;
+let careMateAuthenticationGuardInFlight = null;
+
+async function ensureCareMateAuthenticatedSession() {
+  if (!shouldStartDeviceTouchOnCurrentPage()) return false;
+  if (careMateAuthenticationGuardInFlight) {
+    return careMateAuthenticationGuardInFlight;
+  }
+
+  const task = (async () => {
+    try {
+      await auth.authStateReady();
+      const requiresReauthentication = requiresCareMateReauthentication({
+        studentNumber,
+        loggedIn: localStorage.getItem("loggedIn") === "true",
+        uid: auth.currentUser?.uid || "",
+      });
+
+      if (requiresReauthentication) {
+        await forceLogoutCurrentCareMateDevice();
+        return false;
+      }
+
+      return auth.currentUser?.uid === `caremate-${studentNumber}`;
+    } catch (error) {
+      // Firebaseの一時障害では画面を止めず、次回の復帰時に再確認する。
+      console.warn("CareMate認証状態を確認できませんでした:", error);
+      return false;
+    }
+  })();
+
+  careMateAuthenticationGuardInFlight = task;
+
+  try {
+    return await task;
+  } finally {
+    if (careMateAuthenticationGuardInFlight === task) {
+      careMateAuthenticationGuardInFlight = null;
+    }
+  }
+}
 
 async function checkCareMateDeviceLogout() {
   if (!shouldStartDeviceTouchOnCurrentPage()) return false;
@@ -349,9 +390,13 @@ function initializeCareMateDeviceTouch() {
 
   deviceTouchLifecycleInitialized = true;
   const requestTouch = () => {
-    initializeCareMateForceLogoutWatcher();
-    void checkCareMateDeviceLogout();
-    void touchCareMateDevice();
+    void ensureCareMateAuthenticatedSession().then((authenticated) => {
+      if (!authenticated) return;
+
+      initializeCareMateForceLogoutWatcher();
+      void checkCareMateDeviceLogout();
+      void touchCareMateDevice();
+    });
   };
 
   requestTouch();
