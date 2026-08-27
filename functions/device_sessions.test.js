@@ -9,6 +9,7 @@ const {
   parseDeviceInfo,
   evaluateAccountSharingRisk,
   shouldRefreshApproximateRegion,
+  shouldForceLogoutSession,
   fetchApproximateRegion,
 } = require("./device_sessions");
 
@@ -175,6 +176,35 @@ test("推定地域は24時間経過時またはネットワーク変更時だけ
       nowMillis: now,
     }),
     true,
+  );
+});
+
+test("個別・全端末の要求より前に認証したセッションだけを強制ログアウトする", () => {
+  const oldAuthentication = new Date("2026-08-27T01:00:00Z");
+  const request = new Date("2026-08-27T02:00:00Z");
+  const newAuthentication = new Date("2026-08-27T03:00:00Z");
+
+  assert.equal(
+    shouldForceLogoutSession({
+      authTimeMillis: oldAuthentication,
+      deviceRequestedAt: request,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldForceLogoutSession({
+      authTimeMillis: oldAuthentication,
+      allDevicesRequestedAt: request,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldForceLogoutSession({
+      authTimeMillis: newAuthentication,
+      deviceRequestedAt: request,
+      allDevicesRequestedAt: request,
+    }),
+    false,
   );
 });
 

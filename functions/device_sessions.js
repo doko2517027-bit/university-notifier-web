@@ -2,6 +2,8 @@ const crypto = require("node:crypto");
 const net = require("node:net");
 
 const DEVICE_SESSION_RETENTION_DAYS = 30;
+const FORCE_LOGOUT_RETENTION_MS =
+  DEVICE_SESSION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const GEOLOCATION_REFRESH_MS = 24 * 60 * 60 * 1000;
 const ACTIVE_WINDOW_MS = 15 * 60 * 1000;
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -258,6 +260,20 @@ function timestampToMillis(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function shouldForceLogoutSession({
+  authTimeMillis,
+  deviceRequestedAt = 0,
+  allDevicesRequestedAt = 0,
+}) {
+  const requestedAt = Math.max(
+    timestampToMillis(deviceRequestedAt),
+    timestampToMillis(allDevicesRequestedAt),
+  );
+  const authenticatedAt = timestampToMillis(authTimeMillis);
+
+  return requestedAt > 0 && (!authenticatedAt || authenticatedAt <= requestedAt);
+}
+
 function shouldRefreshApproximateRegion({
   existing = {},
   networkKey = "",
@@ -399,7 +415,37 @@ async function fetchApproximateRegion(ip) {
 
 function createDeviceSessionStore(db, FieldValue) {
   const rootCollection = db.collection("userDeviceSessions");
+  const accessCollection = db.collection("userDeviceAccess");
   const geolocationCache = db.collection("ipGeolocationCache");
+
+  function getDeviceAccessRef(studentNumber, deviceId) {
+    return accessCollection
+      .doc(studentNumber)
+      .collection("logoutRequests")
+      .doc(deviceId);
+  }
+
+  async function readForceLogoutState(studentNumber, deviceId, authTimeMillis) {
+    const [allDevicesSnapshot, deviceSnapshot] = await Promise.all([
+      accessCollection.doc(studentNumber).get(),
+      getDeviceAccessRef(studentNumber, deviceId).get(),
+    ]);
+    const allDevicesRequestedAt = timestampToMillis(
+      allDevicesSnapshot.data()?.forceLogoutRequestedAt,
+    );
+    const deviceRequestedAt = timestampToMillis(
+      deviceSnapshot.data()?.forceLogoutRequestedAt,
+    );
+
+    return {
+      forceLogout: shouldForceLogoutSession({
+        authTimeMillis,
+        deviceRequestedAt,
+        allDevicesRequestedAt,
+      }),
+      requestedAt: Math.max(deviceRequestedAt, allDevicesRequestedAt),
+    };
+  }
 
   async function getApproximateRegion(ip) {
     if (!ip) return createUnknownRegion("unavailable");
@@ -467,6 +513,7 @@ function createDeviceSessionStore(db, FieldValue) {
     deviceId: rawDeviceId,
     rawRequest,
     eventType = "activity",
+    authTimeMillis = 0,
   }) {
     const deviceId = normalizeDeviceId(rawDeviceId);
     if (!deviceId) return { recorded: false, reason: "invalid-device-id" };
@@ -480,7 +527,19 @@ function createDeviceSessionStore(db, FieldValue) {
       .doc(studentNumber)
       .collection("loginDevices")
       .doc(deviceId);
-    const existingSnapshot = await deviceRef.get();
+    const [existingSnapshot, forceLogoutState] = await Promise.all([
+      deviceRef.get(),
+      readForceLogoutState(studentNumber, deviceId, authTimeMillis),
+    ]);
+
+    if (forceLogoutState.forceLogout) {
+      return {
+        recorded: false,
+        forceLogout: true,
+        forceLogoutRequestedAt: forceLogoutState.requestedAt,
+      };
+    }
+
     const existing = existingSnapshot.data() || {};
     const now = new Date();
     const shouldRefreshRegion = shouldRefreshApproximateRegion({
@@ -505,6 +564,10 @@ function createDeviceSessionStore(db, FieldValue) {
       ),
       updatedAt: now,
     };
+
+    if (timestampToMillis(authTimeMillis) > 0) {
+      data.lastAuthenticatedAt = new Date(timestampToMillis(authTimeMillis));
+    }
 
     const previousIpUpdatedAt = timestampToMillis(existing.ipUpdatedAt);
     if (
@@ -550,7 +613,11 @@ function createDeviceSessionStore(db, FieldValue) {
     return { recorded: true, risk };
   }
 
-  function serializeDevice(device, nowMillis = Date.now()) {
+  function serializeDevice(
+    device,
+    nowMillis = Date.now(),
+    forceLogoutRequestedAt = 0,
+  ) {
     const lastSeenAt = timestampToMillis(device.lastSeenAt);
     const age = lastSeenAt ? nowMillis - lastSeenAt : Number.POSITIVE_INFINITY;
     const state =
@@ -559,6 +626,13 @@ function createDeviceSessionStore(db, FieldValue) {
         : age <= RECENT_WINDOW_MS
           ? "recent"
           : "history";
+
+    const lastAuthenticatedAt = timestampToMillis(
+      device.lastAuthenticatedAt || device.lastLoginAt || device.firstSeenAt,
+    );
+    const normalizedForceLogoutRequestedAt = timestampToMillis(
+      forceLogoutRequestedAt,
+    );
 
     return {
       id: device.id,
@@ -577,6 +651,12 @@ function createDeviceSessionStore(db, FieldValue) {
       firstSeenAt: timestampToMillis(device.firstSeenAt),
       lastSeenAt,
       lastLoginAt: timestampToMillis(device.lastLoginAt),
+      lastAuthenticatedAt,
+      forceLogoutRequestedAt: normalizedForceLogoutRequestedAt,
+      forceLogoutPending: shouldForceLogoutSession({
+        authTimeMillis: lastAuthenticatedAt,
+        deviceRequestedAt: normalizedForceLogoutRequestedAt,
+      }),
       ipUpdatedAt: timestampToMillis(device.ipUpdatedAt),
       regionLookedUpAt: timestampToMillis(device.regionLookedUpAt),
       regionLastAttemptAt: timestampToMillis(device.regionLastAttemptAt),
@@ -590,26 +670,95 @@ function createDeviceSessionStore(db, FieldValue) {
   }
 
   async function listUserDevices(studentNumber) {
-    const devices = await readDevices(studentNumber);
+    const [devices, allDevicesSnapshot, deviceRequestsSnapshot] =
+      await Promise.all([
+        readDevices(studentNumber),
+        accessCollection.doc(studentNumber).get(),
+        accessCollection
+          .doc(studentNumber)
+          .collection("logoutRequests")
+          .get(),
+      ]);
     const risk = evaluateAccountSharingRisk(devices);
+    const allDevicesRequestedAt = timestampToMillis(
+      allDevicesSnapshot.data()?.forceLogoutRequestedAt,
+    );
+    const deviceRequests = new Map(
+      deviceRequestsSnapshot.docs.map((document) => [
+        document.id,
+        timestampToMillis(document.data()?.forceLogoutRequestedAt),
+      ]),
+    );
+
     return {
       devices: devices
-        .map((device) => serializeDevice(device))
+        .map((device) =>
+          serializeDevice(
+            device,
+            Date.now(),
+            Math.max(
+              allDevicesRequestedAt,
+              deviceRequests.get(device.id) || 0,
+            ),
+          ),
+        )
         .sort((first, second) => second.lastSeenAt - first.lastSeenAt),
       risk,
       retentionDays: DEVICE_SESSION_RETENTION_DAYS,
+      allDevicesForceLogoutRequestedAt: allDevicesRequestedAt,
     };
+  }
+
+  async function requestDeviceLogout(studentNumber, rawDeviceId) {
+    const deviceId = normalizeDeviceId(rawDeviceId);
+    if (!deviceId) throw new Error("invalid-device-id");
+
+    const deviceRef = rootCollection
+      .doc(studentNumber)
+      .collection("loginDevices")
+      .doc(deviceId);
+    const deviceSnapshot = await deviceRef.get();
+    if (!deviceSnapshot.exists) return { requested: false, reason: "not-found" };
+
+    const now = new Date();
+    await getDeviceAccessRef(studentNumber, deviceId).set({
+      studentNumber,
+      deviceId,
+      forceLogoutRequestedAt: now,
+      expiresAt: new Date(now.getTime() + FORCE_LOGOUT_RETENTION_MS),
+      updatedAt: now,
+    });
+
+    return { requested: true, requestedAt: now.getTime() };
+  }
+
+  async function requestAllDevicesLogout(studentNumber) {
+    const now = new Date();
+    await accessCollection.doc(studentNumber).set(
+      {
+        studentNumber,
+        forceLogoutRequestedAt: now,
+        expiresAt: new Date(now.getTime() + FORCE_LOGOUT_RETENTION_MS),
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+
+    return { requested: true, requestedAt: now.getTime() };
   }
 
   async function deleteUserDevice(studentNumber, rawDeviceId) {
     const deviceId = normalizeDeviceId(rawDeviceId);
     if (!deviceId) throw new Error("invalid-device-id");
 
-    await rootCollection
-      .doc(studentNumber)
-      .collection("loginDevices")
-      .doc(deviceId)
-      .delete();
+    await Promise.all([
+      rootCollection
+        .doc(studentNumber)
+        .collection("loginDevices")
+        .doc(deviceId)
+        .delete(),
+      getDeviceAccessRef(studentNumber, deviceId).delete(),
+    ]);
     const risk = await refreshRiskSummary(studentNumber);
     return { deleted: true, risk };
   }
@@ -643,17 +792,51 @@ function createDeviceSessionStore(db, FieldValue) {
       .where("expiresAt", "<=", now)
       .limit(400)
       .get();
+    const expiredAllDeviceRequests = await accessCollection
+      .where("expiresAt", "<=", now)
+      .limit(400)
+      .get();
+    const expiredDeviceRequests = await db
+      .collectionGroup("logoutRequests")
+      .where("expiresAt", "<=", now)
+      .limit(400)
+      .get();
     const affectedStudents = new Set();
-    const batch = db.batch();
+    const deletionReferences = [];
 
     expiredDevices.docs.forEach((document) => {
       const studentDocument = document.ref.parent.parent;
-      if (studentDocument) affectedStudents.add(studentDocument.id);
-      batch.delete(document.ref);
+      if (studentDocument) {
+        affectedStudents.add(studentDocument.id);
+        deletionReferences.push(
+          getDeviceAccessRef(studentDocument.id, document.id),
+        );
+      }
+      deletionReferences.push(document.ref);
     });
-    expiredCache.docs.forEach((document) => batch.delete(document.ref));
+    expiredCache.docs.forEach((document) =>
+      deletionReferences.push(document.ref),
+    );
+    expiredAllDeviceRequests.docs.forEach((document) =>
+      deletionReferences.push(document.ref),
+    );
+    expiredDeviceRequests.docs.forEach((document) =>
+      deletionReferences.push(document.ref),
+    );
 
-    if (!expiredDevices.empty || !expiredCache.empty) await batch.commit();
+    const uniqueDeletionReferences = [
+      ...new Map(
+        deletionReferences.map((reference) => [reference.path, reference]),
+      ).values(),
+    ];
+
+    for (let index = 0; index < uniqueDeletionReferences.length; index += 400) {
+      const batch = db.batch();
+      uniqueDeletionReferences
+        .slice(index, index + 400)
+        .forEach((reference) => batch.delete(reference));
+      await batch.commit();
+    }
 
     await Promise.all(
       [...affectedStudents].map((studentNumber) =>
@@ -664,6 +847,8 @@ function createDeviceSessionStore(db, FieldValue) {
     return {
       devicesDeleted: expiredDevices.size,
       cacheEntriesDeleted: expiredCache.size,
+      logoutRequestsDeleted:
+        expiredAllDeviceRequests.size + expiredDeviceRequests.size,
     };
   }
 
@@ -671,6 +856,8 @@ function createDeviceSessionStore(db, FieldValue) {
     recordDeviceSession,
     listUserDevices,
     deleteUserDevice,
+    requestDeviceLogout,
+    requestAllDevicesLogout,
     listRiskSummaries,
     cleanupExpiredRecords,
   };
@@ -685,6 +872,7 @@ module.exports = {
   parseDeviceInfo,
   evaluateAccountSharingRisk,
   shouldRefreshApproximateRegion,
+  shouldForceLogoutSession,
   fetchApproximateRegion,
   createDeviceSessionStore,
 };

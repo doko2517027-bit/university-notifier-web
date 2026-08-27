@@ -270,9 +270,18 @@
               </p>
             </div>
 
-            <button id="refreshDeviceSessionsButton" type="button" class="btn">
-              ↻ 更新
-            </button>
+            <div class="admin-device-header-actions">
+              <button id="refreshDeviceSessionsButton" type="button" class="btn">
+                ↻ 更新
+              </button>
+              <button
+                id="forceLogoutAllDevicesButton"
+                type="button"
+                class="btn btn-danger admin-device-force-all-button"
+              >
+                すべての端末からログアウト
+              </button>
+            </div>
           </div>
 
           <div id="deviceRiskNotice" class="admin-device-risk" hidden>

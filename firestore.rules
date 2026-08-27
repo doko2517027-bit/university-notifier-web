@@ -220,6 +220,33 @@ service cloud.firestore {
     }
 
 
+    /*
+       強制ログアウト通知にはIP・地域・機種を含めない。
+       認証済み本人は自分宛ての単一ドキュメントだけ取得でき、
+       書き込みと一覧取得はCloud Functionsに限定する。
+    */
+
+    match /userDeviceAccess/{userId} {
+
+      allow get: if
+        request.auth != null &&
+        request.auth.uid == 'caremate-' + userId &&
+        request.auth.token.studentNumber == userId;
+      allow list, create, update, delete: if false;
+
+      match /logoutRequests/{deviceId} {
+
+        allow get: if
+          request.auth != null &&
+          request.auth.uid == 'caremate-' + userId &&
+          request.auth.token.studentNumber == userId;
+        allow list, create, update, delete: if false;
+
+      }
+
+    }
+
+
     match /ipGeolocationCache/{cacheId} {
 
       allow read, write: if false;

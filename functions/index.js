@@ -293,12 +293,22 @@ exports.touchCareMateDevice = onCall(
     }
 
     try {
-      await deviceSessionStore.recordDeviceSession({
+      const result = await deviceSessionStore.recordDeviceSession({
         studentNumber,
         deviceId,
         rawRequest: request.rawRequest,
         eventType: "activity",
+        authTimeMillis:
+          Number(request.auth?.token?.auth_time || 0) * 1000,
       });
+
+      if (result.forceLogout === true) {
+        return {
+          ok: false,
+          forceLogout: true,
+          requestedAt: result.forceLogoutRequestedAt || 0,
+        };
+      }
     } catch (error) {
       console.warn("端末利用時刻更新失敗:", error?.message || "unknown");
       return { ok: false };
@@ -349,6 +359,67 @@ exports.deleteUserLoginDevice = onCall(
       targetStudentNumber,
       deviceId,
     );
+  },
+);
+
+exports.forceLogoutUserDevice = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+    const deviceId = normalizeDeviceId(request.data?.deviceId);
+
+    if (!/^\d{7}$/.test(targetStudentNumber) || !deviceId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "ログアウト対象が正しくありません。",
+      );
+    }
+
+    const result = await deviceSessionStore.requestDeviceLogout(
+      targetStudentNumber,
+      deviceId,
+    );
+
+    if (result.requested !== true) {
+      throw new HttpsError(
+        "not-found",
+        "対象端末の履歴が見つかりません。",
+      );
+    }
+
+    return result;
+  },
+);
+
+exports.forceLogoutAllUserDevices = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "ログアウト対象が正しくありません。",
+      );
+    }
+
+    const result = await deviceSessionStore.requestAllDevicesLogout(
+      targetStudentNumber,
+    );
+
+    try {
+      await adminAuth.revokeRefreshTokens(`caremate-${targetStudentNumber}`);
+    } catch (error) {
+      if (error?.code !== "auth/user-not-found") throw error;
+    }
+
+    return result;
   },
 );
 

@@ -60,6 +60,7 @@ exports.deleteCareMateUser = onCall(
       "subjectPoints",
       "totalRanking",
       "userDeviceSessions",
+      "userDeviceAccess",
     ];
 
     await Promise.all(

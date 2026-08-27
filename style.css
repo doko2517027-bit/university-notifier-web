@@ -19120,6 +19120,20 @@ course-tagが付いたspanには適用しない。
   margin: 0;
 }
 
+.admin-device-header-actions,
+.admin-device-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-device-force-all-button,
+.admin-device-force-logout-button {
+  min-height: 36px;
+}
+
 .admin-device-risk,
 .admin-device-card-review {
   border: 1px solid #f59e0b;
@@ -19270,6 +19284,19 @@ course-tagが付いたspanには適用しない。
   font-weight: 700;
 }
 
+.admin-user-device-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.admin-user-device-panel-actions .btn {
+  width: auto;
+  margin: 0;
+  padding: 8px 11px;
+  font-size: 11px;
+}
+
 .admin-user-device-panel-list {
   display: grid;
   gap: 10px;
@@ -19304,7 +19331,20 @@ course-tagが付いたspanには適用しない。
   font-weight: 700;
 }
 
-.admin-user-device-delete-button {
+.admin-user-device-panel-heading span.is-logout-pending {
+  background: rgba(239, 68, 68, .14);
+  color: #b91c1c;
+}
+
+.admin-user-device-panel-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.admin-user-device-delete-button,
+.admin-user-device-force-logout-button {
   width: auto;
   margin: 0;
   padding: 7px 10px;
@@ -19393,7 +19433,13 @@ course-tagが付いたspanには適用しない。
   color: #1d4ed8;
 }
 
-.admin-device-delete-button {
+.admin-device-state-logout-pending {
+  background: rgba(239, 68, 68, .14);
+  color: #b91c1c;
+}
+
+.admin-device-delete-button,
+.admin-device-force-logout-button {
   padding: 8px 12px;
   font-size: 12px;
 }
@@ -19513,6 +19559,22 @@ course-tagが付いたspanには適用しない。
   }
 
   .admin-user-device-delete-button {
+    width: 100%;
+  }
+
+  .admin-device-header-actions,
+  .admin-device-item-actions,
+  .admin-user-device-panel-item-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .admin-device-header-actions .btn,
+  .admin-device-item-actions .btn,
+  .admin-user-device-panel-actions .btn,
+  .admin-user-device-panel-item-actions .btn,
+  .admin-user-device-force-logout-button {
     width: 100%;
   }
 

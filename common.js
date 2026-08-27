@@ -34,6 +34,7 @@ import {
   getAuth,
   signInWithCustomToken,
   getIdTokenResult,
+  signOut,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import {
@@ -44,8 +45,11 @@ import {
 import { registerDevicePushSubscription } from "./push_subscription.js";
 
 import {
+  DEVICE_TOUCH_LAST_SUCCESS_KEY,
+  DEVICE_TOUCH_PENDING_KEY,
   createCareMateDeviceTouchController,
   isVerifiedCareMateDeviceTouchIdentity,
+  shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
 } from "./device_touch_controller.mjs";
 
@@ -164,6 +168,97 @@ async function verifyCareMateDeviceTouchIdentity() {
   });
 }
 
+function timestampToMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getCareMateAuthenticationTimeMillis(tokenResult) {
+  const authTime = Date.parse(String(tokenResult?.authTime || ""));
+  if (Number.isFinite(authTime)) return authTime;
+  return Number(tokenResult?.claims?.auth_time || 0) * 1000;
+}
+
+let forceLogoutInProgress = false;
+
+async function forceLogoutCurrentCareMateDevice() {
+  if (forceLogoutInProgress) return;
+
+  forceLogoutInProgress = true;
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem(DEVICE_TOUCH_LAST_SUCCESS_KEY);
+  localStorage.removeItem(DEVICE_TOUCH_PENDING_KEY);
+
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.warn("Firebase認証のログアウトに失敗しました:", error);
+  } finally {
+    location.replace("login.html");
+  }
+}
+
+let forceLogoutWatcherInitialized = false;
+let forceLogoutWatcherStarting = null;
+
+function initializeCareMateForceLogoutWatcher() {
+  if (forceLogoutWatcherInitialized || forceLogoutWatcherStarting) return;
+  if (!shouldStartDeviceTouchOnCurrentPage()) return;
+
+  forceLogoutWatcherStarting = (async () => {
+    if (!(await verifyCareMateDeviceTouchIdentity())) return;
+
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const token = await getIdTokenResult(currentUser);
+    const authTimeMillis = getCareMateAuthenticationTimeMillis(token);
+    const deviceId = getOrCreateCareMateDeviceId();
+    const handleRequest = (snapshot, scope) => {
+      const requestedAt = timestampToMillis(
+        snapshot.data()?.forceLogoutRequestedAt,
+      );
+      const forceLogout = shouldForceLogoutCareMateSession({
+        authTimeMillis,
+        deviceRequestedAt: scope === "device" ? requestedAt : 0,
+        allDevicesRequestedAt: scope === "all" ? requestedAt : 0,
+      });
+
+      if (forceLogout) void forceLogoutCurrentCareMateDevice();
+    };
+    const handleError = (error) => {
+      // 監視失敗は通常利用を妨げず、定期touchで再確認する。
+      console.warn("強制ログアウト状態を確認できませんでした:", error);
+    };
+
+    onSnapshot(
+      doc(db, "userDeviceAccess", studentNumber),
+      (snapshot) => handleRequest(snapshot, "all"),
+      handleError,
+    );
+    onSnapshot(
+      doc(
+        db,
+        "userDeviceAccess",
+        studentNumber,
+        "logoutRequests",
+        deviceId,
+      ),
+      (snapshot) => handleRequest(snapshot, "device"),
+      handleError,
+    );
+    forceLogoutWatcherInitialized = true;
+  })()
+    .catch((error) => {
+      console.warn("強制ログアウト監視を開始できませんでした:", error);
+    })
+    .finally(() => {
+      forceLogoutWatcherStarting = null;
+    });
+}
+
 const runCareMateDeviceTouch = createCareMateDeviceTouchController({
   storage: localStorage,
   shouldStart: shouldStartDeviceTouchOnCurrentPage,
@@ -172,6 +267,12 @@ const runCareMateDeviceTouch = createCareMateDeviceTouchController({
   sendTouch: async (deviceId) => {
     const touchDevice = httpsCallable(functions, "touchCareMateDevice");
     const result = await touchDevice({ deviceId });
+
+    if (result.data?.forceLogout === true) {
+      await forceLogoutCurrentCareMateDevice();
+      return false;
+    }
+
     return result.data?.ok === true;
   },
   onError: (error) => {
@@ -191,7 +292,10 @@ function initializeCareMateDeviceTouch() {
   if (!shouldStartDeviceTouchOnCurrentPage()) return;
 
   deviceTouchLifecycleInitialized = true;
-  const requestTouch = () => void touchCareMateDevice();
+  const requestTouch = () => {
+    initializeCareMateForceLogoutWatcher();
+    void touchCareMateDevice();
+  };
 
   requestTouch();
   window.addEventListener("focus", requestTouch);

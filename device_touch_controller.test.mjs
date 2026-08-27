@@ -7,6 +7,7 @@ import {
   DEVICE_TOUCH_INTERVAL_MS,
   createCareMateDeviceTouchController,
   isVerifiedCareMateDeviceTouchIdentity,
+  shouldForceLogoutCareMateSession,
   shouldStartCareMateDeviceTouch,
 } from "./device_touch_controller.mjs";
 
@@ -165,4 +166,29 @@ test("未ログインでは送信せず、Functions失敗も画面処理へ例�
   assert.equal(await failingController(), false);
   assert.equal(storage.getItem(DEVICE_TOUCH_LAST_SUCCESS_KEY), null);
   assert.equal(storage.getItem(DEVICE_TOUCH_PENDING_KEY), null);
+});
+
+test("強制ログアウト要求より前の認証だけを対象にする", () => {
+  assert.equal(
+    shouldForceLogoutCareMateSession({
+      authTimeMillis: 1_000,
+      deviceRequestedAt: 2_000,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldForceLogoutCareMateSession({
+      authTimeMillis: 1_000,
+      allDevicesRequestedAt: 2_000,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldForceLogoutCareMateSession({
+      authTimeMillis: 3_000,
+      deviceRequestedAt: 2_000,
+      allDevicesRequestedAt: 2_500,
+    }),
+    false,
+  );
 });

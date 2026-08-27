@@ -57,6 +57,20 @@ export function isCareMateDeviceTouchDue({
   return true;
 }
 
+export function shouldForceLogoutCareMateSession({
+  authTimeMillis,
+  deviceRequestedAt = 0,
+  allDevicesRequestedAt = 0,
+}) {
+  const requestedAt = Math.max(
+    Number(deviceRequestedAt || 0),
+    Number(allDevicesRequestedAt || 0),
+  );
+  const authenticatedAt = Number(authTimeMillis || 0);
+
+  return requestedAt > 0 && (!authenticatedAt || authenticatedAt <= requestedAt);
+}
+
 export function createCareMateDeviceTouchController({
   storage,
   shouldStart,

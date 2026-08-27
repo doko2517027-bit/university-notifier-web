@@ -187,6 +187,8 @@ let deviceSessionList = null;
 
 let refreshDeviceSessionsButton = null;
 
+let forceLogoutAllDevicesButton = null;
+
 /* ========================================
    状態
 ======================================== */
@@ -461,6 +463,9 @@ function mountDeviceAuditSection() {
   refreshDeviceSessionsButton = document.getElementById(
     "refreshDeviceSessionsButton",
   );
+  forceLogoutAllDevicesButton = document.getElementById(
+    "forceLogoutAllDevicesButton",
+  );
 }
 
 function updateDeviceAuditHeading() {
@@ -565,7 +570,9 @@ function renderDeviceSessions(data) {
       const estimatedRegion = locationParts.length
         ? locationParts.join(" / ")
         : "不明";
-      const state = formatDeviceState(device.state);
+      const state = device.forceLogoutPending
+        ? "強制ログアウト要求済み"
+        : formatDeviceState(device.state);
       const regionUpdatedAt = device.regionLookedUpAt
         ? formatAuditDate(device.regionLookedUpAt)
         : "取得履歴なし";
@@ -588,18 +595,29 @@ function renderDeviceSessions(data) {
           <div class="admin-device-item-heading">
             <div>
               <strong>${escapeAuditHtml(numberedType)}</strong>
-              <span class="admin-device-state admin-device-state-${escapeAuditHtml(device.state || "history")}">
+              <span class="admin-device-state admin-device-state-${device.forceLogoutPending ? "logout-pending" : escapeAuditHtml(device.state || "history")}">
                 ${escapeAuditHtml(state)}
               </span>
             </div>
-            <button
-              type="button"
-              class="btn btn-danger admin-device-delete-button"
-              data-device-id="${escapeAuditHtml(device.deviceId || "")}"
-              data-device-label="${escapeAuditHtml(numberedType)}"
-            >
-              履歴を削除
-            </button>
+            <div class="admin-device-item-actions">
+              <button
+                type="button"
+                class="btn btn-danger admin-device-force-logout-button"
+                data-device-id="${escapeAuditHtml(device.deviceId || "")}"
+                data-device-label="${escapeAuditHtml(numberedType)}"
+                ${device.forceLogoutPending ? "disabled" : ""}
+              >
+                ${device.forceLogoutPending ? "ログアウト要求済み" : "この端末を強制ログアウト"}
+              </button>
+              <button
+                type="button"
+                class="btn admin-device-delete-button"
+                data-device-id="${escapeAuditHtml(device.deviceId || "")}"
+                data-device-label="${escapeAuditHtml(numberedType)}"
+              >
+                履歴を削除
+              </button>
+            </div>
           </div>
 
           <div class="admin-device-field-grid">
@@ -662,6 +680,71 @@ function escapeAuditHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+async function forceLogoutDevice(button) {
+  if (!deviceAuditAuthorized) return;
+
+  const deviceId = button.dataset.deviceId || "";
+  const deviceLabel = button.dataset.deviceLabel || "この端末";
+  if (!deviceId) return;
+
+  const confirmed = confirm(
+    `${deviceLabel}（${targetStudentNumber}）を強制ログアウトしますか？\nこの端末でCareMateを再度利用するにはログインが必要になります。`,
+  );
+  if (!confirmed) return;
+
+  button.disabled = true;
+  button.textContent = "ログアウト要求中...";
+
+  try {
+    const forceLogoutUserDevice = httpsCallable(
+      functions,
+      "forceLogoutUserDevice",
+    );
+    await forceLogoutUserDevice({
+      studentNumber: targetStudentNumber,
+      deviceId,
+    });
+    showToast(`${deviceLabel}へ強制ログアウトを要求しました`);
+    await loadDeviceSessions();
+  } catch (error) {
+    console.error("端末強制ログアウトエラー:", error);
+    alert("端末を強制ログアウトできませんでした。時間をおいて再度お試しください。");
+    button.disabled = false;
+    button.textContent = "この端末を強制ログアウト";
+  }
+}
+
+async function forceLogoutAllDevices() {
+  if (!deviceAuditAuthorized || !forceLogoutAllDevicesButton) return;
+
+  const confirmed = confirm(
+    `${targetStudentNumber}のすべての端末を強制ログアウトしますか？\n現在ログイン中のすべての端末で、再度ログインが必要になります。`,
+  );
+  if (!confirmed) return;
+
+  forceLogoutAllDevicesButton.disabled = true;
+  forceLogoutAllDevicesButton.textContent = "全端末へ要求中...";
+
+  try {
+    const forceLogoutAllUserDevices = httpsCallable(
+      functions,
+      "forceLogoutAllUserDevices",
+    );
+    await forceLogoutAllUserDevices({
+      studentNumber: targetStudentNumber,
+    });
+    showToast("すべての端末へ強制ログアウトを要求しました");
+    await loadDeviceSessions();
+  } catch (error) {
+    console.error("全端末強制ログアウトエラー:", error);
+    alert("すべての端末を強制ログアウトできませんでした。時間をおいて再度お試しください。");
+  } finally {
+    forceLogoutAllDevicesButton.disabled = false;
+    forceLogoutAllDevicesButton.textContent =
+      "すべての端末からログアウト";
+  }
 }
 
 /* ========================================
@@ -751,8 +834,20 @@ function setupEvents() {
     };
   }
 
+  if (forceLogoutAllDevicesButton) {
+    forceLogoutAllDevicesButton.onclick = forceLogoutAllDevices;
+  }
+
   if (deviceSessionList) {
     deviceSessionList.addEventListener("click", async (event) => {
+      const forceLogoutButton = event.target.closest(
+        ".admin-device-force-logout-button",
+      );
+      if (forceLogoutButton) {
+        await forceLogoutDevice(forceLogoutButton);
+        return;
+      }
+
       const button = event.target.closest(".admin-device-delete-button");
       if (!button) return;
 
