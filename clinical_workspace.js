@@ -111,6 +111,11 @@ const esc = (value) =>
   );
 const currentPatient = () =>
   patients.find((patient) => patient.key === selectedId);
+function formatRecordDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) return value ? String(value) : "日付未登録";
+  return `${match[1]}年${Number(match[2])}月${Number(match[3])}日`;
+}
 function patientAge(birth) {
   if (!birth) return "年齢未設定";
   const date = new Date(`${birth}T00:00:00`);
@@ -359,7 +364,7 @@ function recordsPanel(patient) {
   const lines = patient.records
     .map(
       (record, index) =>
-        `<article class="clinical-entry"><small>${esc(roleName[record.role] || record.role)} ・ ${esc(record.time)}</small><br><b>${esc(record.title)}</b><p>${esc(record.body).replace(/\n/g, "<br>")}</p>${record.details ? `<small>${esc(record.details).replace(/\n/g, "<br>")}</small>` : ""}${currentRole === "administrator" || currentRole === record.role ? `<p><button class="btn btn-secondary" data-edit-record="${index}">記録を編集</button></p>` : ""}</article>`,
+        `<article class="clinical-entry"><small>${esc(roleName[record.role] || record.role)} ・ 記録日：${esc(formatRecordDate(record.date))}${record.time ? ` ・ 記録時刻：${esc(record.time)}` : ""}</small><br><b>${esc(record.title)}</b><p>${esc(record.body).replace(/\n/g, "<br>")}</p>${record.details ? `<small>${esc(record.details).replace(/\n/g, "<br>")}</small>` : ""}${currentRole === "administrator" || currentRole === record.role ? `<p><button class="btn btn-secondary" data-edit-record="${index}">記録を編集</button></p>` : ""}</article>`,
     )
     .join("");
   return `<h3>多職種カルテ</h3>${lines || "<p>記録はありません。</p>"}`;
