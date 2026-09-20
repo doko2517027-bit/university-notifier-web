@@ -8,32 +8,65 @@ import {
 import { PERIOD_TIMES } from "./attendance_policy.js";
 
 export function normalizeCourseName(value) {
-  return String(value || "")
+  const normalized = String(value || "")
     .normalize("NFKC")
     .toLowerCase()
     .replace(/[（(]含?日本国憲法[)）]/g, "")
     .replace(/[（(]対面[)）]/g, "")
     .replace(/[（(][ab]クラス[)）]/g, "")
+    .replace(/[（(](精神|母子)[)）]/g, "")
     .replace(/[\s　・･]/g, "")
     .replace(/[()（）「」『』]/g, "");
+
+  return normalized.replace(
+    /(x|ix|viii|vii|vi|v|iv|iii|ii|i)$/,
+    (roman) =>
+      ({ i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10" })[
+        roman
+      ] || roman,
+  );
 }
 
-// ホーム・出席管理で共通に使う、履修済み科目との照合。
-export function isEnrolledScheduleItem(item, aliasToCourse) {
+export function findEnrolledCourseForScheduleItem(item, aliasToCourse) {
   if (!aliasToCourse || typeof aliasToCourse.has !== "function") {
-    return false;
+    return null;
   }
 
-  return [
+  for (const value of [
     item?.subject,
     item?.scheduleSubject,
     item?.subjectKey,
     item?.subjectId,
     item?.id,
-  ].some((value) => {
+  ]) {
     const key = normalizeCourseName(value);
-    return key && aliasToCourse.has(key);
-  });
+    const course = key ? aliasToCourse.get(key) : null;
+    if (course) return course;
+  }
+  return null;
+}
+
+// ホーム・出席管理で共通に使う、履修済み科目との照合。
+export function isEnrolledScheduleItem(item, aliasToCourse) {
+  return Boolean(findEnrolledCourseForScheduleItem(item, aliasToCourse));
+}
+
+// 履修登録の対象外でも、全員へ表示する大学共通の予定だけを判定する。
+export function isCommonScheduleEvent(item) {
+  if (
+    item?.displayForAll === true ||
+    item?.isCommonEvent === true ||
+    item?.isGuidance === true
+  ) {
+    return true;
+  }
+
+  const label = [item?.type, item?.category, item?.subject, item?.title]
+    .filter(Boolean)
+    .join(" ");
+  return /ガイダンス|オリエンテーション|説明会|健康診断|入学式|卒業式/.test(
+    label,
+  );
 }
 
 function scheduleDocumentId(user) {
@@ -46,6 +79,7 @@ function scheduleDocumentId(user) {
 export async function loadPersonalTimetableData({
   userData = null,
   buildEntries = true,
+  includeCommonEvents = false,
 } = {}) {
   if (!studentNumber) {
     return {
@@ -181,7 +215,9 @@ export async function loadPersonalTimetableData({
   const entries = [];
 
   for (const day of days) {
-    for (const item of Array.isArray(day.schedules) ? day.schedules : []) {
+    for (const [itemIndex, item] of Array.isArray(day.schedules)
+      ? day.schedules.entries()
+      : []) {
       const itemGrade = String(item.grade || "")
         .normalize("NFKC")
         .replace("年", "")
@@ -191,16 +227,24 @@ export async function loadPersonalTimetableData({
         continue;
       }
 
-      const course = aliasToCourse.get(normalizeCourseName(item.subject));
+      const course = findEnrolledCourseForScheduleItem(item, aliasToCourse);
+      const commonEvent = isCommonScheduleEvent(item);
 
-      if (!course) {
+      if (!course && !(includeCommonEvents && commonEvent)) {
         continue;
       }
 
       const period = Number.parseInt(item.period, 10) || 0;
+      const scheduleItemKey =
+        course?.id ||
+        item.id ||
+        item.subjectId ||
+        item.subjectKey ||
+        item.subject ||
+        `schedule-${itemIndex + 1}`;
 
       entries.push({
-        entryId: `${scheduleId}_${day.date || day.title || "day"}_${item.period || "0"}_${course.id}`,
+        entryId: `${scheduleId}_${day.date || day.title || "day"}_${item.period || "0"}_${scheduleItemKey}_${item.classGroup || itemIndex}`,
 
         sourceScheduleDocumentId: scheduleId,
 
@@ -216,11 +260,17 @@ export async function loadPersonalTimetableData({
 
         endTime: item.endTime || PERIOD_TIMES[period]?.endTime || "",
 
-        subjectId: course.subjectId || course.id,
+        subjectId: course?.subjectId || course?.id || item.subjectId || item.id || "",
 
-        subjectKey: course.subjectKey || course.name || course.id,
+        subjectKey:
+          course?.subjectKey ||
+          course?.name ||
+          course?.id ||
+          item.subjectKey ||
+          item.subject ||
+          "",
 
-        subject: course.name || item.subject,
+        subject: course?.name || item.subject || "科目名なし",
 
         scheduleSubject: item.subject || "",
 
@@ -232,14 +282,16 @@ export async function loadPersonalTimetableData({
 
         room: item.room || "",
 
-        isPractical: course.isPractical === true,
+        isPractical: course?.isPractical === true || item.isPractical === true,
 
         isRetake:
-          course.isRetake === true || course.creditStatus === "not_earned",
+          course?.isRetake === true || course?.creditStatus === "not_earned",
 
-        lectureCount: Number(course.lectureCount || 0),
+        isCommonScheduleEvent: !course && commonEvent,
 
-        credits: Number(course.credits || 0),
+        lectureCount: Number(course?.lectureCount || 0),
+
+        credits: Number(course?.credits || 0),
       });
     }
   }

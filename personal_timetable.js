@@ -59,16 +59,11 @@ async function chooseGroup(subject, group) {
 
 async function load() {
   try {
-    const result = await loadPersonalTimetableData();
-    count.textContent = `履修登録 ${result.enrolled.length}科目・時間割 ${result.entries.length}コマ`;
-    if (!result.enrolled.length) {
-      list.innerHTML =
-        '<div class="card setting-card"><h3>履修科目がありません</h3><p>先に履修登録を完了してください。</p><a class="btn btn-primary" href="course_registration.html">履修登録を開く</a></div>';
-      return;
-    }
+    const result = await loadPersonalTimetableData({ includeCommonEvents: true });
+    count.textContent = `履修登録 ${result.enrolled.length}科目・大学時間割 ${result.entries.length}コマ`;
     if (!result.entries.length) {
       list.innerHTML =
-        '<div class="card setting-card"><h3>該当する時間割がありません</h3><p>大学時間割に未掲載か、科目名が履修科目マスタと一致していない可能性があります。</p></div>';
+        '<div class="card setting-card"><h3>時間割がありません</h3><p>対象学科・学年の大学時間割がまだ登録されていません。</p></div>';
       return;
     }
     const choices = new Map();
@@ -97,7 +92,12 @@ async function load() {
               const choiceKey = `${entry.subject}_${entry.date}_${entry.period}`,
                 options = [...(choices.get(choiceKey) || [])],
                 selected = preferences.get(entry.subject) || "";
-              return `<article class="card personal-timetable-lesson" data-subject="${escapeHtml(entry.subject)}"><div class="lesson-period">${entry.period || "-"}</div><div><h3>${escapeHtml(entry.subject)}${entry.isRetake ? ` <span class="lesson-class-group">再履修</span>` : ""}${entry.classGroup ? ` <span class="lesson-class-group">${escapeHtml(entry.classGroup)}</span>` : ""}</h3><p>${escapeHtml([entry.building, entry.room].filter(Boolean).join(" ") || "教室未設定")}${entry.teacher ? `<br>${escapeHtml(entry.teacher)}` : ""}</p><small>${escapeHtml(entry.startTime)}〜${escapeHtml(entry.endTime)}・${entry.isPractical ? "実習 4/5以上" : "実習以外 2/3以上"}</small>${options.length > 1 ? `<div class="class-group-choice"><span>通知クラス：${escapeHtml(selected || "未選択（両方通知）")}</span>${options.map((group) => `<button data-subject="${escapeHtml(entry.subject)}" data-group="${escapeHtml(group)}" class="btn ${selected === group ? "btn-primary" : ""}">${escapeHtml(group)}</button>`).join("")}</div>` : ""}</div></article>`;
+              const detail = entry.isCommonScheduleEvent
+                ? "共通予定"
+                : entry.isPractical
+                  ? "実習 4/5以上"
+                  : "実習以外 2/3以上";
+              return `<article class="card personal-timetable-lesson" data-subject="${escapeHtml(entry.subject)}"><div class="lesson-period">${entry.period || "-"}</div><div><h3>${escapeHtml(entry.subject)}${entry.isRetake ? ` <span class="lesson-class-group">再履修</span>` : ""}${entry.isCommonScheduleEvent ? ' <span class="lesson-class-group">共通予定</span>' : ""}${entry.classGroup ? ` <span class="lesson-class-group">${escapeHtml(entry.classGroup)}</span>` : ""}</h3><p>${escapeHtml([entry.building, entry.room].filter(Boolean).join(" ") || "教室未設定")}${entry.teacher ? `<br>${escapeHtml(entry.teacher)}` : ""}</p><small>${escapeHtml(entry.startTime)}〜${escapeHtml(entry.endTime)}・${detail}</small>${options.length > 1 ? `<div class="class-group-choice"><span>通知クラス：${escapeHtml(selected || "未選択（両方通知）")}</span>${options.map((group) => `<button data-subject="${escapeHtml(entry.subject)}" data-group="${escapeHtml(group)}" class="btn ${selected === group ? "btn-primary" : ""}">${escapeHtml(group)}</button>`).join("")}</div>` : ""}</div></article>`;
             })
             .join("")}</section>`,
       )
