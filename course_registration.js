@@ -1016,15 +1016,6 @@ function normalizeSubject(id, data) {
 
   const curriculumIds = normalizeStringArray(data.curriculumIds);
 
-  const gradeByCurriculum = Object.fromEntries(
-    Object.entries(data.gradeByCurriculum || {})
-      .map(([curriculumId, subjectGrade]) => [
-        String(curriculumId || "").trim(),
-        normalizeGrade(subjectGrade),
-      ])
-      .filter(([curriculumId, subjectGrade]) => curriculumId && subjectGrade),
-  );
-
   if (data.curriculumId && !curriculumIds.includes(String(data.curriculumId))) {
     curriculumIds.push(String(data.curriculumId));
   }
@@ -1041,8 +1032,6 @@ function normalizeSubject(id, data) {
     major: majorValue,
 
     curriculumIds,
-
-    gradeByCurriculum,
 
     grade: normalizeGrade(data.grade),
 
@@ -1096,10 +1085,7 @@ function matchesCurriculum(subject) {
 }
 
 function matchesStudentGrade(subject) {
-  const curriculumGrade =
-    subject.gradeByCurriculum?.[currentCurriculum?.curriculumId] ||
-    subject.grade;
-  return curriculumGrade === grade;
+  return subject.grade === grade;
 }
 
 function matchesSemester(subject) {
