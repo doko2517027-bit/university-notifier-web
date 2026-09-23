@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v15";
+const STATIC_CACHE = "caremate-static-v16";
 
-const RUNTIME_CACHE = "caremate-runtime-v15";
+const RUNTIME_CACHE = "caremate-runtime-v16";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
