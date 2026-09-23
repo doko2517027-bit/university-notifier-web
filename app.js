@@ -24,6 +24,7 @@ import {
 import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
+  isCommonScheduleEvent,
 } from "./personal_timetable_data.js";
 
 import {
@@ -1397,7 +1398,11 @@ async function loadTodaySchedule(userData = null) {
 
       schedules: Array.isArray(day.schedules)
         ? day.schedules
-            .filter((item) => isEnrolledScheduleItem(item, enrolledAliases))
+            .filter(
+              (item) =>
+                isEnrolledScheduleItem(item, enrolledAliases) ||
+                isCommonScheduleEvent(item),
+            )
             .map((item) => ({
               ...item,
               date: day.date || "",
@@ -1411,16 +1416,20 @@ async function loadTodaySchedule(userData = null) {
         date: "",
         title: data.todayTitle || "今日",
         label: data.todayLabel || "",
-        schedules: (data.today || []).filter((item) =>
-          isEnrolledScheduleItem(item, enrolledAliases),
+        schedules: (data.today || []).filter(
+          (item) =>
+            isEnrolledScheduleItem(item, enrolledAliases) ||
+            isCommonScheduleEvent(item),
         ),
       },
       {
         date: "",
         title: data.nextTitle || "次回",
         label: data.nextLabel || "",
-        schedules: (data.next || []).filter((item) =>
-          isEnrolledScheduleItem(item, enrolledAliases),
+        schedules: (data.next || []).filter(
+          (item) =>
+            isEnrolledScheduleItem(item, enrolledAliases) ||
+            isCommonScheduleEvent(item),
         ),
       },
     ];
@@ -1885,7 +1894,12 @@ function buildScheduleHtml(schedules, grade) {
         .replace("年", "")
         .trim();
 
-      return !normalizedGrade || !itemGrade || itemGrade === normalizedGrade;
+      return (
+        isCommonScheduleEvent(item) ||
+        !normalizedGrade ||
+        !itemGrade ||
+        itemGrade === normalizedGrade
+      );
     })
 
     .sort((a, b) => parseInt(a.period) - parseInt(b.period));

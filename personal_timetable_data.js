@@ -223,12 +223,20 @@ export async function loadPersonalTimetableData({
         .replace("年", "")
         .trim();
 
-      if (grade && itemGrade && itemGrade !== grade) {
+      const commonEvent = isCommonScheduleEvent(item);
+
+      // ガイダンス等の共通予定は、PDF上の行に記載された学年にかかわらず
+      // 全学年へ表示する。通常科目だけ従来どおり学年で絞り込む。
+      if (
+        grade &&
+        itemGrade &&
+        itemGrade !== grade &&
+        !(includeCommonEvents && commonEvent)
+      ) {
         continue;
       }
 
       const course = findEnrolledCourseForScheduleItem(item, aliasToCourse);
-      const commonEvent = isCommonScheduleEvent(item);
 
       if (!course && !(includeCommonEvents && commonEvent)) {
         continue;
