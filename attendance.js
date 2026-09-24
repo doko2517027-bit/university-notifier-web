@@ -2641,6 +2641,15 @@ function calculateSubjectAttendance(subject, termRecords) {
 
   const displayTotalLectures = sessions.length;
 
+  /*
+   * 評価資格の残り欠席回数は、実施済み講義だけではなく
+   * 時間割に登録された全講義を出席した場合を基準にする。
+   */
+  const eligibilityAttendanceCount = Math.max(
+    0,
+    displayTotalLectures - totalAbsent,
+  );
+
   const attendanceRate =
     totalLectures > 0
       ? Math.round((attended / totalLectures) * 1000) / 10
@@ -2654,8 +2663,8 @@ function calculateSubjectAttendance(subject, termRecords) {
     present,
 
     possibleAbsentCount: calculatePossibleAbsentCount(
-      totalLectures,
-      attended,
+      displayTotalLectures,
+      eligibilityAttendanceCount,
       subject.isPractical,
     ),
 
@@ -3057,12 +3066,11 @@ function renderSubjectSessionRow(session) {
 
 function isAttendanceSessionEditable(session, display) {
   /*
-    画面上の判定が「予定」の講義だけ編集不可。
+    画面上の判定が「予定」または「判定待ち」の講義は編集不可。
 
-    打刻後の判定待ちを含め、予定以外は
-    学生本人が実際の出席状況へ修正できるようにする。
+    それ以外は学生本人が実際の出席状況へ修正できるようにする。
     */
-  return display?.label !== "予定";
+  return !["予定", "判定待ち"].includes(display?.label);
 }
 
 function getSubjectSessionDisplay(session) {
