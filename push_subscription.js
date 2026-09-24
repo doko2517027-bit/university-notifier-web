@@ -7,6 +7,9 @@ import {
 export const WEB_PUSH_PUBLIC_KEY =
   "BJk2fKTmfe7AZuXjW-IGMDyis_zN0iZ1B0oiG5MVefZ4n3W9mrBu-xBiWYjG_V6U2b5sGMuVXvKTbrwRKXSAiUs";
 
+const PUSH_RENEWAL_STORAGE_KEY = "careMatePushRenewalVersion";
+const PUSH_RENEWAL_VERSION = "20260924";
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -63,8 +66,12 @@ export async function ensurePushSubscription(
 
   let subscription = await registration.pushManager.getSubscription();
 
-  // 出席管理で以前使っていた別の鍵の購読だけを、この端末上で更新する。
-  if (subscription && !applicationServerKeyMatches(subscription)) {
+  // 失効した古い購読を、既存利用者がアプリを開いた時に一度だけ更新する。
+  if (
+    subscription &&
+    (!applicationServerKeyMatches(subscription) ||
+      localStorage.getItem(PUSH_RENEWAL_STORAGE_KEY) !== PUSH_RENEWAL_VERSION)
+  ) {
     await subscription.unsubscribe();
     subscription = null;
   }
@@ -75,6 +82,8 @@ export async function ensurePushSubscription(
       applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY),
     });
   }
+
+  localStorage.setItem(PUSH_RENEWAL_STORAGE_KEY, PUSH_RENEWAL_VERSION);
 
   return subscription;
 }

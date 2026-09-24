@@ -109,6 +109,8 @@ export const studentNumber = localStorage.getItem("studentNumber");
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
 const FORCE_LOGOUT_CHECK_STORAGE_KEY = "careMateForceLogoutCheckedAt";
 const FORCE_LOGOUT_CHECK_INTERVAL_MS = 60 * 1000;
+const PUSH_REFRESH_STORAGE_KEY = "careMatePushRefreshAt";
+const PUSH_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export function getOrCreateCareMateDeviceId() {
   const storedDeviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "";
@@ -383,6 +385,30 @@ export async function touchCareMateDevice() {
 }
 
 let deviceTouchLifecycleInitialized = false;
+let pushRefreshInFlight = null;
+
+function refreshCareMatePushSubscription() {
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    return;
+  }
+
+  const lastRefresh = Number(localStorage.getItem(PUSH_REFRESH_STORAGE_KEY) || 0);
+  if (Date.now() - lastRefresh < PUSH_REFRESH_INTERVAL_MS) return;
+  if (pushRefreshInFlight) return;
+
+  pushRefreshInFlight = (async () => {
+    if (!(await verifyCareMateDeviceTouchIdentity())) return;
+    await registerDevicePushSubscription(db, studentNumber, "app-open");
+    localStorage.setItem(PUSH_REFRESH_STORAGE_KEY, String(Date.now()));
+  })()
+    .catch((error) => {
+      // 通知先の回復に失敗してもアプリの表示・認証は止めない。
+      console.warn("Push通知先を更新できませんでした:", error);
+    })
+    .finally(() => {
+      pushRefreshInFlight = null;
+    });
+}
 
 function initializeCareMateDeviceTouch() {
   if (deviceTouchLifecycleInitialized) return;
@@ -396,6 +422,7 @@ function initializeCareMateDeviceTouch() {
       initializeCareMateForceLogoutWatcher();
       void checkCareMateDeviceLogout();
       void touchCareMateDevice();
+      refreshCareMatePushSubscription();
     });
   };
 

@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v20";
+const STATIC_CACHE = "caremate-static-v21";
 
-const RUNTIME_CACHE = "caremate-runtime-v20";
+const RUNTIME_CACHE = "caremate-runtime-v21";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -36,6 +36,8 @@ const CORE_ASSETS = [
   "app.js",
 
   "common.js",
+
+  "push_subscription.js",
 
   "device_touch_controller.mjs",
 
