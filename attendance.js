@@ -3057,64 +3057,12 @@ function renderSubjectSessionRow(session) {
 
 function isAttendanceSessionEditable(session, display) {
   /*
-    未打刻・判定待ちは編集不可。
+    画面上の判定が「予定」の講義だけ編集不可。
+
+    打刻後の判定待ちを含め、予定以外は
+    学生本人が実際の出席状況へ修正できるようにする。
     */
-  if (display?.className === "is-pending") {
-    return false;
-  }
-
-  const sessionDate = normalizeDate(session?.date);
-
-  if (!sessionDate) {
-    return false;
-  }
-
-  const now = getAttendanceNow(session.lecture);
-
-  const today = localDateKey(now);
-
-  /*
-    明日以降の講義は編集不可。
-    */
-  if (sessionDate > today) {
-    return false;
-  }
-
-  /*
-    過去の講義で、
-    判定済みなら編集可能。
-    */
-  if (sessionDate < today) {
-    return true;
-  }
-
-  /*
-    今日の講義。
-
-    まだ講義開始前なら
-    編集不可。
-    */
-  if (session?.lecture) {
-    try {
-      const lecture = normalizeAttendanceLecture({
-        ...session.lecture,
-
-        date: sessionDate,
-
-        period: session.period || session.lecture.period,
-      });
-
-      if (now < lecture.lectureWindow.lectureStart) {
-        return false;
-      }
-    } catch (error) {
-      console.warn("編集可否判定エラー:", error);
-
-      return false;
-    }
-  }
-
-  return true;
+  return display?.label !== "予定";
 }
 
 function getSubjectSessionDisplay(session) {
