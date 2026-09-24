@@ -25,6 +25,7 @@ const {
   normalizeCourseName,
   normalizeGrade,
   attendanceNotificationType,
+  canRetryAttendanceDispatch,
   slotId,
 } = require("./attendance_policy");
 
@@ -605,20 +606,27 @@ function scheduleDocumentId(user) {
   return "";
 }
 
-async function sendToUserDevices(userId, payload) {
+async function sendToUserDevices(
+  userId,
+  payload,
+  { excludeDeviceIds = [] } = {},
+) {
+  const excluded = new Set(excludeDeviceIds);
   const devices = await db
     .collection("users")
     .doc(userId)
     .collection("pushSubscriptions")
     .get();
-  const targets = devices.docs.map((device) => ({
-    deviceId: device.id,
-    subscription: device.data(),
-    ref: device.ref,
-  }));
+  const targets = devices.docs
+    .filter((device) => !excluded.has(device.id))
+    .map((device) => ({
+      deviceId: device.id,
+      subscription: device.data(),
+      ref: device.ref,
+    }));
 
   // 端末別購読へ移行する前に登録した利用者にも通知を届ける。
-  if (targets.length === 0) {
+  if (devices.empty && !excluded.has("legacy")) {
     const userSnapshot = await db.collection("users").doc(userId).get();
     const legacySubscription =
       userSnapshot.data()?.pushSubscription ||
@@ -1336,11 +1344,29 @@ async function processAttendanceNotifications() {
         .doc(dispatchId);
 
       let claimed = false;
+      let previousResults = [];
 
       await db.runTransaction(async (transaction) => {
         const existing = await transaction.get(dispatchRef);
 
         if (existing.exists) {
+          const previous = existing.data() || {};
+          previousResults = Array.isArray(previous.results)
+            ? previous.results
+            : [];
+          const lastAttemptAt =
+            previous.claimedAt?.toMillis?.() ||
+            previous.createdAt?.toMillis?.() ||
+            0;
+          if (!canRetryAttendanceDispatch(previousResults, lastAttemptAt, Date.now())) {
+            return;
+          }
+
+          transaction.update(dispatchRef, {
+            claimedAt: new Date(),
+            attemptCount: FieldValue.increment(1),
+          });
+          claimed = true;
           return;
         }
 
@@ -1360,6 +1386,8 @@ async function processAttendanceNotifications() {
           evaluatedMinutes: clock.minutes,
 
           createdAt: new Date(),
+          claimedAt: new Date(),
+          attemptCount: 1,
         });
 
         claimed = true;
@@ -1422,7 +1450,13 @@ async function processAttendanceNotifications() {
               tag: `departure-${recordId}`,
             };
 
-      const results = await sendToUserDevices(userDoc.id, payload);
+      const sentResults = previousResults.filter(
+        (result) => result.result === "sent",
+      );
+      const attemptedResults = await sendToUserDevices(userDoc.id, payload, {
+        excludeDeviceIds: sentResults.map((result) => result.deviceId),
+      });
+      const results = [...sentResults, ...attemptedResults];
 
       await dispatchRef.update({
         results,

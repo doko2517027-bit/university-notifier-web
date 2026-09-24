@@ -34,6 +34,13 @@ function attendanceNotificationType(nowMinutes, startMinutes, endMinutes) {
   return "";
 }
 
+function canRetryAttendanceDispatch(results, lastAttemptAtMs, nowMs) {
+  if (results.length && results.every((result) => result.result === "sent")) {
+    return false;
+  }
+  return nowMs - lastAttemptAtMs >= 60 * 1000;
+}
+
 function slotId(scheduleId, date, period, subject) {
   return `${scheduleId}_${date}_P${period}_${encodeURIComponent(subject)}`;
 }
@@ -70,6 +77,7 @@ module.exports = {
   normalizeCourseName,
   normalizeGrade,
   attendanceNotificationType,
+  canRetryAttendanceDispatch,
   slotId,
   minutesFromTime,
   classifyArrival,
