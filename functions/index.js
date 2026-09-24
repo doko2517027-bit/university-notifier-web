@@ -746,7 +746,9 @@ function timeMinutes(value) {
 const CLASS_SELECTION_NONE = "__NONE__";
 
 function normalizePeriodNumber(value) {
-  const match = String(value || "").match(/\d+/);
+  const match = String(value || "")
+    .normalize("NFKC")
+    .match(/\d+/);
 
   return match ? Number(match[0]) : 0;
 }
