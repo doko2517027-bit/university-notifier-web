@@ -546,6 +546,31 @@ async function loadAttendanceData() {
       personalTimetable?.enrolled || [],
     );
 
+    /*
+     * 9月中など、日付から推定した学期と履修登録済み学期が
+     * ずれた場合は、本人が実際に履修している学期を表示する。
+     * 履修登録がない学期・科目を新たに表示することはしない。
+     */
+    if (
+      !availableAttendanceTerms.some((term) =>
+        isSameAttendanceTerm(term, academicTerm),
+      ) &&
+      availableAttendanceTerms.length
+    ) {
+      const sameYearAndGrade = availableAttendanceTerms.filter(
+        (term) =>
+          Number(term.academicYear) === Number(academicTerm.academicYear) &&
+          (!academicTerm.grade ||
+            normalizeGrade(term.grade) === normalizeGrade(academicTerm.grade)),
+      );
+
+      const fallbackTerm =
+        sameYearAndGrade.at(-1) || availableAttendanceTerms.at(-1);
+
+      selectedAttendanceTerm = { ...fallbackTerm };
+      academicTerm = { ...fallbackTerm };
+    }
+
     const scheduleId =
       personalTimetable?.scheduleDocumentId || resolveScheduleId(userData);
 
@@ -3231,7 +3256,7 @@ function normalizeSemester(value) {
     return "後期";
   }
 
-  if (["通年", "年間", "year"].includes(text)) {
+  if (["通年", "通期", "年間", "year"].includes(text)) {
     return "通年";
   }
 
