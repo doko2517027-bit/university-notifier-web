@@ -23,6 +23,8 @@ const crypto = require("node:crypto");
 const {
   PERIOD_TIMES,
   normalizeCourseName,
+  normalizeGrade,
+  attendanceNotificationType,
   slotId,
 } = require("./attendance_policy");
 
@@ -998,7 +1000,7 @@ async function processAttendanceNotifications() {
   const attendanceOverrides = appSettings.attendanceOverrides || {};
   const users = await db.collection("users").get();
 
-  for (const userDoc of users.docs) {
+  const processUser = async (userDoc) => {
     const user = userDoc.data() || {};
     await finalizeExpiredAttendanceRecords(userDoc, realClock.date);
     const testClock = user.attendanceTestClock || {};
@@ -1016,13 +1018,16 @@ async function processAttendanceNotifications() {
         }
       : realClock;
     const scheduleId = scheduleDocumentId(user);
-    if (!scheduleId) continue;
+    if (!scheduleId) return;
     if (!scheduleCache.has(scheduleId)) {
       scheduleCache.set(
         scheduleId,
-        (await db.collection("schedule").doc(scheduleId).get()).data() || {},
+        db.collection("schedule").doc(scheduleId).get().then(
+          (snapshot) => snapshot.data() || {},
+        ),
       );
     }
+    const scheduleData = await scheduleCache.get(scheduleId);
     const enrolledSnap = await userDoc.ref.collection("enrolledSubjects").get();
     const enrolled = new Set();
     enrolledSnap.docs.forEach((doc) => {
@@ -1033,9 +1038,9 @@ async function processAttendanceNotifications() {
         if (normalized) enrolled.add(normalized);
       });
     });
-    if (!enrolled.size) continue;
+    if (!enrolled.size) return;
 
-    const day = (scheduleCache.get(scheduleId).allDays || []).find(
+    const day = (scheduleData.allDays || []).find(
       (item) => item.date === clock.date,
     );
     const schedules = [...(day?.schedules || [])];
@@ -1067,9 +1072,7 @@ async function processAttendanceNotifications() {
       }
     }
 
-    const grade = String(user.grade || "")
-      .replace("年", "")
-      .trim();
+    const grade = normalizeGrade(user.grade);
 
     const classSelections =
       user.classSelections && typeof user.classSelections === "object"
@@ -1090,9 +1093,7 @@ async function processAttendanceNotifications() {
         return false;
       }
 
-      const itemGrade = String(item.grade || "")
-        .replace("年", "")
-        .trim();
+      const itemGrade = normalizeGrade(item.grade);
 
       if (grade && itemGrade && itemGrade !== grade) {
         return false;
@@ -1284,12 +1285,11 @@ async function processAttendanceNotifications() {
 
       const group = options.length > 0 ? selectedClass : "";
 
-      const notificationType =
-        clock.minutes === timeMinutes(startTime) - 10
-          ? "arrival"
-          : clock.minutes === timeMinutes(endTime) - 5
-            ? "departure"
-            : "";
+      const notificationType = attendanceNotificationType(
+        clock.minutes,
+        timeMinutes(startTime),
+        timeMinutes(endTime),
+      );
 
       if (!notificationType) {
         continue;
@@ -1451,6 +1451,21 @@ async function processAttendanceNotifications() {
         await userDoc.ref.update(testUpdate);
       }
     }
+  };
+
+  // 学生ごとの通信を並行させ、後続学生の通知が予定時刻を過ぎないようにする。
+  // 1人の処理失敗も他の学生へ波及させない。
+  for (let index = 0; index < users.docs.length; index += 6) {
+    const batch = users.docs.slice(index, index + 6);
+    const outcomes = await Promise.allSettled(batch.map(processUser));
+    outcomes.forEach((outcome, offset) => {
+      if (outcome.status === "rejected") {
+        console.error(
+          `出席通知処理失敗: ${batch[offset].id}`,
+          outcome.reason,
+        );
+      }
+    });
   }
 }
 
@@ -1459,6 +1474,7 @@ exports.sendAttendanceNotifications = onSchedule(
     schedule: "* * * * *",
     timeZone: "Asia/Tokyo",
     region: "asia-northeast1",
+    timeoutSeconds: 180,
     secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
   },
   processAttendanceNotifications,

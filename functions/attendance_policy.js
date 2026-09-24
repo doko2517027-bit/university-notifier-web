@@ -16,6 +16,24 @@ function normalizeCourseName(value) {
     .replace(/[\s　・･()（）「」『』]/g, "");
 }
 
+function normalizeGrade(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace("年", "")
+    .trim();
+}
+
+function attendanceNotificationType(nowMinutes, startMinutes, endMinutes) {
+  // 毎分ジョブの起動が少し遅れても、講義開始・終了前に届ける。
+  if (nowMinutes >= startMinutes - 10 && nowMinutes < startMinutes - 5) {
+    return "arrival";
+  }
+  if (nowMinutes >= endMinutes - 5 && nowMinutes < endMinutes) {
+    return "departure";
+  }
+  return "";
+}
+
 function slotId(scheduleId, date, period, subject) {
   return `${scheduleId}_${date}_P${period}_${encodeURIComponent(subject)}`;
 }
@@ -50,6 +68,8 @@ function classifyDeparture(date, endTime) {
 module.exports = {
   PERIOD_TIMES,
   normalizeCourseName,
+  normalizeGrade,
+  attendanceNotificationType,
   slotId,
   minutesFromTime,
   classifyArrival,
