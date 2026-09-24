@@ -1894,12 +1894,7 @@ function buildScheduleHtml(schedules, grade) {
         .replace("年", "")
         .trim();
 
-      return (
-        isCommonScheduleEvent(item) ||
-        !normalizedGrade ||
-        !itemGrade ||
-        itemGrade === normalizedGrade
-      );
+      return !normalizedGrade || !itemGrade || itemGrade === normalizedGrade;
     })
 
     .sort((a, b) => parseInt(a.period) - parseInt(b.period));

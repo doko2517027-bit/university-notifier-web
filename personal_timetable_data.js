@@ -225,14 +225,9 @@ export async function loadPersonalTimetableData({
 
       const commonEvent = isCommonScheduleEvent(item);
 
-      // ガイダンス等の共通予定は、PDF上の行に記載された学年にかかわらず
-      // 全学年へ表示する。通常科目だけ従来どおり学年で絞り込む。
-      if (
-        grade &&
-        itemGrade &&
-        itemGrade !== grade &&
-        !(includeCommonEvents && commonEvent)
-      ) {
+      // 科目外予定もPDFに記載された対象学年だけへ表示する。
+      // 履修登録の有無は問わないが、他学年の予定は混ぜない。
+      if (grade && itemGrade && itemGrade !== grade) {
         continue;
       }
 
