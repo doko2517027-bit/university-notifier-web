@@ -314,9 +314,8 @@ function renderQuizItem(item, index = null, type = "quiz") {
 
   const choices = Array.isArray(item.choices) ? [...item.choices] : [];
 
-  while (choices.length < 4) {
-    choices.push("");
-  }
+  // 既存問題の選択肢数を維持する（原本が3択の問題もある）。
+  if (choices.length === 0) choices.push("", "", "", "");
 
   const sourceType = item.source_type || "ai";
 
@@ -1040,7 +1039,7 @@ saveEditedQuestions.onclick = async () => {
 
   const invalidQuiz = quiz.find(
     (item) =>
-      item.choices.length < 4 ||
+      item.choices.length < 2 ||
       item.choices.some((choice) => choice === "") ||
       item.answer < 0 ||
       item.answer >= item.choices.length,
@@ -1048,7 +1047,7 @@ saveEditedQuestions.onclick = async () => {
 
   if (invalidQuiz) {
     alert(
-      "選択問題には4つ以上の選択肢を入力し、正解番号を正しく指定してください。",
+      "選択問題には2つ以上の選択肢を入力し、正解番号を正しく指定してください。",
     );
 
     return;
@@ -1302,8 +1301,8 @@ document.addEventListener("click", (e) => {
 
     const rows = card.querySelectorAll(".quiz-choice-row");
 
-    if (rows.length <= 4) {
-      alert("選択肢は最低4つ必要です。");
+    if (rows.length <= 2) {
+      alert("選択肢は最低2つ必要です。");
 
       return;
     }
@@ -1550,7 +1549,7 @@ importJson.onclick = async () => {
           }))
           .filter(
             (item) =>
-              item.choices.length >= 4 &&
+              item.choices.length >= 2 &&
               item.choices.every((choice) => choice !== "") &&
               item.answer >= 0 &&
               item.answer < item.choices.length,
