@@ -20,6 +20,8 @@ const webpush = require("web-push");
 
 const crypto = require("node:crypto");
 
+const { reminderMinutes, isReminderDue, matchesAudience } = require("./calendar_reminders");
+
 const {
   PERIOD_TIMES,
   normalizeCourseName,
@@ -662,6 +664,103 @@ async function sendToUserDevices(
   }
   return results;
 }
+
+// 個人予定・学年共有予定・課題の通知を、登録済みの端末へ重複なく送る。
+exports.sendCalendarReminders = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "Asia/Tokyo",
+    region: "asia-northeast1",
+    timeoutSeconds: 180,
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
+  },
+  async () => {
+    webpush.setVapidDetails(
+      "mailto:kidokohei.shonaniryo2517027@gmail.com",
+      WEB_PUSH_PUBLIC_KEY.value(),
+      WEB_PUSH_PRIVATE_KEY.value(),
+    );
+    const now = new Date();
+    const earliest = new Date(now.getTime() - 30 * 60000);
+    const latest = new Date(now.getTime() + 1440 * 60000);
+    const [users, personal, shared] = await Promise.all([
+      db.collection("users").get(),
+      db.collection("calendarEvents").where("startAt", ">=", earliest).where("startAt", "<=", latest).get(),
+      db.collection("calendarSharedEvents").where("startAt", ">=", earliest).where("startAt", "<=", latest).get(),
+    ]);
+    const pending = [];
+    function queue(userId, kind, id, item, url, minutes) {
+      for (const advance of reminderMinutes(minutes)) {
+        if (!isReminderDue(item.startAt || item.deadlineAt, advance, now)) continue;
+        pending.push({ userId, kind, id, item, url, advance });
+      }
+    }
+    for (const event of personal.docs) {
+      const item = event.data();
+      if (users.docs.some((user) => user.id === item.ownerId)) {
+        queue(item.ownerId, "personal", event.id, item, `${SITE_URL}/calendar.html`, item.reminderMinutes);
+      }
+    }
+    for (const user of users.docs) {
+      for (const event of shared.docs) {
+        const item = event.data();
+        if (matchesAudience(item, user.data() || {})) {
+          queue(user.id, "shared", event.id, item, `${SITE_URL}/calendar.html`, item.reminderMinutes);
+        }
+      }
+    }
+    // 課題は本人が通知を選んだ項目だけを参照する。過去の課題履歴は削除しない。
+    await Promise.all(users.docs.map(async (user) => {
+      const preferences = await db.collection("calendarReminderPreferences").doc(user.id).collection("items").get();
+      for (const preference of preferences.docs) {
+        const minutes = reminderMinutes(preference.data().reminderMinutes);
+        if (!minutes.length) continue;
+        const archived = await db.collection("calendarAssignments").doc(user.id).collection("items").doc(preference.id).get();
+        if (archived.exists) queue(user.id, "assignment", preference.id, archived.data(),
+          `${SITE_URL}/assignments.html`, minutes);
+      }
+    }));
+    for (let index = 0; index < pending.length; index += 10) {
+      const batch = pending.slice(index, index + 10);
+      const results = await Promise.allSettled(batch.map(async ({ userId, kind, id, item, url, advance }) => {
+        const start = (item.startAt || item.deadlineAt)?.toDate?.() || new Date(item.startAt || item.deadlineAt);
+        const key = crypto.createHash("sha256").update(`${userId}|${kind}|${id}|${advance}|${start.getTime()}`).digest("hex");
+        const ref = db.collection("calendarReminderDispatches").doc(key);
+        try {
+          await ref.create({ userId, kind, eventId: id, advance, createdAt: now,
+            expiresAt: new Date(now.getTime() + 45 * 86400000) });
+        } catch (error) {
+          if (error.code === 6 || error.code === "already-exists") return;
+          throw error;
+        }
+        try {
+          const prefix = advance === 1440 ? "明日" : advance === 60 ? "1時間後" : advance === 10 ? "10分後" : "まもなく";
+          const results = await sendToUserDevices(userId, {
+            title: `📅 ${item.title || "予定"}`,
+            body: `${prefix}です${item.course ? `（${item.course}）` : ""}`,
+            url,
+            tag: `calendar-${key}`,
+          });
+          if (results.some((result) => result.result === "sent")) {
+            await ref.update({ sentAt: new Date(), results });
+          } else {
+            await ref.delete();
+          }
+        } catch (error) {
+          await ref.delete();
+          throw error;
+        }
+      }));
+      results.forEach((result) => { if (result.status === "rejected") console.error("カレンダー通知失敗", result.reason); });
+    }
+    // 送達記録は重複防止用。45日経過分だけ少量ずつ整理する。
+    if (now.getUTCHours() === 18 && now.getUTCMinutes() < 5) {
+      const expired = await db.collection("calendarReminderDispatches")
+        .where("expiresAt", "<=", now).limit(200).get();
+      await Promise.all(expired.docs.map((item) => item.ref.delete()));
+    }
+  },
+);
 
 function attendanceDeadline(date, time, extraMinutes) {
   const base = new Date(`${date}T${time}:00+09:00`);

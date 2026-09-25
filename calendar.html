@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>カレンダー | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading calendar-body">
+    <div class="top-buttons">
+      <div class="top-user-info"><span id="userName">読み込み中...</span><span id="myRanking"></span></div>
+      <div class="top-right">
+        <button id="themeButton" type="button" class="circle-button" aria-label="テーマ切り替え">🌙</button>
+        <button id="profileButton" type="button" class="circle-button" aria-label="プロフィール"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button>
+      </div>
+    </div>
+    <header class="header calendar-header"><div class="logo">📅</div><h1>カレンダー</h1><p>締切・授業・予定をひと目で</p></header>
+    <main class="calendar-page">
+      <section id="calendarOverview" class="calendar-overview" aria-label="予定の概要"></section>
+      <div class="calendar-actions"><button id="calendarNewEvent" class="btn btn-primary" type="button">＋ 予定を追加</button><button id="calendarToday" class="btn" type="button">今日</button></div>
+      <section class="card calendar-panel" aria-label="月間カレンダー">
+        <div class="calendar-month-bar"><button id="calendarPrev" type="button" aria-label="前月">‹</button><h2 id="calendarMonthTitle"></h2><button id="calendarNext" type="button" aria-label="翌月">›</button></div>
+        <div class="calendar-filters" role="group" aria-label="予定の表示切り替え">
+          <button type="button" data-filter="all" class="active">すべて</button>
+          <button type="button" data-filter="assignment">課題だけ</button>
+          <button type="button" data-filter="timetable">時間割だけ</button>
+          <button type="button" data-filter="personal">自分の予定</button>
+          <button type="button" data-filter="shared">共有予定</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+        <div id="calendarGrid" class="calendar-grid" aria-label="日付"></div>
+        <p id="calendarHolidayNote" class="calendar-holiday-note" hidden>祝日は内閣府公表済みの2026・2027年分を表示しています。</p>
+      </section>
+      <section class="card calendar-agenda" aria-live="polite"><div class="calendar-agenda-heading"><h2 id="calendarSelectedTitle"></h2><button id="calendarAddOnDay" class="btn" type="button">＋ この日に予定</button></div><div id="calendarDayEvents"></div></section>
+      <p id="calendarMessage" class="calendar-message" role="status"></p>
+    </main>
+
+    <div id="calendarDetailOverlay" class="calendar-overlay" hidden>
+      <section class="calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
+        <button id="calendarDetailClose" class="calendar-close" type="button" aria-label="閉じる">×</button>
+        <div id="calendarDetailKind" class="calendar-detail-kind"></div><h2 id="calendarDetailTitle"></h2><div id="calendarDetailBody"></div>
+        <div id="calendarAssignmentReminder" class="calendar-reminder-box" hidden>
+          <b>この課題のリマインダー</b><p>通知を許可した端末に送ります。</p>
+          <div class="calendar-reminder-choices" id="calendarAssignmentReminderChoices"></div>
+          <button id="calendarAssignmentReminderSave" class="btn" type="button">通知設定を保存</button>
+        </div>
+        <div class="calendar-dialog-actions"><button id="calendarDetailOpen" class="btn" type="button" hidden>関連画面を開く</button><button id="calendarDetailEdit" class="btn btn-primary" type="button" hidden>編集</button><button id="calendarDetailDelete" class="btn calendar-danger" type="button" hidden>削除</button></div>
+      </section>
+    </div>
+
+    <div id="calendarEditorOverlay" class="calendar-overlay" hidden>
+      <section class="calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarEditorTitle">
+        <button id="calendarEditorClose" class="calendar-close" type="button" aria-label="閉じる">×</button>
+        <h2 id="calendarEditorTitle">予定を追加</h2>
+        <form id="calendarEventForm" class="calendar-form">
+          <label>タイトル<input name="title" maxlength="100" required placeholder="例：グループ学習" /></label>
+          <div class="calendar-form-two"><label>開始日<input name="startDate" type="date" required /></label><label>開始時刻<input name="startTime" type="time" value="09:00" /></label></div>
+          <div class="calendar-form-two"><label>終了日<input name="endDate" type="date" required /></label><label>終了時刻<input name="endTime" type="time" value="10:00" /></label></div>
+          <label class="calendar-inline"><input name="allDay" type="checkbox" /> 終日</label>
+          <label>分類<select name="category"><option value="personal">個人</option><option value="study">勉強</option><option value="other">その他</option></select></label>
+          <label>場所<input name="location" maxlength="120" placeholder="任意" /></label>
+          <label>メモ<textarea name="note" maxlength="1000" rows="3" placeholder="持ち物など"></textarea></label>
+          <fieldset><legend>リマインダー</legend><div id="calendarEventReminders" class="calendar-reminder-choices"></div></fieldset>
+          <button class="btn btn-primary" type="submit">保存する</button>
+        </form>
+      </section>
+    </div>
+
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="calendar.html" class="active calendar-nav-link"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span><span id="assignmentNavBadge" class="nav-notification-badge" hidden>0</span></span><span>課題</span></a>
+      <a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
+    </nav>
+    <script type="module" src="calendar.js"></script>
+  </body>
+</html>

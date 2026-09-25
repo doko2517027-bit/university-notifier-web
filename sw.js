@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v21";
+const STATIC_CACHE = "caremate-static-v22";
 
-const RUNTIME_CACHE = "caremate-runtime-v21";
+const RUNTIME_CACHE = "caremate-runtime-v22";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -42,6 +42,18 @@ const CORE_ASSETS = [
   "device_touch_controller.mjs",
 
   "personal_timetable_data.js",
+
+  "calendar.html",
+
+  "calendar.js",
+
+  "calendar_model.mjs",
+
+  "calendar_holidays.mjs",
+
+  "calendar_admin.html",
+
+  "calendar_admin.js",
 
   "attendance.html",
 

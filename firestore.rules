@@ -296,6 +296,50 @@ service cloud.firestore {
 
     }
 
+    /* カレンダー。個人予定と課題通知設定は本人だけ、共有予定の編集は管理者だけ。 */
+    match /calendarEvents/{id} {
+      allow read, delete: if request.auth != null &&
+        resource.data.ownerId == request.auth.token.studentNumber;
+      allow create: if request.auth != null &&
+        request.resource.data.ownerId == request.auth.token.studentNumber &&
+        request.resource.data.title is string &&
+        request.resource.data.startAt is timestamp &&
+        request.resource.data.endAt is timestamp &&
+        request.resource.data.reminderMinutes is list;
+      allow update: if request.auth != null &&
+        resource.data.ownerId == request.auth.token.studentNumber &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.title is string &&
+        request.resource.data.startAt is timestamp &&
+        request.resource.data.endAt is timestamp &&
+        request.resource.data.reminderMinutes is list;
+    }
+
+    match /calendarSharedEvents/{id} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null &&
+        request.auth.token.admin == true;
+    }
+
+    match /calendarAssignments/{studentNumber}/items/{id} {
+      allow read: if request.auth != null &&
+        request.auth.token.studentNumber == studentNumber;
+      allow write: if false;
+    }
+
+    match /calendarReminderPreferences/{studentNumber}/items/{id} {
+      allow read: if request.auth != null &&
+        request.auth.token.studentNumber == studentNumber;
+      allow create, update: if request.auth != null &&
+        request.auth.token.studentNumber == studentNumber &&
+        request.resource.data.reminderMinutes is list;
+      allow delete: if false;
+    }
+
+    match /calendarReminderDispatches/{id} {
+      allow read, write: if false;
+    }
+
 
     /* ========================================
        Manabaコースリンク

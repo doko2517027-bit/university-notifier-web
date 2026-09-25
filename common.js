@@ -1207,6 +1207,7 @@ function setupAutoBackButton() {
 }
 
 export async function initializePage(tasks = []) {
+  ensureCalendarNavTab();
   setupAutoBackButton();
   showPage();
 
@@ -1215,6 +1216,25 @@ export async function initializePage(tasks = []) {
   });
 
   initializeCareMateDeviceTouch();
+}
+
+function ensureCalendarNavTab() {
+  for (const nav of document.querySelectorAll(".bottom-nav")) {
+    if (nav.querySelector('a[href="calendar.html"]')) continue;
+    const home = nav.querySelector('a[href="index.html"]');
+    if (!home) continue;
+    const link = document.createElement("a");
+    link.href = "calendar.html";
+    link.className = "calendar-nav-link";
+    link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span>';
+    home.insertAdjacentElement("afterend", link);
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", ensureCalendarNavTab, { once: true });
+} else {
+  ensureCalendarNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {
@@ -1813,6 +1833,7 @@ let presenceInitialized = false;
 
 const presencePageNames = {
   "index.html": "ホーム画面",
+  "calendar.html": "カレンダー",
   "news.html": "お知らせ",
   "requests.html": "機能リクエスト",
   "profile.html": "プロフィール",

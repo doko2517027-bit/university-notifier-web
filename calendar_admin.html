@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>カレンダー管理 | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading">
+    <div class="top-buttons"><div class="top-user-info"><span id="userName">読み込み中...</span></div><div class="top-right"><button id="themeButton" type="button" class="circle-button">🌙</button><button id="profileButton" type="button" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button></div></div>
+    <header class="header"><div class="logo">🗓️</div><h1>カレンダー管理</h1><p>対象学科・学年へ共有予定を配信</p></header>
+    <main class="calendar-page">
+      <p><a href="admin.html" class="btn">← 管理へ戻る</a></p>
+      <section class="card calendar-panel">
+        <h2 id="calendarAdminFormTitle">共有予定を登録</h2>
+        <p>対象を絞らない項目は全員に表示されます。学生は共有予定を編集できません。</p>
+        <form id="calendarSharedForm" class="calendar-form">
+          <label>タイトル<input name="title" maxlength="100" required placeholder="例：2年後期ガイダンス" /></label>
+          <div class="calendar-form-two"><label>学科<select name="department"><option value="">全学科</option><option value="看護学科">看護学科</option><option value="リハビリテーション学科">リハビリテーション学科</option><option value="医療薬学科">医療薬学科</option></select></label><label>学年<select name="grade"><option value="">全学年</option><option value="1">1年</option><option value="2">2年</option><option value="3">3年</option><option value="4">4年</option></select></label></div>
+          <label>専攻<select name="major"><option value="">全専攻</option><option value="理学療法学専攻">理学療法学専攻</option><option value="作業療法学専攻">作業療法学専攻</option></select></label>
+          <div class="calendar-form-two"><label>開始日<input name="startDate" type="date" required /></label><label>開始時刻<input name="startTime" type="time" value="09:00" /></label></div>
+          <div class="calendar-form-two"><label>終了日<input name="endDate" type="date" required /></label><label>終了時刻<input name="endTime" type="time" value="10:00" /></label></div>
+          <label class="calendar-inline"><input name="allDay" type="checkbox" /> 終日</label>
+          <label>場所<input name="location" maxlength="120" /></label>
+          <label>説明<textarea name="note" maxlength="1000" rows="3"></textarea></label>
+          <fieldset><legend>リマインダー</legend><div id="calendarSharedReminders" class="calendar-reminder-choices"></div></fieldset>
+          <div class="calendar-dialog-actions"><button type="submit" class="btn btn-primary">共有予定を保存</button><button id="calendarAdminCancel" type="button" class="btn" hidden>編集をやめる</button></div>
+        </form>
+      </section>
+      <section class="card calendar-panel"><h2>登録済みの共有予定</h2><p id="calendarAdminMessage" role="status"></p><div id="calendarSharedList">読み込み中...</div></section>
+    </main>
+    <nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a></nav>
+    <script type="module" src="calendar_admin.js"></script>
+  </body>
+</html>
