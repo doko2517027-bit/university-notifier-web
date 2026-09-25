@@ -53,6 +53,35 @@ export function monthCells(year, monthIndex) {
   });
 }
 
+export function normalizeCalendarView(value) {
+  return ["month", "week", "day"].includes(value) ? value : "month";
+}
+
+export function weekDays(value) {
+  const date = value instanceof Date ? new Date(value) : new Date(`${dateKey(value)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return [];
+  date.setDate(date.getDate() - date.getDay());
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(date);
+    day.setDate(date.getDate() + index);
+    return dateKey(day);
+  });
+}
+
+export function shiftCalendarDate(value, view, amount) {
+  const date = value instanceof Date ? new Date(value) : new Date(`${dateKey(value)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  if (normalizeCalendarView(view) === "month") {
+    const day = date.getDate();
+    const target = new Date(date.getFullYear(), date.getMonth() + amount, 1);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, lastDay));
+    return dateKey(target);
+  }
+  date.setDate(date.getDate() + amount * (view === "week" ? 7 : 1));
+  return dateKey(date);
+}
+
 export function safeReminderMinutes(values) {
   return [...new Set((Array.isArray(values) ? values : []).map(Number))]
     .filter((value) => [0, 10, 60, 1440].includes(value))

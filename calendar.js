@@ -7,7 +7,8 @@ import { loadPersonalTimetableData } from "./personal_timetable_data.js";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 import {
   REMINDER_OPTIONS, dateKey, parseManabaDeadline, monthCells,
-  matchesSharedAudience, safeReminderMinutes,
+  matchesSharedAudience, safeReminderMinutes, normalizeCalendarView,
+  weekDays, shiftCalendarDate,
 } from "./calendar_model.mjs";
 import {
   collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc,
@@ -41,6 +42,9 @@ let reminderPreferences = new Map();
 let filter = "all";
 let selectedDate = dateKey(new Date());
 let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+const viewStorageKey = `caremateCalendarView:${studentNumber}`;
+let calendarView = "month";
+try { calendarView = normalizeCalendarView(localStorage.getItem(viewStorageKey)); } catch { /* 保存不可の環境では月表示 */ }
 let activeEvent = null;
 let editingEvent = null;
 
@@ -162,15 +166,42 @@ function renderOverview() {
 
 function render() {
   renderOverview();
-  $("calendarMonthTitle").textContent = `${visibleMonth.getFullYear()}年 ${visibleMonth.getMonth() + 1}月`;
-  $("calendarHolidayNote").hidden = [2026, 2027].includes(visibleMonth.getFullYear());
+  const selected = new Date(`${selectedDate}T00:00:00`);
+  const dates = weekDays(selectedDate);
+  const weekStart = new Date(`${dates[0]}T00:00:00`);
+  const weekEnd = new Date(`${dates[6]}T00:00:00`);
+  const periodTitle = calendarView === "month"
+    ? `${visibleMonth.getFullYear()}年 ${visibleMonth.getMonth() + 1}月`
+    : calendarView === "week"
+      ? `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月${weekStart.getDate()}日〜${weekEnd.getFullYear() !== weekStart.getFullYear() ? `${weekEnd.getFullYear()}年` : ""}${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`
+      : `${selected.getFullYear()}年${selected.getMonth() + 1}月${selected.getDate()}日（${"日月火水木金土"[selected.getDay()]}）`;
+  $("calendarMonthTitle").textContent = periodTitle;
+  $("calendarPrev").setAttribute("aria-label", `前の${calendarView === "month" ? "月" : calendarView === "week" ? "週" : "日"}`);
+  $("calendarNext").setAttribute("aria-label", `次の${calendarView === "month" ? "月" : calendarView === "week" ? "週" : "日"}`);
+  $("calendarHolidayNote").hidden = [2026, 2027].includes(selected.getFullYear());
+  $("calendarMonthView").hidden = calendarView !== "month";
+  $("calendarWeekView").hidden = calendarView !== "week";
+  $("calendarDayView").hidden = calendarView !== "day";
+  document.querySelectorAll(".calendar-view-switch button").forEach((button) => {
+    const active = button.dataset.view === calendarView;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  if (calendarView === "month") renderMonth();
+  if (calendarView === "week") renderWeek(dates);
+  if (calendarView === "day") renderDaySpotlight();
+  document.querySelectorAll(".calendar-filters button").forEach((button) => button.classList.toggle("active", button.dataset.filter === filter));
+  renderDay();
+}
+
+function renderMonth() {
   const today = dateKey(new Date());
   $("calendarGrid").innerHTML = monthCells(visibleMonth.getFullYear(), visibleMonth.getMonth()).map(({ date, inMonth }) => {
     const dayEvents = visibleEventsForDate(date);
     const holiday = JAPANESE_HOLIDAYS[date];
     const dayNumber = Number(date.slice(-2));
     return `<button type="button" class="calendar-day${inMonth ? "" : " outside"}${date === selectedDate ? " selected" : ""}${date === today ? " today" : ""}${holiday ? " holiday" : ""}" data-date="${date}" aria-label="${escapeHtml(`${date}${holiday ? ` ${holiday}` : ""} 予定${dayEvents.length}件`)}">
-      <span class="calendar-day-number">${dayNumber}</span>${holiday ? `<span class="calendar-holiday-label">${escapeHtml(holiday)}</span>` : ""}
+      <span class="calendar-day-number">${dayNumber}</span>${dayEvents.length ? `<span class="calendar-day-count">${dayEvents.length}件</span>` : ""}${holiday ? `<span class="calendar-holiday-label">${escapeHtml(holiday)}</span>` : ""}
       <span class="calendar-day-items">${dayEvents.slice(0, 2).map((item) => `<span class="calendar-dot ${item.kind}" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>`).join("")}${dayEvents.length > 2 ? `<small>＋${dayEvents.length - 2}件</small>` : ""}</span></button>`;
   }).join("");
   $("calendarGrid").querySelectorAll("[data-date]").forEach((button) => {
@@ -183,8 +214,41 @@ function render() {
       render();
     };
   });
-  document.querySelectorAll(".calendar-filters button").forEach((button) => button.classList.toggle("active", button.dataset.filter === filter));
-  renderDay();
+}
+
+function renderWeek(dates) {
+  const today = dateKey(new Date());
+  $("calendarWeekView").innerHTML = dates.map((date) => {
+    const day = new Date(`${date}T00:00:00`);
+    const holiday = JAPANESE_HOLIDAYS[date];
+    const dayEvents = visibleEventsForDate(date);
+    return `<div class="calendar-week-day${date === today ? " today" : ""}${date === selectedDate ? " selected" : ""}">
+      <button class="calendar-week-date" type="button" data-date="${date}" aria-label="${escapeHtml(formatDay(date))}の予定">
+        <span>${"日月火水木金土"[day.getDay()]}</span><b>${day.getDate()}</b><small>${day.getMonth() + 1}月</small>
+      </button>
+      <div class="calendar-week-content">${holiday ? `<span class="calendar-week-holiday">${escapeHtml(holiday)}</span>` : ""}
+        ${dayEvents.length ? dayEvents.map((event) => `<button class="calendar-week-event ${event.kind}" type="button" data-kind="${event.kind}" data-id="${escapeHtml(event.id)}" data-date="${date}"><span>${event.allDay ? "終日" : formatTime(event.startAt)}</span><b>${escapeHtml(event.title)}</b></button>`).join("") : '<span class="calendar-week-empty">予定なし</span>'}
+      </div></div>`;
+  }).join("");
+  $("calendarWeekView").querySelectorAll(".calendar-week-date").forEach((button) => {
+    button.onclick = () => { selectedDate = button.dataset.date; render(); };
+  });
+  $("calendarWeekView").querySelectorAll(".calendar-week-event").forEach((button) => {
+    button.onclick = () => {
+      selectedDate = button.dataset.date;
+      render();
+      openDetail(events.find((event) => event.date === selectedDate && event.kind === button.dataset.kind && event.id === button.dataset.id));
+    };
+  });
+}
+
+function renderDaySpotlight() {
+  const date = new Date(`${selectedDate}T00:00:00`);
+  const holiday = JAPANESE_HOLIDAYS[selectedDate];
+  const count = visibleEventsForDate(selectedDate).length;
+  $("calendarDayView").innerHTML = `<span class="calendar-day-view-number">${date.getDate()}</span>
+    <div><b>${date.getMonth() + 1}月${date.getDate()}日・${"日月火水木金土"[date.getDay()]}曜日</b>
+    <p>${holiday ? `${escapeHtml(holiday)}・` : ""}${count ? `予定 ${count}件` : "予定はありません"}</p></div>`;
 }
 
 function renderDay() {
@@ -243,9 +307,22 @@ function openEditor(event = null, date = selectedDate) {
 }
 function closeEditor() { $("calendarEditorOverlay").hidden = true; editingEvent = null; }
 
-$("calendarPrev").onclick = () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); render(); };
-$("calendarNext").onclick = () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); render(); };
+function movePeriod(amount) {
+  selectedDate = shiftCalendarDate(selectedDate, calendarView, amount);
+  const date = new Date(`${selectedDate}T00:00:00`);
+  visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  render();
+}
+$("calendarPrev").onclick = () => movePeriod(-1);
+$("calendarNext").onclick = () => movePeriod(1);
 $("calendarToday").onclick = () => { selectedDate = dateKey(new Date()); visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1); render(); };
+document.querySelectorAll(".calendar-view-switch button").forEach((button) => {
+  button.onclick = () => {
+    calendarView = normalizeCalendarView(button.dataset.view);
+    try { localStorage.setItem(viewStorageKey, calendarView); } catch { /* 表示はそのまま継続 */ }
+    render();
+  };
+});
 $("calendarNewEvent").onclick = () => openEditor();
 $("calendarAddOnDay").onclick = () => openEditor();
 document.querySelectorAll(".calendar-filters button").forEach((button) => {

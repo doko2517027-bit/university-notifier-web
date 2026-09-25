@@ -21,9 +21,16 @@
     <header class="header calendar-header"><div class="logo">📅</div><h1>カレンダー</h1><p>締切・授業・予定をひと目で</p></header>
     <main class="calendar-page">
       <section id="calendarOverview" class="calendar-overview" aria-label="予定の概要"></section>
-      <div class="calendar-actions"><button id="calendarNewEvent" class="btn btn-primary" type="button">＋ 予定を追加</button><button id="calendarToday" class="btn" type="button">今日</button></div>
-      <section class="card calendar-panel" aria-label="月間カレンダー">
-        <div class="calendar-month-bar"><button id="calendarPrev" type="button" aria-label="前月">‹</button><h2 id="calendarMonthTitle"></h2><button id="calendarNext" type="button" aria-label="翌月">›</button></div>
+      <div class="calendar-toolbar">
+        <div class="calendar-view-switch" role="group" aria-label="カレンダー表示方法">
+          <button type="button" data-view="month" aria-pressed="true">月</button>
+          <button type="button" data-view="week" aria-pressed="false">週</button>
+          <button type="button" data-view="day" aria-pressed="false">日</button>
+        </div>
+        <div class="calendar-actions"><button id="calendarToday" class="btn" type="button">今日</button><button id="calendarNewEvent" class="btn btn-primary" type="button"><span class="calendar-new-full">＋ 予定を追加</span><span class="calendar-new-short">＋ 予定</span></button></div>
+      </div>
+      <section class="card calendar-panel" aria-label="カレンダー">
+        <div class="calendar-month-bar"><button id="calendarPrev" type="button" aria-label="前の期間">‹</button><h2 id="calendarMonthTitle" aria-live="polite"></h2><button id="calendarNext" type="button" aria-label="次の期間">›</button></div>
         <div class="calendar-filters" role="group" aria-label="予定の表示切り替え">
           <button type="button" data-filter="all" class="active">すべて</button>
           <button type="button" data-filter="assignment">課題だけ</button>
@@ -31,8 +38,12 @@
           <button type="button" data-filter="personal">自分の予定</button>
           <button type="button" data-filter="shared">共有予定</button>
         </div>
-        <div class="calendar-weekdays" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-        <div id="calendarGrid" class="calendar-grid" aria-label="日付"></div>
+        <div id="calendarMonthView">
+          <div class="calendar-weekdays" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+          <div id="calendarGrid" class="calendar-grid" aria-label="日付"></div>
+        </div>
+        <div id="calendarWeekView" class="calendar-week-view" hidden aria-label="週間カレンダー"></div>
+        <div id="calendarDayView" class="calendar-day-view" hidden aria-label="日間カレンダー"></div>
         <p id="calendarHolidayNote" class="calendar-holiday-note" hidden>祝日は内閣府公表済みの2026・2027年分を表示しています。</p>
       </section>
       <section class="card calendar-agenda" aria-live="polite"><div class="calendar-agenda-heading"><h2 id="calendarSelectedTitle"></h2><button id="calendarAddOnDay" class="btn" type="button">＋ この日に予定</button></div><div id="calendarDayEvents"></div></section>
