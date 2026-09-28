@@ -287,7 +287,7 @@ document.addEventListener("click", async (e) => {
           sessionPoints = 0;
           renderFillQuestion();
         },
-        () => (location.href = "exam.html"),
+        () => (location.href = params.get("from") === "national" ? "exam.html?mode=national" : "exam.html"),
       );
     }
     return;

@@ -266,7 +266,7 @@ document.addEventListener("click", async (event) => {
           sessionPoints = 0;
           renderQuestion();
         },
-        () => (location.href = "exam.html"),
+        () => (location.href = params.get("from") === "national" ? "exam.html?mode=national" : "exam.html"),
       );
     }
     return;

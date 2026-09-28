@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v24";
+const STATIC_CACHE = "caremate-static-v25";
 
-const RUNTIME_CACHE = "caremate-runtime-v24";
+const RUNTIME_CACHE = "caremate-runtime-v25";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -54,6 +54,20 @@ const CORE_ASSETS = [
   "calendar_admin.html",
 
   "calendar_admin.js",
+
+  "exam.html",
+
+  "exam.js",
+
+  "exam_admin.html",
+
+  "exam_admin.js",
+
+  "exam_catalog.mjs",
+
+  "quiz.html",
+
+  "quiz.js",
 
   "attendance.html",
 

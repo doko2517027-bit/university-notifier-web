@@ -34,7 +34,8 @@ document.getElementById("backButton").onclick = () => {
 
   sessionStorage.removeItem("quizPlaying");
 
-  location.href = "exam.html";
+  location.href = new URLSearchParams(location.search).get("from") === "national"
+    ? "exam.html?mode=national" : "exam.html";
 };
 
 document.getElementById("profileButton").onclick = () => {

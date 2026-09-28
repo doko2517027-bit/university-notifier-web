@@ -15,6 +15,7 @@ import {
   collection,
   getDocs,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { isSubjectInMode, getModeCategories, groupCatalogItems } from "./exam_catalog.mjs";
 
 /* ========================================
    HTML要素
@@ -121,18 +122,29 @@ const elements = {
 ======================================== */
 
 const studentNumber = localStorage.getItem("studentNumber") || "";
+const examMode = new URLSearchParams(location.search).get("mode") === "national" ? "national" : "exam";
+const isNational = examMode === "national";
+const modeCategories = [];
+const openGroupIds = new Set();
+
+document.getElementById(isNational ? "nationalExamLink" : "regularExamLink")?.classList.add("is-active");
+if (isNational) {
+  document.title = "国家試験対策 | CareMate";
+  document.querySelector(".exam-top-title strong").textContent = "国家試験対策";
+}
 
 const todayKey = createLocalDateKey(new Date());
 
 const todayCompactKey = todayKey.replaceAll("-", "");
 
-const openSubjectsStorageKey = `caremateExamOpenSubjects_${studentNumber || "guest"}`;
+const openSubjectsStorageKey = `caremateExamOpenSubjects_${examMode}_${studentNumber || "guest"}`;
 
 /* ========================================
    状態
 ======================================== */
 
 let examInformation = null;
+let nationalUnavailable = false;
 
 let subjects = [];
 
@@ -223,6 +235,15 @@ function setupEvents() {
   );
 
   elements.subjectUnitList?.addEventListener("click", (event) => {
+    const groupToggle = event.target.closest(".exam-group-toggle");
+    if (groupToggle) {
+      const groupId = groupToggle.dataset.groupId;
+      if (openGroupIds.has(groupId)) openGroupIds.delete(groupId);
+      else openGroupIds.add(groupId);
+      renderSubjectList();
+      return;
+    }
+
     const subjectToggle = event.target.closest(".exam-subject-toggle");
 
     if (subjectToggle) {
@@ -339,7 +360,22 @@ async function loadExamDashboard() {
         : Promise.resolve(null),
     ]);
 
+    modeCategories.splice(0, modeCategories.length,
+      ...getModeCategories(examSnapshot.data()?.categories, examMode));
+
+    nationalUnavailable = examSnapshot.data()?.nationalEnabled !== true;
+    if (!isNational && nationalUnavailable) {
+      document.getElementById("nationalExamLink").hidden = true;
+      document.querySelector(".exam-mode-switch").classList.add("is-single");
+    }
+
     renderExamInformation(examSnapshot);
+
+    if (isNational && nationalUnavailable) {
+      subjects = [];
+      updateDashboard();
+      return;
+    }
 
     buildProgressMap(progressSnapshot);
 
@@ -393,6 +429,18 @@ async function loadExamDashboard() {
 ======================================== */
 
 function renderExamInformation(snapshot) {
+  if (isNational) {
+    examInformation = null;
+    elements.examTitle.textContent = "国家試験対策";
+    elements.examStateBadge.textContent = nationalUnavailable ? "非公開" : "いつでも学習";
+    elements.examStateBadge.className = `exam-state-badge ${nationalUnavailable ? "is-off" : "is-active"}`;
+    elements.examCountdown.textContent = nationalUnavailable
+      ? "国家試験対策は現在公開されていません。"
+      : "分野を選んで問題を解き、理解を深めましょう。";
+    document.getElementById("examPeriodInformation").hidden = true;
+    document.getElementById("examCatalogHeading").textContent = "国家試験の分野";
+    return;
+  }
   if (!snapshot.exists()) {
     examInformation = null;
 
@@ -638,7 +686,9 @@ async function buildSubjectData(subjectSnapshot) {
     return [];
   }
 
-  const subjectPromises = subjectSnapshot.docs.map(async (subjectDocument) => {
+  const subjectPromises = subjectSnapshot.docs
+    .filter((subjectDocument) => isSubjectInMode(subjectDocument.data(), examMode))
+    .map(async (subjectDocument) => {
     const subjectData = subjectDocument.data() || {};
 
     const unitSnapshot = await safeGetDocs(
@@ -665,6 +715,8 @@ async function buildSubjectData(subjectSnapshot) {
       id: subjectDocument.id,
 
       name: String(subjectData.name || subjectData.subjectName || "名称未設定"),
+
+      groupId: String(subjectData.groupId || ""),
 
       completedExam: subjectData.completed === true,
 
@@ -783,7 +835,7 @@ async function buildUnitData(subjectId, unitDocument) {
       createPracticeFormat({
         type: "quiz",
 
-        title: "四択問題",
+        title: "選択問題",
 
         icon: "🧠",
 
@@ -1282,9 +1334,9 @@ function renderSubjectList() {
         };
       }
 
-      const subjectMatches = normalizeSearchText(subject.name).includes(
-        keyword,
-      );
+      const subjectMatches = normalizeSearchText(
+        `${subject.name} ${getGroupName(subject.groupId)}`,
+      ).includes(keyword);
 
       const matchingUnits = subjectMatches
         ? subject.units
@@ -1305,26 +1357,28 @@ function renderSubjectList() {
   elements.visibleSubjectCount.textContent = `${filteredSubjects.length}科目を表示`;
 
   if (filteredSubjects.length === 0) {
+    const noPublishedSubjects = subjects.length === 0;
     elements.subjectUnitList.innerHTML = `
 
             <div class="exam-empty-state">
 
                 <div>
-                    🔍
+                    ${noPublishedSubjects ? "📚" : "🔍"}
                 </div>
 
                 <h2>
-                    条件に一致する科目がありません
+                    ${nationalUnavailable && isNational ? "国家試験対策は非公開です" : noPublishedSubjects ? "公開中の科目はまだありません" : "条件に一致する科目がありません"}
                 </h2>
 
                 <p>
-                    検索する言葉や学習状況を変更してください。
+                    ${nationalUnavailable && isNational ? "公開されると、ホームから学習できるようになります。" : noPublishedSubjects ? "管理画面から科目と問題が公開されると、ここに表示されます。" : "検索する言葉や学習状況を変更してください。"}
                 </p>
 
                 <button
                     id="resetExamFiltersButton"
                     type="button"
-                    class="btn btn-primary">
+                    class="btn btn-primary"
+                    ${noPublishedSubjects ? "hidden" : ""}>
 
                     絞り込みを解除
 
@@ -1343,11 +1397,33 @@ function renderSubjectList() {
     return;
   }
 
-  elements.subjectUnitList.innerHTML = filteredSubjects
-    .map((item) => createSubjectHtml(item.subject, item.units, keyword !== ""))
+  const groupedItems = groupCatalogItems(
+    filteredSubjects, modeCategories, (item) => item.subject.groupId,
+  );
+  elements.subjectUnitList.innerHTML = groupedItems
+    .map((group) => createGroupHtml(group.id, group.items, keyword !== ""))
     .join("");
 
   updateToggleAllButton(filteredSubjects.map((item) => item.subject.id));
+}
+
+function getGroupName(id) {
+  return modeCategories.find((category) => category.id === id)?.name || "未分類";
+}
+
+function createGroupHtml(id, items, searchActive) {
+  const isOpen = searchActive || openGroupIds.has(id);
+  const label = id === "unclassified" ? "未分類" : getGroupName(id);
+  return `<section class="exam-group-card ${isOpen ? "is-open" : ""}">
+    <button type="button" class="exam-group-toggle" data-group-id="${escapeAttribute(id)}" aria-expanded="${isOpen}">
+      <span class="exam-group-icon">${isNational ? "🎓" : "🗂️"}</span>
+      <span class="exam-group-heading"><strong>${escapeHtml(label)}</strong><small>${items.length}科目・タップして表示</small></span>
+      <span class="exam-group-arrow">${isOpen ? "▲" : "▼"}</span>
+    </button>
+    <div class="exam-group-content" ${isOpen ? "" : "hidden"}>
+      ${items.map((item) => createSubjectHtml(item.subject, item.units, searchActive)).join("")}
+    </div>
+  </section>`;
 }
 
 /* ========================================
@@ -1742,13 +1818,20 @@ function toggleAllVisibleSubjects() {
     .map((card) => card.dataset.subjectId)
     .filter(Boolean);
 
-  if (visibleSubjectIds.length === 0) {
+  const visibleGroupIds = Array.from(
+    elements.subjectUnitList.querySelectorAll(".exam-group-toggle"),
+  ).map((button) => button.dataset.groupId);
+
+  if (visibleGroupIds.length === 0) {
     return;
   }
 
-  const allOpen = visibleSubjectIds.every((subjectId) =>
-    openSubjectIds.has(subjectId),
-  );
+  const allOpen = visibleGroupIds.every((id) => openGroupIds.has(id));
+
+  visibleGroupIds.forEach((id) => {
+    if (allOpen) openGroupIds.delete(id);
+    else openGroupIds.add(id);
+  });
 
   visibleSubjectIds.forEach((subjectId) => {
     if (allOpen) {
@@ -1774,9 +1857,8 @@ function updateToggleAllButton(visibleSubjectIds) {
 
   elements.toggleAllSubjectsButton.disabled = false;
 
-  const allOpen = visibleSubjectIds.every((subjectId) =>
-    openSubjectIds.has(subjectId),
-  );
+  const allOpen = Array.from(elements.subjectUnitList.querySelectorAll(".exam-group-toggle"))
+    .every((button) => openGroupIds.has(button.dataset.groupId));
 
   elements.toggleAllSubjectsButton.textContent = allOpen
     ? "すべて閉じる"
@@ -1796,17 +1878,6 @@ function prepareInitialOpenSubject() {
         existingSubjectIds.has(subjectId),
       ),
     );
-  }
-
-  if (openSubjectIds.size === 0) {
-    const initialSubject =
-      subjects.find((subject) => subject.status === "in-progress") ||
-      subjects.find((subject) => subject.status === "unstarted") ||
-      subjects[0];
-
-    if (initialSubject) {
-      openSubjectIds.add(initialSubject.id);
-    }
   }
 
   saveOpenSubjectIds();
@@ -2336,6 +2407,8 @@ function createLearningUrl(file, subjectId, unitId) {
 
     unitId: String(unitId),
   });
+
+  if (isNational) parameters.set("from", "national");
 
   return `${file}?${parameters.toString()}`;
 }

@@ -75,6 +75,7 @@ const examStatusLabel = document.getElementById("examStatusLabel");
 const examStatusText = document.getElementById("examStatusText");
 const examStatusTitle = document.getElementById("examStatusTitle");
 const examCard = document.getElementById("examCard");
+const nationalExamSlide = document.getElementById("nationalExamSlide");
 const examPopupOverlay = document.getElementById("examPopupOverlay");
 const rankingPopupOverlay = document.getElementById("rankingPopupOverlay");
 const attendanceCard = document.getElementById("attendanceCard");
@@ -2218,6 +2219,7 @@ function setWeatherCardStyle(weatherText) {
 
 async function loadExamMode() {
   const examSlide = examCard?.closest(".home-slide");
+  if (nationalExamSlide) nationalExamSlide.hidden = true;
 
   if (examStatusCard) {
     examStatusCard.style.display = "none";
@@ -2236,6 +2238,8 @@ async function loadExamMode() {
   }
 
   const exam = snap.data();
+
+  if (nationalExamSlide) nationalExamSlide.hidden = exam.nationalEnabled !== true;
 
   if (exam.enabled !== true) return;
 
