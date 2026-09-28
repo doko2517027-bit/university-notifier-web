@@ -45,6 +45,7 @@ import {
 } from "./attendance_stamp.js";
 
 import { VERSION } from "./version.js";
+import { choosePreferredAttendanceRecord, dedupeAttendanceRecords } from "./attendance_record_view.mjs";
 
 /* ========================================
    DOM
@@ -1274,22 +1275,25 @@ async function loadRecords() {
  */
 function getRecordForLecture(lecture) {
   const direct = records.get(createAttendanceRecordId(lecture));
-
-  if (direct) return direct;
-
-  if (!lecture.attendanceNotificationTest) return null;
-
-  return (
-    allRecords.find(
-      (item) =>
-        isVisibleAttendanceRecord(item) &&
-        normalizeDate(item.date) === effectiveDate &&
-        Number(item.period) === Number(lecture.period) &&
-        item.subject === lecture.subject &&
-        item.attendanceNotificationTest === true &&
-        (!item.testId || item.testId === lecture.testId),
-    ) || null
+  const matches = [...records.values()].filter((item) =>
+    normalizeDate(item.date) === effectiveDate &&
+    normalizePeriod(item.period) === normalizePeriod(lecture.period) &&
+    normalizeSubjectIdentity(item.subject || item.subjectKey) ===
+      normalizeSubjectIdentity(lecture.subject) &&
+    (item.attendanceNotificationTest === true) ===
+      (lecture.attendanceNotificationTest === true) &&
+    (lecture.attendanceNotificationTest !== true ||
+      !item.testId || item.testId === lecture.testId)
   );
+  return matches.reduce(choosePreferredAttendanceRecord, direct || null);
+}
+
+function recordSessionKey(record) {
+  const date = normalizeDate(record.date);
+  const period = normalizePeriod(record.period);
+  const subject = normalizeSubjectIdentity(record.subject || record.subjectKey);
+  if (!date || !period || !subject) return record.id;
+  return [date, period, subject, record.attendanceNotificationTest === true ? record.testId || "test" : ""].join("|");
 }
 
 /* ========================================
@@ -1780,7 +1784,7 @@ function renderRecordList() {
     return;
   }
 
-  const rows = [...records.values()].sort(
+  const rows = dedupeAttendanceRecords([...records.values()], recordSessionKey).sort(
     (left, right) => Number(left.period || 0) - Number(right.period || 0),
   );
 
@@ -1799,6 +1803,12 @@ function renderRecordList() {
   el.recordList.innerHTML = rows
     .map((record) => {
       const result = resolveResult(record);
+      const scheduled = lectures.find((lecture) =>
+        normalizePeriod(lecture.period) === normalizePeriod(record.period) &&
+        normalizeSubjectIdentity(lecture.subject) === normalizeSubjectIdentity(record.subject)
+      );
+      const lectureStart = scheduled?.startTime || record.startTime || "";
+      const lectureEnd = scheduled?.endTime || record.endTime || "";
 
       return `
                     <div class="card setting-card">
@@ -1823,6 +1833,8 @@ function renderRecordList() {
 
                                 </b>
 
+                                ${lectureStart && lectureEnd ? `<p class="attendance-record-schedule">講義：${escapeHtml(lectureStart)}〜${escapeHtml(lectureEnd)}</p>` : ""}
+
                                 <p
                                     style="
                                         margin:7px 0 0;
@@ -1830,14 +1842,14 @@ function renderRecordList() {
                                         font-size:13px;
                                     ">
 
-                                    開始：
+                                    開始打刻：
                                     ${escapeHtml(
                                       formatTimestamp(record.startStampedAt),
                                     )}
 
                                     <br>
 
-                                    終了：
+                                    終了打刻：
                                     ${escapeHtml(
                                       formatTimestamp(record.endStampedAt),
                                     )}
@@ -2783,6 +2795,10 @@ function createSubjectSessionRows(subjectRecords, plannedLectures) {
 
       lecture: null,
     };
+
+    if (existing.record && choosePreferredAttendanceRecord(existing.record, record) === existing.record) {
+      continue;
+    }
 
     sessions.set(key, {
       ...existing,
@@ -4166,9 +4182,19 @@ function openAttendanceEditDialog(data) {
       ? `${pendingAttendanceEdit.period}限`
       : "時限不明";
 
+    const scheduled = lectures.find((lecture) =>
+      normalizeDate(lecture.date) === pendingAttendanceEdit.date &&
+      normalizePeriod(lecture.period) === pendingAttendanceEdit.period &&
+      normalizeSubjectIdentity(lecture.subject) ===
+        normalizeSubjectIdentity(pendingAttendanceEdit.subject)
+    );
+    const timeText = scheduled?.startTime && scheduled?.endTime
+      ? `・${scheduled.startTime}〜${scheduled.endTime}`
+      : "";
+
     el.editLectureInfo.textContent = `${formatAttendanceDate(
       pendingAttendanceEdit.date,
-    )}・${periodText}`;
+    )}・${periodText}${timeText}`;
   }
 
   if (el.editCurrentStatus) {

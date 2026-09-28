@@ -13144,6 +13144,12 @@ body:has(#weatherCard)
     font-weight:800;
 }
 
+.attendance-record-schedule{
+    margin:6px 0 0;
+    color:var(--subtext);
+    font-size:12px;
+}
+
 
 
 /* 科目別出席 */
