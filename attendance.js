@@ -46,6 +46,7 @@ import {
 
 import { VERSION } from "./version.js";
 import { choosePreferredAttendanceRecord, dedupeAttendanceRecords } from "./attendance_record_view.mjs";
+import { resolveAttendanceCourseSemester, publishedScheduleSemesterForDate } from "./attendance_course_term.mjs";
 
 /* ========================================
    DOM
@@ -192,6 +193,7 @@ let academicTerm = {
 };
 
 let selectedAttendanceTerm = null;
+let currentAttendanceTerm = null;
 
 let availableAttendanceTerms = [];
 
@@ -525,50 +527,21 @@ async function loadAttendanceData() {
 
         履修情報＋時間割だけ取得する。
         */
-    const personalTimetable = await loadPersonalTimetableData({
-      userData,
-      buildEntries: false,
-    });
-
-    if (!selectedAttendanceTerm) {
-      selectedAttendanceTerm = resolveStudentAttendanceTerm(
-        userData,
-        systemData,
-      );
-    }
-
-    academicTerm = {
-      ...selectedAttendanceTerm,
-    };
+    const [personalTimetable, subjectCatalogSnap] = await Promise.all([
+      loadPersonalTimetableData({ userData, buildEntries: false }),
+      getDocs(collection(db, "subjects")).catch((error) => {
+        console.warn("科目の最新学期設定を取得できませんでした:", error);
+        return { docs: [] };
+      }),
+    ]);
+    const subjectCatalog = new Map(
+      subjectCatalogSnap.docs.map((subjectDoc) => [subjectDoc.id, subjectDoc.data()]),
+    );
 
     enrolledSubjects = normalizeEnrolledSubjects(
       personalTimetable?.enrolled || [],
+      subjectCatalog,
     );
-
-    /*
-     * 9月中など、日付から推定した学期と履修登録済み学期が
-     * ずれた場合は、本人が実際に履修している学期を表示する。
-     * 履修登録がない学期・科目を新たに表示することはしない。
-     */
-    if (
-      !availableAttendanceTerms.some((term) =>
-        isSameAttendanceTerm(term, academicTerm),
-      ) &&
-      availableAttendanceTerms.length
-    ) {
-      const sameYearAndGrade = availableAttendanceTerms.filter(
-        (term) =>
-          Number(term.academicYear) === Number(academicTerm.academicYear) &&
-          (!academicTerm.grade ||
-            normalizeGrade(term.grade) === normalizeGrade(academicTerm.grade)),
-      );
-
-      const fallbackTerm =
-        sameYearAndGrade.at(-1) || availableAttendanceTerms.at(-1);
-
-      selectedAttendanceTerm = { ...fallbackTerm };
-      academicTerm = { ...fallbackTerm };
-    }
 
     const scheduleId =
       personalTimetable?.scheduleDocumentId || resolveScheduleId(userData);
@@ -583,10 +556,16 @@ async function loadAttendanceData() {
         */
     scheduleData = personalTimetable?.scheduleData || null;
 
-    enrolledAliases = personalTimetable?.aliasToCourse || new Map();
+    currentAttendanceTerm = resolveCurrentAttendanceTerm(
+      userData, systemData, scheduleData,
+    );
+    if (!selectedAttendanceTerm) selectedAttendanceTerm = { ...currentAttendanceTerm };
+    academicTerm = { ...selectedAttendanceTerm };
+
+    enrolledAliases = createAttendanceAliases(enrolledSubjects, currentAttendanceTerm);
 
     const rawLectures = scheduleData
-      ? extractLectures(scheduleData, effectiveDate, scheduleId)
+      ? extractLectures(scheduleData, effectiveDate, scheduleId, currentAttendanceTerm)
       : [];
 
     /*
@@ -802,8 +781,19 @@ function attachEnrolledSubjectData(item, aliases) {
   };
 }
 
-function extractLectures(data, date, scheduleId) {
-  const rows = normalizeAttendanceScheduleRows(data, scheduleId, academicTerm);
+function createAttendanceAliases(subjects, term) {
+  const aliases = new Map();
+  for (const course of subjects.filter((item) => doesSubjectMatchTerm(item, term))) {
+    for (const value of [course.name, course.subjectKey, course.subjectId, course.id]) {
+      const key = normalizeCourseName(value);
+      if (key) aliases.set(key, course);
+    }
+  }
+  return aliases;
+}
+
+function extractLectures(data, date, scheduleId, term) {
+  const rows = normalizeAttendanceScheduleRows(data, scheduleId, term);
 
   if (rows.length) {
     return rows.filter((item) => item.date === date);
@@ -1912,7 +1902,16 @@ function resolveStudentAttendanceTerm(data = {}, systemData = {}) {
   };
 }
 
-function normalizeEnrolledSubjects(source) {
+function resolveCurrentAttendanceTerm(data, systemData, timetable) {
+  const term = resolveStudentAttendanceTerm(data, systemData);
+  const publishedSemester = publishedScheduleSemesterForDate(timetable, effectiveDate);
+  if (publishedSemester) {
+    term.semester = publishedSemester;
+  }
+  return term;
+}
+
+function normalizeEnrolledSubjects(source, subjectCatalog = new Map()) {
   /*
     Firestore QuerySnapshotでも
     すでに配列化された履修情報でも
@@ -1926,6 +1925,7 @@ function normalizeEnrolledSubjects(source) {
         ...item.data(),
       }));
 
+  const currentAcademicYear = resolveAcademicTerm(effectiveDate, userData).academicYear;
   const rows = sourceRows
 
     .filter((item) => {
@@ -1936,9 +1936,10 @@ function normalizeEnrolledSubjects(source) {
 
     .map((item) => {
       const academicYear = Number(item.academicYear || 0);
+      const master = subjectCatalog.get(item.subjectId) || subjectCatalog.get(item.id);
 
       const semester = normalizeSemester(
-        item.registeredSemester || item.semester,
+        resolveAttendanceCourseSemester(item, master, currentAcademicYear),
       );
 
       const grade = resolveEnrollmentGrade(item.grade, academicYear);
@@ -1951,6 +1952,8 @@ function normalizeEnrolledSubjects(source) {
         semester,
 
         registeredSemester: semester,
+
+        attendanceSemester: semester,
 
         grade,
 
@@ -2029,7 +2032,7 @@ function createAvailableAttendanceTerms(subjects) {
     const grade = normalizeGrade(item.grade);
 
     const semester = normalizeSemester(
-      item.registeredSemester || item.semester,
+      item.attendanceSemester || item.registeredSemester || item.semester,
     );
 
     if (semester === "通年") {
@@ -2060,7 +2063,7 @@ function doesSubjectMatchTerm(subject, term) {
   const year = Number(subject.academicYear || 0);
 
   const semester = normalizeSemester(
-    subject.registeredSemester || subject.semester,
+    subject.attendanceSemester || subject.registeredSemester || subject.semester,
   );
 
   const grade = normalizeGrade(subject.grade);
@@ -2434,8 +2437,7 @@ function renderAttendanceTermSelector() {
 
       return `
                     <option
-                        value="${escapeHtml(key)}"
-                        ${term.unavailable ? "disabled" : ""}>
+                        value="${escapeHtml(key)}">
                         ${escapeHtml(attendanceTermOptionLabel(term) + suffix)}
                     </option>
                 `;
@@ -2458,7 +2460,7 @@ function handleAttendanceTermChange() {
     return;
   }
 
-  const selected = availableAttendanceTerms.find(
+  const selected = [...availableAttendanceTerms, currentAttendanceTerm].filter(Boolean).find(
     (term) => createAttendanceTermKey(term) === el.termSelect.value,
   );
 
@@ -2483,13 +2485,14 @@ function handleAttendanceTermChange() {
 
 function rebuildTermLectures() {
   const scheduleId = resolveScheduleId(userData);
+  const termAliases = createAttendanceAliases(enrolledSubjects, academicTerm);
 
   termLectures =
     scheduleData && scheduleId
       ? buildTermLectures(
           scheduleData,
           scheduleId,
-          enrolledAliases,
+          termAliases,
           academicTerm,
           userData.classSelections || {},
         )
