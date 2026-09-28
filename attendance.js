@@ -16,8 +16,8 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   normalizeCourseName,
-} from "./personal_timetable_data.js?v=20260929-2";
-import { effectiveClassSelections } from "./class_selection.js?v=20260929-2";
+} from "./personal_timetable_data.js?v=20260929-3";
+import { effectiveClassSelections } from "./class_selection.js?v=20260929-3";
 
 import {
   doc,

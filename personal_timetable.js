@@ -5,8 +5,8 @@ import {
   db,
   studentNumber,
 } from "./common.js";
-import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-2";
-import { filterSelectedClassEntries, effectiveClassSelections } from "./class_selection.js?v=20260929-2";
+import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-3";
+import { filterSelectedClassEntries, effectiveClassSelections } from "./class_selection.js?v=20260929-3";
 import {
   doc,
   getDoc,

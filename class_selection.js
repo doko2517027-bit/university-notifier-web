@@ -7,7 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 export const CLASS_SELECTION_NONE = "__NONE__";
-export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v2";
+export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v3";
 const CLASS_SELECTION_RESET_DATE = "2026-09-29";
 
 let classSelectionSchedule = [];
@@ -813,7 +813,7 @@ function normalizeDate(value) {
 }
 
 function normalizePeriod(value) {
-  const match = String(value ?? "").match(/\d+/);
+  const match = String(value ?? "").normalize("NFKC").match(/\d+/);
 
   return match ? Number(match[0]) : "";
 }

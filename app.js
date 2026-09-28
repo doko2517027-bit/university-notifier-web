@@ -25,7 +25,7 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   isCommonScheduleEvent,
-} from "./personal_timetable_data.js?v=20260929-2";
+} from "./personal_timetable_data.js?v=20260929-3";
 
 import {
   setupClassSelection,
@@ -33,7 +33,7 @@ import {
   setClassSelectionSchedule,
   applyClassSelections,
   effectiveClassSelections,
-} from "./class_selection.js?v=20260929-2";
+} from "./class_selection.js?v=20260929-3";
 
 import {
   doc,
@@ -1913,8 +1913,8 @@ function buildScheduleHtml(schedules, grade) {
       (item) => `
 
                 <div
-                    class="lesson-card"
-                    ${item.classSelectionRequired ? 'onclick="openClassSelection()"' : `onclick="openCourse('${item.subject}')"`}>
+                    class="lesson-card${item.classSelectionRequired ? " class-selection-pending" : ""}"
+                    ${item.classSelectionRequired ? 'data-class-selection-required="true" role="button" tabindex="0"' : `onclick="openCourse('${item.subject}')"`}>
 
                     <div class="lesson-period">
                         ${item.period}
@@ -2014,8 +2014,24 @@ async function loadCourseLinks() {
 }
 
 window.openCourse = openCourse;
-window.openClassSelection = () =>
+function openClassSelection() {
   void checkClassSelectionRequired(currentHomeUser, homeClassSelectionDate);
+}
+window.openClassSelection = openClassSelection;
+lectureScheduleList?.addEventListener("click", (event) => {
+  if (event.target.closest("[data-class-selection-required]")) {
+    openClassSelection();
+  }
+});
+lectureScheduleList?.addEventListener("keydown", (event) => {
+  if (
+    (event.key === "Enter" || event.key === " ") &&
+    event.target.closest("[data-class-selection-required]")
+  ) {
+    event.preventDefault();
+    openClassSelection();
+  }
+});
 
 const splash = document.getElementById("splash");
 

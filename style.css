@@ -628,6 +628,10 @@ select:focus{
 
 }
 
+.schedule-content .lesson-card.class-selection-pending::after {
+    content: "▶ クラス選択";
+}
+
 .exam-schedule-item .lesson-card::after{
     display:none;
 }
