@@ -30,6 +30,10 @@ test("クラス選択の更新前データは今日以降だけ再選択し、�
   assert.deepEqual(effectiveClassSelections({
     classSelections: old,
     classSelectionResetVersion: "2026-09-29-v3",
+  }), { "看護学_2026-09-28_1": "A" });
+  assert.deepEqual(effectiveClassSelections({
+    classSelections: old,
+    classSelectionResetVersion: "2026-09-29-v4",
   }), old);
 });
 

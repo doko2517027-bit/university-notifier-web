@@ -6,7 +6,7 @@ const PERIOD_TIMES = Object.freeze({
   5: { startTime: "16:20", endTime: "17:50" },
 });
 
-const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v3";
+const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v4";
 const CLASS_SELECTION_RESET_DATE = "2026-09-29";
 
 function effectiveClassSelections(user = {}) {

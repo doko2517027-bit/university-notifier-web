@@ -7,7 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 export const CLASS_SELECTION_NONE = "__NONE__";
-export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v3";
+export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v4";
 const CLASS_SELECTION_RESET_DATE = "2026-09-29";
 
 let classSelectionSchedule = [];
@@ -96,8 +96,10 @@ export async function checkClassSelectionRequired(currentUserData = null, schedu
 
         過去の保存済み選択も出ない。
         */
-    const unresolved = targets.filter(
-      (target) => !Object.prototype.hasOwnProperty.call(selections, target.key),
+    const unresolved = targets.filter((target) =>
+      target.periods.some(
+        (period) => !Object.prototype.hasOwnProperty.call(selections, period.key),
+      ),
     );
 
     if (!unresolved.length) {
@@ -140,26 +142,31 @@ export function buildClassSelectionTargets(schedule) {
       continue;
     }
 
-    const key = createClassSelectionKey({
-      subject,
-      date,
-      period,
-    });
+    // 同じ日の同じ科目は、時限が違っても一度だけ選択する。
+    const key = `${subject}_${date}`;
 
     if (!groups.has(key)) {
       groups.set(key, {
         key,
         subject,
         date,
-        period,
         options: new Set(),
+        periods: new Map(),
       });
     }
 
     const group = groups.get(key);
+    if (!group.periods.has(period)) {
+      group.periods.set(period, {
+        period,
+        key: createClassSelectionKey({ subject, date, period }),
+        options: new Set(),
+      });
+    }
 
     for (const classGroup of classGroups) {
       group.options.add(classGroup);
+      group.periods.get(period).options.add(classGroup);
     }
   }
 
@@ -170,13 +177,41 @@ export function buildClassSelectionTargets(schedule) {
       options: [...item.options].sort((left, right) =>
         left.localeCompare(right, "ja"),
       ),
+      periods: [...item.periods.values()]
+        .map((period) => ({
+          ...period,
+          options: [...period.options].sort(),
+        }))
+        .sort((left, right) => left.period - right.period),
     }))
     .sort(
       (left, right) =>
         left.date.localeCompare(right.date) ||
-        Number(left.period) - Number(right.period) ||
+        left.periods[0].period - right.periods[0].period ||
         left.subject.localeCompare(right.subject, "ja"),
     );
+}
+
+export function classSelectionOptions(target) {
+  const options = (target.options || []).map((value) => ({
+    value,
+    label: formatClassLabel(value),
+  }));
+  if (options.length === 1) {
+    options.push({ value: CLASS_SELECTION_NONE, label: "クラスなし" });
+  }
+  return options;
+}
+
+export function selectionsForClassTarget(target, value) {
+  return Object.fromEntries(
+    target.periods.map((period) => [
+      period.key,
+      value !== CLASS_SELECTION_NONE && period.options.includes(value)
+        ? value
+        : CLASS_SELECTION_NONE,
+    ]),
+  );
 }
 
 /* ========================================
@@ -196,19 +231,7 @@ function showClassSelectionPopup(targets, existingSelections) {
 
   const classSelectionHtml = targets
     .map((target) => {
-      const buttons = [
-        ...target.options.map((value) => ({
-          value,
-
-          label: formatClassLabel(value),
-        })),
-
-        {
-          value: CLASS_SELECTION_NONE,
-
-          label: "クラスなし",
-        },
-      ];
+      const buttons = classSelectionOptions(target);
 
       return `
 
@@ -221,7 +244,7 @@ function showClassSelectionPopup(targets, existingSelections) {
                                 </strong>
 
                                 <span>
-                                    ${escapeHtml(`${target.period}限`)}
+                                    ${escapeHtml(`${target.periods.map((period) => period.period).join("・")}限`)}
                                 </span>
 
                             </div>
@@ -229,11 +252,9 @@ function showClassSelectionPopup(targets, existingSelections) {
 
                             <p class="class-select-message">
 
-                                ${escapeHtml(
-                                  target.subject,
-                                )}でクラス分けがあります。<br>
-
-                                クラスを選択してください。
+                                ${target.options.length === 1
+                                  ? "このクラスを受講するか、クラスなしを選択してください。"
+                                  : "受講するクラスを1つ選択してください。"}
 
                             </p>
 
@@ -319,7 +340,13 @@ function showClassSelectionPopup(targets, existingSelections) {
     const newSelections = {};
 
     selectedButtons.forEach((button) => {
-      newSelections[button.dataset.key] = button.dataset.value;
+      const target = targets.find((item) => item.key === button.dataset.key);
+      if (target) {
+        Object.assign(
+          newSelections,
+          selectionsForClassTarget(target, button.dataset.value),
+        );
+      }
     });
 
     /*
@@ -645,20 +672,11 @@ function injectClassSelectionStyles() {
         #classSelectionList
         .class-select-box {
 
-            padding:
-                14px 0;
-
-            border-bottom:
-                1px solid
-                var(
-                    --border,
-                    rgba(
-                        148,
-                        163,
-                        184,
-                        .3
-                    )
-                );
+            padding:14px;
+            margin:8px 0;
+            border:1px solid var(--border);
+            border-radius:14px;
+            background:color-mix(in srgb, var(--primary) 3%, var(--card));
 
         }
 
@@ -666,7 +684,7 @@ function injectClassSelectionStyles() {
         #classSelectionList
         .class-select-box:last-child {
 
-            border-bottom:none;
+            margin-bottom:0;
 
         }
 
@@ -679,7 +697,13 @@ function injectClassSelectionStyles() {
                 space-between;
 
             gap:12px;
+            flex-wrap:wrap;
 
+        }
+
+        .class-select-heading strong {
+            font-size:17px;
+            line-height:1.4;
         }
 
 
@@ -697,8 +721,7 @@ function injectClassSelectionStyles() {
 
         .class-select-message {
 
-            margin:
-                8px 0 12px;
+            margin:7px 0 12px;
 
             line-height:1.6;
 
@@ -712,13 +735,8 @@ function injectClassSelectionStyles() {
 
             display:grid;
 
-            grid-template-columns:
-                repeat(
-                    2,
-                    minmax(0,1fr)
-                );
-
-            gap:8px;
+            grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+            gap:10px;
 
         }
 
@@ -729,6 +747,16 @@ function injectClassSelectionStyles() {
             width:100%;
 
             min-width:0;
+            min-height:48px;
+            padding:9px 10px;
+            border:1px solid var(--border);
+            border-radius:11px;
+            background:var(--card);
+            color:var(--text);
+            font-size:15px;
+            font-weight:750;
+            line-height:1.3;
+            cursor:pointer;
 
         }
 
@@ -736,16 +764,16 @@ function injectClassSelectionStyles() {
         #classSelectionList
         .class-choice.selected {
 
-            outline:
-                3px solid
-                var(
-                    --primary,
-                    #2563eb
-                );
+            border-color:var(--primary);
+            background:var(--primary);
+            color:#fff;
+            box-shadow:0 2px 8px rgba(15, 157, 138, .18);
 
-            outline-offset:
-                -3px;
+        }
 
+        #classSelectionList .class-choice:focus-visible {
+            outline:2px solid var(--primary);
+            outline-offset:2px;
         }
 
 
@@ -758,6 +786,7 @@ function injectClassSelectionStyles() {
 
             margin-top:
                 14px;
+            min-height:46px;
 
         }
 

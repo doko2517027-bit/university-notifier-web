@@ -4,7 +4,7 @@ import {
   updateNewsNavBadge,
 } from "./common.js";
 import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-3";
-import { filterSelectedClassEntries, extractClassGroups, effectiveClassSelections } from "./class_selection.js?v=20260929-3";
+import { filterSelectedClassEntries, extractClassGroups, effectiveClassSelections } from "./class_selection.js?v=20260929-4";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 import {
   REMINDER_OPTIONS, dateKey, parseManabaDeadline, monthCells,
