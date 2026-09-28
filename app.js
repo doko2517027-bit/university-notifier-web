@@ -190,6 +190,7 @@ const authSetupCards = document.getElementById("authSetupCards");
 let courses = {};
 
 let currentHomeUser = null;
+let homeClassSelectionDate = "";
 
 let lectureSchedules = [];
 let lectureScheduleIndex = 0;
@@ -475,7 +476,7 @@ async function startApp() {
 
   await todayScheduleTask;
 
-  await checkClassSelectionRequired(user);
+  await checkClassSelectionRequired(user, homeClassSelectionDate);
 
   void backgroundTasks;
 
@@ -1565,6 +1566,7 @@ async function loadTodaySchedule(userData = null) {
   const classSelectionDate = userTestDateActive
     ? userTestClock.date
     : actualToday;
+  homeClassSelectionDate = classSelectionDate;
 
   const classSelectionSchedules = lectureSchedules
 
@@ -1914,7 +1916,7 @@ function buildScheduleHtml(schedules, grade) {
 
                 <div
                     class="lesson-card"
-                    onclick="openCourse('${item.subject}')">
+                    ${item.classSelectionRequired ? 'onclick="openClassSelection()"' : `onclick="openCourse('${item.subject}')"`}>
 
                     <div class="lesson-period">
                         ${item.period}
@@ -1927,7 +1929,9 @@ function buildScheduleHtml(schedules, grade) {
                             ${item.subject}
 
                             ${
-                              item.classGroup
+                              item.classSelectionRequired
+                                ? '<span class="lesson-class-group">クラス未選択</span>'
+                                : item.classGroup
                                 ? `
                                         <span class="lesson-class-group">
                                             ${item.classGroup}
@@ -1939,8 +1943,7 @@ function buildScheduleHtml(schedules, grade) {
                         </div>
 
                         <div class="lesson-room">
-                            ${item.building || ""}
-                            ${item.room || ""}
+                            ${item.classSelectionRequired ? "タップしてクラスを選択" : `${item.building || ""} ${item.room || ""}`}
                         </div>
 
                         <div class="lesson-teacher">
@@ -2013,6 +2016,8 @@ async function loadCourseLinks() {
 }
 
 window.openCourse = openCourse;
+window.openClassSelection = () =>
+  void checkClassSelectionRequired(currentHomeUser, homeClassSelectionDate);
 
 const splash = document.getElementById("splash");
 

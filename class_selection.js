@@ -30,7 +30,7 @@ export function setClassSelectionSchedule(schedule) {
    クラス選択確認
 ======================================== */
 
-export async function checkClassSelectionRequired(currentUserData = null) {
+export async function checkClassSelectionRequired(currentUserData = null, scheduleDate = "") {
   if (!studentNumber) {
     return;
   }
@@ -66,7 +66,7 @@ export async function checkClassSelectionRequired(currentUserData = null) {
         ?date=YYYY-MM-DD
         が付いている場合はその日。
         */
-    const targetDate = resolveTargetDate();
+    const targetDate = normalizeDate(scheduleDate) || resolveTargetDate();
 
     /*
         重要：
@@ -394,7 +394,10 @@ function closeClassSelectionPopup() {
 ======================================== */
 
 export function applyClassSelections(schedule, selections = {}) {
-  return (schedule || []).filter((item) => {
+  const visible = [];
+  const unresolvedKeys = new Set();
+
+  for (const item of schedule || []) {
     const groups = extractClassGroups(item.classGroup);
 
     /*
@@ -402,17 +405,26 @@ export function applyClassSelections(schedule, selections = {}) {
             → 必ず対象。
             */
     if (!groups.length) {
-      return true;
+      visible.push(item);
+      continue;
     }
 
     const key = createClassSelectionKey(item);
 
-    /*
-            クラス未選択
-            → 表示・出席対象にしない。
-            */
+    // 未選択の講義は消さず、同じ時限のクラス違いを1件にまとめて表示する。
     if (!Object.prototype.hasOwnProperty.call(selections, key)) {
-      return false;
+      if (!unresolvedKeys.has(key)) {
+        unresolvedKeys.add(key);
+        visible.push({
+          ...item,
+          classGroup: "",
+          classSelectionRequired: true,
+          building: "",
+          room: "",
+          teacher: "",
+        });
+      }
+      continue;
     }
 
     const selected = normalizeSelection(selections[key]);
@@ -423,11 +435,13 @@ export function applyClassSelections(schedule, selections = {}) {
               クラス講義には参加しない。
             */
     if (selected === CLASS_SELECTION_NONE) {
-      return false;
+      continue;
     }
 
-    return groups.includes(selected);
-  });
+    if (groups.includes(selected)) visible.push(item);
+  }
+
+  return visible;
 }
 
 /* ========================================
