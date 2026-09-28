@@ -18,7 +18,7 @@
     </script>
   </head>
 
-  <body class="page-loading">
+  <body class="page-loading exam-admin-body">
     <div class="top-buttons">
       <button id="backButton" class="circle-button">←</button>
 
@@ -46,14 +46,15 @@
       <button id="saveNationalVisibility" type="button" class="btn btn-primary">表示設定を保存</button>
     </div>
 
-    <div class="card setting-card" id="examSettingsCard">
+    <div class="card setting-card exam-admin-intro">
       <h2>📚 テスト管理</h2>
 
       <p>テスト期間やAI学習機能を管理します。</p>
     </div>
 
-    <div class="card setting-card">
-      <h3>⚙️ 基本設定</h3>
+    <details class="card setting-card exam-admin-settings" id="examSettingsCard">
+      <summary>⚙️ テスト期間・表示設定を編集</summary>
+      <div class="exam-admin-settings-content">
 
       <label class="setting-row">
         <span>
@@ -129,7 +130,8 @@
       <button id="saveExamSettings" class="btn btn-primary">
         テスト設定を保存
       </button>
-    </div>
+      </div>
+    </details>
 
     <div class="card setting-card exam-admin-category-card">
       <h3>🗂️ 区分管理</h3>

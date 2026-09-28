@@ -339,6 +339,7 @@ async function loadSubjects() {
     subjectCard.className = "card setting-card exam-admin-subject-card";
 
     const subjectHeader = document.createElement("div");
+    subjectHeader.className = "exam-admin-subject-header";
     subjectHeader.setAttribute("role", "button");
     subjectHeader.tabIndex = 0;
 
@@ -361,7 +362,7 @@ async function loadSubjects() {
                     `
                 : `
                         <p>
-                            タップして単元を表示
+                            ${unitSnap.size}単元 ・ タップして管理
                         </p>
                     `
             }
@@ -369,11 +370,14 @@ async function loadSubjects() {
         `;
 
     const subjectContent = document.createElement("div");
+    subjectContent.className = "exam-admin-subject-content";
     subjectContent.style.display = openAdminSubjectIds.has(subjectDoc.id) ? "block" : "none";
+    subjectCard.classList.toggle("is-open", subjectContent.style.display === "block");
 
     subjectHeader.onclick = () => {
       subjectContent.style.display =
         subjectContent.style.display === "none" ? "block" : "none";
+      subjectCard.classList.toggle("is-open", subjectContent.style.display === "block");
       if (subjectContent.style.display === "block") openAdminSubjectIds.add(subjectDoc.id);
       else openAdminSubjectIds.delete(subjectDoc.id);
     };
@@ -385,116 +389,38 @@ async function loadSubjects() {
     };
 
     subjectContent.innerHTML = `
-            <div class="exam-admin-edit-grid">
-              <label>講義・科目名<input class="edit-subject-name" type="text" value="${escapeHtml(subject.name)}"></label>
-              <label>区分<select class="edit-subject-category">${categoryOptions(subject.groupId || "")}</select></label>
-              <button type="button" class="btn btn-primary save-subject" data-subject-id="${subjectDoc.id}">科目情報を保存</button>
-            </div>
-            <input
-                id="unitName_${subjectDoc.id}"
-                type="text"
-                placeholder="単元名 例：循環器">
-
-            <br><br>
-
-            <input
-                id="unitRange_${subjectDoc.id}"
-                type="text"
-                placeholder="試験範囲 任意 例：第1回〜第3回">
-
-            <br><br>
-
-            <label>
-                実施日
+      <div class="exam-admin-subject-tools">
+        <details class="exam-admin-detail">
+          <summary>科目名・区分・実施日を編集</summary>
+          <div class="exam-admin-edit-grid">
+            <label>講義・科目名<input class="edit-subject-name" type="text" value="${escapeHtml(subject.name)}"></label>
+            <label>区分<select class="edit-subject-category">${categoryOptions(subject.groupId || "")}</select></label>
+            <label>実施日<input type="date" class="completed-date" data-subject-id="${subjectDoc.id}" value="${escapeHtml(subject.completedDate || "")}"></label>
+            <label>実施時限
+              <select class="completed-period" data-subject-id="${subjectDoc.id}">
+                <option value="" ${!subject.completedPeriod ? "selected" : ""}>時限を選択</option>
+                ${[1, 2, 3, 4, 5, 6].map((period) => `<option value="${period}" ${String(subject.completedPeriod) === String(period) ? "selected" : ""}>${period}限目</option>`).join("")}
+              </select>
             </label>
-
-            <br>
-
-            <input
-                type="date"
-                class="completed-date"
-                data-subject-id="${subjectDoc.id}"
-                value="${escapeHtml(subject.completedDate || "")}">
-
-            <br><br>
-
-            <label>
-                実施時限
-            </label>
-
-            <br>
-
-            <select
-                class="completed-period"
-                data-subject-id="${subjectDoc.id}">
-
-                <option
-                    value=""
-                    ${!subject.completedPeriod ? "selected" : ""}>
-                    時限を選択
-                </option>
-
-                <option
-                    value="1"
-                    ${String(subject.completedPeriod) === "1" ? "selected" : ""}>
-                    1限目
-                </option>
-
-                <option
-                    value="2"
-                    ${String(subject.completedPeriod) === "2" ? "selected" : ""}>
-                    2限目
-                </option>
-
-                <option
-                    value="3"
-                    ${String(subject.completedPeriod) === "3" ? "selected" : ""}>
-                    3限目
-                </option>
-
-                <option
-                    value="4"
-                    ${String(subject.completedPeriod) === "4" ? "selected" : ""}>
-                    4限目
-                </option>
-
-                <option
-                    value="5"
-                    ${String(subject.completedPeriod) === "5" ? "selected" : ""}>
-                    5限目
-                </option>
-
-                <option
-                    value="6"
-                    ${String(subject.completedPeriod) === "6" ? "selected" : ""}>
-                    6限目
-                </option>
-
-            </select>
-
-            <br><br>
-
-            <label>
-                <input
-                    type="checkbox"
-                    class="completed-toggle"
-                    data-subject-id="${subjectDoc.id}"
-                    ${subject.completed ? "checked" : ""}>
-                この科目を実施済みにする
-            </label>
-
-            <br><br>
-
-            <button
-                class="btn btn-primary add-unit"
-                data-subject-id="${subjectDoc.id}">
-                単元を追加
-            </button>
-
-            <br><br>
-        `;
+            <label class="exam-admin-check-label"><input type="checkbox" class="completed-toggle" data-subject-id="${subjectDoc.id}" ${subject.completed ? "checked" : ""}>この科目を実施済みにする</label>
+            <button type="button" class="btn btn-primary save-subject" data-subject-id="${subjectDoc.id}">科目名・区分を保存</button>
+          </div>
+          <small class="exam-admin-field-note">実施日・時限・実施済みは変更時に自動保存されます。</small>
+        </details>
+        <details class="exam-admin-detail">
+          <summary>新しい単元を追加</summary>
+          <div class="exam-admin-edit-grid">
+            <label>単元・講義名<input id="unitName_${subjectDoc.id}" type="text" placeholder="例：循環器"></label>
+            <label>試験範囲・補足<input id="unitRange_${subjectDoc.id}" type="text" placeholder="例：第1回〜第3回"></label>
+            <button type="button" class="btn btn-primary add-unit" data-subject-id="${subjectDoc.id}">単元を追加</button>
+          </div>
+        </details>
+      </div>
+      <h4 class="exam-admin-unit-heading">単元 ${unitSnap.size}件</h4>
+    `;
 
     const unitList = document.createElement("div");
+    unitList.className = "exam-admin-unit-list";
 
     if (unitSnap.empty) {
       unitList.innerHTML = "<p>単元はまだありません。</p>";
@@ -507,54 +433,41 @@ async function loadSubjects() {
         unitCard.className = "card setting-card exam-admin-unit-card";
 
         const unitHeader = document.createElement("div");
+        unitHeader.className = "exam-admin-unit-header";
         unitHeader.setAttribute("role", "button");
         unitHeader.tabIndex = 0;
 
         unitHeader.innerHTML = `
                     <h4>📘 ${escapeHtml(unit.name)}</h4>
                     <small>${escapeHtml(unit.range || "")}</small>
-                    <p>タップして管理項目を表示</p>
+                    <p>タップして操作</p>
                 `;
 
         const unitMenu = document.createElement("div");
+        unitMenu.className = "exam-admin-unit-menu";
 
         unitMenu.style.display = "none";
 
         unitMenu.innerHTML = `
-                    <div class="exam-admin-edit-grid">
-                      <label>単元・講義名<input class="edit-unit-name" type="text" value="${escapeHtml(unit.name)}"></label>
-                      <label>試験範囲・補足<input class="edit-unit-range" type="text" value="${escapeHtml(unit.range || "")}"></label>
-                      <button type="button" class="btn btn-primary save-unit" data-subject-id="${subjectDoc.id}" data-unit-id="${unitDoc.id}">単元情報を保存</button>
-                    </div>
-                    <button
-                        class="btn btn-secondary manage-materials"
-                        data-subject-id="${subjectDoc.id}"
-                        data-unit-id="${unitDoc.id}">
-                        📄 資料管理
-                    </button>
-
-                    <br><br>
-
-                    <button
-                        class="btn btn-secondary manage-questions"
-                        data-subject-id="${subjectDoc.id}"
-                        data-unit-id="${unitDoc.id}">
-                        📝 問題一覧
-                    </button>
-
-                    <br><br>
-
-                    <button
-                        class="btn btn-danger delete-unit"
-                        data-subject-id="${subjectDoc.id}"
-                        data-unit-id="${unitDoc.id}">
-                        単元を削除
-                    </button>
-                `;
+          <div class="exam-admin-unit-actions">
+            <button type="button" class="btn btn-secondary manage-questions" data-subject-id="${subjectDoc.id}" data-unit-id="${unitDoc.id}">📝 問題を管理</button>
+            <button type="button" class="btn btn-secondary manage-materials" data-subject-id="${subjectDoc.id}" data-unit-id="${unitDoc.id}">📄 資料を管理</button>
+          </div>
+          <details class="exam-admin-detail">
+            <summary>単元名・範囲を編集</summary>
+            <div class="exam-admin-edit-grid">
+              <label>単元・講義名<input class="edit-unit-name" type="text" value="${escapeHtml(unit.name)}"></label>
+              <label>試験範囲・補足<input class="edit-unit-range" type="text" value="${escapeHtml(unit.range || "")}"></label>
+              <button type="button" class="btn btn-primary save-unit" data-subject-id="${subjectDoc.id}" data-unit-id="${unitDoc.id}">単元情報を保存</button>
+            </div>
+          </details>
+          <button type="button" class="btn btn-danger delete-unit exam-admin-delete-action" data-subject-id="${subjectDoc.id}" data-unit-id="${unitDoc.id}">単元を削除</button>
+        `;
 
         unitHeader.onclick = () => {
           unitMenu.style.display =
             unitMenu.style.display === "none" ? "block" : "none";
+          unitCard.classList.toggle("is-open", unitMenu.style.display === "block");
         };
         unitHeader.onkeydown = (event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -573,15 +486,7 @@ async function loadSubjects() {
 
     subjectContent.insertAdjacentHTML(
       "beforeend",
-      `
-                <br>
-
-                <button
-                    class="btn btn-danger delete-subject"
-                    data-id="${subjectDoc.id}">
-                    科目を削除
-                </button>
-            `,
+      `<div class="exam-admin-subject-footer"><button type="button" class="btn btn-danger delete-subject" data-id="${subjectDoc.id}">科目を削除</button></div>`,
     );
 
     subjectCard.appendChild(subjectHeader);
