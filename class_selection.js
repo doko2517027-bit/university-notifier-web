@@ -7,6 +7,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 export const CLASS_SELECTION_NONE = "__NONE__";
+export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v2";
+const CLASS_SELECTION_RESET_DATE = "2026-09-29";
 
 let classSelectionSchedule = [];
 let classSelectionInertElements = [];
@@ -58,7 +60,7 @@ export async function checkClassSelectionRequired(currentUserData = null, schedu
       userData = userSnapshot.data() || {};
     }
 
-    const selections = userData.classSelections || {};
+    const selections = effectiveClassSelections(userData);
 
     /*
         通常起動なら今日だけ。
@@ -337,6 +339,7 @@ function showClassSelectionPopup(targets, existingSelections) {
     try {
       await updateDoc(doc(db, "users", studentNumber), {
         classSelections: mergedSelections,
+        classSelectionResetVersion: CLASS_SELECTION_RESET_VERSION,
 
         classSelectionUpdatedAt: new Date().toISOString(),
       });
@@ -355,6 +358,7 @@ function showClassSelectionPopup(targets, existingSelections) {
         new CustomEvent("caremate:classSelectionsUpdated", {
           detail: {
             selections: mergedSelections,
+            resetVersion: CLASS_SELECTION_RESET_VERSION,
           },
         }),
       );
@@ -473,6 +477,40 @@ export function getSelectedClassForLecture(selections, item) {
   }
 
   return normalizeSelection(selections[key]);
+}
+
+export function effectiveClassSelections(userData = {}) {
+  const selections = userData?.classSelections;
+  if (!selections || typeof selections !== "object") return {};
+  if (userData.classSelectionResetVersion === CLASS_SELECTION_RESET_VERSION) {
+    return selections;
+  }
+
+  // リセット前の日付別選択は履歴用に維持し、今日以降だけ再選択する。
+  return Object.fromEntries(
+    Object.entries(selections).filter(([key]) => {
+      const date = normalizeDate(String(key).match(/20\d{2}[-/]\d{1,2}[-/]\d{1,2}/)?.[0]);
+      return date && date < CLASS_SELECTION_RESET_DATE;
+    }),
+  );
+}
+
+// カレンダー・個人時間割では、保存済みの日付別選択だけを反映する。
+// 未選択の未来日程は候補を残し、当日の選択を別の日へ流用しない。
+export function filterSelectedClassEntries(entries, selections = {}) {
+  return (entries || []).filter((entry) => {
+    const groups = extractClassGroups(entry.classGroup);
+    if (!groups.length) return true;
+
+    const key = createClassSelectionKey({
+      ...entry,
+      subject: entry.scheduleSubject || entry.subject,
+    });
+    if (!Object.prototype.hasOwnProperty.call(selections, key)) return true;
+
+    const selected = normalizeSelection(selections[key]);
+    return selected !== CLASS_SELECTION_NONE && groups.includes(selected);
+  });
 }
 
 /* ========================================

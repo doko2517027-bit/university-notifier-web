@@ -5,12 +5,28 @@ const {
   normalizeGrade,
   attendanceNotificationType,
   canRetryAttendanceDispatch,
+  effectiveClassSelections,
 } = require("./attendance_policy");
 
 test("公式時間割の全角学年と学生の半角学年を同じ学年として扱う", () => {
   assert.equal(normalizeGrade("２年"), normalizeGrade("2年"));
   assert.equal(normalizeGrade("２年"), "2");
   assert.notEqual(normalizeGrade("４年"), normalizeGrade("2年"));
+});
+
+test("クラス選択の更新前データは今日以降だけ再選択し、過去を残す", () => {
+  const old = {
+    "看護学_2026-09-28_1": "A",
+    "看護学_2026-09-29_1": "B",
+    "看護学_2026-10-01_1": "C",
+  };
+  assert.deepEqual(effectiveClassSelections({ classSelections: old }), {
+    "看護学_2026-09-28_1": "A",
+  });
+  assert.deepEqual(effectiveClassSelections({
+    classSelections: old,
+    classSelectionResetVersion: "2026-09-29-v2",
+  }), old);
 });
 
 test("送信済み端末は重複送信せず、失敗時だけ1分後に再試行する", () => {

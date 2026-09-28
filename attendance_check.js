@@ -5,6 +5,7 @@ import {
   setupTheme,
   loadProfileImage,
 } from "./common.js";
+import { effectiveClassSelections } from "./class_selection.js?v=20260929-2";
 
 import {
   doc,
@@ -271,10 +272,7 @@ async function init() {
 ======================================== */
 
 function validateClassSelection() {
-  const selections =
-    userData.classSelections && typeof userData.classSelections === "object"
-      ? userData.classSelections
-      : {};
+  const selections = effectiveClassSelections(userData);
 
   const slashDate = date.replaceAll("-", "/");
 

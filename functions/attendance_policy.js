@@ -6,6 +6,26 @@ const PERIOD_TIMES = Object.freeze({
   5: { startTime: "16:20", endTime: "17:50" },
 });
 
+const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v2";
+const CLASS_SELECTION_RESET_DATE = "2026-09-29";
+
+function effectiveClassSelections(user = {}) {
+  const selections = user.classSelections;
+  if (!selections || typeof selections !== "object") return {};
+  if (user.classSelectionResetVersion === CLASS_SELECTION_RESET_VERSION) {
+    return selections;
+  }
+  return Object.fromEntries(
+    Object.entries(selections).filter(([key]) => {
+      const match = String(key).match(/20\d{2}[-/]\d{1,2}[-/]\d{1,2}/);
+      if (!match) return false;
+      const [year, month, day] = match[0].split(/[-/]/);
+      const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      return date < CLASS_SELECTION_RESET_DATE;
+    }),
+  );
+}
+
 function normalizeCourseName(value) {
   return String(value || "")
     .normalize("NFKC")
@@ -74,6 +94,7 @@ function classifyDeparture(date, endTime) {
 
 module.exports = {
   PERIOD_TIMES,
+  effectiveClassSelections,
   normalizeCourseName,
   normalizeGrade,
   attendanceNotificationType,

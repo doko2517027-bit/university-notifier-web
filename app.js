@@ -25,14 +25,15 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   isCommonScheduleEvent,
-} from "./personal_timetable_data.js";
+} from "./personal_timetable_data.js?v=20260929-2";
 
 import {
   setupClassSelection,
   checkClassSelectionRequired,
   setClassSelectionSchedule,
   applyClassSelections,
-} from "./class_selection.js";
+  effectiveClassSelections,
+} from "./class_selection.js?v=20260929-2";
 
 import {
   doc,
@@ -245,6 +246,7 @@ window.addEventListener("caremate:classSelectionsUpdated", async (event) => {
     ...(currentHomeUser || {}),
 
     classSelections: selections,
+    classSelectionResetVersion: event.detail?.resetVersion,
   };
 
   try {
@@ -1587,11 +1589,7 @@ async function loadTodaySchedule(userData = null) {
     日付 × 科目 × 時限ごとの
     クラス選択を取得。
     */
-  const classSelections =
-    currentUserData?.classSelections &&
-    typeof currentUserData.classSelections === "object"
-      ? currentUserData.classSelections
-      : {};
+  const classSelections = effectiveClassSelections(currentUserData);
 
   /*
     今日

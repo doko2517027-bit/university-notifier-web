@@ -19898,12 +19898,13 @@ course-tagが付いたspanには適用しない。
   .calendar-overview small { font-size: .65rem; }
   .calendar-overview strong { font-size: 1.35rem; }
   .calendar-grid { gap: 2px; }
-  .calendar-day { min-height: 73px; padding: 3px; border-radius: 6px; }
+  .calendar-day { min-height: 98px; padding: 3px; border-radius: 6px; }
   .calendar-day-number { font-size: .78rem; min-width: 19px; min-height: 19px; }
   .calendar-day-count { top: 4px; right: 3px; font-size: .54rem; }
   .calendar-holiday-label { font-size: .55rem; }
-  .calendar-dot { height: 5px; padding: 0; font-size: 0; }
+  .calendar-dot { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-height: 2.2em; height: auto; padding: 2px; font-size: .61rem; line-height: 1.15; white-space: normal; overflow-wrap: anywhere; }
   .calendar-day-items small { font-size: .54rem; }
+  .calendar-week-event b { white-space: normal; overflow-wrap: anywhere; }
   .calendar-agenda-heading .btn { font-size: .72rem; padding: 7px; }
   .calendar-admin-item { align-items: stretch; flex-direction: column; }
   .calendar-admin-item > div:last-child .btn { flex: 1; }

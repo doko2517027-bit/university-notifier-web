@@ -3,7 +3,8 @@ import {
   loadUserName, loadMyRanking, setupAdminTab, updateAssignmentNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
-import { loadPersonalTimetableData } from "./personal_timetable_data.js";
+import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-2";
+import { filterSelectedClassEntries, extractClassGroups, effectiveClassSelections } from "./class_selection.js?v=20260929-2";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 import {
   REMINDER_OPTIONS, dateKey, parseManabaDeadline, monthCells,
@@ -136,11 +137,14 @@ async function loadCalendarData() {
     const event = assignmentEvent(id, item);
     if (event) next.push(event);
   }
-  for (const entry of timetable?.entries || []) {
+  for (const entry of filterSelectedClassEntries(timetable?.entries, effectiveClassSelections(user))) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.date || "")) continue;
+    const periodLabel = entry.period > 0 ? `${entry.period}限` : "時限未設定";
+    const classGroups = extractClassGroups(entry.classGroup);
+    const classLabel = classGroups.length ? `・${classGroups.join("/")}クラス` : "";
     next.push({ kind: "timetable", id: entry.entryId, date: entry.date,
       startAt: new Date(`${entry.date}T${entry.startTime || "09:00"}:00`),
-      title: entry.subject, subtitle: `${entry.period || "-"}限${entry.room ? `・${entry.room}` : ""}`,
+      title: entry.subject, subtitle: `${periodLabel}${classLabel}${entry.room ? `・${entry.room}` : ""}`,
       note: [entry.teacher, entry.building, entry.room].filter(Boolean).join(" / "),
       isCommon: entry.isCommonScheduleEvent });
   }

@@ -28,6 +28,7 @@ const {
   normalizeGrade,
   attendanceNotificationType,
   canRetryAttendanceDispatch,
+  effectiveClassSelections,
   slotId,
 } = require("./attendance_policy");
 
@@ -1181,10 +1182,7 @@ async function processAttendanceNotifications() {
 
     const grade = normalizeGrade(user.grade);
 
-    const classSelections =
-      user.classSelections && typeof user.classSelections === "object"
-        ? user.classSelections
-        : {};
+    const classSelections = effectiveClassSelections(user);
 
     /*
         まず

@@ -16,7 +16,8 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   normalizeCourseName,
-} from "./personal_timetable_data.js";
+} from "./personal_timetable_data.js?v=20260929-2";
+import { effectiveClassSelections } from "./class_selection.js?v=20260929-2";
 
 import {
   doc,
@@ -687,7 +688,7 @@ async function loadAttendanceData() {
     const classResult = buildStudentLectures(
       enrolled,
 
-      userData.classSelections || {},
+      effectiveClassSelections(userData),
 
       effectiveDate,
 
@@ -2497,7 +2498,7 @@ function rebuildTermLectures() {
           scheduleId,
           termAliases,
           academicTerm,
-          userData.classSelections || {},
+          effectiveClassSelections(userData),
         )
       : [];
 }

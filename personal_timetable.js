@@ -5,7 +5,8 @@ import {
   db,
   studentNumber,
 } from "./common.js";
-import { loadPersonalTimetableData } from "./personal_timetable_data.js";
+import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-2";
+import { filterSelectedClassEntries, effectiveClassSelections } from "./class_selection.js?v=20260929-2";
 import {
   doc,
   getDoc,
@@ -59,27 +60,36 @@ async function chooseGroup(subject, group) {
 
 async function load() {
   try {
-    const result = await loadPersonalTimetableData({ includeCommonEvents: true });
-    count.textContent = `履修登録 ${result.enrolled.length}科目・大学時間割 ${result.entries.length}コマ`;
-    if (!result.entries.length) {
+    const userSnapshot = await getDoc(doc(db, "users", studentNumber));
+    const currentUser = userSnapshot.data() || {};
+    const result = await loadPersonalTimetableData({
+      userData: currentUser,
+      includeCommonEvents: true,
+    });
+    const visibleEntries = filterSelectedClassEntries(
+      result.entries,
+      effectiveClassSelections(currentUser),
+    );
+    count.textContent = `履修登録 ${result.enrolled.length}科目・大学時間割 ${visibleEntries.length}コマ`;
+    if (!visibleEntries.length) {
       list.innerHTML =
         '<div class="card setting-card"><h3>時間割がありません</h3><p>対象学科・学年の大学時間割がまだ登録されていません。</p></div>';
       return;
     }
     const choices = new Map();
-    for (const entry of result.entries) {
+    for (const entry of visibleEntries) {
       if (!entry.classGroup) continue;
       const key = `${entry.subject}_${entry.date}_${entry.period}`;
       if (!choices.has(key)) choices.set(key, new Set());
       choices.get(key).add(entry.classGroup);
     }
     const preferences = new Map();
-    for (const entry of result.entries) {
+    for (const entry of visibleEntries) {
       if (!preferences.has(entry.subject))
         preferences.set(entry.subject, await preference(entry.subject));
     }
     const groups = new Map();
-    for (const entry of result.entries) {
+    for (const entry of visibleEntries) {
       const key = entry.date || entry.dayTitle;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(entry);

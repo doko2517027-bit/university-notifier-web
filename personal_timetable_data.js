@@ -237,7 +237,14 @@ export async function loadPersonalTimetableData({
         continue;
       }
 
-      const period = Number.parseInt(item.period, 10) || 0;
+      const statedPeriod = Number(
+        String(item.period || "").normalize("NFKC").match(/\d+/)?.[0] || 0,
+      );
+      const period = statedPeriod || Number(
+        Object.entries(PERIOD_TIMES).find(
+          ([, times]) => times.startTime === String(item.startTime || "").trim(),
+        )?.[0] || 0,
+      );
       const scheduleItemKey =
         course?.id ||
         item.id ||
