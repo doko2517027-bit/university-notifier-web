@@ -139,8 +139,6 @@ const el = {
 
   totalAbsent: document.getElementById("attendanceSummaryTotalAbsent"),
 
-  conversionText: document.getElementById("attendanceLateEarlyConversionText"),
-
   editOverlay: document.getElementById("attendanceEditOverlay"),
 
   editClose: document.getElementById("attendanceEditCloseButton"),
@@ -1848,7 +1846,10 @@ function renderRecordList() {
 
                             </div>
 
-                            ${statusBadge(result)}
+                            <div class="attendance-record-result">
+                                ${statusBadge(result)}
+                                ${record.manualEdited === true ? '<small class="attendance-record-edited">修正済み</small>' : ""}
+                            </div>
 
                         </div>
 
@@ -2520,8 +2521,6 @@ function renderSubjectAttendanceList() {
             `;
     }
 
-    updateTermAbsenceSummary([]);
-
     return;
   }
 
@@ -2537,7 +2536,6 @@ function renderSubjectAttendanceList() {
     .map(renderSubjectAttendanceCard)
     .join("");
 
-  updateTermAbsenceSummary(statistics);
 }
 
 function createSubjectsFromRecords(rows) {
@@ -3165,31 +3163,6 @@ function getSubjectSessionDisplay(session) {
 
     className: "is-pending",
   };
-}
-
-function updateTermAbsenceSummary(statistics) {
-  const converted = statistics.reduce(
-    (total, item) => total + item.convertedAbsent,
-    0,
-  );
-
-  const directAndTiming = statistics.reduce(
-    (total, item) => total + item.directAbsent + item.timingAbsent,
-    0,
-  );
-
-  if (el.convertedAbsent) {
-    el.convertedAbsent.textContent = String(converted);
-  }
-
-  if (el.totalAbsent) {
-    el.totalAbsent.textContent = String(converted + directAndTiming);
-  }
-
-  if (el.conversionText) {
-    el.conversionText.textContent =
-      "遅刻・早退は科目ごとに3回で欠席1回分として換算します。";
-  }
 }
 
 function doesRecordMatchSubject(record, subject) {

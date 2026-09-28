@@ -13131,6 +13131,19 @@ body:has(#weatherCard)
 
 }
 
+.attendance-record-result{
+    display:grid;
+    justify-items:end;
+    gap:5px;
+    flex:0 0 auto;
+}
+
+.attendance-record-edited{
+    color:var(--primary);
+    font-size:11px;
+    font-weight:800;
+}
+
 
 
 /* 科目別出席 */

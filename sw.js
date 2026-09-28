@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v27";
+const STATIC_CACHE = "caremate-static-v28";
 
-const RUNTIME_CACHE = "caremate-runtime-v27";
+const RUNTIME_CACHE = "caremate-runtime-v28";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -71,7 +71,7 @@ const CORE_ASSETS = [
 
   "attendance.html",
 
-  "attendance.js?v=20260924-1",
+  "attendance.js?v=20260928-1",
 
   "class_selection.js",
 
