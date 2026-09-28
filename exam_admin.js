@@ -14,8 +14,6 @@ import {
   collection,
   addDoc,
   getDocs,
-  query,
-  orderBy,
   deleteDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { isSubjectInMode, getModeCategories, groupCatalogItems, parseExamSchedule } from "./exam_catalog.mjs";
@@ -280,19 +278,22 @@ function formatCompletedExamDate(dateValue) {
   return `${month}/${day}` + `（${weekdays[date.getDay()]}）`;
 }
 
-async function loadSubjects() {
-  const q = query(collection(db, "examSubjects"), orderBy("createdAt", "desc"));
+function createdAtMillis(data) {
+  const value = data?.createdAt;
+  if (typeof value?.toMillis === "function") return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  const parsed = Date.parse(value || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
-  const snap = await getDocs(q);
+async function loadSubjects() {
+  // Firestore の orderBy は createdAt がない既存文書を結果から除外する。
+  // 学生側と同じ全件を取得し、表示順だけクライアントで決める。
+  const snap = await getDocs(collection(db, "examSubjects"));
 
   const subjects = await Promise.all(
     snap.docs.filter((subjectDoc) => isSubjectInMode(subjectDoc.data(), examMode)).map(async (subjectDoc) => {
-      const unitSnap = await getDocs(
-        query(
-          collection(db, "examSubjects", subjectDoc.id, "units"),
-          orderBy("createdAt", "desc"),
-        ),
-      );
+      const unitSnap = await getDocs(collection(db, "examSubjects", subjectDoc.id, "units"));
 
       return {
         subjectDoc,
@@ -301,6 +302,7 @@ async function loadSubjects() {
       };
     }),
   );
+  subjects.sort((a, b) => createdAtMillis(b.subject) - createdAtMillis(a.subject));
 
   currentSubjects = subjects.map(({ subjectDoc, subject }) => ({ id: subjectDoc.id, ...subject }));
   renderCategories();
@@ -425,7 +427,7 @@ async function loadSubjects() {
     if (unitSnap.empty) {
       unitList.innerHTML = "<p>単元はまだありません。</p>";
     } else {
-      unitSnap.forEach((unitDoc) => {
+      [...unitSnap.docs].sort((a, b) => createdAtMillis(b.data()) - createdAtMillis(a.data())).forEach((unitDoc) => {
         const unit = unitDoc.data();
 
         const unitCard = document.createElement("div");
