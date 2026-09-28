@@ -71,7 +71,7 @@ const CORE_ASSETS = [
 
   "attendance.html",
 
-  "attendance.js?v=20260928-4",
+  "attendance.js?v=20260929-1",
 
   "attendance_record_view.mjs",
 

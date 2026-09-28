@@ -1430,9 +1430,9 @@ function renderLectureCard(lecture, index) {
 
   const canEnd = state.canEndStamp && hasStart && !hasEnd && !absent;
 
-  const classText = normalized.classGroup
-    ? `${normalized.classGroup}クラス`
-    : "クラス指定なし";
+  const classText = formatAttendanceClassLabel(
+    lecture.selectedClassGroup || normalized.classGroup,
+  ) || "クラス指定なし";
 
   const roomText = [normalized.building, normalized.room]
     .filter(Boolean)
@@ -2322,7 +2322,10 @@ function buildFutureAttendanceLectures(source, date, scheduleId, selections) {
      * すでに本人のクラスが確定している講義は
      * generic予定を追加しない。
      */
-    if (selectedKeys.has(key)) {
+    if (
+      selectedKeys.has(key) ||
+      resolveSelectedClass(selections, date, subject, period) === CLASS_SELECTION_NONE
+    ) {
       continue;
     }
 
@@ -3044,6 +3047,12 @@ function renderSubjectSessionRow(session) {
   const display = getSubjectSessionDisplay(session);
 
   const editLocked = !isAttendanceSessionEditable(session, display);
+  const classLabel = formatAttendanceClassLabel(
+    session.lecture?.selectedClassGroup ||
+      (session.lecture?.classOptions?.length
+        ? session.lecture.classOptions.join("/")
+        : session.lecture?.classGroup),
+  );
 
   return `
         <div
@@ -3070,6 +3079,7 @@ function renderSubjectSessionRow(session) {
                                       )}`
                                     : ""
                                 }
+                                ${classLabel ? `・${escapeHtml(classLabel)}` : ""}
                             </small>
                         `
                     : ""
@@ -3095,6 +3105,11 @@ function renderSubjectSessionRow(session) {
 
         </div>
     `;
+}
+
+function formatAttendanceClassLabel(value) {
+  const groups = extractClassGroups(value);
+  return groups.length ? `${groups.join("/")}クラス` : "";
 }
 
 function isAttendanceSessionEditable(session, display) {

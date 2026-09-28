@@ -9,6 +9,7 @@ import {
 export const CLASS_SELECTION_NONE = "__NONE__";
 
 let classSelectionSchedule = [];
+let classSelectionInertElements = [];
 
 /* ========================================
    初期化
@@ -271,6 +272,7 @@ function showClassSelectionPopup(targets, existingSelections) {
     DOM更新は1回だけ。
     */
   list.innerHTML = classSelectionHtml;
+  saveButton.disabled = true;
 
   /*
     ボタン1個ずつではなく
@@ -296,6 +298,8 @@ function showClassSelectionPopup(targets, existingSelections) {
     }
 
     button.classList.add("selected");
+    saveButton.disabled =
+      list.querySelectorAll(".class-choice.selected").length !== targets.length;
   };
 
   saveButton.onclick = async () => {
@@ -366,6 +370,14 @@ function showClassSelectionPopup(targets, existingSelections) {
   overlay.hidden = false;
 
   overlay.classList.add("show");
+  document.body.classList.add("class-selection-required");
+  for (const element of document.body.children) {
+    if (element !== overlay && !element.inert) {
+      element.inert = true;
+      classSelectionInertElements.push(element);
+    }
+  }
+  list.querySelector(".class-choice")?.focus();
 
   /*
     開いた瞬間はリスト先頭。
@@ -387,6 +399,11 @@ function closeClassSelectionPopup() {
   overlay.classList.remove("show");
 
   overlay.hidden = true;
+  document.body.classList.remove("class-selection-required");
+  for (const element of classSelectionInertElements) {
+    element.inert = false;
+  }
+  classSelectionInertElements = [];
 }
 
 /* ========================================
