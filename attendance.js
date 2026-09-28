@@ -2656,13 +2656,10 @@ function calculateSubjectAttendance(subject, termRecords) {
 
   const attended = Math.max(0, attendedBeforeConversion - convertedAbsent);
 
-  const totalLectures = sessions.filter(
-    (session) => session.record || session.result,
-  ).length;
-
   const totalAbsent = directAbsent + timingAbsent + convertedAbsent;
 
   const displayTotalLectures = sessions.length;
+  const registeredLectures = sessions.filter((session) => session.lecture).length;
 
   /*
    * 評価資格の残り欠席回数は、実施済み講義だけではなく
@@ -2674,8 +2671,8 @@ function calculateSubjectAttendance(subject, termRecords) {
   );
 
   const attendanceRate =
-    totalLectures > 0
-      ? Math.round((attended / totalLectures) * 1000) / 10
+    registeredLectures > 0
+      ? Math.round((attended / registeredLectures) * 1000) / 10
       : null;
 
   return {
@@ -2713,11 +2710,9 @@ function calculateSubjectAttendance(subject, termRecords) {
 
     totalLectures: displayTotalLectures,
 
-    calculationTotalLectures: totalLectures,
+    registeredLectures,
 
     attendanceRate,
-
-    requiredRate: subject.isPractical ? 80 : 66.7,
   };
 }
 
@@ -2857,7 +2852,7 @@ function renderSubjectAttendanceCard(stats) {
       : `${formatRate(stats.attendanceRate)}%`;
 
   const thresholdWarning =
-    stats.attendanceRate !== null && stats.attendanceRate < stats.requiredRate;
+    stats.registeredLectures > 0 && stats.attended * 3 < stats.registeredLectures * 2;
 
   const conversionText =
     stats.conversionRemainder === 0
@@ -2904,7 +2899,7 @@ function renderSubjectAttendanceCard(stats) {
 
                     <span>
                         時間割登録
-                        ${stats.totalLectures}回
+                        ${stats.registeredLectures}回
                     </span>
 
                 </div>
@@ -2916,7 +2911,7 @@ function renderSubjectAttendanceCard(stats) {
                     }">
 
                     <strong>
-                        ${stats.attended} / ${stats.calculationTotalLectures}
+                        ${stats.attended} / ${stats.registeredLectures}
                     </strong>
 
                     <span>
@@ -2981,11 +2976,7 @@ function renderSubjectAttendanceCard(stats) {
                             <p
                                 class="attendance-subject-warning">
 
-                                現在の出席率が、${
-                                  stats.subject.isPractical
-                                    ? "実習科目の目安80%"
-                                    : "通常科目の目安66.7%"
-                                }を下回っています。
+                                現在の出席率が3分の2未満です。
 
                             </p>
                         `
