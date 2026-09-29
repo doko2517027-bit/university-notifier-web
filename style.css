@@ -10488,32 +10488,6 @@ input[type="checkbox"] {
     gap: 13px;
 }
 
-.exam-mode-switch {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin: 14px 0 4px;
-}
-
-.exam-mode-switch a {
-    padding: 11px 8px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card);
-    color: var(--subtext);
-    font-size: 12px;
-    font-weight: 750;
-    text-align: center;
-    text-decoration: none;
-}
-
-.exam-mode-switch a.is-active {
-    border-color: var(--primary);
-    background: rgba(15, 157, 138, 0.10);
-    color: var(--primary);
-}
-.exam-mode-switch.is-single { grid-template-columns: 1fr; }
-
 .exam-group-card {
     overflow: hidden;
     border: 1px solid var(--border);
@@ -10602,11 +10576,7 @@ input[type="checkbox"] {
 .exam-admin-check-label input { width: auto; }
 .exam-admin-field-note { display: block; margin-top: 3px; color: var(--subtext); font-size: 11px; }
 .exam-admin-body .setting-card { min-width: 0; }
-.exam-home-link { display: flex; color: var(--text); text-decoration: none; }
-#examSettingsCard[hidden],
-#nationalVisibilityCard[hidden],
-#nationalExamSlide[hidden],
-.exam-mode-switch a[hidden] { display: none !important; }
+#examSettingsCard[hidden] { display: none !important; }
 
 @media (max-width: 600px) {
     .exam-admin-category-row { grid-template-columns: minmax(0, 1fr) auto auto; }

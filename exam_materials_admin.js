@@ -43,6 +43,14 @@ if (!admin) {
   location.href = "index.html";
 }
 
+if (subjectId) {
+  const subjectForEdit = await getDoc(doc(db, "examSubjects", subjectId));
+  if (subjectForEdit.exists() && (subjectForEdit.data().mode || "exam") !== "exam") {
+    location.replace("exam_admin.html");
+    throw new Error("この科目の管理画面は利用できません。");
+  }
+}
+
 await initializePage([
   loadProfileImage(topProfileImage),
   loadUnitInfo(),

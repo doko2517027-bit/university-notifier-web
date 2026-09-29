@@ -67,6 +67,10 @@ async function loadQuestions() {
     ),
   );
   const subjectSnap = await getDoc(doc(db, "examSubjects", subjectId));
+  if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
+    questions.textContent = "この問題は公開されていません。";
+    return;
+  }
   subjectName =
     subjectSnap.data()?.name || subjectSnap.data()?.subjectName || subjectId;
 
@@ -287,7 +291,7 @@ document.addEventListener("click", async (e) => {
           sessionPoints = 0;
           renderFillQuestion();
         },
-        () => (location.href = params.get("from") === "national" ? "exam.html?mode=national" : "exam.html"),
+        () => (location.href = "exam.html"),
       );
     }
     return;

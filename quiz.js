@@ -59,6 +59,10 @@ async function loadQuiz() {
     ),
     getDoc(doc(db, "examSubjects", subjectId)),
   ]);
+  if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
+    quizArea.textContent = "この問題は公開されていません。";
+    return;
+  }
   subjectName =
     subjectSnap.data()?.name || subjectSnap.data()?.subjectName || subjectId;
   if (!snap.exists()) {
@@ -266,7 +270,7 @@ document.addEventListener("click", async (event) => {
           sessionPoints = 0;
           renderQuestion();
         },
-        () => (location.href = params.get("from") === "national" ? "exam.html?mode=national" : "exam.html"),
+        () => (location.href = "exam.html"),
       );
     }
     return;

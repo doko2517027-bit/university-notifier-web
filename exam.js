@@ -122,29 +122,22 @@ const elements = {
 ======================================== */
 
 const studentNumber = localStorage.getItem("studentNumber") || "";
-const examMode = new URLSearchParams(location.search).get("mode") === "national" ? "national" : "exam";
-const isNational = examMode === "national";
 const modeCategories = [];
 const openGroupIds = new Set();
 
-document.getElementById(isNational ? "nationalExamLink" : "regularExamLink")?.classList.add("is-active");
-if (isNational) {
-  document.title = "国家試験対策 | CareMate";
-  document.querySelector(".exam-top-title strong").textContent = "国家試験対策";
-}
+if (new URLSearchParams(location.search).get("mode") === "national") location.replace("exam.html");
 
 const todayKey = createLocalDateKey(new Date());
 
 const todayCompactKey = todayKey.replaceAll("-", "");
 
-const openSubjectsStorageKey = `caremateExamOpenSubjects_${examMode}_${studentNumber || "guest"}`;
+const openSubjectsStorageKey = `caremateExamOpenSubjects_exam_${studentNumber || "guest"}`;
 
 /* ========================================
    状態
 ======================================== */
 
 let examInformation = null;
-let nationalUnavailable = false;
 
 let subjects = [];
 
@@ -361,21 +354,9 @@ async function loadExamDashboard() {
     ]);
 
     modeCategories.splice(0, modeCategories.length,
-      ...getModeCategories(examSnapshot.data()?.categories, examMode));
-
-    nationalUnavailable = examSnapshot.data()?.nationalEnabled !== true;
-    if (!isNational && nationalUnavailable) {
-      document.getElementById("nationalExamLink").hidden = true;
-      document.querySelector(".exam-mode-switch").classList.add("is-single");
-    }
+      ...getModeCategories(examSnapshot.data()?.categories, "exam"));
 
     renderExamInformation(examSnapshot);
-
-    if (isNational && nationalUnavailable) {
-      subjects = [];
-      updateDashboard();
-      return;
-    }
 
     buildProgressMap(progressSnapshot);
 
@@ -429,18 +410,6 @@ async function loadExamDashboard() {
 ======================================== */
 
 function renderExamInformation(snapshot) {
-  if (isNational) {
-    examInformation = null;
-    elements.examTitle.textContent = "国家試験対策";
-    elements.examStateBadge.textContent = nationalUnavailable ? "非公開" : "いつでも学習";
-    elements.examStateBadge.className = `exam-state-badge ${nationalUnavailable ? "is-off" : "is-active"}`;
-    elements.examCountdown.textContent = nationalUnavailable
-      ? "国家試験対策は現在公開されていません。"
-      : "分野を選んで問題を解き、理解を深めましょう。";
-    document.getElementById("examPeriodInformation").hidden = true;
-    document.getElementById("examCatalogHeading").textContent = "国家試験の分野";
-    return;
-  }
   if (!snapshot.exists()) {
     examInformation = null;
 
@@ -687,7 +656,7 @@ async function buildSubjectData(subjectSnapshot) {
   }
 
   const subjectPromises = subjectSnapshot.docs
-    .filter((subjectDocument) => isSubjectInMode(subjectDocument.data(), examMode))
+    .filter((subjectDocument) => isSubjectInMode(subjectDocument.data(), "exam"))
     .map(async (subjectDocument) => {
     const subjectData = subjectDocument.data() || {};
 
@@ -1367,11 +1336,11 @@ function renderSubjectList() {
                 </div>
 
                 <h2>
-                    ${nationalUnavailable && isNational ? "国家試験対策は非公開です" : noPublishedSubjects ? "公開中の科目はまだありません" : "条件に一致する科目がありません"}
+                    ${noPublishedSubjects ? "公開中の科目はまだありません" : "条件に一致する科目がありません"}
                 </h2>
 
                 <p>
-                    ${nationalUnavailable && isNational ? "公開されると、ホームから学習できるようになります。" : noPublishedSubjects ? "管理画面から科目と問題が公開されると、ここに表示されます。" : "検索する言葉や学習状況を変更してください。"}
+                    ${noPublishedSubjects ? "管理画面から科目と問題が公開されると、ここに表示されます。" : "検索する言葉や学習状況を変更してください。"}
                 </p>
 
                 <button
@@ -1416,7 +1385,7 @@ function createGroupHtml(id, items, searchActive) {
   const label = id === "unclassified" ? "未分類" : getGroupName(id);
   return `<section class="exam-group-card ${isOpen ? "is-open" : ""}">
     <button type="button" class="exam-group-toggle" data-group-id="${escapeAttribute(id)}" aria-expanded="${isOpen}">
-      <span class="exam-group-icon">${isNational ? "🎓" : "🗂️"}</span>
+      <span class="exam-group-icon">🗂️</span>
       <span class="exam-group-heading"><strong>${escapeHtml(label)}</strong><small>${items.length}科目・タップして表示</small></span>
       <span class="exam-group-arrow">${isOpen ? "▲" : "▼"}</span>
     </button>
@@ -2407,8 +2376,6 @@ function createLearningUrl(file, subjectId, unitId) {
 
     unitId: String(unitId),
   });
-
-  if (isNational) parameters.set("from", "national");
 
   return `${file}?${parameters.toString()}`;
 }

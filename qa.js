@@ -49,6 +49,10 @@ async function loadQuestions() {
     ),
     getDoc(doc(db, "examSubjects", subjectId)),
   ]);
+  if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
+    qaArea.textContent = "この問題は公開されていません。";
+    return;
+  }
   subjectName = subjectSnap.data()?.name || subjectId;
   sourceQuestions = (questionSnap.data()?.qa || [])
     .filter(

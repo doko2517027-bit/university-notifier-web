@@ -31,6 +31,12 @@ async function loadRemember() {
     return;
   }
 
+  const subjectSnap = await getDoc(doc(db, "examSubjects", subjectId));
+  if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
+    rememberArea.textContent = "この内容は公開されていません。";
+    return;
+  }
+
   const snap = await getDoc(
     doc(
       db,

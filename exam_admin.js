@@ -22,22 +22,13 @@ const themeButton = document.getElementById("themeButton");
 
 const topProfileImage = document.getElementById("topProfileImage");
 
-const examMode = new URLSearchParams(location.search).get("mode") === "national" ? "national" : "exam";
-const isNational = examMode === "national";
-const modeTitle = isNational ? "国家試験対策管理" : "テスト管理";
+const examMode = "exam";
 let categories = [];
 let currentSubjects = [];
 const openAdminGroupIds = new Set();
 const openAdminSubjectIds = new Set();
 
-if (isNational) {
-  document.title = `${modeTitle} | CareMate`;
-  document.querySelector(".top-buttons h2").textContent = `🎓 ${modeTitle}`;
-  document.querySelector(".setting-card h2").textContent = `🎓 ${modeTitle}`;
-  document.querySelector(".setting-card > p").textContent = "国家試験対策の区分・科目・単元・問題を管理します。";
-  document.getElementById("examSettingsCard").hidden = true;
-  document.getElementById("nationalVisibilityCard").hidden = false;
-}
+if (new URLSearchParams(location.search).get("mode") === "national") location.replace("exam_admin.html");
 
 setupTheme(themeButton);
 
@@ -66,11 +57,10 @@ const categoryName = document.getElementById("categoryName");
 const addCategory = document.getElementById("addCategory");
 const categoryList = document.getElementById("categoryList");
 const newSubjectCategory = document.getElementById("newSubjectCategory");
-const nationalExamEnabled = document.getElementById("nationalExamEnabled");
 
 await initializePage([
   loadProfileImage(topProfileImage),
-  (isNational ? Promise.resolve() : loadExamSettings()).catch((e) => {
+  loadExamSettings().catch((e) => {
     console.error("テスト設定読み込み失敗", e);
   }),
   loadCatalogAndSubjects(),
@@ -115,26 +105,12 @@ async function loadExamSettings() {
 
 async function loadCatalogAndSubjects() {
   const snapshot = await getDoc(doc(db, "system", "exam"));
-  nationalExamEnabled.checked = snapshot.data()?.nationalEnabled === true;
   categories = Array.isArray(snapshot.data()?.categories)
     ? snapshot.data().categories.filter((item) => item && item.id && item.name)
     : [];
   renderCategories();
   await loadSubjects();
 }
-
-document.getElementById("saveNationalVisibility").onclick = async () => {
-  try {
-    await setDoc(doc(db, "system", "exam"), {
-      nationalEnabled: nationalExamEnabled.checked,
-      updatedAt: new Date(), updatedBy: studentNumber,
-    }, { merge: true });
-    alert(nationalExamEnabled.checked ? "国家試験対策を学生に表示します。" : "国家試験対策を学生に表示しません。");
-  } catch (error) {
-    console.error("国家試験対策の表示設定保存失敗:", error);
-    alert("表示設定を保存できませんでした。");
-  }
-};
 
 function modeCategories() {
   return getModeCategories(categories, examMode);
