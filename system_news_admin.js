@@ -17,7 +17,7 @@ import {
 import {
   collection,
   doc,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   getDocs,
@@ -26,6 +26,7 @@ import {
   onSnapshot,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { cloudinaryNewsAttachmentUrl, validNewsAttachments } from "./news_attachments.mjs";
 
 /* ========================================
    HTML要素
@@ -50,6 +51,31 @@ const systemNewsPendingCount = document.getElementById(
 const systemNewsTitle = document.getElementById("systemNewsTitle");
 
 const systemNewsBody = document.getElementById("systemNewsBody");
+const systemNewsAttachments = document.getElementById("systemNewsAttachments");
+const systemNewsAttachmentSummary = document.getElementById("systemNewsAttachmentSummary");
+
+async function uploadNewsAttachment(file) {
+  const resource = file.type === "application/pdf" ? "raw" : "image";
+  const form = new FormData();
+  form.append("file", file);
+  form.append("upload_preset", "caremate_upload");
+  const response = await fetch(`https://api.cloudinary.com/v1_1/vpctonjf/${resource}/upload`, {
+    method: "POST",
+    body: form,
+  });
+  const data = await response.json();
+  const url = cloudinaryNewsAttachmentUrl(data.secure_url, file.type);
+  if (!response.ok || !url || data.resource_type !== resource) {
+    throw new Error(data.error?.message || "写真・PDFのアップロードに失敗しました。");
+  }
+  return {
+    name: file.name.slice(0, 160),
+    type: file.type,
+    size: file.size,
+    url,
+    publicId: String(data.public_id || ""),
+  };
+}
 
 const systemNewsTitleCount = document.getElementById("systemNewsTitleCount");
 
@@ -121,6 +147,7 @@ const saveSystemNewsEdit = document.getElementById("saveSystemNewsEdit");
 const deleteSystemNewsModal = document.getElementById("deleteSystemNewsModal");
 
 const deleteSystemNewsTitle = document.getElementById("deleteSystemNewsTitle");
+const deleteSystemNewsAttachmentNote = document.getElementById("deleteSystemNewsAttachmentNote");
 
 const cancelSystemNewsDelete = document.getElementById(
   "cancelSystemNewsDelete",
@@ -272,6 +299,12 @@ function setupEvents() {
   [systemNewsTitle, systemNewsBody].filter(Boolean).forEach((input) => {
     input.addEventListener("input", updatePostForm);
   });
+  systemNewsAttachments?.addEventListener("change", () => {
+    const files = [...systemNewsAttachments.files];
+    systemNewsAttachmentSummary.textContent = files.length
+      ? `${files.length}件を添付：${files.map((file) => file.name).join("、")}`
+      : "";
+  });
 
   if (postSystemNews) {
     postSystemNews.onclick = postNews;
@@ -376,6 +409,12 @@ async function postNews() {
     return;
   }
 
+  const files = [...(systemNewsAttachments?.files || [])];
+  if (!validNewsAttachments(files)) {
+    alert("写真・PDFは4件まで、各5MB以下のJPEG・PNG・WebP・PDFを選んでください。");
+    return;
+  }
+
   const shouldNotify = sendSystemNewsNotification?.checked !== false;
 
   const recipients = [
@@ -395,12 +434,17 @@ async function postNews() {
 
   postSystemNews.textContent = "投稿中...";
 
+  const sourceCollection = recipients.length ? "targetedSystemNews" : "systemNews";
+  const newsRef = doc(collection(db, sourceCollection));
   try {
-    await addDoc(
-      collection(db, recipients.length ? "targetedSystemNews" : "systemNews"),
-      {
+    const attachments = [];
+    for (const file of files) {
+      attachments.push(await uploadNewsAttachment(file));
+    }
+    await setDoc(newsRef, {
         title,
         body,
+        attachments,
 
         author: studentNumber || "",
 
@@ -427,8 +471,7 @@ async function postNews() {
         notificationSentAt: shouldNotify ? null : serverTimestamp(),
         targetStudentNumbers: recipientMode === "only" ? recipients : [],
         excludedStudentNumbers: recipientMode === "exclude" ? recipients : [],
-      },
-    );
+      });
 
     if (systemNewsTitle) {
       systemNewsTitle.value = "";
@@ -437,6 +480,8 @@ async function postNews() {
     if (systemNewsBody) {
       systemNewsBody.value = "";
     }
+    if (systemNewsAttachments) systemNewsAttachments.value = "";
+    if (systemNewsAttachmentSummary) systemNewsAttachmentSummary.textContent = "";
 
     if (systemNewsImportant) {
       systemNewsImportant.checked = false;
@@ -451,8 +496,7 @@ async function postNews() {
     showToast("お知らせを投稿しました");
   } catch (error) {
     console.error("お知らせ投稿エラー:", error);
-
-    alert("お知らせの投稿に失敗しました。");
+    alert("お知らせの投稿に失敗しました。再投稿前に添付ファイルの状態を確認してください。");
   } finally {
     postSystemNews.textContent = "お知らせを投稿する";
 
@@ -589,6 +633,15 @@ function createSystemNewsHtml(news) {
                 ${escapeHtml(news.body || "").replace(/\n/g, "<br>")}
 
             </div>
+
+            ${Array.isArray(news.attachments) && news.attachments.length
+              ? `<div class="system-news-attachment-summary">添付：${news.attachments.map((item) => {
+                  const url = cloudinaryNewsAttachmentUrl(item.url, item.type);
+                  return url
+                    ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.name || "ファイル")}</a>`
+                    : escapeHtml(item.name || "ファイル");
+                }).join("、")}</div>`
+              : ""}
 
 
             <div class="system-news-item-meta">
@@ -790,6 +843,9 @@ function openDeleteModal(newsId, sourceCollection = "systemNews") {
   selectedDeleteCollection = news.sourceCollection || "systemNews";
 
   setText(deleteSystemNewsTitle, news.title || "タイトルなし");
+  if (deleteSystemNewsAttachmentNote) {
+    deleteSystemNewsAttachmentNote.hidden = !Array.isArray(news.attachments) || !news.attachments.length;
+  }
 
   openModal(deleteSystemNewsModal);
 }

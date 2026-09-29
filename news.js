@@ -23,6 +23,12 @@ import {
   orderBy,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { cloudinaryNewsAttachmentUrl } from "./news_attachments.mjs";
+function escapeNewsText(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[char]);
+}
 
 const userName = document.getElementById("userName");
 const themeButton = document.getElementById("themeButton");
@@ -686,6 +692,19 @@ async function loadSystemNews() {
         unreadCount++;
       }
 
+      const attachments = (Array.isArray(notice.attachments) ? notice.attachments : [])
+        .filter((item) => item &&
+          ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(item.type));
+      const attachmentHtml = attachments.map((item) => {
+        const url = cloudinaryNewsAttachmentUrl(item.url, item.type);
+        if (!url) return "";
+        const name = escapeNewsText(item.name || "添付ファイル");
+        const href = escapeNewsText(url);
+        return item.type === "application/pdf"
+          ? `<a class="btn system-news-attachment-button" href="${href}" target="_blank" rel="noopener noreferrer">📄 PDFを見る：${name}</a>`
+          : `<a class="system-news-photo-link" href="${href}" target="_blank" rel="noopener noreferrer"><img src="${href}" alt="${name}" loading="lazy"><span>${name}</span></a>`;
+      }).join("");
+
       return `
             <div
                 class="card news-card news-readable-card${
@@ -697,7 +716,7 @@ async function loadSystemNews() {
                 ${isUnread ? `<span class="news-new-label">NEW</span>` : ""}
 
                 <div class="news-title">
-                    💙 ${notice.title || ""}
+                    💙 ${escapeNewsText(notice.title)}
                     ${
                       notice.important === true
                         ? `<span class="news-important-badge">📌 重要</span>`
@@ -706,8 +725,10 @@ async function loadSystemNews() {
                 </div>
 
                 <div class="news-body">
-                    ${(notice.body || "").replace(/\n/g, "<br>")}
+                    ${escapeNewsText(notice.body).replace(/\n/g, "<br>")}
                 </div>
+
+                ${attachmentHtml ? `<div class="system-news-attachments">${attachmentHtml}</div>` : ""}
 
                 <div class="news-date">
                     ${formatDateTime(created)}
@@ -734,6 +755,9 @@ async function loadSystemNews() {
 }
 
 systemNews.addEventListener("click", async (event) => {
+  if (event.target.closest(".system-news-attachments a")) {
+    return;
+  }
   const card = event.target.closest(".news-readable-card");
 
   if (!card) {

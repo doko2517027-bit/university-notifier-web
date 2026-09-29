@@ -2,7 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 
@@ -2189,6 +2189,7 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
           .set({
             title,
             body: String(news.body || ""),
+            attachments: Array.isArray(news.attachments) ? news.attachments : [],
             author: String(news.author || ""),
             createdAt: new Date(),
             important: news.important === true,
@@ -2217,6 +2218,24 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
       notificationResults: results,
       notificationSource: "firebase",
     });
+  },
+);
+
+// 指定先お知らせを削除した時は、学生ごとの受信箱からも表示を消す。
+exports.removeTargetedSystemNewsCopies = onDocumentDeleted(
+  { document: "targetedSystemNews/{newsId}", region: "asia-northeast1" },
+  async (event) => {
+    const news = event.data?.data() || {};
+    let recipients = Array.isArray(news.targetStudentNumbers)
+      ? news.targetStudentNumbers.map(String) : [];
+    if (!recipients.length) {
+      const excluded = new Set((Array.isArray(news.excludedStudentNumbers)
+        ? news.excludedStudentNumbers : []).map(String));
+      recipients = (await db.collection("users").get()).docs
+        .map((user) => user.id).filter((id) => !excluded.has(id));
+    }
+    await Promise.all(recipients.map((id) => db.collection("users").doc(id)
+      .collection("targetedSystemNews").doc(event.params.newsId).delete()));
   },
 );
 

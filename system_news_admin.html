@@ -10,7 +10,7 @@
 
     <title>CareMateお知らせ管理 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-10" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -133,6 +133,12 @@
           / 5000文字
         </div>
 
+        <br />
+
+        <label for="systemNewsAttachments"><b>写真・PDF（任意）</b></label>
+        <input id="systemNewsAttachments" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
+        <small>最大4件、1件5MBまで。添付のURLを知る人は開けます。個人情報・機密資料は添付しないでください。</small>
+        <div id="systemNewsAttachmentSummary" class="system-news-attachment-summary" aria-live="polite"></div>
         <br />
 
         <label for="systemNewsRecipientMode"><b>表示・通知する学生</b></label>
@@ -309,6 +315,7 @@
         <p id="deleteSystemNewsTitle">----</p>
 
         <p>削除したお知らせは元に戻せません。</p>
+        <p id="deleteSystemNewsAttachmentNote" hidden>添付ファイル本体はCloudinary上に残ります。URLを知る人は引き続き開けます。</p>
 
         <div class="admin-modal-actions">
           <button id="cancelSystemNewsDelete" type="button" class="btn">
@@ -382,6 +389,6 @@
       </a>
     </nav>
 
-    <script type="module" src="system_news_admin.js"></script>
+    <script type="module" src="system_news_admin.js?v=20260929-1"></script>
   </body>
 </html>
