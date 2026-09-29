@@ -20,6 +20,8 @@ const webpush = require("web-push");
 
 const crypto = require("node:crypto");
 
+const { hashPassword, matchesPasswordHash, isValidNewPassword } = require("./password_change_policy");
+
 const { reminderMinutes, isReminderDue, matchesAudience } = require("./calendar_reminders");
 
 const {
@@ -246,6 +248,43 @@ function requireAuthenticatedCareMateStudent(request) {
 
   return studentNumber;
 }
+
+exports.changeCareMatePassword = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const currentPassword = request.data?.currentPassword;
+    const newPassword = request.data?.newPassword;
+
+    if (typeof currentPassword !== "string" || !isValidNewPassword(newPassword)) {
+      throw new HttpsError("invalid-argument", "パスワードの入力を確認してください。");
+    }
+
+    const userRef = db.collection("users").doc(studentNumber);
+    await db.runTransaction(async (transaction) => {
+      const userSnap = await transaction.get(userRef);
+      if (!userSnap.exists) {
+        throw new HttpsError("not-found", "登録情報が見つかりません。");
+      }
+
+      const storedHash = userSnap.data()?.appPasswordHash;
+      if (!matchesPasswordHash(currentPassword, storedHash)) {
+        throw new HttpsError("permission-denied", "現在のパスワードが違います。");
+      }
+      const newHash = hashPassword(newPassword);
+      if (newHash === storedHash) {
+        throw new HttpsError("invalid-argument", "別のパスワードを入力してください。");
+      }
+
+      transaction.update(userRef, {
+        appPasswordHash: newHash,
+        passwordChangedAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    return { changed: true };
+  },
+);
 
 async function requirePrimaryDeviceAuditAdmin(request) {
   const studentNumber = requireAuthenticatedCareMateStudent(request);

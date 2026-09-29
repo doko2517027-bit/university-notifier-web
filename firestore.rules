@@ -11,13 +11,18 @@ service cloud.firestore {
 
     match /users/{userId} {
 
-      allow create, read, delete: if true;
+      allow create, read: if true;
+      allow delete: if request.auth != null &&
+        (request.auth.token.studentNumber == userId || request.auth.token.admin == true);
 
       /*
        attendanceNotificationTest はこのユーザードキュメント内に保存する。
        指定学生の履修済み科目だけを用いるテスト通知設定として使う。
       */
-      allow update: if true;
+      // ログイン用パスワードは本人のCloud Functionか既存の管理者更新だけで変更する。
+      allow update: if
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['appPasswordHash'])
+        || (request.auth != null && request.auth.token.admin == true);
 
 
       /* 解答済み問題 */

@@ -73,6 +73,7 @@
 
     <h2>パスワード変更</h2>
     <div class="card setting-card settings-form-stack">
+      <p>Manaba・ActiveMailはCareMateに保存したパスワードを更新します。各サービス本体のパスワードは変更されません。</p>
       <label
         >Manaba 新しいパスワード<input
           id="newManabaPassword"
@@ -92,16 +93,24 @@
         ActiveMailを変更
       </button>
       <label
+        >CareMate 現在のパスワード<input
+          id="currentCareMatePassword"
+          type="password"
+          autocomplete="current-password"
+      /></label>
+      <label
         >CareMate 新しいパスワード<input
           id="newCareMatePassword"
           type="password"
           autocomplete="new-password"
+          maxlength="128"
       /></label>
       <label
         >CareMate 確認入力<input
           id="confirmCareMatePassword"
           type="password"
           autocomplete="new-password"
+          maxlength="128"
       /></label>
       <button id="saveCareMatePassword" class="btn btn-primary">
         CareMateを変更
@@ -265,6 +274,6 @@
       </a>
     </nav>
 
-    <script type="module" src="settings.js"></script>
+    <script type="module" src="settings.js?v=20260929-5"></script>
   </body>
 </html>

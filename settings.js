@@ -1,6 +1,9 @@
 import { VERSION } from "./version.js";
+import { savedExternalPasswordFields } from "./settings_password_fields.mjs";
 import {
   db,
+  auth,
+  functions,
   studentNumber,
   setupTheme,
   initializePage,
@@ -20,11 +23,13 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
-  setDoc,
   addDoc,
   collection,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import { signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import { registerDevicePushSubscription } from "./push_subscription.js";
 
@@ -55,7 +60,8 @@ const userName = document.getElementById("userName");
 
 setupTheme(themeButton);
 
-await initializePage([
+// 初期データの取得が遅くても、パスワード変更ボタンはすぐ使えるようにする。
+void initializePage([
   setupAdminTab(),
   loadUserName(userName),
   loadMyRanking(),
@@ -103,7 +109,16 @@ document.getElementById("saveManabaPassword").onclick = () =>
   saveExternalPassword("manaba");
 document.getElementById("saveActiveMailPassword").onclick = () =>
   saveExternalPassword("activeMail");
+async function requireOwnLogin() {
+  await auth.authStateReady();
+  if (!studentNumber || auth.currentUser?.uid !== `caremate-${studentNumber}`) {
+    throw new Error("ログイン状態を確認できません");
+  }
+}
 async function saveExternalPassword(kind) {
+  const button = document.getElementById(
+    kind === "manaba" ? "saveManabaPassword" : "saveActiveMailPassword",
+  );
   const input = document.getElementById(
     kind === "manaba" ? "newManabaPassword" : "newActiveMailPassword",
   );
@@ -117,27 +132,38 @@ async function saveExternalPassword(kind) {
     )
   )
     return;
-  const encrypted = await encryptData(input.value.trim());
-  const fields =
-    kind === "manaba"
-      ? {
-          manabaPasswordEncrypted: encrypted,
-          manabaVerified: false,
-          manabaVerifiedAt: null,
-        }
-      : {
-          activeMailPasswordEncrypted: encrypted,
-          activeMailResetRequired: false,
-        };
-  await setDoc(doc(db, "users", studentNumber), fields, { merge: true });
-  input.value = "";
-  alert("変更しました。");
+  button.disabled = true;
+  try {
+    await requireOwnLogin();
+    const encrypted = await encryptData(input.value);
+    const fields = savedExternalPasswordFields(kind, encrypted);
+    await updateDoc(doc(db, "users", studentNumber), fields);
+    input.value = "";
+    alert("CareMateに保存したパスワードを更新しました。次回の連携時に確認されます。");
+  } catch (error) {
+    console.error("保存パスワード更新エラー:", error);
+    alert("保存できませんでした。通信状態とログイン状態を確認して再度お試しください。");
+  } finally {
+    button.disabled = false;
+  }
 }
 document.getElementById("saveCareMatePassword").onclick = async () => {
-  const pass = document.getElementById("newCareMatePassword").value,
-    again = document.getElementById("confirmCareMatePassword").value;
+  const button = document.getElementById("saveCareMatePassword");
+  const currentInput = document.getElementById("currentCareMatePassword");
+  const newInput = document.getElementById("newCareMatePassword");
+  const confirmInput = document.getElementById("confirmCareMatePassword");
+  const pass = newInput.value;
+  const again = confirmInput.value;
+  if (!currentInput.value) {
+    alert("現在のパスワードを入力してください。");
+    return;
+  }
   if (pass.length < 6) {
     alert("6文字以上で入力してください。");
+    return;
+  }
+  if (pass.length > 128) {
+    alert("128文字以内で入力してください。");
     return;
   }
   if (pass !== again) {
@@ -145,17 +171,34 @@ document.getElementById("saveCareMatePassword").onclick = async () => {
     return;
   }
   if (!confirm("CareMateのログインパスワードを変更しますか？")) return;
-  const bytes = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(pass),
-  );
-  const hash = [...new Uint8Array(bytes)]
-    .map((v) => v.toString(16).padStart(2, "0"))
-    .join("");
-  await updateDoc(doc(db, "users", studentNumber), { appPasswordHash: hash });
-  document.getElementById("newCareMatePassword").value = "";
-  document.getElementById("confirmCareMatePassword").value = "";
-  alert("変更しました。");
+  button.disabled = true;
+  try {
+    await requireOwnLogin();
+    const changePassword = httpsCallable(functions, "changeCareMatePassword");
+    await changePassword({ currentPassword: currentInput.value, newPassword: pass });
+    currentInput.value = "";
+    newInput.value = "";
+    confirmInput.value = "";
+    localStorage.removeItem("loggedIn");
+    try {
+      await signOut(auth);
+    } catch (signOutError) {
+      console.warn("パスワード変更後のログアウトエラー:", signOutError);
+    }
+    alert("CareMateのパスワードを変更しました。新しいパスワードでログインし直してください。");
+    location.href = "login.html";
+  } catch (error) {
+    console.error("CareMateパスワード変更エラー:", error);
+    alert(
+      error?.code === "functions/permission-denied"
+        ? "現在のパスワードが違います。"
+        : error?.code === "functions/invalid-argument"
+          ? "現在とは異なる新しいパスワードを入力してください。"
+        : "変更できませんでした。通信状態とログイン状態を確認して再度お試しください。",
+    );
+  } finally {
+    button.disabled = false;
+  }
 };
 document.getElementById("sendContact").onclick = async () => {
   const message = document.getElementById("contactMessage").value.trim();
@@ -199,8 +242,10 @@ document.getElementById("unregister").addEventListener("click", async () => {
 
       await deleteDoc(doc(db, "assignments", studentNumber));
     }
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error("登録解除エラー:", error);
+    alert("登録を解除できませんでした。ログインし直してからお試しください。");
+    return;
   }
 
   localStorage.clear();
