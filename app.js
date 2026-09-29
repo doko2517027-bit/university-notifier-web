@@ -33,6 +33,7 @@ import {
   applyClassSelections,
   effectiveClassSelections,
 } from "./class_selection.js?v=20260929-4";
+import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20260929-8";
 
 import {
   doc,
@@ -408,6 +409,7 @@ async function startApp() {
         先に画面を表示する。
         */
     showPage();
+    void startHomeToday(user);
 
     /*
         年度末・単位確認は
@@ -420,6 +422,8 @@ async function startApp() {
     console.error(error);
 
     showPage();
+    const todayStatus = document.getElementById("homeTodayStatus");
+    if (todayStatus) todayStatus.textContent = "今日の情報を読み込めませんでした。";
 
     return;
   }
@@ -446,6 +450,9 @@ async function startApp() {
     */
   const todayScheduleTask = loadTodaySchedule(user).catch((error) => {
     console.error("ホーム時間割読み込みエラー:", error);
+
+    const nextLecture = document.getElementById("homeNextLecture");
+    if (nextLecture) nextLecture.textContent = "次の講義を読み込めませんでした。";
 
     lectureScheduleLabel.textContent = "講義予定";
     lectureScheduleDetail.textContent = "時間割を読み込めませんでした。";
@@ -1374,6 +1381,8 @@ async function loadTodaySchedule(userData = null) {
     lectureScheduleLabel.textContent = "講義予定";
 
     lectureScheduleList.innerHTML = `<p class="empty-text">時間割がありません。</p>`;
+    const nextLecture = document.getElementById("homeNextLecture");
+    if (nextLecture) nextLecture.textContent = "次の講義予定はありません。";
 
     return;
   }
@@ -1620,6 +1629,19 @@ async function loadTodaySchedule(userData = null) {
       schedules: applyClassSelections(schedules, classSelections),
     };
   });
+
+  setHomeTodaySchedule(lectureSchedules.map((day) => {
+    const gradeSchedules = (day.schedules || []).filter((item) => {
+      const itemGrade = String(item.grade || "").normalize("NFKC").replace("年", "").trim();
+      return !grade || !itemGrade || itemGrade === grade;
+    });
+    return {
+      ...day,
+      schedules: day.date === classSelectionDate
+        ? gradeSchedules
+        : applyClassSelections(gradeSchedules, classSelections),
+    };
+  }));
 
   const requestedTestDate = scheduleParams.get("attendanceTestDate");
 

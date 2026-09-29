@@ -11,6 +11,44 @@ service cloud.firestore {
 
     match /users/{userId} {
 
+      /* ホームの個人用やること。他の学生や管理者からは読めない。 */
+      match /dailyTodos/{todoId} {
+        function isOwner() {
+          return request.auth != null &&
+            request.auth.uid == 'caremate-' + userId &&
+            request.auth.token.studentNumber == userId;
+        }
+        function validTodo(data) {
+          return data.keys().hasOnly(['title', 'date', 'dueTime', 'completed', 'createdAt', 'updatedAt']) &&
+            data.keys().hasAll(['title', 'date', 'dueTime', 'completed', 'createdAt', 'updatedAt']) &&
+            data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+            data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+            data.dueTime is string && (data.dueTime == '' || data.dueTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')) &&
+            data.completed is bool &&
+            data.createdAt is timestamp && data.updatedAt is timestamp;
+        }
+        allow read, delete: if isOwner();
+        allow create: if isOwner() && validTodo(request.resource.data) &&
+          request.resource.data.completed == false;
+        allow update: if isOwner() && validTodo(request.resource.data) &&
+          request.resource.data.date == resource.data.date &&
+          request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      /* 未提出一覧だけでは確定できない課題の提出状況を本人が記録する。 */
+      match /assignmentCompletions/{assignmentId} {
+        allow read, delete: if request.auth != null &&
+          request.auth.uid == 'caremate-' + userId &&
+          request.auth.token.studentNumber == userId;
+        allow create, update: if request.auth != null &&
+          request.auth.uid == 'caremate-' + userId &&
+          request.auth.token.studentNumber == userId &&
+          request.resource.data.keys().hasOnly(['submitted', 'updatedAt']) &&
+          request.resource.data.keys().hasAll(['submitted', 'updatedAt']) &&
+          request.resource.data.submitted == true &&
+          request.resource.data.updatedAt is timestamp;
+      }
+
       allow create, read: if true;
       allow delete: if request.auth != null &&
         (request.auth.token.studentNumber == userId || request.auth.token.admin == true);

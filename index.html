@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20260929-7" />
+    <link rel="modulepreload" href="app.js?v=20260929-8" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-8" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -363,6 +363,26 @@
         <div id="lectureScheduleList" class="schedule-content">取得中...</div>
       </div>
 
+      <section id="homeTodayCard" class="card day-card home-today-card" aria-labelledby="homeTodayTitle">
+        <div class="home-today-heading">
+          <div>
+            <h3 id="homeTodayTitle">✅ 今日のやること</h3>
+            <small id="homeTodayDate"></small>
+          </div>
+          <span id="homeTodayCount" class="home-today-count">読み込み中</span>
+        </div>
+        <div id="homeNextLecture" class="home-next-lecture" aria-live="polite">次の講義を確認中...</div>
+        <form id="homeTodayForm" class="home-today-form">
+          <input id="homeTodayInput" name="title" maxlength="120" required placeholder="自分のやることを追加" aria-label="やること" />
+          <input id="homeTodayTime" name="dueTime" type="time" aria-label="終わる時刻（任意）" title="終わる時刻（任意）" />
+          <button id="homeTodaySave" class="btn btn-primary" type="submit">追加</button>
+          <button id="homeTodayCancel" class="btn" type="button" hidden>取消</button>
+        </form>
+        <p id="homeTodayStatus" class="home-today-status" role="status">今日の情報を読み込み中...</p>
+        <div id="homeTodayItems" class="home-today-items" aria-live="polite"></div>
+        <a class="home-today-calendar-link" href="calendar.html">カレンダーで詳しく見る →</a>
+      </section>
+
       <!-- 試験日程 -->
       <div id="examScheduleCard" class="card day-card" style="display: none">
         <div class="schedule-card-title">📚 試験日程</div>
@@ -503,6 +523,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20260929-7"></script>
+    <script type="module" src="app.js?v=20260929-8"></script>
   </body>
 </html>
