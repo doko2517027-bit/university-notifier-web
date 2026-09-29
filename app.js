@@ -13,7 +13,6 @@ import {
   showNewsSkeleton,
   setupAdminTab,
   decryptData,
-  setupOfflineAlert,
   updateAssignmentNavBadge,
   updateShareNavBadge,
   updateNewsNavBadge,
@@ -911,7 +910,6 @@ function loadActiveMailBadge(user) {
 
 startApp();
 setupTheme(themeButton);
-setupOfflineAlert();
 
 // 5分ごと
 const runLastActiveWhenIdle =

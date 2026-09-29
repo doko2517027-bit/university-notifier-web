@@ -1275,6 +1275,32 @@ body.page-busy::after{
 
 }
 
+.offline-status-banner{
+    position:fixed;
+    top:calc(env(safe-area-inset-top, 0px) + 8px);
+    left:50%;
+    transform:translateX(-50%);
+    z-index:100002;
+    width:min(600px, calc(100vw - 24px));
+    box-sizing:border-box;
+    padding:12px 16px;
+    border:1px solid #b45309;
+    border-radius:12px;
+    background:#fff7ed;
+    color:#7c2d12;
+    box-shadow:0 8px 24px rgba(15,23,42,.18);
+    font-size:13px;
+    font-weight:700;
+    line-height:1.5;
+    text-align:center;
+}
+.offline-status-banner[hidden]{display:none}
+.dark .offline-status-banner{
+    background:#431407;
+    color:#ffedd5;
+    border-color:#fb923c;
+}
+
 .skeleton{
 
     position:relative;

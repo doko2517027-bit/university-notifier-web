@@ -596,15 +596,8 @@ export function setupTheme(themeButton) {
 }
 
 export function setupOfflineAlert() {
-  if (!navigator.onLine) {
-    alert("電波が悪い、またはオフラインです。保存済みの情報を表示します。");
-  }
-
-  window.addEventListener("offline", () => {
-    alert(
-      "電波が悪い、またはオフラインになりました。保存済みの情報を表示します。",
-    );
-  });
+  // 全画面共通の表示処理は、認証モジュールに依存しないスクリプトで実行する。
+  window.CareMateOfflineStatus?.refresh();
 }
 
 export async function loadProfileImage(img) {

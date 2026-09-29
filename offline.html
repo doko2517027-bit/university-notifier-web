@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>オフライン | CareMate</title>
+    <style>
+      body{min-height:100vh;margin:0;display:grid;place-items:center;box-sizing:border-box;padding:24px;background:#f5f7fb;color:#0f172a;font-family:system-ui,sans-serif}
+      main{max-width:420px;padding:28px;border-radius:18px;background:#fff;text-align:center;box-shadow:0 8px 28px #0f172a18}
+      h1{font-size:22px;margin:0 0 12px}p{line-height:1.7;color:#475569}button{border:0;border-radius:10px;padding:12px 24px;background:#0f9d8a;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+      @media(prefers-color-scheme:dark){body{background:#0f172a;color:#f8fafc}main{background:#1e293b}p{color:#cbd5e1}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>オフラインです</h1>
+      <p>この画面はまだ保存されていません。通信が戻ってから再読み込みしてください。</p>
+      <button type="button" onclick="location.reload()">再読み込み</button>
+    </main>
+  </body>
+</html>

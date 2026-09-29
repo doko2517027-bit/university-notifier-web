@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v37";
+const STATIC_CACHE = "caremate-static-v38";
 
-const RUNTIME_CACHE = "caremate-runtime-v37";
+const RUNTIME_CACHE = "caremate-runtime-v38";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -31,17 +31,19 @@ const CORE_ASSETS = [
 
   "index.html",
 
-  "style.css?v=20260929-6",
+  "offline.html",
 
-  "loading_indicator.js?v=20260929-6",
+  "style.css?v=20260929-7",
 
-  "app.js?v=20260929-4",
+  "loading_indicator.js?v=20260929-7",
 
-  "common.js?v=20260929-6",
+  "app.js?v=20260929-7",
+
+  "common.js?v=20260929-7",
 
   "login.html",
 
-  "login.js?v=20260929-6",
+  "login.js?v=20260929-7",
 
   "push_subscription.js",
 
@@ -77,7 +79,7 @@ const CORE_ASSETS = [
 
   "attendance.html",
 
-  "attendance.js?v=20260929-4",
+  "attendance.js?v=20260929-7",
 
   "attendance_record_view.mjs",
 
@@ -277,7 +279,7 @@ async function handleNavigationRequest(event) {
         オフライン等の場合だけ
         保存済みHTMLを使う。
         */
-    const cachedResponse = await caches.match(request);
+    const cachedResponse = await caches.match(request, { ignoreSearch: true });
 
     if (cachedResponse) {
       return cachedResponse;
@@ -287,7 +289,7 @@ async function handleNavigationRequest(event) {
         URLパラメータ付きindex等で
         完全一致しなかった時の保険。
         */
-    const fallback = await caches.match("index.html");
+    const fallback = await caches.match("offline.html");
 
     if (fallback) {
       return fallback;

@@ -5,7 +5,6 @@ import {
   loadProfileImage,
   initializePage,
   setupAdminTab,
-  setupOfflineAlert,
   updateAssignmentNavBadge,
   updateShareNavBadge,
   updateNewsNavBadge,
@@ -256,7 +255,6 @@ if (localStorage.getItem("loggedIn") !== "true" || !studentNumber) {
 } else {
   setupTheme(el.theme);
 
-  setupOfflineAlert();
 
   setupEvents();
 

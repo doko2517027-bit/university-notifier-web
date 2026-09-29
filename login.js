@@ -6,7 +6,7 @@ import {
   refreshAdminClaim,
   showLoadingIndicator,
   hideLoadingIndicator,
-} from "./common.js?v=20260929-6";
+} from "./common.js?v=20260929-7";
 
 import {
   doc,

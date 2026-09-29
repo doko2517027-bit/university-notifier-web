@@ -1,8 +1,32 @@
 // 各画面共通の遷移表示。認証モジュールの読み込み前から利用できるよう独立させる。
 (() => {
+  const offlineBanner = document.createElement("div");
+  offlineBanner.id = "caremateOfflineBanner";
+  offlineBanner.className = "offline-status-banner";
+  offlineBanner.setAttribute("role", "status");
+  offlineBanner.setAttribute("aria-live", "polite");
+  offlineBanner.textContent = "オフラインです。保存済みの画面は閲覧できますが、通信が必要な操作はできません。";
+  offlineBanner.hidden = true;
+  document.body.prepend(offlineBanner);
+
+  const refreshOfflineStatus = () => {
+    const offline = navigator.onLine === false;
+    offlineBanner.hidden = !offline;
+    if (offline && document.body.classList.contains("page-loading")) {
+      document.body.dataset.loadingMessage = "オフラインです。保存済みの画面を開いています…";
+    }
+  };
+  window.CareMateOfflineStatus = { refresh: refreshOfflineStatus };
+  window.addEventListener("offline", refreshOfflineStatus);
+  window.addEventListener("online", refreshOfflineStatus);
+  window.addEventListener("pageshow", refreshOfflineStatus);
+  refreshOfflineStatus();
+
   const show = (message) => {
     if (!document.body) return;
-    document.body.dataset.loadingMessage = message;
+    document.body.dataset.loadingMessage = navigator.onLine === false
+      ? "オフラインです。保存済みの画面を開いています…"
+      : message;
     document.body.classList.add("page-busy");
   };
   const hide = () => {
