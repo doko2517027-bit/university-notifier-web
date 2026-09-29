@@ -130,7 +130,9 @@ export function getOrCreateCareMateDeviceId() {
 }
 
 export async function signInCareMateAuth(studentNumber, password) {
-  const authenticateCareMate = httpsCallable(functions, "authenticateCareMate");
+  const authenticateCareMate = httpsCallable(functions, "authenticateCareMate", {
+    timeout: 30000,
+  });
 
   const result = await authenticateCareMate({
     studentNumber: String(studentNumber || "").trim(),
@@ -1137,6 +1139,16 @@ export async function loadMyRanking() {
 export function showPage() {
   document.body.classList.remove("page-loading");
   document.body.classList.add("page-loaded");
+}
+
+export function showLoadingIndicator(message = "読み込み中…") {
+  document.body.dataset.loadingMessage = message;
+  document.body.classList.add("page-busy");
+}
+
+export function hideLoadingIndicator() {
+  document.body.classList.remove("page-busy");
+  delete document.body.dataset.loadingMessage;
 }
 
 function setupAutoBackButton() {

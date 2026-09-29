@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>機能リクエスト管理 | CareMate</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20260929-6" />
+    <script defer src="loading_indicator.js?v=20260929-6"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
         document.documentElement.classList.add("dark");
@@ -21,7 +22,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="page-loading">
     <div class="top-buttons">
       <button id="backButton" class="circle-button">←</button>
       <h2>💡 機能リクエスト</h2>

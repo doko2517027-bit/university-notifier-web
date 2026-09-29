@@ -9,13 +9,14 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>ログイン | CareMateApp</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20260929-6" />
+    <script defer src="loading_indicator.js?v=20260929-6"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
         document.documentElement.classList.add("dark");
     </script>
   </head>
-  <body>
+  <body class="page-loading">
     <header class="header">
       <div class="logo">🎓</div>
       <h1>CareMateApp</h1>
@@ -47,6 +48,6 @@
       </button>
     </div>
 
-    <script type="module" src="login.js"></script>
+    <script type="module" src="login.js?v=20260929-6"></script>
   </body>
 </html>

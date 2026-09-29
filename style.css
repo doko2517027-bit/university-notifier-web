@@ -1211,16 +1211,62 @@ white-space:pre-wrap;
 
 }
 
-.page-loading{
-
-    visibility:hidden;
-
+.page-loading,
+.page-busy{
+    visibility:visible;
 }
 
-.home-page.page-loading{
+body.page-loading::before,
+body.page-busy::before{
+    content:attr(data-loading-message);
+    position:fixed;
+    inset:0;
+    z-index:100000;
+    display:grid;
+    place-items:center;
+    box-sizing:border-box;
+    padding:72px 20px 0;
+    background:rgba(248,250,252,.91);
+    color:#16324f;
+    font-size:15px;
+    font-weight:700;
+    text-align:center;
+    backdrop-filter:blur(3px);
+}
 
-    visibility:visible;
+body.page-loading:not([data-loading-message])::before{
+    content:"読み込み中…";
+}
 
+body.page-loading::after,
+body.page-busy::after{
+    content:"";
+    position:fixed;
+    top:calc(50% - 40px);
+    left:calc(50% - 20px);
+    width:40px;
+    height:40px;
+    box-sizing:border-box;
+    border:4px solid rgba(37,99,235,.18);
+    border-top-color:var(--primary,#2563eb);
+    border-radius:50%;
+    z-index:100001;
+    animation:caremate-loading-spin .75s linear infinite;
+}
+
+.dark body.page-loading::before,
+.dark body.page-busy::before{
+    background:rgba(15,23,42,.92);
+    color:#f8fafc;
+}
+
+@keyframes caremate-loading-spin{
+    to{transform:rotate(360deg)}
+}
+
+@media (prefers-reduced-motion:reduce){
+    body.page-loading::after,
+    body.page-busy::after{animation-duration:2s}
 }
 
 .page-loaded{

@@ -1,6 +1,7 @@
 import {
   db,
   studentNumber,
+  showPage,
   showToast,
   setupOfflineAlert,
   updateNewsNavBadge,
@@ -13,6 +14,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 let unread = 0;
+
+showPage();
 
 const mailCount = document.getElementById("mailCount");
 

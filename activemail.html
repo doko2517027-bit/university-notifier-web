@@ -9,7 +9,8 @@
 
     <title>Active!Mail</title>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20260929-6" />
+    <script defer src="loading_indicator.js?v=20260929-6"></script>
 
     <script>
       if (localStorage.getItem("theme") === "dark") {
@@ -18,7 +19,7 @@
     </script>
   </head>
 
-  <body>
+  <body class="page-loading">
     <h1>📧 Active!Mail</h1>
 
     <div class="card setting-card">
@@ -73,6 +74,6 @@
       </a>
     </nav>
 
-    <script type="module" src="activemail.js"></script>
+    <script type="module" src="activemail.js?v=20260929-6"></script>
   </body>
 </html>
