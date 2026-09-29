@@ -2053,24 +2053,6 @@ lectureScheduleList?.addEventListener("keydown", (event) => {
   }
 });
 
-const splash = document.getElementById("splash");
-
-if (splash && !sessionStorage.getItem("splashShown")) {
-  splash.style.display = "flex";
-
-  setTimeout(() => {
-    splash.classList.add("hide");
-
-    setTimeout(() => {
-      splash.style.display = "none";
-    }, 180);
-  }, 320);
-
-  sessionStorage.setItem("splashShown", "true");
-} else if (splash) {
-  splash.style.display = "none";
-}
-
 const settingButton = document.getElementById("settingButton");
 
 document.getElementById("profileButton").onclick = () => {

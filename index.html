@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20260929-8" />
+    <link rel="modulepreload" href="app.js?v=20260929-9" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,8 +26,9 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20260929-8" />
+    <link rel="stylesheet" href="style.css?v=20260929-9" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script defer src="splash_intro.js?v=20260929-9"></script>
 
     <script>
       if (
@@ -53,11 +54,9 @@
     </script>
   </head>
   <body class="home-page page-loading">
-    <div id="splash">
-      <div class="splash-content">
-        <div class="logo">🎓</div>
-        <h1>CareMateApp</h1>
-      </div>
+    <div id="splash" aria-label="CareMateの起動アニメーション" role="region">
+      <video id="splashVideo" muted playsinline preload="none" aria-hidden="true"></video>
+      <button id="splashSkip" type="button" aria-label="起動アニメーションをスキップ">スキップ</button>
     </div>
 
     <div id="examPopupOverlay" class="exam-popup-overlay">
@@ -523,6 +522,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20260929-8"></script>
+    <script type="module" src="app.js?v=20260929-9"></script>
   </body>
 </html>

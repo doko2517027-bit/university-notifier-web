@@ -460,34 +460,48 @@ select:focus{
     display:none;
     position:fixed;
     inset:0;
-    background:var(--bg);
+    background:#10566c;
     justify-content:center;
     align-items:center;
-    z-index:9999;
+    z-index:100010;
     opacity:1;
-
-    transition:
-        opacity .18s ease;
+    overflow:hidden;
+    transition:opacity .24s ease;
 }
 
 #splash.hide{
     opacity:0;
+    pointer-events:none;
 }
 
-.splash-content{
-    text-align:center;
-    animation:splashFadeIn .6s ease;
+#splashVideo{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#10566c;
 }
 
-@keyframes splashFadeIn{
-    from{
-        opacity:0;
-        transform:translateY(15px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
+#splashSkip{
+    position:absolute;
+    right:max(20px, env(safe-area-inset-right));
+    top:max(20px, env(safe-area-inset-top));
+    min-width:88px;
+    min-height:42px;
+    padding:9px 15px;
+    border:1px solid rgba(255,255,255,.5);
+    border-radius:999px;
+    background:rgba(6,52,67,.42);
+    color:#fff;
+    font:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter:blur(8px);
+}
+
+#splashSkip:focus-visible{
+    outline:3px solid #fff;
+    outline-offset:3px;
 }
 
 #version,
@@ -11966,26 +11980,6 @@ body:has(#weatherCard) > h2 {
 /* ========================================
    スプラッシュ
 ======================================== */
-
-body:has(#weatherCard) #splash {
-    background:
-        radial-gradient(
-            circle at center,
-            rgba(20, 184, 166, 0.13),
-            var(--bg) 62%
-        );
-}
-
-body:has(#weatherCard)
-#splash .logo {
-    color: var(--primary);
-}
-
-body:has(#weatherCard)
-#splash h1 {
-    color: var(--text);
-}
-
 
 /* ========================================
    上部ユーザー情報
