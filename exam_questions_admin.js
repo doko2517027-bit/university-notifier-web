@@ -166,9 +166,9 @@ function renderQuestions(data) {
   const todayQuestion = data.today_question || null;
 
   questionList.innerHTML = `
-        <div class="card setting-card">
+        <details class="exam-editor-question-panel">
 
-            <h3>📌 要約</h3>
+            <summary>📌 要約 <small>${summary.length}項目</small></summary>
 
             <p>
                 1行につき1項目入力してください。
@@ -179,12 +179,12 @@ function renderQuestions(data) {
                 rows="6"
                 placeholder="例：心不全では心拍出量が低下する。">${summary.join("\n")}</textarea>
 
-        </div>
+        </details>
 
 
-        <div class="card setting-card">
+        <details class="exam-editor-question-panel">
 
-            <h3>⭐ 重要ポイント</h3>
+            <summary>⭐ 重要ポイント <small>${importantPoints.length}項目・画像${importantPointImages.length}件</small></summary>
 
             <p>
                 1行につき1項目入力してください。
@@ -222,12 +222,12 @@ function renderQuestions(data) {
 
             </button>
 
-        </div>
+        </details>
 
 
-        <div class="card setting-card">
+        <details class="exam-editor-question-panel">
 
-            <h3>🎯 今日の1問</h3>
+            <summary>🎯 今日の1問 <small>${todayQuestion ? "登録済み" : "未登録"}</small></summary>
 
             <div id="todayQuestionArea">
 
@@ -249,12 +249,12 @@ function renderQuestions(data) {
 
             </div>
 
-        </div>
+        </details>
 
 
-        <div class="card setting-card">
+        <details class="exam-editor-question-panel">
 
-            <h3>📝 穴埋め</h3>
+            <summary>📝 穴埋め <small>${fillBlank.length}問</small></summary>
 
             <div id="fillBlankList">
 
@@ -280,12 +280,12 @@ function renderQuestions(data) {
                 ＋ 穴埋め問題を手動作成
             </button>
 
-        </div>
+        </details>
 
 
-        <div class="card setting-card">
+        <details class="exam-editor-question-panel">
 
-            <h3>🧠 選択問題</h3>
+            <summary>🧠 選択問題 <small>${quiz.length}問</small></summary>
 
             <div id="quizList">
 
@@ -313,7 +313,7 @@ function renderQuestions(data) {
                 ＋ 選択問題を手動作成
             </button>
 
-        </div>
+        </details>
     `;
 }
 

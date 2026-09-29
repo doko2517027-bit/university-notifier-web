@@ -9,7 +9,7 @@
 
     <title>テスト管理 | CareMate</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-11" />
+    <link rel="stylesheet" href="style.css?v=20260929-12" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -38,119 +38,80 @@
       </div>
     </div>
 
-    <div class="card setting-card exam-admin-intro">
-      <h2>📚 テスト管理</h2>
+    <main class="exam-admin-workspace">
+      <header class="exam-admin-hero">
+        <div>
+          <p class="exam-admin-eyebrow">TEST PREPARATION</p>
+          <h1>テスト対策を管理</h1>
+          <p>区分・科目・単元を整理して、問題や資料をすばやく編集できます。</p>
+        </div>
+        <div class="exam-admin-overview" aria-label="登録状況">
+          <div><strong id="examAdminSubjectCount">—</strong><span>科目</span></div>
+          <div><strong id="examAdminUnitCount">—</strong><span>単元</span></div>
+          <div><strong id="examAdminCategoryCount">—</strong><span>区分</span></div>
+        </div>
+      </header>
 
-      <p>テスト期間やAI学習機能を管理します。</p>
-    </div>
+      <div class="exam-admin-layout">
+        <aside class="exam-admin-sidebar" aria-label="テスト対策の設定">
+          <details class="exam-admin-panel exam-admin-settings" id="examSettingsCard">
+            <summary><span class="exam-admin-panel-icon">⚙️</span><span><strong>公開・試験設定</strong><small>期間、ホーム表示、日程</small></span></summary>
+            <div class="exam-admin-panel-body">
+              <label class="setting-row"><span><b>テストモード</b><small>ホームにテスト対策を表示</small></span><input type="checkbox" id="examEnabled" /></label>
+              <label class="exam-admin-field">試験名<input id="examTitle" type="text" placeholder="例：前期定期試験" /></label>
+              <div class="exam-admin-date-grid">
+                <label class="exam-admin-field">開始日<input id="examStartDate" type="date" /></label>
+                <label class="exam-admin-field">終了日<input id="examEndDate" type="date" /></label>
+              </div>
+              <details class="exam-admin-subpanel">
+                <summary>試験スケジュールを編集</summary>
+                <p>1行ずつ「日付｜科目名｜時間｜教室」で入力します。</p>
+                <textarea id="examSchedule" rows="6" placeholder="2026-07-20｜成人看護学｜09:00〜10:30｜301教室"></textarea>
+              </details>
+              <div class="exam-admin-toggle-list">
+                <label class="setting-row"><span><b>初回ポップアップ</b><small>その日初めて開いた時</small></span><input type="checkbox" id="examShowPopup" /></label>
+                <label class="setting-row"><span><b>カウントダウン</b><small>ホーム上部に残り日数</small></span><input type="checkbox" id="examShowCountdown" /></label>
+                <label class="setting-row"><span><b>テスト対策ボタン</b><small>ホームの天気横に表示</small></span><input type="checkbox" id="examShowHomeButton" /></label>
+                <label class="setting-row"><span><b>今日の1問</b><small>ホームに問題を表示</small></span><input type="checkbox" id="examShowDailyQuestion" /></label>
+              </div>
+              <button id="saveExamSettings" type="button" class="btn btn-primary">設定を保存</button>
+            </div>
+          </details>
 
-    <details class="card setting-card exam-admin-settings" id="examSettingsCard">
-      <summary>⚙️ テスト期間・表示設定を編集</summary>
-      <div class="exam-admin-settings-content">
+          <details class="exam-admin-panel exam-admin-category-card">
+            <summary><span class="exam-admin-panel-icon">🗂️</span><span><strong>区分を管理</strong><small>年度・学期などで整理</small></span></summary>
+            <div class="exam-admin-panel-body">
+              <p>「2026年前期」などを作成し、科目を振り分けられます。</p>
+              <div class="exam-admin-inline-form">
+                <input id="categoryName" type="text" maxlength="80" placeholder="新しい区分名" aria-label="新しい区分名" />
+                <button id="addCategory" type="button" class="btn btn-primary">追加</button>
+              </div>
+              <div id="categoryList" class="exam-admin-category-list">読み込み中...</div>
+            </div>
+          </details>
+        </aside>
 
-      <label class="setting-row">
-        <span>
-          <b>テストモード</b><br />
-          <small>ONにするとホームにテスト対策を表示します</small>
-        </span>
-        <input type="checkbox" id="examEnabled" />
-      </label>
-
-      <h3>試験名</h3>
-
-      <input id="examTitle" type="text" placeholder="例：前期定期試験" />
-
-      <h3>開始日</h3>
-
-      <input id="examStartDate" type="date" />
-
-      <h3>終了日</h3>
-
-      <input id="examEndDate" type="date" />
-
-      <h3>試験スケジュール</h3>
-
-      <p>
-        1行ずつ「日付｜科目名｜時間｜教室」の順で入力してください。
-        例）2026-07-20｜成人看護学｜09:00〜10:30｜301教室
-      </p>
-
-      <textarea
-        id="examSchedule"
-        rows="8"
-        placeholder="例：
-    2026-07-20｜成人看護学｜09:00〜10:30｜301教室
-    2026-07-21｜老年看護学｜13:00〜14:30｜講堂"
-      ></textarea>
-
-      <br /><br />
-
-      <label class="setting-row">
-        <span>
-          <b>初回ポップアップ</b><br />
-          <small>その日初めて開いた時に表示</small>
-        </span>
-        <input type="checkbox" id="examShowPopup" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>カウントダウン表示</b><br />
-          <small>ホーム上部にあと何日か表示</small>
-        </span>
-        <input type="checkbox" id="examShowCountdown" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>テスト対策ボタン</b><br />
-          <small>ホームの天気横に表示</small>
-        </span>
-        <input type="checkbox" id="examShowHomeButton" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>今日の1問</b><br />
-          <small>ホームに今日の1問を表示</small>
-        </span>
-        <input type="checkbox" id="examShowDailyQuestion" />
-      </label>
-
-      <br />
-
-      <button id="saveExamSettings" class="btn btn-primary">
-        テスト設定を保存
-      </button>
+        <section class="exam-admin-catalog" aria-labelledby="examAdminCatalogTitle">
+          <div class="exam-admin-catalog-heading">
+            <div><p class="exam-admin-eyebrow">SUBJECTS &amp; UNITS</p><h2 id="examAdminCatalogTitle">科目・単元</h2></div>
+            <p>科目を開くと単元や問題の操作ができます。</p>
+          </div>
+          <div class="exam-admin-add-subject">
+            <input id="subjectName" type="text" placeholder="追加する科目名" aria-label="追加する科目名" />
+            <select id="newSubjectCategory" aria-label="追加する科目の区分"></select>
+            <button id="addSubject" type="button" class="btn btn-primary">＋ 科目を追加</button>
+          </div>
+          <div class="exam-admin-search-row">
+            <label for="examAdminSearch">科目・単元を探す</label>
+            <input id="examAdminSearch" type="search" placeholder="科目名や単元名で検索" autocomplete="off" />
+            <span id="examAdminResultCount" aria-live="polite"></span>
+          </div>
+          <div id="subjectList" class="exam-admin-catalog-list">読み込み中...</div>
+          <p id="examAdminNoResults" class="exam-admin-no-results" hidden>一致する科目・単元がありません。検索語を変えてください。</p>
+        </section>
       </div>
-    </details>
+    </main>
 
-    <div class="card setting-card exam-admin-category-card">
-      <h3>🗂️ 区分管理</h3>
-      <p>「2026年前期」などを作成し、既存の科目も後から振り分けられます。</p>
-      <div class="exam-admin-inline-form">
-        <input id="categoryName" type="text" maxlength="80" placeholder="例：2026年前期" aria-label="新しい区分名" />
-        <button id="addCategory" type="button" class="btn btn-primary">区分を追加</button>
-      </div>
-      <div id="categoryList" class="exam-admin-category-list">読み込み中...</div>
-    </div>
-
-    <div class="card setting-card">
-      <h3>📖 科目管理</h3>
-
-      <input id="subjectName" type="text" placeholder="科目名 例：病態学" />
-
-      <select id="newSubjectCategory" aria-label="追加する科目の区分"></select>
-
-      <br /><br />
-
-      <button id="addSubject" class="btn btn-primary">科目を追加</button>
-
-      <br /><br />
-
-      <div id="subjectList">読み込み中...</div>
-    </div>
-
-    <script type="module" src="exam_admin.js?v=20260929-11"></script>
+    <script type="module" src="exam_admin.js?v=20260929-12"></script>
   </body>
 </html>

@@ -57,6 +57,7 @@ const categoryName = document.getElementById("categoryName");
 const addCategory = document.getElementById("addCategory");
 const categoryList = document.getElementById("categoryList");
 const newSubjectCategory = document.getElementById("newSubjectCategory");
+const catalogSearch = document.getElementById("examAdminSearch");
 
 await initializePage([
   loadProfileImage(topProfileImage),
@@ -124,6 +125,7 @@ function categoryOptions(selectedId = "") {
 
 function renderCategories() {
   const items = modeCategories();
+  document.getElementById("examAdminCategoryCount").textContent = String(items.length);
   newSubjectCategory.innerHTML = categoryOptions();
   categoryList.innerHTML = items.length
     ? items.map((item) => `<div class="exam-admin-category-row" data-category-id="${escapeHtml(item.id)}"><input class="category-edit-name" type="text" maxlength="80" value="${escapeHtml(item.name)}" aria-label="区分名"><span>${currentSubjects.filter((subject) => subject.groupId === item.id).length}科目</span><button class="btn btn-secondary save-category" type="button">保存</button><button class="btn btn-danger delete-category" type="button">削除</button></div>`).join("")
@@ -282,9 +284,12 @@ async function loadSubjects() {
 
   currentSubjects = subjects.map(({ subjectDoc, subject }) => ({ id: subjectDoc.id, ...subject }));
   renderCategories();
+  document.getElementById("examAdminSubjectCount").textContent = String(subjects.length);
+  document.getElementById("examAdminUnitCount").textContent = String(subjects.reduce((count, item) => count + item.unitSnap.size, 0));
 
   if (subjects.length === 0) {
     subjectList.innerHTML = "科目はまだありません。";
+    updateSubjectSearch();
     return;
   }
 
@@ -304,6 +309,8 @@ async function loadSubjects() {
     });
     const summary = document.createElement("summary");
     summary.textContent = `${category.name}　${items.length}科目`;
+    section.dataset.groupName = category.name;
+    section.dataset.totalCount = String(items.length);
     section.appendChild(summary);
     const content = document.createElement("div");
     content.className = "exam-admin-group-content";
@@ -315,36 +322,31 @@ async function loadSubjects() {
   for (const { subjectDoc, subject, unitSnap } of subjects) {
     const subjectCard = document.createElement("div");
     subjectCard.className = "card setting-card exam-admin-subject-card";
+    subjectCard.dataset.search = `${subject.name || ""} ${[...unitSnap.docs].map((doc) => doc.data().name || "").join(" ")}`.toLocaleLowerCase("ja");
 
     const subjectHeader = document.createElement("div");
     subjectHeader.className = "exam-admin-subject-header";
     subjectHeader.setAttribute("role", "button");
     subjectHeader.tabIndex = 0;
+    subjectHeader.setAttribute("aria-expanded", String(openAdminSubjectIds.has(subjectDoc.id)));
 
     subjectHeader.innerHTML = `
-            <h3>
-                📚 ${escapeHtml(subject.name)}
-                ${subject.completed ? "　✅ 実施済" : ""}
-            </h3>
-
+            <span class="exam-admin-subject-icon" aria-hidden="true">📚</span>
+            <span class="exam-admin-subject-label"><strong>${escapeHtml(subject.name)}</strong>
+              <small>${unitSnap.size}単元${subject.completed ? " ・ 実施済" : ""}</small></span>
             ${
               subject.completed &&
               subject.completedDate &&
               subject.completedPeriod
                 ? `
-                        <p>
+                        <span class="exam-admin-subject-date">
                             ${formatCompletedExamDate(subject.completedDate)}
                             ${subject.completedPeriod}限目
-                            実施済
-                        </p>
+                        </span>
                     `
-                : `
-                        <p>
-                            ${unitSnap.size}単元 ・ タップして管理
-                        </p>
-                    `
+                : ""
             }
-
+            <span class="exam-admin-row-arrow" aria-hidden="true">⌄</span>
         `;
 
     const subjectContent = document.createElement("div");
@@ -356,6 +358,7 @@ async function loadSubjects() {
       subjectContent.style.display =
         subjectContent.style.display === "none" ? "block" : "none";
       subjectCard.classList.toggle("is-open", subjectContent.style.display === "block");
+      subjectHeader.setAttribute("aria-expanded", String(subjectContent.style.display === "block"));
       if (subjectContent.style.display === "block") openAdminSubjectIds.add(subjectDoc.id);
       else openAdminSubjectIds.delete(subjectDoc.id);
     };
@@ -414,11 +417,12 @@ async function loadSubjects() {
         unitHeader.className = "exam-admin-unit-header";
         unitHeader.setAttribute("role", "button");
         unitHeader.tabIndex = 0;
+        unitHeader.setAttribute("aria-expanded", "false");
 
         unitHeader.innerHTML = `
-                    <h4>📘 ${escapeHtml(unit.name)}</h4>
-                    <small>${escapeHtml(unit.range || "")}</small>
-                    <p>タップして操作</p>
+                    <span class="exam-admin-unit-icon" aria-hidden="true">📘</span>
+                    <span class="exam-admin-unit-label"><strong>${escapeHtml(unit.name)}</strong><small>${escapeHtml(unit.range || "範囲未設定")}</small></span>
+                    <span class="exam-admin-row-arrow" aria-hidden="true">⌄</span>
                 `;
 
         const unitMenu = document.createElement("div");
@@ -444,8 +448,9 @@ async function loadSubjects() {
 
         unitHeader.onclick = () => {
           unitMenu.style.display =
-            unitMenu.style.display === "none" ? "block" : "none";
+          unitMenu.style.display === "none" ? "block" : "none";
           unitCard.classList.toggle("is-open", unitMenu.style.display === "block");
+          unitHeader.setAttribute("aria-expanded", String(unitMenu.style.display === "block"));
         };
         unitHeader.onkeydown = (event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -471,7 +476,32 @@ async function loadSubjects() {
     subjectCard.appendChild(subjectContent);
     (groupedContainers.get(subject.groupId) || groupedContainers.get("unclassified"))?.appendChild(subjectCard);
   }
+  updateSubjectSearch();
 }
+
+function updateSubjectSearch() {
+  const query = catalogSearch.value.trim().toLocaleLowerCase("ja");
+  let visibleCount = 0;
+  subjectList.querySelectorAll(".exam-admin-group").forEach((group) => {
+    let groupCount = 0;
+    group.querySelectorAll(".exam-admin-subject-card").forEach((card) => {
+      const matches = !query || card.dataset.search.includes(query);
+      card.hidden = !matches;
+      if (matches) groupCount++;
+    });
+    group.hidden = groupCount === 0;
+    group.querySelector("summary").textContent = `${group.dataset.groupName}　${query ? groupCount : group.dataset.totalCount}科目`;
+    if (query && groupCount) group.open = true;
+    else if (!query) group.open = openAdminGroupIds.has(group.dataset.groupId);
+    visibleCount += groupCount;
+  });
+  document.getElementById("examAdminResultCount").textContent = query
+    ? `${visibleCount}件見つかりました`
+    : `${currentSubjects.length}科目を表示`;
+  document.getElementById("examAdminNoResults").hidden = !query || visibleCount > 0;
+}
+
+catalogSearch.addEventListener("input", updateSubjectSearch);
 
 document.addEventListener("change", async (e) => {
   const isCompletedToggle = e.target.classList.contains("completed-toggle");

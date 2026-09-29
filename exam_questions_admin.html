@@ -9,7 +9,7 @@
 
     <title>問題一覧 | CareMate</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-12" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -19,7 +19,7 @@
     </script>
   </head>
 
-  <body class="page-loading">
+  <body class="page-loading exam-editor-body">
     <div class="top-buttons">
       <button id="backButton" class="circle-button">←</button>
 
@@ -38,46 +38,41 @@
       </div>
     </div>
 
-    <div class="card setting-card">
-      <h2>📝 問題一覧</h2>
+    <main class="exam-editor-workspace">
+      <header class="exam-editor-hero">
+        <p class="exam-admin-eyebrow">QUESTION EDITOR</p>
+        <h1>問題を管理</h1>
+        <p id="unitInfo">読み込み中...</p>
+      </header>
 
-      <p id="unitInfo">読み込み中...</p>
-    </div>
+      <div class="exam-editor-top-grid">
+        <section class="exam-editor-action-panel" aria-labelledby="examEditorPublishTitle">
+          <h2 id="examEditorPublishTitle">保存・公開</h2>
+          <p>内容を編集して保存し、学生に見せるときに公開してください。</p>
+          <div class="exam-editor-actions">
+            <button id="saveEditedQuestions" type="button" class="btn btn-secondary">編集内容を保存</button>
+            <button id="publishQuestions" type="button" class="btn btn-primary">学生に公開</button>
+          </div>
+        </section>
 
-    <div class="card setting-card">
-      <h3>公開設定</h3>
+        <details class="exam-editor-import">
+          <summary>JSONを一括インポート</summary>
+          <div class="exam-editor-import-body">
+            <p>複数の問題をまとめて追加するときに使います。</p>
+            <textarea id="jsonImport" rows="8" placeholder="ここにJSONを貼り付け"></textarea>
+            <div class="exam-editor-actions">
+              <button id="previewJson" type="button" class="btn btn-secondary">内容を確認</button>
+              <button id="importJson" type="button" class="btn btn-primary">JSONを保存</button>
+            </div>
+            <div id="jsonPreview"></div>
+          </div>
+        </details>
+      </div>
 
-      <p>
-        AI生成した問題の編集や、問題の手動作成ができます。
-        保存後に「公開する」を押すと学生側へ反映されます。
-      </p>
+      <div class="exam-editor-section-heading"><h2>編集項目</h2><p>編集する項目だけ開けます。</p></div>
+      <div id="questionList" class="exam-editor-question-list">読み込み中...</div>
+    </main>
 
-      <button id="saveEditedQuestions" class="btn btn-secondary">
-        編集内容を保存
-      </button>
-
-      <br /><br />
-
-      <button id="publishQuestions" class="btn btn-primary">公開する</button>
-    </div>
-
-    <h3>JSON一括インポート</h3>
-
-    <textarea
-      id="jsonImport"
-      rows="20"
-      style="width: 100%"
-      placeholder="ここにChatGPTのJSONを貼り付け"
-    ></textarea>
-
-    <button id="previewJson" class="btn">内容を確認</button>
-
-    <button id="importJson" class="btn btn-primary">JSONを保存</button>
-
-    <div id="jsonPreview"></div>
-
-    <div id="questionList">読み込み中...</div>
-
-    <script type="module" src="exam_questions_admin.js?v=20260929-11"></script>
+    <script type="module" src="exam_questions_admin.js?v=20260929-12"></script>
   </body>
 </html>
