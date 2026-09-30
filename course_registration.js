@@ -25,6 +25,8 @@ import {
   limit,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { isLeaveActive } from "./academic_lifecycle.mjs";
+
 /* ========================================
    HTML要素
 ======================================== */
@@ -506,6 +508,16 @@ async function loadRegistrationData() {
 
     userData = userSnapshot.data() || {};
 
+    if (!previewMode && (isLeaveActive(userData) || ["graduated", "withdrawn"].includes(userData.academicStatus))) {
+      renderUnavailable(
+        isLeaveActive(userData)
+          ? "休学中は履修登録できません。ホーム画面の「復学」から再開してください。"
+          : "現在の学籍ステータスでは履修登録できません。",
+        isLeaveActive(userData) ? "休学中です" : "履修登録できません",
+      );
+      return;
+    }
+
     if (!previewMode && userData.manabaVerified !== true) {
       renderUnavailable(
         "履修登録はManabaログイン確認が完了している学生のみ利用できます。",
@@ -702,12 +714,23 @@ async function loadRegistrationData() {
         isRetakeSubject(subject),
     );
 
+    const outstandingRequiredSubjects = subjects.filter(
+      (subject) =>
+        matchesCurriculum(subject) &&
+        matchesSemester(subject) &&
+        Number(subject.grade) < Number(grade) &&
+        subject.requirementType === "required" &&
+        !isAlreadyEarned(subject),
+    );
+
     visibleSubjects = [
       ...new Map(
-        [...retakeSubjects, ...regularSubjects]
+        [...retakeSubjects, ...outstandingRequiredSubjects, ...regularSubjects]
           .filter(
             (subject) => !isAlreadyEarned(subject) || isRetakeSubject(subject),
           )
+          .filter((subject) => userData.academicStatus !== "repeat" ||
+            subject.requirementType === "required" || isRetakeSubject(subject))
           .map((subject) => [subject.id, subject]),
       ).values(),
     ];
@@ -1107,6 +1130,7 @@ function getRetakeEnrollment(subject) {
 }
 
 function isRetakeSubject(subject) {
+  if (retakeSubjectIds.has(subject.id)) return matchesSemester(subject);
   const historyRecord = getRetakeEnrollment(subject);
 
   if (!historyRecord) {
@@ -1189,6 +1213,10 @@ function isPastCourseEarned(record) {
 
 function getAcademicYearForGrade(targetGrade) {
   const gradeNumber = Number(targetGrade) || 1;
+
+  if (gradeNumber === Number(grade) && Number(config?.academicYear) > 0) {
+    return Number(config.academicYear);
+  }
 
   if (admissionYear > 0) {
     return admissionYear + gradeNumber - 1;

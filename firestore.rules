@@ -11,6 +11,28 @@ service cloud.firestore {
 
     match /users/{userId} {
 
+      function isUserOwner() {
+        return request.auth != null &&
+          request.auth.uid == 'caremate-' + userId &&
+          request.auth.token.studentNumber == userId;
+      }
+
+      function isAuthenticatedAdmin() {
+        return request.auth != null && request.auth.token.admin == true;
+      }
+
+      function annualResponseWindowOpen() {
+        let transition = get(/databases/$(database)/documents/system/app).data.annualTransition;
+        return transition.enabled == true &&
+          request.resource.data.annualTransitionResponse.academicYear == transition.academicYear &&
+          (!('annualProgression' in resource.data) ||
+            resource.data.annualProgression.academicYear != transition.academicYear);
+      }
+
+      match /termCreditResults/{termId} {
+        allow read, create, update, delete: if isUserOwner() || isAuthenticatedAdmin();
+      }
+
       /* ホームの個人用やること。他の学生や管理者からは読めない。 */
       match /dailyTodos/{todoId} {
         function isOwner() {
@@ -59,8 +81,27 @@ service cloud.firestore {
       */
       // ログイン用パスワードは本人のCloud Functionか既存の管理者更新だけで変更する。
       allow update: if
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['appPasswordHash'])
-        || (request.auth != null && request.auth.token.admin == true);
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'appPasswordHash', 'grade', 'graduatedAt', 'withdrawnAt',
+            'scheduledDeleteAt', 'deletionLifecycleVersion',
+            'annualProgression', 'academicProgressionHistory', 'annualTransitionAppliedAt'
+          ]) || isAuthenticatedAdmin()
+        ) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'annualTransitionResponse', 'creditConfirmationResponse',
+            'academicStatus', 'leaveSince', 'leaveAcademicYear',
+            'leaveSemester', 'leavePeriods', 'leaveStartDate', 'resumedAt'
+          ]) || isUserOwner() || isAuthenticatedAdmin()
+        ) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['academicStatus']) ||
+          isAuthenticatedAdmin() ||
+          (isUserOwner() && request.resource.data.academicStatus in ['active', 'leave', 'repeat'])
+        ) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['annualTransitionResponse']) ||
+          isAuthenticatedAdmin() ||
+          (isUserOwner() && annualResponseWindowOpen())
+        );
 
 
       /* 解答済み問題 */

@@ -22,6 +22,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { initialGradeForStudent } from "./academic_lifecycle.mjs";
 
 /* ========================================
    HTML要素
@@ -208,6 +209,14 @@ function updateFormState() {
     }
   }
 
+  const inferredGrade = initialGradeForStudent(studentNumber?.value);
+  if (inferredGrade && selectedDepartment && departmentGrade) departmentGrade.value = String(inferredGrade);
+  if (inferredGrade && selectedMajor && majorGrade) majorGrade.value = String(inferredGrade);
+  const gradeHint = document.getElementById("adminRegistrationGradeHint");
+  if (gradeHint) gradeHint.textContent = inferredGrade
+    ? `学籍番号の入学年度から、初回登録時は${inferredGrade}年生です。`
+    : "学籍番号の先頭2桁から初回登録時の学年を判定します。";
+
   const selectedGrade = selectedDepartment
     ? departmentGrade?.value
     : majorGrade?.value;
@@ -300,6 +309,12 @@ async function registerStudent() {
   if (!validationResult.valid) {
     alert(validationResult.message);
 
+    return;
+  }
+
+  const inferredGrade = initialGradeForStudent(numberValue);
+  if (!inferredGrade || Number(selectedGrade) !== inferredGrade) {
+    alert("学籍番号の入学年度と学年が一致しません。新規登録は当年度の1〜4年生が対象です。");
     return;
   }
 
@@ -462,21 +477,14 @@ function validateStudentNumber(numberValue, selectedDepartment, selectedMajor) {
     };
   }
 
-  const year = numberValue.substring(0, 2);
-
   const departmentCode = numberValue.substring(2, 4);
 
   const studentSequence = Number.parseInt(numberValue.substring(4), 10);
 
-  /*
-    現在のregister.jsと同じく
-    2025年度・2026年度入学生を対象にする
-    */
-
-  if (year !== "25" && year !== "26") {
+  if (!initialGradeForStudent(numberValue)) {
     return {
       valid: false,
-      message: "学生番号の入学年度が正しくありません。",
+      message: "当年度の1〜4年生に該当する入学年度ではありません。",
     };
   }
 

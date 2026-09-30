@@ -4,15 +4,64 @@ const { getAuth } = require("firebase-admin/auth");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getDatabase } = require("firebase-admin/database");
 
-if (!getApps().length) {
-  initializeApp({
-    databaseURL: "https://universitynotifier-67517-default-rtdb.firebaseio.com",
-  });
+let services;
+
+function getServices() {
+  if (services) return services;
+  if (!getApps().length) {
+    initializeApp({
+      databaseURL: "https://universitynotifier-67517-default-rtdb.firebaseio.com",
+    });
+  }
+  services = {
+    db: getFirestore(),
+    auth: getAuth(),
+    realtimeDb: getDatabase(),
+  };
+  return services;
 }
 
-const db = getFirestore();
-const auth = getAuth();
-const realtimeDb = getDatabase();
+async function deleteUserData(target) {
+  const { db, auth, realtimeDb } = getServices();
+  // Cloudinary画像は管理者が手動削除し、それ以外のCareMateデータを削除する。
+  const removeDocument = (reference) => db.recursiveDelete(reference);
+  const removeMatches = async (collectionName, fieldName) => {
+    const records = await db.collection(collectionName).where(fieldName, "==", target).get();
+    await Promise.all(records.docs.map((record) => removeDocument(record.ref)));
+    return records.size;
+  };
+  const directCollections = [
+    "publicUsers", "admins", "developers", "assignments",
+    "courseLinks", "courseNews", "userPresence", "attendance",
+    "attendancePreferences", "attendanceRecords", "examProgress",
+    "subjectPoints", "totalRanking", "userDeviceSessions",
+    "userDeviceAccess", "calendarAssignments",
+    "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
+  ];
+  await Promise.all(directCollections.map((name) => removeDocument(db.collection(name).doc(target))));
+  const [contacts, featureRequests, calendarEvents, reports, calendarDispatches] = await Promise.all([
+    removeMatches("contacts", "studentNumber"),
+    removeMatches("featureRequests", "studentNumber"),
+    removeMatches("calendarEvents", "ownerId"),
+    removeMatches("reports", "reporterStudentNumber"),
+    removeMatches("calendarReminderDispatches", "userId"),
+  ]);
+  // 日別ランキングは日付を親文書、学籍番号を子文書IDとして保持している。
+  const rankingDays = await db.collection("dailyRanking").listDocuments();
+  for (let index = 0; index < rankingDays.length; index += 25) {
+    await Promise.all(rankingDays.slice(index, index + 25)
+      .map((dayRef) => removeDocument(dayRef.collection("users").doc(target))));
+  }
+  await realtimeDb.ref(`status/${target}`).remove();
+  try {
+    await auth.deleteUser(`caremate-${target}`);
+  } catch (error) {
+    if (error?.code !== "auth/user-not-found") throw error;
+  }
+  // 再試行の起点となるusers文書は最後に消す。
+  await removeDocument(db.collection("users").doc(target));
+  return { contacts, featureRequests, calendarEvents, reports, calendarDispatches };
+}
 
 exports.deleteCareMateUser = onCall(
   { region: "asia-northeast1" },
@@ -36,48 +85,6 @@ exports.deleteCareMateUser = onCall(
       );
     }
 
-    const removeDocument = (reference) => db.recursiveDelete(reference);
-    const removeMatches = async (collectionName) => {
-      const records = await db
-        .collection(collectionName)
-        .where("studentNumber", "==", target)
-        .get();
-      await Promise.all(
-        records.docs.map((record) => removeDocument(record.ref)),
-      );
-      return records.size;
-    };
-    const directCollections = [
-      "users",
-      "publicUsers",
-      "courseLinks",
-      "courseNews",
-      "userPresence",
-      "attendance",
-      "attendancePreferences",
-      "attendanceRecords",
-      "examProgress",
-      "subjectPoints",
-      "totalRanking",
-      "userDeviceSessions",
-      "userDeviceAccess",
-    ];
-
-    await Promise.all(
-      directCollections.map((name) =>
-        removeDocument(db.collection(name).doc(target)),
-      ),
-    );
-    const [contacts, featureRequests] = await Promise.all([
-      removeMatches("contacts"),
-      removeMatches("featureRequests"),
-    ]);
-    await realtimeDb.ref(`status/${target}`).remove();
-    try {
-      await auth.deleteUser(`caremate-${target}`);
-    } catch (error) {
-      if (error?.code !== "auth/user-not-found") throw error;
-    }
-    return { ok: true, contacts, featureRequests };
+    return { ok: true, ...(await deleteUserData(target)) };
   },
 );

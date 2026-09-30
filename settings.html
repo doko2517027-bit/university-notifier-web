@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="manifest.json" />
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-15" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -70,7 +70,23 @@
       <p id="gradeText"></p>
       <p><b>卒業予定</b></p>
       <p id="graduationText"></p>
+      <p><b>在籍状態</b></p>
+      <p id="academicStatusText">確認中</p>
     </div>
+
+    <section id="annualResponseSettings" hidden>
+      <h2>年度末の進級・在籍確認</h2>
+      <div class="card setting-card settings-form-stack">
+        <p id="annualResponseAssessment"></p>
+        <p id="annualResponsePeriodNote">受付期間中、反映前の回答を変更できます。</p>
+        <label>最終ステータス<select id="annualResponseChoice"></select></label>
+        <label id="annualResponseReasonRow" hidden>変更理由<textarea id="annualResponseReason" rows="3" maxlength="500" placeholder="自動判定や前回の回答と異なる理由"></textarea></label>
+        <label id="annualResponseEffectiveRow" hidden>大学の正式な卒業日・退学日<input id="annualResponseEffectiveDate" type="date" /></label>
+        <label id="annualResponseLeaveRow" hidden>休学開始日<input id="annualResponseLeaveStartDate" type="date" /></label>
+        <button id="saveAnnualResponse" class="btn btn-primary" type="button">回答を変更する</button>
+        <p class="annual-transition-note">CareMate内の自己管理用です。大学の正式な判定は大学からの通知を確認してください。</p>
+      </div>
+    </section>
 
     <h2>パスワード変更</h2>
     <div class="card setting-card settings-form-stack">
@@ -275,6 +291,6 @@
       </a>
     </nav>
 
-    <script type="module" src="settings.js?v=20260929-5"></script>
+    <script type="module" src="settings.js?v=20260929-15"></script>
   </body>
 </html>

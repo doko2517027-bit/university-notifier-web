@@ -16,6 +16,11 @@ const { getAuth } = require("firebase-admin/auth");
 
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
+const {
+  deleteCareMateDataExceptExternalMedia,
+  isPurgeEligible,
+} = require("./account_cleanup.js");
+
 const webpush = require("web-push");
 
 const crypto = require("node:crypto");
@@ -516,6 +521,25 @@ exports.cleanupStaleLoginDevices = onSchedule(
   async () => {
     const result = await deviceSessionStore.cleanupExpiredRecords();
     console.log("古いログイン端末情報を削除しました", result);
+
+    // 新しいジョブを増やさず、既存の日次処理で卒業・退学後30日の保持期限を適用する。
+    const now = new Date();
+    const snapshot = await db.collection("users")
+      .where("scheduledDeleteAt", "<=", now.toISOString())
+      .get();
+    const realtimeDb = require("firebase-admin/database").getDatabase();
+    for (const userDoc of snapshot.docs) {
+      if (!isPurgeEligible(userDoc.data(), now.getTime())) continue;
+      try {
+        await deleteCareMateDataExceptExternalMedia(
+          { db, auth: adminAuth, realtimeDb },
+          userDoc.id,
+        );
+        console.log(`卒業・退学後30日を経過したアカウントを削除: ${userDoc.id}`);
+      } catch (error) {
+        console.error(`アカウント自動削除失敗: ${userDoc.id}`, error);
+      }
+    }
   },
 );
 
@@ -1655,7 +1679,9 @@ exports.sendAttendanceNotifications = onSchedule(
 // 2510044だけに送信
 // ======================
 
-// 年度末確認は、反映予定日まで回答だけを保存し、開始日に一度だけ適用する。
+const { officialStartDate, statusRetentionDate } = require("./academic_lifecycle.js");
+
+// 年度末確認は反映予定日まで回答だけを保存し、以降は未回答者の分を毎日適用する。
 exports.applyAnnualTransitions = onSchedule(
   {
     schedule: "0 2 * * *",
@@ -1667,7 +1693,8 @@ exports.applyAnnualTransitions = onSchedule(
     const systemSnap = await systemRef.get();
     const transition = systemSnap.data()?.annualTransition;
 
-    if (transition?.enabled !== true || !transition.activationDate) return;
+    // 受付を停止しても、停止前に本人が確定した回答は予定日に反映する。
+    if (!transition?.activationDate) return;
 
     const dateParts = new Intl.DateTimeFormat("en", {
       timeZone: "Asia/Tokyo",
@@ -1699,18 +1726,24 @@ exports.applyAnnualTransitions = onSchedule(
 
       if (
         Number(response?.academicYear) !== academicYear ||
-        !["promote", "repeat", "graduate", "withdraw"].includes(
+        response?.decisionVersion !== 2 ||
+        !["promote", "repeat", "graduate", "withdraw", "leave"].includes(
           response?.action,
         ) ||
         Number(user.annualProgression?.academicYear) === academicYear
       )
         continue;
 
+      if ((!response.recommendedAction || response.action !== response.recommendedAction) &&
+          !String(response.overrideReason || "").trim()) continue;
+
       const grade = Number(String(user.grade || "").replace("年", ""));
       const action = response.action;
       const entry = {
         academicYear,
         action,
+        leaveStartDate: action === "leave" ? response.leaveStartDate : null,
+        effectiveDate: ["graduate", "withdraw"].includes(action) ? response.effectiveDate : null,
         appliedAt: new Date().toISOString(),
         source: "student_annual_transition",
       };
@@ -1727,19 +1760,38 @@ exports.applyAnnualTransitions = onSchedule(
         grade >= 1 &&
         grade < 4
       ) {
-        changes.grade = String(grade + 1);
+        changes.grade = String(user.grade).includes("年")
+          ? `${grade + 1}年`
+          : String(grade + 1);
         changes.academicStatus = "active";
       } else if (action === "repeat") {
         changes.academicStatus = "repeat";
+      } else if (action === "leave") {
+        const leaveSince = officialStartDate(response.leaveStartDate);
+        if (!leaveSince) continue;
+        changes.academicStatus = "leave";
+        changes.leaveSince = leaveSince;
+        changes.leaveStartDate = response.leaveStartDate;
+        changes.leaveAcademicYear = academicYear + 1;
+        changes.leaveSemester = "前期";
       } else if (action === "graduate" && grade === 4) {
+        const retention = statusRetentionDate(response.effectiveDate);
+        if (!retention) continue;
         changes.academicStatus = "graduated";
-        changes.graduatedAt = new Date().toISOString();
+        changes.graduatedAt = retention.officialAt;
+        changes.scheduledDeleteAt = retention.deleteAt;
+        changes.deletionLifecycleVersion = 1;
       } else if (action === "withdraw") {
+        const retention = statusRetentionDate(response.effectiveDate);
+        if (!retention) continue;
         changes.academicStatus = "withdrawn";
-        changes.withdrawnAt = new Date().toISOString();
+        changes.withdrawnAt = retention.officialAt;
+        changes.scheduledDeleteAt = retention.deleteAt;
+        changes.deletionLifecycleVersion = 1;
       } else continue;
 
-      batch.update(userDoc.ref, changes);
+      // 回答の変更と同時に反映処理が走っても、古い回答を適用しない。
+      batch.update(userDoc.ref, changes, { lastUpdateTime: userDoc.updateTime });
       operations += 1;
       appliedCount += 1;
 
@@ -1754,21 +1806,14 @@ exports.applyAnnualTransitions = onSchedule(
 
     await Promise.all(commits);
 
-    await systemRef.set(
-      {
-        annualTransition: {
-          ...transition,
-          enabled: false,
-          appliedAt: new Date().toISOString(),
-          appliedCount,
-        },
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+    await systemRef.update({
+      "annualTransition.appliedAt": new Date().toISOString(),
+      "annualTransition.appliedCount": FieldValue.increment(appliedCount),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
     console.log(
-      `年度末確認を反映しました: ${academicYear}年度 ${appliedCount}件`,
+      `年度末確認を反映しました: ${academicYear}年度 ${appliedCount}件（未回答者のため受付継続）`,
     );
   },
 );

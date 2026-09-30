@@ -11,7 +11,7 @@
 
     <title>初回登録 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-14" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
@@ -79,6 +79,7 @@
         maxlength="7"
         placeholder="例：2510000"
       />
+      <p id="registrationGradeHint">学籍番号の先頭2桁から初回登録時の学年を判定します。</p>
 
       <p><b>学生ページID 必須</b></p>
       <input id="studentPageId" type="text" placeholder="学生ページID" />
@@ -133,6 +134,6 @@
 
     <footer id="version"></footer>
 
-    <script type="module" src="register.js"></script>
+    <script type="module" src="register.js?v=20260929-14"></script>
   </body>
 </html>

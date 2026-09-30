@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>年度末判定 | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20260929-14" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
@@ -49,7 +49,7 @@
       <section class="card setting-card attendance-admin-section">
         <h3>学生の回答状況</h3>
         <p class="attendance-admin-help">
-          進級・留年・卒業・退学の回答は、反映予定日の午前2時に一度だけ反映されます。
+          進級見込みはCareMateが表示し、最終ステータスは学生本人が確定します。反映予定日以降、未反映の回答を毎日午前2時に反映します。
         </p>
         <div id="annualTransitionList"><p>読み込み中...</p></div>
       </section>
@@ -64,6 +64,6 @@
         >👑<br /><span>管理</span></a
       >
     </nav>
-    <script type="module" src="annual_transition_admin.js"></script>
+    <script type="module" src="annual_transition_admin.js?v=20260929-14"></script>
   </body>
 </html>

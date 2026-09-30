@@ -1,5 +1,6 @@
 import { VERSION } from "./version.js";
 import { savedExternalPasswordFields } from "./settings_password_fields.mjs";
+import { academicYearAt, canReviseAnnualResponse, daysAfterDate, isLeaveActive } from "./academic_lifecycle.mjs";
 import {
   db,
   auth,
@@ -21,6 +22,7 @@ import {
 import {
   doc,
   getDoc,
+  getDocFromServer,
   deleteDoc,
   updateDoc,
   addDoc,
@@ -57,6 +59,12 @@ const enablePushButton = document.getElementById("enablePushButton");
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
 const userName = document.getElementById("userName");
+const annualResponseSettings = document.getElementById("annualResponseSettings");
+const annualResponseChoice = document.getElementById("annualResponseChoice");
+const annualResponseReason = document.getElementById("annualResponseReason");
+const annualResponseEffectiveDate = document.getElementById("annualResponseEffectiveDate");
+const annualResponseLeaveStartDate = document.getElementById("annualResponseLeaveStartDate");
+let annualResponseOriginal = null;
 
 setupTheme(themeButton);
 
@@ -87,23 +95,127 @@ document.getElementById("gradeText").textContent =
 async function loadRegistrationInfo() {
   document.getElementById("studentNumberText").textContent =
     studentNumber || "未登録";
-  const [userSnap, publicSnap] = await Promise.all([
-    getDoc(doc(db, "users", studentNumber)),
+  const [userSnap, publicSnap, systemSnap] = await Promise.all([
+    getDocFromServer(doc(db, "users", studentNumber))
+      .catch(() => getDoc(doc(db, "users", studentNumber))),
     getDoc(doc(db, "publicUsers", studentNumber)),
+    getDoc(doc(db, "system", "app")).catch(() => null),
   ]);
-  const data = userSnap.data() || {},
-    currentGrade = Number(data.grade || localStorage.getItem("grade") || 0);
+  const data = userSnap.data() || {};
+  const gradeValue = String(data.grade || localStorage.getItem("grade") || "");
+  const currentGrade = Number(gradeValue.replace("年", ""));
+  if (data.grade) localStorage.setItem("grade", gradeValue);
+  if (data.department) localStorage.setItem("department", data.department);
+  if (data.major) localStorage.setItem("major", data.major);
+  document.getElementById("gradeText").textContent = currentGrade ? `${currentGrade}年` : "未登録";
+  document.getElementById("departmentText").textContent = data.department || localStorage.getItem("department") || "未登録";
+  document.getElementById("majorText").textContent = data.major || localStorage.getItem("major") || "なし";
   document.getElementById("registeredNameText").textContent =
     publicSnap.data()?.name || data.name || "未登録";
-  const now = new Date(),
-    academicYear =
-      now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
-  document.getElementById("graduationText").textContent = currentGrade
+  const academicYear = academicYearAt();
+  document.getElementById("graduationText").textContent = data.academicStatus === "leave"
+    ? isLeaveActive(data) ? "休学中のため未定" : "休学予定のため未定"
+    : ["graduated", "withdrawn"].includes(data.academicStatus)
+      ? "－"
+      : currentGrade
     ? `${academicYear + (4 - currentGrade) + 1}年3月予定`
     : "未登録";
+  document.getElementById("academicStatusText").textContent =
+    data.academicStatus === "leave"
+      ? isLeaveActive(data) ? "休学中" : `休学予定（${data.leaveStartDate || "開始日未設定"}から）`
+      : ({ repeat: "同学年を継続", graduated: "卒業", withdrawn: "退学" }[data.academicStatus] || "在籍中");
+  renderAnnualResponseEditor(data, systemSnap?.data()?.annualTransition);
   document.getElementById("contactInboxLink").hidden =
     studentNumber !== "2510044";
 }
+
+function updateAnnualResponseRows() {
+  const action = annualResponseChoice.value;
+  const recommended = annualResponseOriginal?.recommendedAction || "";
+  const changed = action !== annualResponseOriginal?.action;
+  document.getElementById("annualResponseReasonRow").hidden = !changed && Boolean(recommended && action === recommended);
+  document.getElementById("annualResponseEffectiveRow").hidden = !["graduate", "withdraw"].includes(action);
+  document.getElementById("annualResponseLeaveRow").hidden = action !== "leave";
+}
+
+function renderAnnualResponseEditor(user, transition) {
+  annualResponseSettings.hidden = !canReviseAnnualResponse(transition, user);
+  if (annualResponseSettings.hidden) return;
+  annualResponseOriginal = user.annualTransitionResponse;
+  const grade = Number(String(user.grade || "").replace("年", ""));
+  const choices = grade === 4
+    ? [["graduate", "卒業"], ["repeat", "同学年を継続"], ["leave", "休学"], ["withdraw", "退学"]]
+    : [["promote", "進級"], ["repeat", "同学年を継続"], ["leave", "休学"], ["withdraw", "退学"]];
+  annualResponseChoice.innerHTML = choices.map(([value, label]) =>
+    `<option value="${value}">${label}</option>`).join("");
+  annualResponseChoice.value = annualResponseOriginal.action;
+  annualResponseReason.value = annualResponseOriginal.overrideReason || "";
+  annualResponseEffectiveDate.value = annualResponseOriginal.effectiveDate || "";
+  annualResponseLeaveStartDate.value = annualResponseOriginal.leaveStartDate || "";
+  const assessment = ({ eligible: "進級要件を満たす見込み", ineligible: "進級要件を満たさない見込み" })[annualResponseOriginal.automaticAssessment] || "判定保留";
+  document.getElementById("annualResponseAssessment").textContent = `前回の自動判定：${assessment}。現在の回答は設定から変更できます。`;
+  updateAnnualResponseRows();
+}
+
+annualResponseChoice.addEventListener("change", () => {
+  if (annualResponseChoice.value !== annualResponseOriginal?.action) annualResponseReason.value = "";
+  updateAnnualResponseRows();
+});
+
+document.getElementById("saveAnnualResponse").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const action = annualResponseChoice.value;
+  const reason = annualResponseReason.value.trim();
+  const changed = action !== annualResponseOriginal?.action;
+  const recommended = annualResponseOriginal?.recommendedAction || "";
+  if (!action || ((changed || !recommended || action !== recommended) && !reason)) {
+    alert("回答を変更する場合や自動判定と異なる場合は、理由を入力してください。");
+    return;
+  }
+  const effectiveDate = annualResponseEffectiveDate.value;
+  const leaveStartDate = annualResponseLeaveStartDate.value;
+  if (["graduate", "withdraw"].includes(action) && !daysAfterDate(effectiveDate, 0)) {
+    alert("大学の正式な卒業日・退学日を選択してください。");
+    return;
+  }
+  if (action === "leave" && !daysAfterDate(leaveStartDate, 0)) {
+    alert("休学開始日を選択してください。");
+    return;
+  }
+  if (!confirm("年度末の最終回答を変更しますか？")) return;
+  button.disabled = true;
+  try {
+    await requireOwnLogin();
+    const [userSnap, systemSnap] = await Promise.all([
+      getDoc(doc(db, "users", studentNumber)),
+      getDoc(doc(db, "system", "app")),
+    ]);
+    const user = userSnap.data() || {};
+    const transition = systemSnap.data()?.annualTransition;
+    if (!canReviseAnnualResponse(transition, user)) throw new Error("受付期間外、または既に反映済みです");
+    const response = user.annualTransitionResponse;
+    await updateDoc(doc(db, "users", studentNumber), {
+      annualTransitionResponse: {
+        ...response,
+        action,
+        overrideReason: reason,
+        effectiveDate: ["graduate", "withdraw"].includes(action) ? effectiveDate : null,
+        leaveStartDate: action === "leave" ? leaveStartDate : null,
+        revisedAt: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+      },
+      updatedAt: serverTimestamp(),
+    });
+    annualResponseOriginal = { ...response, action, overrideReason: reason, effectiveDate, leaveStartDate };
+    updateAnnualResponseRows();
+    alert("回答を更新しました。反映予定日までは現在の学年・在籍状態のままです。");
+  } catch (error) {
+    console.error("年度末回答の変更エラー:", error);
+    alert("回答を更新できませんでした。受付期間と通信状態を確認してください。");
+  } finally {
+    button.disabled = false;
+  }
+});
 
 document.getElementById("saveManabaPassword").onclick = () =>
   saveExternalPassword("manaba");

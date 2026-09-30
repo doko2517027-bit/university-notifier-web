@@ -61,15 +61,16 @@ if (
 
 async function load() {
   try {
-    const [userSnap, enrollmentSnap] = await Promise.all([
+    const [userSnap, enrollmentSnap, termSnap] = await Promise.all([
       getDoc(doc(db, "users", targetStudent)),
       getDocs(collection(db, "users", targetStudent, "enrolledSubjects")),
+      getDoc(doc(db, "users", targetStudent, "termCreditResults", `${academicYear}_${semester}`)),
     ]);
     if (!userSnap.exists() || !matchesAdminScope(userSnap.data(), scope))
       throw new Error("対象外の学生です");
     const user = userSnap.data() || {};
     const response = user.creditConfirmationResponse;
-    const results =
+    const results = termSnap.exists() ? termSnap.data().results || {} :
       Number(response?.academicYear) === academicYear &&
       response?.semester === semester
         ? response.results || {}
@@ -94,8 +95,8 @@ async function load() {
         .map((course) => {
           const subject =
             course.name || course.subject || course.subjectKey || course.id;
-          const status = results[course.id] || course.creditStatus || "earned";
-          return `<label class="credit-confirmation-item" data-course="${escapeHtml(course.id)}"><span>${escapeHtml(subject)}</span><select><option value="earned" ${status === "earned" ? "selected" : ""}>取得できた</option><option value="not_earned" ${status === "not_earned" ? "selected" : ""}>取得できなかった（再履修）</option></select></label>`;
+          const status = results[course.id] || course.creditStatus || "";
+          return `<label class="credit-confirmation-item" data-course="${escapeHtml(course.id)}"><span>${escapeHtml(subject)}</span><select><option value="" ${!status ? "selected" : ""}>選択してください</option><option value="earned" ${status === "earned" ? "selected" : ""}>取得できた</option><option value="not_earned" ${status === "not_earned" ? "selected" : ""}>取得できなかった（再履修）</option><option value="not_taken" ${status === "not_taken" ? "selected" : ""}>履修していない</option></select></label>`;
         })
         .join("") || "<p>対象科目がありません。</p>";
   } catch (error) {
@@ -107,17 +108,19 @@ async function load() {
 
 saveButton.onclick = async () => {
   const rows = [...list.querySelectorAll("[data-course]")];
-  if (!rows.length || !confirm("単位取得結果を保存しますか？")) return;
+  if (!rows.length) return;
+  if (rows.some((row) => !row.querySelector("select")?.value)) {
+    showToast("すべての科目の取得状況を選択してください");
+    return;
+  }
+  if (!confirm("単位取得結果を保存しますか？")) return;
   saveButton.disabled = true;
   try {
     const batch = writeBatch(db),
       results = {};
     rows.forEach((row) => {
       const courseId = row.dataset.course;
-      const status =
-        row.querySelector("select")?.value === "not_earned"
-          ? "not_earned"
-          : "earned";
+      const status = row.querySelector("select")?.value || "not_taken";
       results[courseId] = status;
       batch.set(
         doc(db, "users", targetStudent, "enrolledSubjects", courseId),
@@ -133,6 +136,10 @@ saveButton.onclick = async () => {
         { merge: true },
       );
     });
+    batch.set(doc(db, "users", targetStudent, "termCreditResults", `${academicYear}_${semester}`), {
+      academicYear, semester, results, leave: false,
+      updatedAt: serverTimestamp(), editedBy: studentNumber || "",
+    }, { merge: true });
     batch.update(doc(db, "users", targetStudent), {
       creditConfirmationResponse: {
         academicYear,

@@ -18663,6 +18663,30 @@ body:has(#weatherCard) .lecture-calendar-day.is-selected .lecture-calendar-day-n
     color: var(--subtext);
 }
 
+.academic-assessment {
+    margin: 14px 0 0;
+    padding: 11px 13px;
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary) 7%, var(--card));
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: left;
+}
+
+#annualTransitionOverlay .exam-popup-card { max-height: min(85vh, 720px); overflow: auto; }
+.annual-transition-actions label { display: grid; gap: 6px; color: var(--text); font-size: 13px; font-weight: 700; text-align: left; }
+.annual-transition-actions textarea { width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: var(--card); color: var(--text); font: inherit; }
+.annual-transition-actions label[hidden], .credit-confirmation-list[hidden], #resumeStudySlide[hidden] { display: none !important; }
+.credit-semester-leave { display: flex; align-items: center; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-weight: 700; text-align: left; }
+.credit-semester-leave input { width: auto; flex: 0 0 auto; }
+.credit-leave-start { display: grid; gap: 6px; margin-top: 10px; color: var(--text); font-weight: 700; text-align: left; }
+.credit-leave-start[hidden], #annualResponseSettings[hidden], #annualResponseReasonRow[hidden], #annualResponseEffectiveRow[hidden], #annualResponseLeaveRow[hidden] { display: none !important; }
+#annualResponseSettings .settings-form-stack { max-width: 680px; }
+#annualResponseSettings label { display: grid; gap: 6px; }
+#annualResponseSettings textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+
 /* ========================================
    過去の履修結果
    履修登録画面デザイン統一版

@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20260929-11" />
+    <link rel="modulepreload" href="app.js?v=20260929-15" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20260929-11" />
+    <link rel="stylesheet" href="style.css?v=20260929-15" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -152,12 +152,16 @@
         <p class="exam-popup-label">年度末の確認</p>
         <h2 id="annualTransitionTitle">次年度の予定を確認</h2>
         <p id="annualTransitionMessage"></p>
-        <div
-          id="annualTransitionActions"
-          class="annual-transition-actions"
-        ></div>
+        <p id="annualTransitionAssessment" class="academic-assessment" role="status"></p>
+        <div id="annualTransitionActions" class="annual-transition-actions">
+          <label>最終ステータス<select id="annualTransitionChoice"></select></label>
+          <label id="annualTransitionReasonRow" hidden>自動判定と異なる理由<textarea id="annualTransitionReason" rows="3" maxlength="500" placeholder="理由を入力してください"></textarea></label>
+          <label id="annualTransitionDateRow" hidden>大学の正式な卒業日・退学日<input id="annualTransitionEffectiveDate" type="date" /></label>
+          <label id="annualTransitionLeaveRow" hidden>休学開始日<input id="annualTransitionLeaveStartDate" type="date" /></label>
+          <button id="saveAnnualTransition" class="btn btn-primary" type="button">この内容で確定</button>
+        </div>
         <p class="annual-transition-note">
-          回答後も、反映予定日までは現在の学年・画面のまま利用できます。
+          この判定はCareMate内の自己管理用で、大学の正式な進級判定ではありません。反映予定日までは現在の学年のままです。
         </p>
       </div>
     </div>
@@ -170,6 +174,8 @@
         <p id="creditConfirmationMessage">
           各科目について、単位を取得できたか選択してください。
         </p>
+        <label class="credit-semester-leave"><input id="creditSemesterLeave" type="checkbox" /> この学期は休学する</label>
+        <label id="creditLeaveStartRow" class="credit-leave-start" hidden>休学開始日<input id="creditLeaveStartDate" type="date" /></label>
         <div id="creditConfirmationList" class="credit-confirmation-list"></div>
         <button
           id="saveCreditConfirmation"
@@ -430,6 +436,13 @@
           <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
         </div>
       </div>
+      <div id="resumeStudySlide" class="home-slide" hidden>
+        <div class="card setting-card home-card">
+          <h2>🎓 復学</h2>
+          <p>休学中です。履修登録を再開する場合は復学してください。</p>
+          <button id="resumeStudyButton" class="btn btn-primary" type="button">復学して履修登録を再開</button>
+        </div>
+      </div>
     </div>
 
     <hr />
@@ -515,6 +528,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20260929-11"></script>
+    <script type="module" src="app.js?v=20260929-15"></script>
   </body>
 </html>

@@ -15,6 +15,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { VERSION } from "./version.js";
+import { admissionYearFromStudentNumber, initialGradeForStudent } from "./academic_lifecycle.mjs";
 
 import {
   ensurePushSubscription,
@@ -73,6 +74,8 @@ majorGrade.addEventListener("change", () => {
   updateState();
 });
 
+studentNumber.addEventListener("input", updateState);
+
 studentPageId.addEventListener("input", () => {
   updateState();
 });
@@ -114,6 +117,14 @@ function updateState() {
   major.disabled = selectedDepartment;
   majorGrade.disabled = !selectedMajor;
 
+  const inferredGrade = initialGradeForStudent(studentNumber.value);
+  if (inferredGrade && selectedDepartment) departmentGrade.value = `${inferredGrade}年`;
+  if (inferredGrade && selectedMajor) majorGrade.value = `${inferredGrade}年`;
+  const gradeHint = document.getElementById("registrationGradeHint");
+  if (gradeHint) gradeHint.textContent = inferredGrade
+    ? `学籍番号の入学年度から、初回登録時は${inferredGrade}年生です。`
+    : "学籍番号の先頭2桁から初回登録時の学年を判定します。";
+
   if (!selectedDepartment) {
     departmentGrade.value = "";
   }
@@ -130,7 +141,6 @@ function updateState() {
 
   button.disabled =
     !selected ||
-    selectedGrade === "" ||
     studentNumber.value.trim() === "" ||
     studentPageId.value.trim() === "" ||
     studentPagePassword.value.trim() === "" ||
@@ -162,14 +172,8 @@ button.addEventListener("click", async () => {
     return;
   }
 
-  const year = value.substring(0, 2);
   const departmentCode = value.substring(2, 4);
   const number = parseInt(value.substring(4));
-
-  if (year !== "25" && year !== "26") {
-    alert("学生番号が正しくありません。");
-    return;
-  }
 
   if (
     departmentCode !== "10" &&
@@ -310,6 +314,7 @@ button.addEventListener("click", async () => {
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
+      const savedGrade = String(userSnap.data()?.grade || selectedGrade);
       await updateDoc(userRef, {
         subscription: JSON.parse(JSON.stringify(subscription)),
 
@@ -347,7 +352,7 @@ button.addEventListener("click", async () => {
       localStorage.setItem("registered", "true");
       localStorage.setItem("department", selectedDepartment);
       localStorage.setItem("major", selectedMajor);
-      localStorage.setItem("grade", selectedGrade);
+      localStorage.setItem("grade", savedGrade);
       localStorage.setItem("manabaId", studentNumber.value);
       localStorage.setItem("studentNumber", studentNumber.value);
       localStorage.setItem("migrated", "true");
@@ -359,11 +364,19 @@ button.addEventListener("click", async () => {
       return;
     }
 
+    const inferredGrade = initialGradeForStudent(value);
+    if (!inferredGrade || selectedGrade !== `${inferredGrade}年`) {
+      alert("学籍番号の入学年度と学年が一致しません。新規登録は当年度の1〜4年生が対象です。");
+      button.disabled = false;
+      return;
+    }
+
     await setDoc(userRef, {
       studentNumber: studentNumber.value,
       department: selectedDepartment,
       major: selectedMajor,
       grade: selectedGrade,
+      admissionYear: admissionYearFromStudentNumber(value),
 
       studentPageId: studentPageId.value,
       studentPagePasswordEncrypted,
