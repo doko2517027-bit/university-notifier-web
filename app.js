@@ -2625,9 +2625,16 @@ async function loadRanking() {
 
         const studentId = rankingDoc.id;
 
-        const totalSnap = await getDoc(doc(db, "totalRanking", studentId));
+        const [totalSnap, rankingUserSnap] = await Promise.all([
+          getDoc(doc(db, "totalRanking", studentId)),
+          getDoc(doc(db, "users", studentId)),
+        ]);
 
         const totalPoint = totalSnap.exists() ? totalSnap.data().point || 0 : 0;
+
+        const rankingUser = rankingUserSnap.exists()
+          ? rankingUserSnap.data()
+          : null;
 
         const mark = getRankMark(totalPoint);
 
@@ -2651,9 +2658,11 @@ async function loadRanking() {
                                 <div class="ranking-user">
 
                                     <div class="ranking-name">
-                                        ${mark}${getAnonymousRankingName(
-                                          studentId,
-                                          studentId === studentNumber,
+                                        ${mark}${escapeCreditText(
+                                          getAnonymousRankingName(
+                                            studentId,
+                                            rankingUser,
+                                          ),
                                         )}
                                     </div>
 
