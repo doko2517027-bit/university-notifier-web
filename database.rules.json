@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "status": {
+      ".read": "auth != null && auth.uid === 'caremate-2510044' && auth.token.studentNumber === '2510044' && auth.token.admin === true",
+      "$studentNumber": {
+        ".write": "auth != null && auth.uid === 'caremate-2510044' && auth.token.studentNumber === '2510044' && auth.token.admin === true && !newData.exists()",
+        "$deviceId": {
+          ".write": "auth != null && auth.uid === 'caremate-' + $studentNumber && auth.token.studentNumber === $studentNumber",
+          ".validate": "newData.hasChildren(['studentNumber', 'deviceId', 'deviceLabel', 'state', 'page', 'pageName', 'lastChanged'])",
+          "studentNumber": {
+            ".validate": "newData.isString() && newData.val() === $studentNumber"
+          },
+          "deviceId": {
+            ".validate": "newData.isString() && newData.val() === $deviceId && newData.val().length >= 16 && newData.val().length <= 80"
+          },
+          "deviceLabel": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "state": {
+            ".validate": "newData.val() === 'online' || newData.val() === 'away' || newData.val() === 'offline'"
+          },
+          "page": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "pageName": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "lastChanged": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}

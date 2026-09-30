@@ -34,6 +34,7 @@ import {
   getAuth,
   signInWithCustomToken,
   getIdTokenResult,
+  onAuthStateChanged,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
@@ -1859,6 +1860,7 @@ export async function updateNewsNavBadge() {
 }
 
 let presenceInitialized = false;
+let presenceStarting = null;
 
 const presencePageNames = {
   "index.html": "ホーム画面",
@@ -1915,103 +1917,137 @@ async function getPresenceDeviceLabel() {
 
 export async function setupPresence() {
   if (presenceInitialized) {
-    return;
+    return true;
   }
 
-  if (!studentNumber) {
-    return;
-  }
+  if (presenceStarting) return presenceStarting;
 
-  if (localStorage.getItem("loggedIn") !== "true") {
-    return;
-  }
+  const startTask = (async () => {
+    if (!/^\d{7}$/.test(String(studentNumber || ""))) return false;
+    if (localStorage.getItem("loggedIn") !== "true") return false;
 
-  presenceInitialized = true;
-
-  const deviceId = getOrCreateCareMateDeviceId();
-
-  const deviceLabel = await getPresenceDeviceLabel();
-
-  // 旧版が学生直下へ保存していた1台分の値だけを消し、端末ID配下の
-  // 新しい記録は残す。これにより同じ端末が「旧端末」と重複しない。
-  try {
-    await update(ref(realtimeDb, `status/${studentNumber}`), {
-      studentNumber: null,
-      deviceId: null,
-      deviceLabel: null,
-      state: null,
-      page: null,
-      pageName: null,
-      lastChanged: null,
-    });
-  } catch (error) {
-    console.warn("旧形式の接続表示を整理できませんでした:", error);
-  }
-
-  const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
-
-  const connectedRef = ref(realtimeDb, ".info/connected");
-
-  const page = getCurrentPageFileName();
-
-  const pageName = getCurrentPageName();
-
-  onValue(connectedRef, async (snapshot) => {
-    if (snapshot.val() !== true) {
-      return;
+    // Firebase Authはページ読み込み後に前回の認証を復元する。
+    // 復元前にRealtime Databaseへ書くと端末によってpermission-deniedとなり、
+    // 管理画面が「接続履歴なし」のままになるため、本人認証を待ってから開始する。
+    await auth.authStateReady();
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.uid !== `caremate-${studentNumber}`) {
+      return false;
     }
 
-    try {
-      await onDisconnect(statusRef).set({
-        studentNumber,
-        deviceId,
-        deviceLabel,
-        state: "offline",
-        page,
-        pageName,
-        lastChanged: databaseServerTimestamp(),
-      });
+    const token = await getIdTokenResult(currentUser);
+    if (String(token.claims?.studentNumber || "") !== studentNumber) {
+      return false;
+    }
 
-      await set(statusRef, {
-        studentNumber,
-        deviceId,
-        deviceLabel,
-        state: "online",
-        page,
-        pageName,
-        lastChanged: databaseServerTimestamp(),
+    presenceInitialized = true;
+
+    const deviceId = getOrCreateCareMateDeviceId();
+
+    const deviceLabel = await getPresenceDeviceLabel();
+
+    // 旧版が学生直下へ保存していた1台分の値だけを消し、端末ID配下の
+    // 新しい記録は残す。これにより同じ端末が「旧端末」と重複しない。
+    try {
+      await update(ref(realtimeDb, `status/${studentNumber}`), {
+        studentNumber: null,
+        deviceId: null,
+        deviceLabel: null,
+        state: null,
+        page: null,
+        pageName: null,
+        lastChanged: null,
       });
     } catch (error) {
-      console.error("オンライン状態設定エラー:", error);
+      console.warn("旧形式の接続表示を整理できませんでした:", error);
     }
-  });
 
-  document.addEventListener("visibilitychange", async () => {
-    try {
-      if (document.hidden) {
-        await update(statusRef, {
-          state: "away",
-          page: getCurrentPageFileName(),
-          pageName: getCurrentPageName(),
-          lastChanged: databaseServerTimestamp(),
-        });
-      } else {
-        await update(statusRef, {
-          state: "online",
-          page: getCurrentPageFileName(),
-          pageName: getCurrentPageName(),
-          lastChanged: databaseServerTimestamp(),
-        });
+    const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
+
+    const connectedRef = ref(realtimeDb, ".info/connected");
+
+    const page = getCurrentPageFileName();
+
+    const pageName = getCurrentPageName();
+
+    onValue(connectedRef, async (snapshot) => {
+      if (snapshot.val() !== true) {
+        return;
       }
-    } catch (error) {
-      console.error("画面状態更新エラー:", error);
-    }
-  });
+
+      try {
+        await onDisconnect(statusRef).set({
+          studentNumber,
+          deviceId,
+          deviceLabel,
+          state: "offline",
+          page,
+          pageName,
+          lastChanged: databaseServerTimestamp(),
+        });
+
+        await set(statusRef, {
+          studentNumber,
+          deviceId,
+          deviceLabel,
+          state: "online",
+          page,
+          pageName,
+          lastChanged: databaseServerTimestamp(),
+        });
+      } catch (error) {
+        // 一時的な通信断なら.info/connectedの次回trueで再試行される。
+        console.error("オンライン状態設定エラー:", error);
+      }
+    });
+
+    document.addEventListener("visibilitychange", async () => {
+      try {
+        if (document.hidden) {
+          await update(statusRef, {
+            state: "away",
+            page: getCurrentPageFileName(),
+            pageName: getCurrentPageName(),
+            lastChanged: databaseServerTimestamp(),
+          });
+        } else {
+          await update(statusRef, {
+            state: "online",
+            page: getCurrentPageFileName(),
+            pageName: getCurrentPageName(),
+            lastChanged: databaseServerTimestamp(),
+          });
+        }
+      } catch (error) {
+        console.error("画面状態更新エラー:", error);
+      }
+    });
+
+    return true;
+  })();
+
+  presenceStarting = startTask;
+  try {
+    return await startTask;
+  } finally {
+    if (presenceStarting === startTask) presenceStarting = null;
+  }
 }
 
 if (studentNumber && localStorage.getItem("loggedIn") === "true") {
-  setupPresence().catch((error) => {
-    console.error("Presence開始エラー:", error);
+  // 認証復元完了の通知を起点にすることで、端末性能や回線速度に左右されない。
+  onAuthStateChanged(auth, (currentUser) => {
+    if (currentUser?.uid !== `caremate-${studentNumber}`) return;
+    setupPresence().catch((error) => {
+      console.error("Presence開始エラー:", error);
+    });
+  });
+
+  // オフライン起動後に通信が戻った場合も、未開始なら再試行する。
+  window.addEventListener("online", () => {
+    setupPresence().catch((error) => {
+      console.error("Presence再開エラー:", error);
+    });
   });
 
   initializeCareMateDeviceTouch();
