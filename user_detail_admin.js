@@ -363,7 +363,7 @@ function renderUserInformation() {
 
   setText(
     manabaVerifiedValue,
-    targetUserData.manabaVerified ? "✅ 認証済み" : "⚠️ 未認証",
+    externalAuthStatusText(targetUserData, "manaba"),
   );
 
   const activeMailConfigured =
@@ -372,7 +372,11 @@ function renderUserInformation() {
 
   setText(
     activeMailConfiguredValue,
-    activeMailConfigured ? "✅ 設定済み" : "⚠️ 未設定",
+    externalAuthStatusText(
+      targetUserData,
+      "activeMail",
+      activeMailConfigured,
+    ),
   );
 
   const pushConfigured = Boolean(targetUserData.subscription);
@@ -1068,6 +1072,12 @@ async function saveUserChanges() {
       updates.activeMailSetupSkipped = false;
 
       updates.activeMailResetRequired = false;
+
+      updates.activeMailVerified = null;
+
+      updates.activeMailVerifiedAt = null;
+
+      updates.activeMailVerificationError = null;
     }
 
     if (newManabaPassword) {
@@ -1082,9 +1092,11 @@ async function saveUserChanges() {
             未認証へ戻す
             */
 
-      updates.manabaVerified = false;
+      updates.manabaVerified = null;
 
       updates.manabaVerifiedAt = null;
+
+      updates.manabaVerificationError = null;
     }
 
     if (newCareMatePassword) {
@@ -1282,6 +1294,24 @@ function getAdmissionYear(user, selectedStudentNumber) {
   }
 
   return String(2000 + yearNumber);
+}
+
+function externalAuthStatusText(user, service, configuredOverride = null) {
+  const configured =
+    configuredOverride === null
+      ? Boolean(user[`${service}PasswordEncrypted`]) &&
+        user[`${service}SetupSkipped`] !== true
+      : configuredOverride;
+
+  if (!configured) return "⚠️ 未設定";
+  if (user[`${service}ResetRequired`] === true) {
+    return "❌ 再設定が必要";
+  }
+  if (user[`${service}Verified`] === true) {
+    const checkedAt = formatFirestoreDate(user[`${service}LastCheckedAt`]);
+    return `✅ 認証済み（${checkedAt}）`;
+  }
+  return "⏳ Render自動確認待ち";
 }
 
 function formatFirestoreDate(timestamp) {

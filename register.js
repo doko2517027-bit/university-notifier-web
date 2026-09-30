@@ -338,8 +338,12 @@ button.addEventListener("click", async () => {
         manabaResetRequired: false,
         activeMailResetRequired: false,
 
-        manabaVerified: false,
+        manabaVerified: null,
         manabaVerifiedAt: null,
+        manabaVerificationError: null,
+        activeMailVerified: null,
+        activeMailVerifiedAt: null,
+        activeMailVerificationError: null,
         studentPageVerified: true,
         studentPageVerifiedAt: new Date().toISOString(),
       });
@@ -410,8 +414,12 @@ button.addEventListener("click", async () => {
         comment: true,
       },
 
-      manabaVerified: false,
+      manabaVerified: null,
       manabaVerifiedAt: null,
+      manabaVerificationError: null,
+      activeMailVerified: null,
+      activeMailVerifiedAt: null,
+      activeMailVerificationError: null,
 
       studentPageVerified: true,
       studentPageVerifiedAt: new Date().toISOString(),

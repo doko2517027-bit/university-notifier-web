@@ -4,8 +4,9 @@ export function savedExternalPasswordFields(kind, encryptedPassword) {
       manabaPasswordEncrypted: encryptedPassword,
       manabaSetupSkipped: false,
       manabaResetRequired: false,
-      manabaVerified: false,
+      manabaVerified: null,
       manabaVerifiedAt: null,
+      manabaVerificationError: null,
     };
   }
   if (kind === "activeMail") {
@@ -13,6 +14,9 @@ export function savedExternalPasswordFields(kind, encryptedPassword) {
       activeMailPasswordEncrypted: encryptedPassword,
       activeMailSetupSkipped: false,
       activeMailResetRequired: false,
+      activeMailVerified: null,
+      activeMailVerifiedAt: null,
+      activeMailVerificationError: null,
     };
   }
   throw new Error("未対応の連携サービスです");

@@ -38,6 +38,9 @@ saveButton.onclick = async () => {
     activeMailPasswordEncrypted: encrypted,
     activeMailSetupSkipped: false,
     activeMailResetRequired: false,
+    activeMailVerified: null,
+    activeMailVerifiedAt: null,
+    activeMailVerificationError: null,
   });
 
   location.href = "index.html";

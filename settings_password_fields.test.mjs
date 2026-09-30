@@ -7,15 +7,19 @@ test("Manaba更新時は再設定要求を解除し、連携確認をやり直�
     manabaPasswordEncrypted: "encrypted",
     manabaSetupSkipped: false,
     manabaResetRequired: false,
-    manabaVerified: false,
+    manabaVerified: null,
     manabaVerifiedAt: null,
+    manabaVerificationError: null,
   });
 });
 
-test("ActiveMail更新時は設定済みとして扱う", () => {
+test("ActiveMail更新時は自動ログインの確認待ちに戻す", () => {
   assert.deepEqual(savedExternalPasswordFields("activeMail", "encrypted"), {
     activeMailPasswordEncrypted: "encrypted",
     activeMailSetupSkipped: false,
     activeMailResetRequired: false,
+    activeMailVerified: null,
+    activeMailVerifiedAt: null,
+    activeMailVerificationError: null,
   });
 });

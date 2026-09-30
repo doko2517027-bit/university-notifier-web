@@ -423,9 +423,17 @@ async function registerStudent() {
         comment: notifyComment?.checked ?? true,
       },
 
-      manabaVerified: false,
+      manabaVerified: null,
 
       manabaVerifiedAt: null,
+
+      manabaVerificationError: null,
+
+      activeMailVerified: null,
+
+      activeMailVerifiedAt: null,
+
+      activeMailVerificationError: null,
 
       activeMailSetupSkipped: activeMailPasswordValue === "",
 

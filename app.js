@@ -407,18 +407,6 @@ async function startApp() {
 
     applyManabaFeatureVisibility(user);
 
-    if (user.activeMailResetRequired === true) {
-      location.href = "activemail_setup.html";
-
-      return;
-    }
-
-    if (user.manabaResetRequired === true) {
-      location.href = "manaba_setup.html";
-
-      return;
-    }
-
     renderAuthSetupCards(user);
 
     /*
@@ -1050,30 +1038,39 @@ function renderAuthSetupCards(user) {
 
   const cards = [];
 
-  if (!user.manabaPasswordEncrypted) {
+  if (!user.manabaPasswordEncrypted || user.manabaResetRequired === true) {
+    const needsReset = user.manabaResetRequired === true;
     cards.push(`
             <div class="card setting-card"
                 onclick="location.href='manaba_setup.html'"
                 style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>📚 Manaba認証へ進む</b><br>
+                <b>${needsReset ? "⚠️ Manabaを再設定してください" : "📚 Manaba認証へ進む"}</b><br>
                 <small>
-                    課題取得・課題通知・Manaba関連機能を使うには設定が必要です。
+                    ${needsReset
+                      ? "自動確認でログインできませんでした。現在のパスワードを再設定してください。"
+                      : "課題取得・課題通知・Manaba関連機能を使うには設定が必要です。"}
                 </small>
 
             </div>
         `);
   }
 
-  if (!user.activeMailPasswordEncrypted) {
+  if (
+    !user.activeMailPasswordEncrypted ||
+    user.activeMailResetRequired === true
+  ) {
+    const needsReset = user.activeMailResetRequired === true;
     cards.push(`
             <div class="card setting-card"
                 onclick="location.href='activemail_setup.html'"
                 style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>📧 Active!Mail認証へ進む</b><br>
+                <b>${needsReset ? "⚠️ Active!Mailを再設定してください" : "📧 Active!Mail認証へ進む"}</b><br>
                 <small>
-                    大学メール通知・未読件数表示を使うには設定が必要です。
+                    ${needsReset
+                      ? "自動確認でログインできませんでした。現在のパスワードを再設定してください。"
+                      : "大学メール通知・未読件数表示を使うには設定が必要です。"}
                 </small>
 
             </div>

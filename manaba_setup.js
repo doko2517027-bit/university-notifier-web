@@ -50,8 +50,9 @@ savePassword.addEventListener("click", async () => {
     manabaPasswordEncrypted: encrypted,
     manabaSetupSkipped: false,
     manabaResetRequired: false,
-    manabaVerified: false,
+    manabaVerified: null,
     manabaVerifiedAt: null,
+    manabaVerificationError: null,
   });
 
   localStorage.setItem("registered", "true");
