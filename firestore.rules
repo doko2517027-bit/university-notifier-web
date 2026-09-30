@@ -337,6 +337,12 @@ service cloud.firestore {
 
     }
 
+    match /externalAuthChecks/{requestId} {
+      allow get: if request.auth != null && request.auth.token.admin == true;
+      allow list: if false;
+      allow write: if false;
+    }
+
 
     /* ========================================
        公開ユーザー情報

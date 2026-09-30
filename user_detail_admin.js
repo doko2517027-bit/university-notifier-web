@@ -28,11 +28,17 @@ import {
   limit,
   writeBatch,
   serverTimestamp,
+  onSnapshot,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
+
+import {
+  getPrimaryPresenceDevice,
+  normalizePresenceDevices,
+} from "./presence_devices.mjs";
 
 import {
   ref,
@@ -110,6 +116,20 @@ const manabaVerifiedValue = document.getElementById("manabaVerifiedValue");
 
 const activeMailConfiguredValue = document.getElementById(
   "activeMailConfiguredValue",
+);
+
+const checkManabaAuthButton = document.getElementById(
+  "checkManabaAuthButton",
+);
+
+const checkActiveMailAuthButton = document.getElementById(
+  "checkActiveMailAuthButton",
+);
+
+const manabaAuthProgress = document.getElementById("manabaAuthProgress");
+
+const activeMailAuthProgress = document.getElementById(
+  "activeMailAuthProgress",
 );
 
 const pushConfiguredValue = document.getElementById("pushConfiguredValue");
@@ -370,6 +390,8 @@ function renderUserInformation() {
       activeMailConfigured,
     ),
   );
+
+  updateExternalAuthButtonAvailability();
 
   const pushConfigured = Boolean(targetUserData.subscription);
 
@@ -759,7 +781,9 @@ function startPresenceListener() {
 }
 
 function renderPresence(presence) {
-  if (!presence) {
+  const entries = normalizePresenceDevices(presence);
+
+  if (!entries.length) {
     setText(presenceStatus, "⚫ 接続履歴なし");
 
     setText(currentPageValue, "取得できません");
@@ -771,27 +795,50 @@ function renderPresence(presence) {
     return;
   }
 
-  const state = presence.state || "offline";
+  const primaryPresence = getPrimaryPresenceDevice(presence);
+
+  const onlineCount = entries.filter((item) => item.state === "online").length;
+  const awayCount = entries.filter((item) => item.state === "away").length;
+  const state = primaryPresence.state || "offline";
 
   if (state === "online") {
-    setText(presenceStatus, "🟢 オンライン");
-
-    setText(backgroundStatus, "アプリを表示中");
+    setText(presenceStatus, `🟢 ${entries.length}台中${onlineCount}台オンライン`);
   } else if (state === "away") {
-    setText(presenceStatus, "🟡 バックグラウンド");
-
-    setText(backgroundStatus, "バックグラウンド");
+    setText(presenceStatus, `🟡 ${entries.length}台中${awayCount}台バックグラウンド`);
   } else {
-    setText(presenceStatus, "🔴 オフライン");
-
-    setText(backgroundStatus, "アプリを閉じています");
+    setText(presenceStatus, `🔴 ${entries.length}台オフライン`);
   }
 
-  const pageName = presence.pageName || formatPageName(presence.page);
-
-  setText(currentPageValue, pageName || "取得できません");
-
-  setText(lastSeenValue, formatLastSeen(Number(presence.lastChanged || 0)));
+  setText(
+    currentPageValue,
+    entries
+      .map(
+        (item, index) =>
+          `${item.deviceLabel || `端末 ${index + 1}`}：${item.pageName || formatPageName(item.page) || "取得できません"}`,
+      )
+      .join(" / "),
+  );
+  setText(
+    backgroundStatus,
+    entries
+      .map((item, index) => {
+        const label = item.deviceLabel || `端末 ${index + 1}`;
+        const stateLabel =
+          item.state === "online"
+            ? "表示中"
+            : item.state === "away"
+              ? "バックグラウンド"
+              : "オフライン";
+        return `${label}：${stateLabel}`;
+      })
+      .join(" / "),
+  );
+  setText(
+    lastSeenValue,
+    formatLastSeen(
+      Math.max(...entries.map((item) => Number(item.lastChanged || 0))),
+    ),
+  );
 }
 
 /* ========================================
@@ -807,6 +854,15 @@ function setupEvents() {
 
   if (saveUserButton) {
     saveUserButton.onclick = saveUserChanges;
+  }
+
+  if (checkManabaAuthButton) {
+    checkManabaAuthButton.onclick = () => runExternalAuthCheck("manaba");
+  }
+
+  if (checkActiveMailAuthButton) {
+    checkActiveMailAuthButton.onclick = () =>
+      runExternalAuthCheck("activeMail");
   }
 
   if (refreshDeviceSessionsButton) {
@@ -927,6 +983,116 @@ function setupEvents() {
         }
       });
     });
+}
+
+function updateExternalAuthButtonAvailability() {
+  const manabaConfigured = Boolean(
+    targetUserData?.manabaId && targetUserData?.manabaPasswordEncrypted,
+  );
+  const activeMailConfigured = Boolean(
+    targetUserData?.activeMailPasswordEncrypted,
+  );
+  if (checkManabaAuthButton && checkManabaAuthButton.dataset.running !== "true") {
+    checkManabaAuthButton.disabled = !manabaConfigured;
+    checkManabaAuthButton.title = manabaConfigured
+      ? "保存済みのManaba情報で認証できるか確認します"
+      : "Manaba IDとパスワードの設定後に実行できます";
+  }
+  if (
+    checkActiveMailAuthButton &&
+    checkActiveMailAuthButton.dataset.running !== "true"
+  ) {
+    checkActiveMailAuthButton.disabled = !activeMailConfigured;
+    checkActiveMailAuthButton.title = activeMailConfigured
+      ? "保存済みのActive!Mail情報で認証できるか確認します"
+      : "Active!Mailパスワードの設定後に実行できます";
+  }
+}
+
+async function runExternalAuthCheck(service) {
+  const isManaba = service === "manaba";
+  const button = isManaba
+    ? checkManabaAuthButton
+    : checkActiveMailAuthButton;
+  const progressElement = isManaba
+    ? manabaAuthProgress
+    : activeMailAuthProgress;
+  if (!button || !progressElement || button.dataset.running === "true") return;
+
+  const randomPart =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID().replaceAll("-", "")
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const requestId = `auth_${Date.now()}_${randomPart}`;
+  button.dataset.running = "true";
+  button.disabled = true;
+  button.textContent = "実行中...";
+  progressElement.hidden = false;
+  updateExternalAuthProgress(progressElement, {
+    progress: 0,
+    status: "running",
+    message: "実行準備中",
+  });
+
+  const stopProgress = onSnapshot(
+    doc(db, "externalAuthChecks", requestId),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        updateExternalAuthProgress(progressElement, snapshot.data());
+      }
+    },
+    (error) => {
+      console.error("認証確認進捗取得エラー:", error);
+    },
+  );
+
+  try {
+    const check = httpsCallable(functions, "runExternalAuthCheck", {
+      timeout: 120_000,
+    });
+    const response = await check({
+      studentNumber: targetStudentNumber,
+      service,
+      requestId,
+    });
+    updateExternalAuthProgress(progressElement, {
+      progress: 100,
+      status: response.data?.verified ? "success" : "failed",
+      message: response.data?.verified
+        ? "認証に成功しました"
+        : response.data?.configured === false
+          ? "設定されていません"
+          : "認証に失敗しました",
+    });
+    await loadTargetUser();
+  } catch (error) {
+    console.error("外部認証確認エラー:", error);
+    updateExternalAuthProgress(progressElement, {
+      progress: 100,
+      status: "error",
+      message: "確認できませんでした。時間をおいて再実行してください",
+    });
+  } finally {
+    window.setTimeout(stopProgress, 1500);
+    button.dataset.running = "false";
+    button.textContent = "もう一度確認";
+    updateExternalAuthButtonAvailability();
+  }
+}
+
+function updateExternalAuthProgress(element, data) {
+  const progress = Math.max(0, Math.min(100, Number(data?.progress || 0)));
+  const message = String(data?.message || "認証を確認しています");
+  const heading = element.querySelector(".external-auth-progress-heading");
+  const track = element.querySelector(".external-auth-progress-track");
+  const bar = track?.querySelector("i");
+  element.dataset.status = String(data?.status || "running");
+  if (heading) {
+    heading.querySelector("span").textContent = message;
+    heading.querySelector("b").textContent = `${progress}%`;
+  }
+  if (track) track.setAttribute("aria-valuenow", String(progress));
+  if (bar) bar.style.width = `${progress}%`;
 }
 
 /* ========================================

@@ -24,6 +24,11 @@ import {
 import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
 
 import {
+  getPrimaryPresenceDevice,
+  normalizePresenceDevices,
+} from "./presence_devices.mjs";
+
+import {
   collection,
   getDocs,
   onSnapshot,
@@ -394,7 +399,7 @@ function getFilteredUsers() {
   const selectedStatus = statusFilter?.value || "";
 
   return users.filter((user) => {
-    const presence = presenceStatuses[user.id] || null;
+    const presence = getPrimaryPresenceDevice(presenceStatuses[user.id]);
 
     const statusKey = getPresenceStatusKey(presence);
 
@@ -430,9 +435,9 @@ function getFilteredUsers() {
 }
 
 function compareUsers(userA, userB) {
-  const presenceA = presenceStatuses[userA.id] || null;
+  const presenceA = getPrimaryPresenceDevice(presenceStatuses[userA.id]);
 
-  const presenceB = presenceStatuses[userB.id] || null;
+  const presenceB = getPrimaryPresenceDevice(presenceStatuses[userB.id]);
 
   const priorityA = getPresencePriority(presenceA);
 
@@ -454,13 +459,11 @@ function compareUsers(userA, userB) {
 }
 
 function createUserHtml(user) {
-  const presence = presenceStatuses[user.id] || null;
+  const presenceEntries = normalizePresenceDevices(presenceStatuses[user.id]);
+
+  const presence = getPrimaryPresenceDevice(presenceStatuses[user.id]);
 
   const status = formatPresenceStatus(presence);
-
-  const pageName = presence?.pageName || formatPageName(presence?.page);
-
-  const rawPage = presence?.page || "";
 
   const studentName = getUserName(user);
 
@@ -517,38 +520,7 @@ function createUserHtml(user) {
                 ${deviceSummaryHtml}
 
                 <div class="admin-user-presence-detail">
-
-                    <p>
-                        <b>現在の画面：</b>
-
-                        ${pageName ? escapeHtml(pageName) : "取得できません"}
-                    </p>
-
-                    ${
-                      rawPage
-                        ? `
-                                <small>
-                                    ${escapeHtml(rawPage)}
-                                </small>
-                            `
-                        : ""
-                    }
-
-                    <p>
-                        <b>接続状態：</b>
-                        ${escapeHtml(status.text)}
-                    </p>
-
-                    <p>
-                        <b>最終更新：</b>
-                        ${
-                          presence?.lastChanged
-                            ? escapeHtml(
-                                formatLastSeen(Number(presence.lastChanged)),
-                              )
-                            : "接続履歴なし"
-                        }
-                    </p>
+                    ${createPresenceDeviceHtml(presenceEntries)}
 
                 </div>
 
@@ -968,7 +940,9 @@ function updateSummary() {
   let unknownCount = 0;
 
   users.forEach((user) => {
-    const statusKey = getPresenceStatusKey(presenceStatuses[user.id]);
+    const statusKey = getPresenceStatusKey(
+      getPrimaryPresenceDevice(presenceStatuses[user.id]),
+    );
 
     if (statusKey === "online") {
       onlineCount += 1;
@@ -1027,6 +1001,26 @@ function getPresencePriority(presence) {
   };
 
   return priorities[statusKey] ?? 4;
+}
+
+function createPresenceDeviceHtml(entries) {
+  if (!entries.length) {
+    return '<p><b>現在の画面：</b>接続履歴なし</p>';
+  }
+  return `
+    <div class="admin-user-presence-device-list">
+      ${entries.map((presence, index) => {
+        const status = formatPresenceStatus(presence);
+        const pageName = presence.pageName || formatPageName(presence.page) || "取得できません";
+        const label = presence.deviceLabel || `端末 ${index + 1}`;
+        return `
+          <div class="admin-user-presence-device">
+            <b>${escapeHtml(label)}</b>
+            <span>${escapeHtml(status.icon)} ${escapeHtml(pageName)}</span>
+            <small>${escapeHtml(status.text)}・${escapeHtml(formatLastSeen(Number(presence.lastChanged || 0)))}</small>
+          </div>`;
+      }).join("")}
+    </div>`;
 }
 
 function formatPresenceStatus(presence) {

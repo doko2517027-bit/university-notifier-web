@@ -332,6 +332,131 @@ async function requirePrimaryDeviceAuditAdmin(request) {
   return studentNumber;
 }
 
+async function requireEnabledCareMateAdmin(request) {
+  const studentNumber = requireAuthenticatedCareMateStudent(request);
+  if (request.auth?.token?.admin !== true) {
+    throw new HttpsError("permission-denied", "管理者権限が必要です。");
+  }
+  const adminSnapshot = await db.collection("admins").doc(studentNumber).get();
+  if (!adminSnapshot.exists || adminSnapshot.data()?.enabled !== true) {
+    throw new HttpsError("permission-denied", "管理者権限を確認できませんでした。");
+  }
+  return studentNumber;
+}
+
+exports.runExternalAuthCheck = onCall(
+  {
+    region: "asia-northeast1",
+    cors: [SITE_ORIGIN],
+    timeoutSeconds: 120,
+    memory: "1GiB",
+  },
+  async (request) => {
+    const requestedBy = await requireEnabledCareMateAdmin(request);
+    const targetStudentNumber = String(request.data?.studentNumber || "").trim();
+    const service = String(request.data?.service || "").trim();
+    const requestId = String(request.data?.requestId || "").trim();
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError("invalid-argument", "学生番号が正しくありません。");
+    }
+    if (!['manaba', 'activeMail'].includes(service)) {
+      throw new HttpsError("invalid-argument", "認証先が正しくありません。");
+    }
+    if (!/^[a-zA-Z0-9_-]{20,100}$/.test(requestId)) {
+      throw new HttpsError("invalid-argument", "実行IDが正しくありません。");
+    }
+
+    const jobRef = db.collection("externalAuthChecks").doc(requestId);
+    const userRef = db.collection("users").doc(targetStudentNumber);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const updateProgress = async (progress, message) => {
+      await jobRef.set({
+        requestedBy,
+        targetStudentNumber,
+        service,
+        status: "running",
+        progress: Math.max(0, Math.min(99, Number(progress || 0))),
+        message: String(message || "認証を確認しています"),
+        updatedAt: FieldValue.serverTimestamp(),
+        expiresAt,
+      }, { merge: true });
+    };
+
+    await jobRef.set({
+      requestedBy,
+      targetStudentNumber,
+      service,
+      status: "running",
+      progress: 5,
+      message: "認証確認を開始しています",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      expiresAt,
+    });
+
+    let browser;
+    try {
+      const userSnapshot = await userRef.get();
+      if (!userSnapshot.exists) throw new HttpsError("not-found", "学生が見つかりません。");
+      await updateProgress(15, "保存済みの設定を確認しています");
+      const chromium = require("@sparticuz/chromium");
+      const { chromium: playwrightChromium } = require("playwright-core");
+      const { verifyActiveMail, verifyManaba } = require("./external_auth_check.js");
+      browser = await playwrightChromium.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+      const user = userSnapshot.data() || {};
+      const result = service === "manaba"
+        ? await verifyManaba({ browser, user, updateProgress })
+        : await verifyActiveMail({
+            browser,
+            studentNumber: targetStudentNumber,
+            user,
+            updateProgress,
+          });
+      const checkedAt = FieldValue.serverTimestamp();
+      if (result.configured) {
+        const prefix = service;
+        await userRef.set({
+          [`${prefix}Verified`]: result.verified,
+          [`${prefix}VerifiedAt`]: result.verified ? checkedAt : null,
+          [`${prefix}LastCheckedAt`]: checkedAt,
+          [`${prefix}ResetRequired`]: !result.verified,
+          [`${prefix}VerificationError`]: result.verified ? null : "invalid_credentials",
+        }, { merge: true });
+      }
+      await jobRef.set({
+        status: result.configured ? (result.verified ? "success" : "failed") : "not-configured",
+        progress: 100,
+        message: result.message,
+        verified: result.verified,
+        completedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return { verified: result.verified, configured: result.configured };
+    } catch (error) {
+      console.warn("管理画面の外部認証確認失敗", {
+        targetStudentNumber,
+        service,
+        code: error?.code || "unknown",
+      });
+      await jobRef.set({
+        status: "error",
+        progress: 100,
+        message: "一時的なエラーで確認できませんでした。時間をおいて再実行してください。",
+        completedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError("unavailable", "認証確認を実行できませんでした。");
+    } finally {
+      if (browser) await browser.close();
+    }
+  },
+);
+
 exports.touchCareMateDevice = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
@@ -539,6 +664,17 @@ exports.cleanupStaleLoginDevices = onSchedule(
       } catch (error) {
         console.error(`アカウント自動削除失敗: ${userDoc.id}`, error);
       }
+    }
+
+    const expiredChecks = await db.collection("externalAuthChecks")
+      .where("expiresAt", "<=", now)
+      .limit(400)
+      .get();
+    if (!expiredChecks.empty) {
+      const batch = db.batch();
+      expiredChecks.docs.forEach((document) => batch.delete(document.ref));
+      await batch.commit();
+      console.log(`期限切れ認証確認履歴を削除: ${expiredChecks.size}件`);
     }
   },
 );

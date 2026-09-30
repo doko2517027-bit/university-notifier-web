@@ -1894,6 +1894,16 @@ function getCurrentPageName() {
   );
 }
 
+function getPresenceDeviceLabel() {
+  const userAgent = navigator.userAgent || "";
+  if (/iPad/i.test(userAgent) || (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1)) return "iPad";
+  if (/iPhone/i.test(userAgent)) return "iPhone";
+  if (/Android/i.test(userAgent)) return "Android";
+  if (/Macintosh/i.test(userAgent)) return "Mac";
+  if (/Windows/i.test(userAgent)) return "Windows PC";
+  return "PC・タブレット";
+}
+
 export async function setupPresence() {
   if (presenceInitialized) {
     return;
@@ -1909,7 +1919,9 @@ export async function setupPresence() {
 
   presenceInitialized = true;
 
-  const statusRef = ref(realtimeDb, `status/${studentNumber}`);
+  const deviceId = getOrCreateCareMateDeviceId();
+
+  const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
 
   const connectedRef = ref(realtimeDb, ".info/connected");
 
@@ -1925,6 +1937,8 @@ export async function setupPresence() {
     try {
       await onDisconnect(statusRef).set({
         studentNumber,
+        deviceId,
+        deviceLabel: getPresenceDeviceLabel(),
         state: "offline",
         page,
         pageName,
@@ -1933,6 +1947,8 @@ export async function setupPresence() {
 
       await set(statusRef, {
         studentNumber,
+        deviceId,
+        deviceLabel: getPresenceDeviceLabel(),
         state: "online",
         page,
         pageName,

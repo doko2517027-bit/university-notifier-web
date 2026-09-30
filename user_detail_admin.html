@@ -10,7 +10,7 @@
 
     <title>学生詳細 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20261001-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -230,20 +230,32 @@
           <strong id="lastLoginAtValue"> ---- </strong>
         </div>
 
-        <div class="admin-readonly-row">
+        <div class="admin-readonly-row external-auth-check-row">
           <span>
             <b>Manaba認証</b>
           </span>
-
-          <strong id="manabaVerifiedValue"> ---- </strong>
+          <div class="external-auth-check-summary">
+            <strong id="manabaVerifiedValue"> ---- </strong>
+            <button id="checkManabaAuthButton" type="button" class="btn external-auth-check-button">認証テスト</button>
+          </div>
+          <div id="manabaAuthProgress" class="external-auth-progress" hidden>
+            <div class="external-auth-progress-heading"><span>実行準備中</span><b>0%</b></div>
+            <div class="external-auth-progress-track" role="progressbar" aria-label="Manaba認証確認の進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          </div>
         </div>
 
-        <div class="admin-readonly-row">
+        <div class="admin-readonly-row external-auth-check-row">
           <span>
             <b>Active!Mail認証</b>
           </span>
-
-          <strong id="activeMailConfiguredValue"> ---- </strong>
+          <div class="external-auth-check-summary">
+            <strong id="activeMailConfiguredValue"> ---- </strong>
+            <button id="checkActiveMailAuthButton" type="button" class="btn external-auth-check-button">認証テスト</button>
+          </div>
+          <div id="activeMailAuthProgress" class="external-auth-progress" hidden>
+            <div class="external-auth-progress-heading"><span>実行準備中</span><b>0%</b></div>
+            <div class="external-auth-progress-track" role="progressbar" aria-label="Active!Mail認証確認の進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          </div>
         </div>
 
         <div class="admin-readonly-row">
@@ -587,6 +599,6 @@
       </a>
     </nav>
 
-    <script type="module" src="user_detail_admin.js?v=20261001-1"></script>
+    <script type="module" src="user_detail_admin.js?v=20261001-2"></script>
   </body>
 </html>

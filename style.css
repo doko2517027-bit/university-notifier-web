@@ -3323,6 +3323,54 @@ body.page-busy::after{
     overflow-wrap: anywhere;
 }
 
+.admin-user-presence-device-list {
+    display: grid;
+    gap: 7px;
+}
+
+.admin-user-presence-device {
+    display: grid;
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 10px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--card);
+}
+
+.admin-user-presence-device > b { font-size: 12px; }
+.admin-user-presence-device > span { min-width: 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.admin-user-presence-device > small { grid-column: 2; font-size: 11px; }
+
+.external-auth-check-row {
+    display: grid !important;
+    grid-template-columns: minmax(120px, .55fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 10px 16px;
+}
+
+.external-auth-check-summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+}
+
+.external-auth-check-summary strong { min-width: 0; max-width: none; text-align: right; overflow-wrap: anywhere; }
+.external-auth-check-button { width: auto; min-width: 98px; margin: 0; padding: 8px 12px; font-size: 12px; }
+.external-auth-progress { grid-column: 1 / -1; display: grid; gap: 6px; }
+.external-auth-progress[hidden] { display: none !important; }
+.external-auth-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--subtext); font-size: 12px; }
+.external-auth-progress-heading span { min-width: 0; overflow-wrap: anywhere; }
+.external-auth-progress-heading b { color: var(--primary); font-size: 13px; }
+.external-auth-progress-track { height: 10px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--primary) 12%, var(--card)); }
+.external-auth-progress-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), #2fcf8f); transition: width .35s ease; }
+.external-auth-progress[data-status="success"] .external-auth-progress-track i { background: #20ad72; }
+.external-auth-progress[data-status="failed"] .external-auth-progress-track i,
+.external-auth-progress[data-status="error"] .external-auth-progress-track i { background: #e45a67; }
+
 .admin-user-detail-button {
     flex-shrink: 0;
     min-width: 110px;
@@ -3368,6 +3416,11 @@ body.page-busy::after{
 /* スマートフォン */
 
 @media (max-width: 700px) {
+    .admin-user-presence-device { grid-template-columns: 1fr; }
+    .admin-user-presence-device > small { grid-column: 1; }
+    .external-auth-check-row { grid-template-columns: 1fr; }
+    .external-auth-check-summary { justify-content: space-between; align-items: flex-start; }
+    .external-auth-check-summary strong { text-align: left; }
 
     .admin-user-summary-grid {
         grid-template-columns:
