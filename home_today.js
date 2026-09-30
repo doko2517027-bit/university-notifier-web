@@ -90,7 +90,7 @@ function render() {
 
   const automaticSection = make("section", "home-today-section");
   automaticSection.append(make("h4", "", "今日の講義・締切・予定"));
-  automaticSection.append(make("p", "home-today-hint", "課題の提出済みは手動で記録できます。"));
+  automaticSection.append(make("p", "home-today-hint", "課題はチェックすると提出済みとして薄く表示されます。"));
   if (!automaticItems.length) automaticSection.append(make("p", "home-today-empty", "今日の講義・締切・予定はありません。"));
   const labels = { lecture: "講義", assignment: "課題", personal: "予定", shared: "共有" };
   for (const item of automaticItems) {
@@ -104,13 +104,16 @@ function render() {
     const detail = [item.detail, item.kind === "assignment" && end ? `${formatTime(end)}締切` : "", submitted ? "提出済み" : elapsed ? "時刻経過" : ""].filter(Boolean).join("・");
     if (detail) body.append(make("small", "home-today-item-detail", detail));
     row.append(body);
-    if (item.kind === "assignment" && item.completionId && !item.submitted) {
-      const completionButton = make("button", "home-today-item-action home-today-submit", submitted ? "解除" : "提出済み");
-      completionButton.type = "button";
-      completionButton.dataset.completionId = item.completionId;
-      completionButton.disabled = pendingCompletions.has(item.completionId);
-      completionButton.setAttribute("aria-label", `「${item.title}」の提出済みを${submitted ? "解除" : "記録"}`);
-      row.append(completionButton);
+    if (item.kind === "assignment" && item.completionId) {
+      const completionLabel = make("label", "home-today-assignment-check");
+      const completionCheckbox = make("input", "home-today-check");
+      completionCheckbox.type = "checkbox";
+      completionCheckbox.checked = submitted;
+      completionCheckbox.disabled = item.submitted || pendingCompletions.has(item.completionId);
+      if (!item.submitted) completionCheckbox.dataset.completionId = item.completionId;
+      completionCheckbox.setAttribute("aria-label", `「${item.title}」を${submitted ? "未提出に戻す" : "提出済みにする"}`);
+      completionLabel.append(completionCheckbox, make("span", "", "提出済み"));
+      row.append(completionLabel);
     }
     automaticSection.append(row);
   }
@@ -208,19 +211,6 @@ function bindEvents() {
   });
   cancelButton.addEventListener("click", resetForm);
   list.addEventListener("change", async (event) => {
-    const id = event.target.dataset?.todoId;
-    if (!id || !verified) return;
-    event.target.disabled = true;
-    try {
-      await updateDoc(doc(db, "users", studentNumber, "dailyTodos", id), { completed: event.target.checked, updatedAt: serverTimestamp() });
-    } catch (error) {
-      event.target.checked = !event.target.checked;
-      statusText("完了状態を保存できませんでした。");
-    } finally {
-      event.target.disabled = false;
-    }
-  });
-  list.addEventListener("click", async (event) => {
     const completionId = event.target.dataset?.completionId;
     if (completionId && verified && !pendingCompletions.has(completionId)) {
       const wasSubmitted = assignmentCompletions.has(completionId);
@@ -243,6 +233,20 @@ function bindEvents() {
       }
       return;
     }
+
+    const id = event.target.dataset?.todoId;
+    if (!id || !verified) return;
+    event.target.disabled = true;
+    try {
+      await updateDoc(doc(db, "users", studentNumber, "dailyTodos", id), { completed: event.target.checked, updatedAt: serverTimestamp() });
+    } catch (error) {
+      event.target.checked = !event.target.checked;
+      statusText("完了状態を保存できませんでした。");
+    } finally {
+      event.target.disabled = false;
+    }
+  });
+  list.addEventListener("click", async (event) => {
     const editId = event.target.dataset?.editId;
     if (editId) {
       const todo = personalTodos.find((item) => item.id === editId);
