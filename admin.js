@@ -10,6 +10,7 @@ import {
 
 import {
   db,
+  auth,
   studentNumber,
   setupTheme,
   initializePage,
@@ -22,6 +23,8 @@ import {
   updateAssignmentNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
+
+import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import {
   doc,
@@ -172,6 +175,31 @@ if (!admin) {
   location.href = "index.html";
 
   throw new Error("管理者権限がありません。");
+}
+
+await auth.authStateReady();
+const adminToken = auth.currentUser
+  ? await getIdTokenResult(auth.currentUser)
+  : null;
+if (
+  studentNumber === "2510044" &&
+  auth.currentUser?.uid === "caremate-2510044" &&
+  adminToken?.claims?.studentNumber === "2510044" &&
+  adminToken?.claims?.admin === true
+) {
+  const menu = document.querySelector(".admin-menu-grid");
+  if (menu && !document.getElementById("adminCostDashboardCard")) {
+    const card = document.createElement("div");
+    card.id = "adminCostDashboardCard";
+    card.className = "card setting-card admin-menu-card cost-dashboard-menu-card";
+    card.setAttribute("onclick", "location.href='cost_admin.html'");
+    card.innerHTML = `
+      <div class="admin-menu-icon">💰</div>
+      <h3>料金・利用状況</h3>
+      <p>月別費用・内訳・アラート</p>
+    `;
+    menu.append(card);
+  }
 }
 
 await initializePage([

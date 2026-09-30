@@ -344,6 +344,106 @@ async function requireEnabledCareMateAdmin(request) {
   return studentNumber;
 }
 
+const costDashboardSettingsRef = db
+  .collection("privateAdminSettings")
+  .doc("costDashboard");
+
+function timestampMillis(value) {
+  if (typeof value?.toMillis === "function") return value.toMillis();
+  const date = value instanceof Date ? value : new Date(value || 0);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+async function loadCareMateCostDashboard({ force = false, configSnapshot = null } = {}) {
+  const {
+    buildDashboard,
+    queryGoogleCosts,
+  } = require("./cost_dashboard.js");
+  const snapshot = configSnapshot || await costDashboardSettingsRef.get();
+  const config = snapshot.data() || {};
+  const cached = config.automaticCache || {};
+  const cacheAge = Date.now() - timestampMillis(cached.checkedAt);
+  let automatic = cached;
+
+  if (!cached.status || cacheAge > 6 * 60 * 60 * 1000 || (force && cacheAge > 10 * 60 * 1000)) {
+    try {
+      automatic = await queryGoogleCosts({
+        table: config.billingTable,
+        projectId: process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "universitynotifier-67517",
+      });
+    } catch (error) {
+      console.warn("料金ダッシュボードのGoogle Cloud集計を利用できません", {
+        code: error?.code || "unavailable",
+      });
+      automatic = {
+        status: "unavailable",
+        message: "Google Cloud請求データを自動取得できません。課金エクスポート設定を確認してください。",
+        table: "",
+        costs: {},
+        services: {},
+        currency: "JPY",
+      };
+    }
+    const cacheForStorage = {
+      status: automatic.status,
+      message: automatic.message,
+      costs: automatic.costs || {},
+      services: automatic.services || {},
+      currency: automatic.currency || "JPY",
+      checkedAt: FieldValue.serverTimestamp(),
+    };
+    const update = { automaticCache: cacheForStorage };
+    if (automatic.table) update.billingTable = automatic.table;
+    await costDashboardSettingsRef.set(update, { merge: true });
+  }
+
+  const dashboard = buildDashboard({
+    automaticGoogleCosts: automatic.costs || {},
+    automaticGoogleServices: automatic.services || {},
+    automaticCurrency: automatic.currency || "JPY",
+    automaticStatus: automatic.status || "not-connected",
+    automaticMessage: automatic.message || "請求データ連携が未設定です。",
+    config,
+  });
+  return {
+    ...dashboard,
+    refreshedAt: new Date().toISOString(),
+  };
+}
+
+exports.getCareMateCostDashboard = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], timeoutSeconds: 60 },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    return loadCareMateCostDashboard({ force: request.data?.force === true });
+  },
+);
+
+exports.saveCareMateCostSettings = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const updatedBy = await requirePrimaryDeviceAuditAdmin(request);
+    const { sanitizeSettingsInput } = require("./cost_dashboard.js");
+    let settings;
+    try {
+      settings = sanitizeSettingsInput(request.data);
+    } catch {
+      throw new HttpsError("invalid-argument", "料金または対象月を確認してください。");
+    }
+    await costDashboardSettingsRef.set({
+      budgetAmount: settings.budgetAmount,
+      alertAmount: settings.alertAmount,
+      notificationsEnabled: settings.notificationsEnabled,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy,
+    }, { merge: true });
+    await costDashboardSettingsRef.update({
+      [`monthlyCosts.${settings.month}`]: settings.costs,
+    });
+    return loadCareMateCostDashboard();
+  },
+);
+
 exports.runExternalAuthCheck = onCall(
   {
     region: "asia-northeast1",
@@ -864,6 +964,60 @@ async function sendToUserDevices(
   }
   return results;
 }
+
+// 2510044が設定した月額アラートを1日1回確認する。
+// 同じ月・同じ金額では重複通知せず、未設定時は外部請求データを照会しない。
+exports.monitorCareMateCosts = onSchedule(
+  {
+    schedule: "every day 09:00",
+    timeZone: "Asia/Tokyo",
+    region: "asia-northeast1",
+    timeoutSeconds: 90,
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
+  },
+  async () => {
+    const settingsSnapshot = await costDashboardSettingsRef.get();
+    const settings = settingsSnapshot.data() || {};
+    const alertAmount = Number(settings.alertAmount);
+    if (
+      settings.notificationsEnabled !== true ||
+      !Number.isFinite(alertAmount) ||
+      alertAmount <= 0
+    ) {
+      return;
+    }
+
+    const dashboard = await loadCareMateCostDashboard({
+      force: true,
+      configSnapshot: settingsSnapshot,
+    });
+    if (!dashboard.alertTriggered) return;
+
+    const alertKey = `${dashboard.currentMonth}:${dashboard.currentTotal}:${alertAmount}`;
+    if (settings.lastAlertKey === alertKey) return;
+
+    webpush.setVapidDetails(
+      "mailto:kidokohei.shonaniryo2517027@gmail.com",
+      WEB_PUSH_PUBLIC_KEY.value(),
+      WEB_PUSH_PRIVATE_KEY.value(),
+    );
+    const formatter = new Intl.NumberFormat("ja-JP", {
+      style: "currency",
+      currency: dashboard.currency || "JPY",
+      maximumFractionDigits: 0,
+    });
+    await sendToUserDevices("2510044", {
+      title: "CareMate料金アラート",
+      body: `${dashboard.currentMonth}の確認済み料金が${formatter.format(dashboard.currentTotal)}になり、設定額を超えました。`,
+      url: `${SITE_URL}/cost_admin.html`,
+      notificationSource: "firebase",
+    });
+    await costDashboardSettingsRef.set({
+      lastAlertKey: alertKey,
+      lastAlertAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  },
+);
 
 // 個人予定・学年共有予定・課題の通知を、登録済みの端末へ重複なく送る。
 exports.sendCalendarReminders = onSchedule(

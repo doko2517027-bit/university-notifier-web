@@ -343,6 +343,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /* 料金・予算・請求連携情報はCloud Functionsだけが扱う。 */
+    match /privateAdminSettings/{documentId} {
+      allow read, write: if false;
+    }
+
 
     /* ========================================
        公開ユーザー情報

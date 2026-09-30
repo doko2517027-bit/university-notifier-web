@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>料金・利用状況 | CareMate</title>
+    <link rel="stylesheet" href="style.css?v=20261001-2" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading cost-admin-page">
+    <div class="top-buttons">
+      <div class="top-user-info"><span id="userName">読み込み中...</span></div>
+      <div class="top-right">
+        <button id="themeButton" type="button" class="circle-button">🌙</button>
+        <button id="profileButton" type="button" class="circle-button"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button>
+      </div>
+    </div>
+
+    <header class="header cost-admin-header">
+      <div class="logo">💰</div>
+      <h1>料金・利用状況</h1>
+      <p>CareMateに関係する費用をまとめて確認</p>
+    </header>
+
+    <main class="cost-dashboard-shell">
+      <div class="cost-page-actions">
+        <a href="admin.html" class="btn">← 管理へ戻る</a>
+        <button id="refreshCostDashboard" type="button" class="btn">↻ 最新情報を確認</button>
+      </div>
+
+      <section id="costAlertBanner" class="cost-alert-banner" hidden aria-live="assertive"></section>
+      <section id="costSourceNotice" class="cost-source-notice" aria-live="polite">料金情報を確認しています...</section>
+
+      <section class="cost-summary-grid" aria-label="今月の料金概要">
+        <article class="card cost-summary-card is-primary">
+          <span>今月の確認済み料金</span>
+          <strong id="currentCostTotal">---</strong>
+          <small id="currentCostCompleteness">集計中</small>
+        </article>
+        <article class="card cost-summary-card">
+          <span>月額予算</span>
+          <strong id="monthlyBudgetSummary">未設定</strong>
+          <small id="budgetRemainingSummary">予算を設定できます</small>
+        </article>
+        <article class="card cost-summary-card">
+          <span>前月との比較</span>
+          <strong id="costMonthChange">---</strong>
+          <small id="previousMonthSummary">前月データを確認中</small>
+        </article>
+        <article class="card cost-summary-card">
+          <span>料金アラート</span>
+          <strong id="alertAmountSummary">未設定</strong>
+          <small id="alertStateSummary">超過時にお知らせできます</small>
+        </article>
+      </section>
+
+      <section class="card cost-chart-card">
+        <div class="cost-section-heading">
+          <div><span class="cost-eyebrow">MONTHLY TREND</span><h2>月別の料金推移</h2></div>
+          <span id="chartCurrency" class="cost-status-chip">JPY</span>
+        </div>
+        <div id="monthlyCostChart" class="cost-month-chart" role="img" aria-label="過去12か月の料金グラフ"></div>
+        <div class="cost-chart-legend"><span><i class="is-cost"></i>確認済み料金</span><span><i class="is-budget"></i>月額予算</span></div>
+      </section>
+
+      <section class="cost-detail-grid">
+        <article class="card cost-breakdown-card">
+          <div class="cost-section-heading">
+            <div><span class="cost-eyebrow">BREAKDOWN</span><h2>サービス別内訳</h2></div>
+            <select id="costMonthSelect" aria-label="表示する月"></select>
+          </div>
+          <div class="cost-breakdown-visual">
+            <div id="costDonut" class="cost-donut"><span id="costDonutTotal">---</span></div>
+            <div id="costBreakdownList" class="cost-breakdown-list"></div>
+          </div>
+        </article>
+
+        <article class="card cost-budget-card">
+          <span class="cost-eyebrow">BUDGET & ALERT</span>
+          <h2>予算・アラート設定</h2>
+          <label>月額予算<input id="monthlyBudgetInput" type="number" min="0" max="10000000" step="1" inputmode="numeric" placeholder="例：3000" /></label>
+          <label>アラートを出す金額<input id="alertAmountInput" type="number" min="0" max="10000000" step="1" inputmode="numeric" placeholder="例：2500" /></label>
+          <label class="cost-notification-toggle"><span><b>プッシュ通知</b><small>毎日確認し、設定金額を超えた月に2510044へ通知</small></span><input id="costNotificationsEnabled" type="checkbox" /></label>
+          <div class="cost-budget-meter"><i id="costBudgetMeter"></i></div>
+          <p id="costBudgetMeterText">予算を設定すると使用割合が表示されます。</p>
+        </article>
+      </section>
+
+      <section class="card cost-provider-card">
+        <div class="cost-section-heading">
+          <div><span class="cost-eyebrow">ALL SERVICES</span><h2>CareMateで使っているサービス</h2></div>
+          <span id="providerCountLabel" class="cost-status-chip">確認中</span>
+        </div>
+        <p class="cost-help">自動取得できない請求は、請求画面を確認して対象月の金額を入力してください。未入力は0円として決めつけず、集計未完了と表示します。</p>
+        <div id="costProviderList" class="cost-provider-list"></div>
+        <div class="cost-save-bar">
+          <p id="costSaveMessage" role="status"></p>
+          <button id="saveCostSettings" type="button" class="btn btn-primary">この月の料金と設定を保存</button>
+        </div>
+      </section>
+
+      <section id="billingSetupCard" class="card cost-setup-card" hidden>
+        <span class="cost-eyebrow">AUTOMATIC LINK</span>
+        <h2>Google Cloud料金の自動取得</h2>
+        <p id="billingSetupMessage"></p>
+        <p>月別・サービス別の実額を自動表示するには、Google Cloud請求データのBigQueryエクスポートが必要です。BigQueryには無料枠がありますが、利用量により料金が発生する可能性があるためCareMate側から勝手には有効化しません。未設定中もRender・Cloudinaryなどの金額は手入力で管理できます。</p>
+        <a class="btn" href="https://console.cloud.google.com/billing/export" target="_blank" rel="noopener">Google Cloudの請求エクスポート設定を開く</a>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span><span id="assignmentNavBadge" class="nav-notification-badge" hidden>0</span></span><span>課題</span></a>
+      <a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
+    </nav>
+    <script type="module" src="cost_admin.js?v=20261001-1"></script>
+  </body>
+</html>
