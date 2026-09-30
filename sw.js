@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v51";
+const STATIC_CACHE = "caremate-static-v52";
 
-const RUNTIME_CACHE = "caremate-runtime-v51";
+const RUNTIME_CACHE = "caremate-runtime-v52";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -53,7 +53,9 @@ const CORE_ASSETS = [
 
   "common.js",
 
-  "presence_devices.mjs",
+  "presence_devices.mjs?v=20261001-1",
+
+  "presence_device_label.mjs",
 
   "login.html",
 

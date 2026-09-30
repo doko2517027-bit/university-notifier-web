@@ -26,7 +26,7 @@ import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
 import {
   getPrimaryPresenceDevice,
   normalizePresenceDevices,
-} from "./presence_devices.mjs";
+} from "./presence_devices.mjs?v=20261001-1";
 
 import {
   collection,

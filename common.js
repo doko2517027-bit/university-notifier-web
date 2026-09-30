@@ -58,6 +58,8 @@ import {
   shouldStartCareMateDeviceTouch,
 } from "./device_touch_controller.mjs";
 
+import { describePresenceDevice } from "./presence_device_label.mjs";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -1894,14 +1896,21 @@ function getCurrentPageName() {
   );
 }
 
-function getPresenceDeviceLabel() {
-  const userAgent = navigator.userAgent || "";
-  if (/iPad/i.test(userAgent) || (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1)) return "iPad";
-  if (/iPhone/i.test(userAgent)) return "iPhone";
-  if (/Android/i.test(userAgent)) return "Android";
-  if (/Macintosh/i.test(userAgent)) return "Mac";
-  if (/Windows/i.test(userAgent)) return "Windows PC";
-  return "PC・タブレット";
+async function getPresenceDeviceLabel() {
+  let clientHintModel = "";
+  try {
+    if (typeof navigator.userAgentData?.getHighEntropyValues === "function") {
+      const hints = await navigator.userAgentData.getHighEntropyValues(["model"]);
+      clientHintModel = String(hints?.model || "");
+    }
+  } catch {
+    // 取得できないブラウザでは通常のUser-Agent表示へフォールバックする。
+  }
+  return describePresenceDevice({
+    userAgent: navigator.userAgent || "",
+    maxTouchPoints: navigator.maxTouchPoints || 0,
+    clientHintModel,
+  });
 }
 
 export async function setupPresence() {
@@ -1921,6 +1930,8 @@ export async function setupPresence() {
 
   const deviceId = getOrCreateCareMateDeviceId();
 
+  const deviceLabel = await getPresenceDeviceLabel();
+
   const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
 
   const connectedRef = ref(realtimeDb, ".info/connected");
@@ -1938,7 +1949,7 @@ export async function setupPresence() {
       await onDisconnect(statusRef).set({
         studentNumber,
         deviceId,
-        deviceLabel: getPresenceDeviceLabel(),
+        deviceLabel,
         state: "offline",
         page,
         pageName,
@@ -1948,7 +1959,7 @@ export async function setupPresence() {
       await set(statusRef, {
         studentNumber,
         deviceId,
-        deviceLabel: getPresenceDeviceLabel(),
+        deviceLabel,
         state: "online",
         page,
         pageName,

@@ -36,7 +36,33 @@ test("複数端末はそれぞれの画面を保持し、オンライン端末�
   const entries = normalizePresenceDevices(rawPresence);
   assert.deepEqual(
     entries.map((item) => item.deviceId),
-    ["tablet", "phone"],
+    ["phone", "tablet"],
   );
   assert.equal(getPrimaryPresenceDevice(rawPresence).deviceId, "phone");
+});
+
+test("旧形式と端末別形式が混在しても全端末の画面を表示する", () => {
+  const entries = normalizePresenceDevices({
+    studentNumber: "2510044",
+    state: "online",
+    pageName: "カレンダー",
+    lastChanged: 300,
+    iphone: {
+      state: "online",
+      deviceLabel: "iPhone（詳細不明）・Safari",
+      pageName: "ホーム画面",
+      lastChanged: 250,
+    },
+    pc: {
+      state: "away",
+      deviceLabel: "Windows PC・Chrome",
+      pageName: "お知らせ画面",
+      lastChanged: 280,
+    },
+  });
+
+  assert.deepEqual(
+    entries.map((item) => item.pageName),
+    ["カレンダー", "ホーム画面", "お知らせ画面"],
+  );
 });
