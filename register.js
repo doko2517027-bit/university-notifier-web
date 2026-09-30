@@ -19,6 +19,7 @@ import { admissionYearFromStudentNumber, initialGradeForStudent } from "./academ
 
 import {
   ensurePushSubscription,
+  requestPushPermissionWithEducation,
   savePushSubscription,
 } from "./push_subscription.js";
 
@@ -223,13 +224,16 @@ button.addEventListener("click", async () => {
     }
   }
 
-  let subscription;
+  let subscription = null;
 
   try {
-    subscription = await ensurePushSubscription("sw.js");
+    const permission = await requestPushPermissionWithEducation({ force: true });
+    if (permission === "granted") {
+      subscription = await ensurePushSubscription("sw.js");
+    }
   } catch (error) {
-    alert(error.message);
-    return;
+    console.warn("Push通知の初期登録に失敗しました:", error);
+    alert("通知は登録できませんでしたが、CareMateの登録は続行します。");
   }
 
   const code = studentNumber.value.substring(2, 4);
@@ -316,7 +320,9 @@ button.addEventListener("click", async () => {
     if (userSnap.exists()) {
       const savedGrade = String(userSnap.data()?.grade || selectedGrade);
       await updateDoc(userRef, {
-        subscription: JSON.parse(JSON.stringify(subscription)),
+        ...(subscription
+          ? { subscription: JSON.parse(JSON.stringify(subscription)) }
+          : {}),
 
         studentPageId: studentPageId.value.trim(),
 
@@ -338,12 +344,14 @@ button.addEventListener("click", async () => {
         studentPageVerifiedAt: new Date().toISOString(),
       });
 
-      await savePushSubscription(
-        db,
-        studentNumber.value,
-        subscription,
-        "register",
-      );
+      if (subscription) {
+        await savePushSubscription(
+          db,
+          studentNumber.value,
+          subscription,
+          "register",
+        );
+      }
 
       await signInCareMateAuth(studentNumber.value, appPassword.value);
 
@@ -387,7 +395,9 @@ button.addEventListener("click", async () => {
       manabaPasswordEncrypted,
 
       appPasswordHash: appPasswordHash,
-      subscription: JSON.parse(JSON.stringify(subscription)),
+      subscription: subscription
+        ? JSON.parse(JSON.stringify(subscription))
+        : null,
 
       notificationSettings: {
         schedule: true,
@@ -413,12 +423,14 @@ button.addEventListener("click", async () => {
       manabaResetRequired: false,
     });
 
-    await savePushSubscription(
-      db,
-      studentNumber.value,
-      subscription,
-      "register",
-    );
+    if (subscription) {
+      await savePushSubscription(
+        db,
+        studentNumber.value,
+        subscription,
+        "register",
+      );
+    }
 
     await signInCareMateAuth(studentNumber.value, appPassword.value);
 

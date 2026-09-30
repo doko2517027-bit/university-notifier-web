@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v46";
+const STATIC_CACHE = "caremate-static-v47";
 
-const RUNTIME_CACHE = "caremate-runtime-v46";
+const RUNTIME_CACHE = "caremate-runtime-v47";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -51,7 +51,7 @@ const CORE_ASSETS = [
 
   "home_today_model.mjs",
 
-  "common.js?v=20260929-7",
+  "common.js",
 
   "login.html",
 

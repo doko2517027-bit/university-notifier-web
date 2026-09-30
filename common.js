@@ -42,7 +42,10 @@ import {
   httpsCallable,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
-import { registerDevicePushSubscription } from "./push_subscription.js";
+import {
+  registerDevicePushSubscription,
+  requestPushPermissionWithEducation,
+} from "./push_subscription.js";
 
 import {
   DEVICE_TOUCH_LAST_SUCCESS_KEY,
@@ -388,6 +391,7 @@ export async function touchCareMateDevice() {
 
 let deviceTouchLifecycleInitialized = false;
 let pushRefreshInFlight = null;
+let pushPermissionPromptInFlight = null;
 
 function refreshCareMatePushSubscription() {
   if (!("Notification" in window) || Notification.permission !== "granted") {
@@ -412,6 +416,28 @@ function refreshCareMatePushSubscription() {
     });
 }
 
+function promptForCareMatePushPermission() {
+  if (pushPermissionPromptInFlight) return;
+  if ("Notification" in window && Notification.permission === "granted") {
+    return;
+  }
+
+  pushPermissionPromptInFlight = (async () => {
+    const permission = await requestPushPermissionWithEducation();
+    if (permission !== "granted") return;
+
+    await registerDevicePushSubscription(db, studentNumber, "permission-prompt");
+    localStorage.setItem(PUSH_REFRESH_STORAGE_KEY, String(Date.now()));
+  })()
+    .catch((error) => {
+      // 通知設定失敗でアプリ本体は止めない。
+      console.warn("Push通知の設定を完了できませんでした:", error);
+    })
+    .finally(() => {
+      pushPermissionPromptInFlight = null;
+    });
+}
+
 function initializeCareMateDeviceTouch() {
   if (deviceTouchLifecycleInitialized) return;
   if (!shouldStartDeviceTouchOnCurrentPage()) return;
@@ -424,6 +450,7 @@ function initializeCareMateDeviceTouch() {
       initializeCareMateForceLogoutWatcher();
       void checkCareMateDeviceLogout();
       void touchCareMateDevice();
+      promptForCareMatePushPermission();
       refreshCareMatePushSubscription();
     });
   };
