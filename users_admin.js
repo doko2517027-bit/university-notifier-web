@@ -91,6 +91,10 @@ let expandedDeviceStudentNumber = "";
 
 let deviceDetailsByStudent = {};
 
+let registeredAdminIds = new Set();
+
+let adminRegistrationLoadState = "hidden";
+
 const adminScope = readAdminScopeFromUrl();
 
 setupTheme(themeButton);
@@ -219,7 +223,10 @@ function setupEvents() {
       await loadUsers();
 
       if (deviceAuditEnabled) {
-        await loadDeviceRiskSummaries();
+        await Promise.all([
+          loadDeviceRiskSummaries(),
+          loadRegisteredAdminIds(),
+        ]);
 
         if (expandedDeviceStudentNumber) {
           await loadUserDeviceDetails(expandedDeviceStudentNumber);
@@ -280,6 +287,15 @@ function setupEvents() {
         return;
       }
 
+      const adminRegisterButton = event.target.closest(
+        ".admin-user-admin-register-button",
+      );
+
+      if (adminRegisterButton) {
+        await registerUserAsAdmin(adminRegisterButton);
+        return;
+      }
+
       const button = event.target.closest(".admin-user-detail-button");
 
       if (!button) {
@@ -300,6 +316,46 @@ function setupEvents() {
   }
 }
 
+async function registerUserAsAdmin(button) {
+  if (!deviceAuditEnabled) return;
+
+  const targetStudentNumber = button.dataset.studentNumber || "";
+  if (!/^\d{7}$/.test(targetStudentNumber)) return;
+
+  const targetUser = users.find((item) => item.id === targetStudentNumber);
+  const targetName = getUserName(targetUser || {});
+  const targetLabel = targetName
+    ? `${targetStudentNumber}（${targetName}）`
+    : targetStudentNumber;
+
+  if (
+    !confirm(
+      `${targetLabel}を管理者に登録しますか？\n登録後は次回ログインから管理画面を利用できます。`,
+    )
+  ) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "登録中...";
+  try {
+    const registerCareMateAdmin = httpsCallable(
+      functions,
+      "registerCareMateAdmin",
+    );
+    await registerCareMateAdmin({ studentNumber: targetStudentNumber });
+    registeredAdminIds.add(targetStudentNumber);
+    adminRegistrationLoadState = "ready";
+    renderUsers();
+    showToast(`${targetStudentNumber}を管理者に登録しました`);
+  } catch (error) {
+    console.error("管理者登録エラー:", error);
+    alert("管理者に登録できませんでした。時間をおいて再度お試しください。");
+    button.disabled = false;
+    button.textContent = "管理者に登録";
+  }
+}
+
 async function initializeDeviceRiskSummariesIfAuthorized() {
   try {
     await auth.authStateReady();
@@ -313,13 +369,36 @@ async function initializeDeviceRiskSummariesIfAuthorized() {
 
     deviceSummaryLoadState = "loading";
     renderUsers();
-    await loadDeviceRiskSummaries();
+    await Promise.all([
+      loadDeviceRiskSummaries(),
+      loadRegisteredAdminIds(),
+    ]);
   } catch (error) {
     console.error("端末確認サマリー初期化エラー:", error);
     deviceAuditEnabled = false;
     deviceSummaryLoadState = "hidden";
     deviceRiskSummaries = {};
   }
+}
+
+async function loadRegisteredAdminIds() {
+  if (!deviceAuditEnabled) return;
+
+  adminRegistrationLoadState = "loading";
+  renderUsers();
+  try {
+    const listCareMateAdmins = httpsCallable(functions, "listCareMateAdmins");
+    const result = await listCareMateAdmins();
+    registeredAdminIds = new Set(
+      (result.data?.studentNumbers || []).filter((item) => /^\d{7}$/.test(item)),
+    );
+    adminRegistrationLoadState = "ready";
+  } catch (error) {
+    console.error("管理者一覧取得エラー:", error);
+    registeredAdminIds = new Set();
+    adminRegistrationLoadState = "error";
+  }
+  renderUsers();
 }
 
 async function loadDeviceRiskSummaries(showLoading = true) {
@@ -477,6 +556,8 @@ function createUserHtml(user) {
 
   const deviceSummaryHtml = createDeviceSummaryHtml(user);
 
+  const adminRegistrationHtml = createAdminRegistrationHtml(user.id);
+
   return `
         <div class="admin-user-item">
 
@@ -526,17 +607,45 @@ function createUserHtml(user) {
 
             </div>
 
-            <button
-                type="button"
-                class="btn btn-primary admin-user-detail-button"
-                data-student-number="${escapeHtml(user.id)}">
+            <div class="admin-user-item-actions">
+                ${adminRegistrationHtml}
+                <button
+                    type="button"
+                    class="btn btn-primary admin-user-detail-button"
+                    data-student-number="${escapeHtml(user.id)}">
 
-                詳細を見る
+                    詳細を見る
 
-            </button>
+                </button>
+            </div>
 
         </div>
     `;
+}
+
+function createAdminRegistrationHtml(targetStudentNumber) {
+  if (!deviceAuditEnabled) return "";
+
+  if (["hidden", "loading"].includes(adminRegistrationLoadState)) {
+    return '<button type="button" class="btn admin-user-admin-register-button" disabled>管理者確認中...</button>';
+  }
+
+  if (adminRegistrationLoadState === "error") {
+    return '<button type="button" class="btn admin-user-admin-register-button" disabled>管理者状態を取得できません</button>';
+  }
+
+  if (registeredAdminIds.has(targetStudentNumber)) {
+    return '<span class="admin-user-admin-badge">管理者登録済み</span>';
+  }
+
+  return `
+    <button
+      type="button"
+      class="btn admin-user-admin-register-button"
+      data-student-number="${escapeHtml(targetStudentNumber)}">
+      管理者に登録
+    </button>
+  `;
 }
 
 function createDeviceSummaryHtml(user) {

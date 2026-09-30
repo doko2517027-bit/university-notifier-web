@@ -101,7 +101,7 @@ function render() {
     const body = make("div", "home-today-item-body");
     body.append(make("span", "home-today-item-title", item.title));
     const end = item.endAt ? new Date(item.endAt) : null;
-    const detail = [item.detail, item.kind === "assignment" && end ? `${formatTime(end)}締切` : "", submitted ? "提出済み" : elapsed ? "時刻経過" : ""].filter(Boolean).join("・");
+    const detail = [item.detail, item.kind === "assignment" && end ? `${formatTime(end)}締切` : "", !submitted && elapsed ? "時刻経過" : ""].filter(Boolean).join("・");
     if (detail) body.append(make("small", "home-today-item-detail", detail));
     row.append(body);
     if (item.kind === "assignment" && item.completionId) {
@@ -112,7 +112,7 @@ function render() {
       completionCheckbox.disabled = item.submitted || pendingCompletions.has(item.completionId);
       if (!item.submitted) completionCheckbox.dataset.completionId = item.completionId;
       completionCheckbox.setAttribute("aria-label", `「${item.title}」を${submitted ? "未提出に戻す" : "提出済みにする"}`);
-      completionLabel.append(completionCheckbox, make("span", "", "提出済み"));
+      completionLabel.append(completionCheckbox);
       row.append(completionLabel);
     }
     automaticSection.append(row);

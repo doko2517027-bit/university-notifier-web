@@ -344,6 +344,77 @@ async function requireEnabledCareMateAdmin(request) {
   return studentNumber;
 }
 
+// 管理者の追加は、既存管理者全員ではなく2510044本人だけが行える。
+// 対象学生の現在のログイン状態は変更せず、次回ログイン時に管理権限を反映する。
+exports.listCareMateAdmins = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const snapshot = await db.collection("admins").get();
+    return {
+      studentNumbers: snapshot.docs
+        .filter((item) => item.data()?.enabled === true)
+        .map((item) => item.id)
+        .filter((item) => /^\d{7}$/.test(item)),
+    };
+  },
+);
+
+exports.registerCareMateAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const registeredBy = await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(
+      request.data?.studentNumber || "",
+    ).trim();
+
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+    }
+
+    const targetSnapshot = await db
+      .collection("users")
+      .doc(targetStudentNumber)
+      .get();
+    if (!targetSnapshot.exists) {
+      throw new HttpsError("not-found", "対象の学生が見つかりません。");
+    }
+
+    const adminRef = db.collection("admins").doc(targetStudentNumber);
+    const adminSnapshot = await adminRef.get();
+    await adminRef.set(
+      {
+        enabled: true,
+        registeredBy,
+        registeredAt: adminSnapshot.exists
+          ? adminSnapshot.data()?.registeredAt || FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    // すでにFirebase Auth利用者が存在する場合は、次のトークン更新でも反映する。
+    // 未作成の場合もauthenticateCareMateがadminsを確認するため、次回ログインで有効になる。
+    try {
+      const uid = `caremate-${targetStudentNumber}`;
+      const authUser = await adminAuth.getUser(uid);
+      await adminAuth.setCustomUserClaims(uid, {
+        ...(authUser.customClaims || {}),
+        admin: true,
+        studentNumber: targetStudentNumber,
+      });
+    } catch (error) {
+      if (error?.code !== "auth/user-not-found") throw error;
+    }
+
+    return {
+      registered: true,
+      studentNumber: targetStudentNumber,
+    };
+  },
+);
+
 const costDashboardSettingsRef = db
   .collection("privateAdminSettings")
   .doc("costDashboard");

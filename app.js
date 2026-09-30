@@ -32,7 +32,7 @@ import {
   applyClassSelections,
   effectiveClassSelections,
 } from "./class_selection.js?v=20260929-4";
-import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-1";
+import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-2";
 
 import {
   doc,
