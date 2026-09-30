@@ -1932,6 +1932,22 @@ export async function setupPresence() {
 
   const deviceLabel = await getPresenceDeviceLabel();
 
+  // 旧版が学生直下へ保存していた1台分の値だけを消し、端末ID配下の
+  // 新しい記録は残す。これにより同じ端末が「旧端末」と重複しない。
+  try {
+    await update(ref(realtimeDb, `status/${studentNumber}`), {
+      studentNumber: null,
+      deviceId: null,
+      deviceLabel: null,
+      state: null,
+      page: null,
+      pageName: null,
+      lastChanged: null,
+    });
+  } catch (error) {
+    console.warn("旧形式の接続表示を整理できませんでした:", error);
+  }
+
   const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
 
   const connectedRef = ref(realtimeDb, ".info/connected");
