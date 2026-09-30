@@ -5,7 +5,6 @@ import {
   loadProfileImage,
   isAdmin,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -14,6 +13,8 @@ import {
   getDoc,
   collection,
   getDocs,
+  query,
+  where,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { isSubjectInMode, getModeCategories, groupCatalogItems } from "./exam_catalog.mjs";
 
@@ -168,7 +169,6 @@ await initializePage([
 
   updateAssignmentNavBadge(),
 
-  updateShareNavBadge(),
 
   updateNewsNavBadge(),
 
@@ -333,6 +333,7 @@ async function loadExamDashboard() {
       progressSnapshot,
       pointHistorySnapshot,
       subjectPointSnapshot,
+      solvedQuestionSnapshot,
     ] = await Promise.all([
       getDoc(doc(db, "system", "exam")),
 
@@ -351,6 +352,15 @@ async function loadExamDashboard() {
       studentNumber
         ? safeGetDocs(collection(db, "users", studentNumber, "subjectPoints"))
         : Promise.resolve(null),
+
+      studentNumber
+        ? safeGetDocs(
+            query(
+              collection(db, "users", studentNumber, "solvedQuestions"),
+              where("day", "==", todayKey),
+            ),
+          )
+        : Promise.resolve(null),
     ]);
 
     modeCategories.splice(0, modeCategories.length,
@@ -360,7 +370,11 @@ async function loadExamDashboard() {
 
     buildProgressMap(progressSnapshot);
 
-    buildDailyCompletionData(pointHistorySnapshot, subjectPointSnapshot);
+    buildDailyCompletionData(
+      pointHistorySnapshot,
+      subjectPointSnapshot,
+      solvedQuestionSnapshot,
+    );
 
     subjects = await buildSubjectData(subjectSnapshot);
 
@@ -560,12 +574,20 @@ function buildProgressMap(snapshot) {
    今日の1問達成情報
 ======================================== */
 
-function buildDailyCompletionData(historySnapshot, subjectPointSnapshot) {
+function buildDailyCompletionData(
+  historySnapshot,
+  subjectPointSnapshot,
+  solvedQuestionSnapshot,
+) {
   dailyCompletionKeys = new Set();
 
   dailyRecordTexts = [];
 
-  const snapshots = [historySnapshot, subjectPointSnapshot].filter(Boolean);
+  const snapshots = [
+    historySnapshot,
+    subjectPointSnapshot,
+    solvedQuestionSnapshot,
+  ].filter(Boolean);
 
   snapshots.forEach((snapshot) => {
     snapshot.docs.forEach((pointDocument) => {

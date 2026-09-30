@@ -12,7 +12,6 @@ import {
   encryptData,
   updateAccentColor,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -68,12 +67,6 @@ const notifyCourseNews = document.getElementById("notifyCourseNews");
 
 const notifySystemNews = document.getElementById("notifySystemNews");
 
-const notifySharePost = document.getElementById("notifySharePost");
-
-const notifyLike = document.getElementById("notifyLike");
-
-const notifyComment = document.getElementById("notifyComment");
-
 const registerButton = document.getElementById("subscribe");
 
 /* ========================================
@@ -104,7 +97,6 @@ await initializePage([
   loadMyRanking(),
   loadProfileImage(topProfileImage),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 
@@ -416,11 +408,6 @@ async function registerStudent() {
 
         systemNews: notifySystemNews?.checked ?? true,
 
-        sharePost: notifySharePost?.checked ?? true,
-
-        like: notifyLike?.checked ?? true,
-
-        comment: notifyComment?.checked ?? true,
       },
 
       manabaVerified: null,

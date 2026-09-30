@@ -10,7 +10,6 @@ import {
   setupAdminTab,
   setupOfflineAlert,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -39,7 +38,6 @@ await initializePage([
   loadMyRanking(),
   loadAssignments(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 

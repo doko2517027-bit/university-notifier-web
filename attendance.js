@@ -6,7 +6,6 @@ import {
   initializePage,
   setupAdminTab,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
   setupAttendanceWebPush,
 } from "./common.js";
@@ -267,7 +266,6 @@ if (localStorage.getItem("loggedIn") !== "true" || !studentNumber) {
 
     updateAssignmentNavBadge(),
 
-    updateShareNavBadge(),
 
     updateNewsNavBadge(),
 

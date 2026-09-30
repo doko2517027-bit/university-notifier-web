@@ -6,7 +6,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import { reportWrongAnswer } from "./question_report.js";
-import { awardDailyQuestionPoints, localDateKey } from "./test_points.js";
+import {
+  awardDailyQuestionPoints,
+  localDateKey,
+} from "./test_points.js?v=20261001-1";
+import { dailyQuestionIndex } from "./daily_question_rotation.mjs";
 import {
   studyPointHtml,
   studySearchHtml,
@@ -115,10 +119,12 @@ async function loadDailyQuestion() {
   const pool = (data.quiz || []).filter(
     (q) => q?.question && Array.isArray(q.choices) && q.choices.length,
   );
-  dailyQuestionSeed = [...`${localDateKey()}|${subjectId}|${unitId}`].reduce(
-    (sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0,
-    7,
-  );
+  dailyQuestionSeed = dailyQuestionIndex({
+    dateKey: localDateKey(),
+    subjectId,
+    unitId,
+    poolLength: pool.length,
+  });
 
   const q = pool.length
     ? pool[dailyQuestionSeed % pool.length]

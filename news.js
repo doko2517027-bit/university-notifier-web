@@ -8,7 +8,6 @@ import {
   loadMyRanking,
   setupAdminTab,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -225,7 +224,6 @@ await initializePage([
   loadCourseNews(),
   loadSystemNews(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 

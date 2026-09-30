@@ -14,7 +14,6 @@ import {
   setupAdminTab,
   setupOfflineAlert,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
   encryptData,
 } from "./common.js";
@@ -77,7 +76,6 @@ void initializePage([
   loadnotificationSettings(),
   loadRegistrationInfo(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 

@@ -14,7 +14,6 @@ import {
   showToast,
   encryptData,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -141,12 +140,6 @@ const notifyCourseNews = document.getElementById("notifyCourseNews");
 
 const notifySystemNews = document.getElementById("notifySystemNews");
 
-const notifySharePost = document.getElementById("notifySharePost");
-
-const notifyLike = document.getElementById("notifyLike");
-
-const notifyComment = document.getElementById("notifyComment");
-
 const saveUserButton = document.getElementById("saveUserButton");
 
 const deleteUserButton = document.getElementById("deleteUserButton");
@@ -260,7 +253,6 @@ await initializePage([
   loadProfileImage(topProfileImage),
   loadTargetUser(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 
@@ -405,17 +397,6 @@ function renderUserInformation() {
     notifySystemNews.checked = settings.systemNews ?? true;
   }
 
-  if (notifySharePost) {
-    notifySharePost.checked = settings.sharePost ?? true;
-  }
-
-  if (notifyLike) {
-    notifyLike.checked = settings.like ?? true;
-  }
-
-  if (notifyComment) {
-    notifyComment.checked = settings.comment ?? true;
-  }
 }
 
 /* ========================================
@@ -1052,12 +1033,6 @@ async function saveUserChanges() {
       "notificationSettings.courseNews": notifyCourseNews?.checked ?? true,
 
       "notificationSettings.systemNews": notifySystemNews?.checked ?? true,
-
-      "notificationSettings.sharePost": notifySharePost?.checked ?? true,
-
-      "notificationSettings.like": notifyLike?.checked ?? true,
-
-      "notificationSettings.comment": notifyComment?.checked ?? true,
 
       adminUpdatedAt: serverTimestamp(),
 

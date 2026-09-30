@@ -12,7 +12,6 @@ import {
   isAdmin,
   showToast,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -108,7 +107,6 @@ await initializePage([
   loadProfileImage(topProfileImage),
   loadUsers(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 

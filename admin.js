@@ -20,7 +20,6 @@ import {
   isAdmin,
   showToast,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -121,12 +120,6 @@ const notifyCourseNews = document.getElementById("notifyCourseNews");
 
 const notifySystemNews = document.getElementById("notifySystemNews");
 
-const notifySharePost = document.getElementById("notifySharePost");
-
-const notifyLike = document.getElementById("notifyLike");
-
-const notifyComment = document.getElementById("notifyComment");
-
 const enablePushButton = document.getElementById("enablePushButton");
 
 const sendTestPush = document.getElementById("sendTestPush");
@@ -191,7 +184,6 @@ await initializePage([
   loadMaintenance(),
   loadNotificationSettings(),
   updateAssignmentNavBadge(),
-  updateShareNavBadge(),
   updateNewsNavBadge(),
 ]);
 
@@ -396,11 +388,6 @@ async function loadNotificationSettings() {
 
     setChecked(notifySystemNews, settings.systemNews ?? true);
 
-    setChecked(notifySharePost, settings.sharePost ?? true);
-
-    setChecked(notifyLike, settings.like ?? true);
-
-    setChecked(notifyComment, settings.comment ?? true);
   } catch (error) {
     console.error("通知設定取得エラー:", error);
   }
@@ -424,11 +411,6 @@ async function saveNotificationSettings() {
 
         systemNews: getChecked(notifySystemNews, true),
 
-        sharePost: getChecked(notifySharePost, true),
-
-        like: getChecked(notifyLike, true),
-
-        comment: getChecked(notifyComment, true),
       },
     });
 
@@ -495,9 +477,6 @@ function setupEvents() {
     notifyReminder,
     notifyCourseNews,
     notifySystemNews,
-    notifySharePost,
-    notifyLike,
-    notifyComment,
   ]
     .filter(Boolean)
     .forEach((input) => {

@@ -1763,11 +1763,6 @@ export async function updateAssignmentNavBadge() {
   }
 }
 
-export async function updateShareNavBadge() {
-  // 共有タブは機能リクエストへ置き換え済み。旧投稿の取得は行わない。
-  return;
-}
-
 export async function updateNewsNavBadge() {
   const badge = document.getElementById("newsNavBadge");
 

@@ -14,7 +14,6 @@ import {
   setupAdminTab,
   decryptData,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
   setupAttendanceWebPush,
   studentAcademicContext,

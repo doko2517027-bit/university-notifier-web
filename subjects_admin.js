@@ -10,7 +10,6 @@ import {
   isAdmin,
   showToast,
   updateAssignmentNavBadge,
-  updateShareNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
 
@@ -207,7 +206,6 @@ await initializePage([
 
   updateAssignmentNavBadge(),
 
-  updateShareNavBadge(),
 
   updateNewsNavBadge(),
 ]);

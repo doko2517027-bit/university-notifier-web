@@ -70,6 +70,7 @@ export async function awardDailyQuestionPoints({
   const subjectData = {
     subjectId: subjectId || "",
     subjectName: subjectName || "名称未設定",
+    unitId: unitId || "",
     point: incrementValue(points),
     updatedAt: serverTimestamp(),
   };

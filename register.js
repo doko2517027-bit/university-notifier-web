@@ -409,9 +409,6 @@ button.addEventListener("click", async () => {
         reminder: true,
         courseNews: true,
         systemNews: true,
-        sharePost: true,
-        like: true,
-        comment: true,
       },
 
       manabaVerified: null,
