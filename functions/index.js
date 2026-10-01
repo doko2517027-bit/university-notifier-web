@@ -1218,6 +1218,18 @@ async function sendToUserDevices(
   return results;
 }
 
+// 端末を開いていない学生のホーム画面アイコンは正確に判定できないため、
+// 旧判定APIは安全のため無効化する。
+exports.notifyStudentsNeedingAppReinstall = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async () => {
+    throw new HttpsError(
+      "failed-precondition",
+      "再インストール対象を正確に判定できないため、この通知機能は無効です。",
+    );
+  },
+);
+
 // 2510044が設定した月額アラートを1日1回確認する。
 // 同じ月・同じ金額では重複通知せず、未設定時は外部請求データを照会しない。
 exports.monitorCareMateCosts = onSchedule(
