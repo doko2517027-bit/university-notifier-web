@@ -54,11 +54,39 @@ const adminAuth = getAuth();
 const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 
 const { buildStalePresenceUpdates } = require("./presence_cleanup.js");
+const { manualUpdateDecision } = require("./manual_update_policy.js");
 
 const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
 const WEB_PUSH_PUBLIC_KEY = defineSecret("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = defineSecret("WEB_PUSH_PRIVATE_KEY");
+const GITHUB_ACTIONS_TOKEN = defineSecret("GITHUB_ACTIONS_TOKEN");
+
+async function dispatchStudentRefreshWorkflow(studentNumber, requestId) {
+  const response = await fetch(
+    "https://api.github.com/repos/doko2517027-bit/university-notifier-server/actions/workflows/manual_student_refresh.yml/dispatches",
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${GITHUB_ACTIONS_TOKEN.value()}`,
+        "Content-Type": "application/json",
+        "User-Agent": "CareMate-Firebase-Functions",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: {
+          student_number: studentNumber,
+          request_id: requestId,
+        },
+      }),
+    },
+  );
+  if (response.status !== 204) {
+    throw new Error(`GitHub workflow dispatch failed: ${response.status}`);
+  }
+}
 
 // 学生専用機能リクエスト。累計ポイントに応じた最大3枠をサーバー側で保証する。
 exports.submitFeatureRequest = onCall(
@@ -345,6 +373,82 @@ async function requireEnabledCareMateAdmin(request) {
   }
   return studentNumber;
 }
+
+// 管理者が指定した学生1人だけの確認処理を、その場で起動する。
+exports.requestStudentUpdateCheck = onCall(
+  {
+    region: "asia-northeast1",
+    cors: [SITE_ORIGIN],
+    secrets: [GITHUB_ACTIONS_TOKEN],
+  },
+  async (request) => {
+    const requestedBy = await requireEnabledCareMateAdmin(request);
+    const targetStudentNumber = String(request.data?.studentNumber || "").trim();
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError("invalid-argument", "対象学生が正しくありません。");
+    }
+
+    const targetRef = db.collection("users").doc(targetStudentNumber);
+    const requestRef = db
+      .collection("studentUpdateChecks")
+      .doc(targetStudentNumber);
+    const requestId = crypto.randomUUID();
+
+    await db.runTransaction(async (transaction) => {
+      const [targetSnapshot, existingSnapshot] = await Promise.all([
+        transaction.get(targetRef),
+        transaction.get(requestRef),
+      ]);
+      if (!targetSnapshot.exists) {
+        throw new HttpsError("not-found", "対象学生が見つかりません。");
+      }
+
+      const decision = manualUpdateDecision(existingSnapshot.data());
+      if (!decision.allowed) {
+        throw new HttpsError(
+          "resource-exhausted",
+          decision.reason === "already-running"
+            ? "この学生は現在更新確認中です。"
+            : "完了後5分経ってから再実行できます。",
+        );
+      }
+
+      transaction.set(requestRef, {
+        requestId,
+        targetStudentNumber,
+        requestedBy,
+        status: "queued",
+        progress: 5,
+        message: "対象学生だけの更新を開始しています",
+        requestedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        startedAt: null,
+        completedAt: null,
+      });
+    });
+
+    try {
+      await dispatchStudentRefreshWorkflow(targetStudentNumber, requestId);
+    } catch (error) {
+      console.error("学生別更新の起動エラー:", error);
+      await requestRef.set(
+        {
+          status: "dispatch-failed",
+          progress: 0,
+          message: "更新処理を開始できませんでした。もう一度お試しください",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      throw new HttpsError(
+        "unavailable",
+        "更新処理を開始できませんでした。もう一度お試しください。",
+      );
+    }
+
+    return { requestId, status: "queued", progress: 5 };
+  },
+);
 
 // 管理者の追加は、既存管理者全員ではなく2510044本人だけが行える。
 // 対象学生の現在のログイン状態は変更せず、次回ログイン時に管理権限を反映する。

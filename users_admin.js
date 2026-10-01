@@ -81,6 +81,10 @@ let presenceTimer = null;
 
 let stopUsersListener = null;
 
+let studentUpdateChecks = {};
+
+let stopStudentUpdateChecksListener = null;
+
 let deviceRiskSummaries = {};
 
 let deviceAuditEnabled = false;
@@ -135,6 +139,8 @@ if (gradeFilter) {
 
 startUsersListener();
 
+startStudentUpdateChecksListener();
+
 if (deviceAuditEnabled) startPresenceListener();
 
 setupEvents();
@@ -181,6 +187,24 @@ function startUsersListener() {
     },
     (error) => {
       console.error("ユーザー監視エラー:", error);
+    },
+  );
+}
+
+function startStudentUpdateChecksListener() {
+  if (stopStudentUpdateChecksListener) stopStudentUpdateChecksListener();
+  stopStudentUpdateChecksListener = onSnapshot(
+    collection(db, "studentUpdateChecks"),
+    (snapshot) => {
+      studentUpdateChecks = Object.fromEntries(
+        snapshot.docs.map((item) => [item.id, item.data() || {}]),
+      );
+      renderUsers();
+    },
+    (error) => {
+      console.error("学生別更新状況の取得エラー:", error);
+      studentUpdateChecks = {};
+      renderUsers();
     },
   );
 }
@@ -255,6 +279,14 @@ function setupEvents() {
 
   if (userList) {
     userList.addEventListener("click", async (event) => {
+      const updateButton = event.target.closest(
+        ".admin-user-update-check-button",
+      );
+      if (updateButton) {
+        await requestStudentUpdateCheck(updateButton);
+        return;
+      }
+
       const forceAllButton = event.target.closest(
         ".admin-user-device-force-all-button",
       );
@@ -609,6 +641,8 @@ function createUserHtml(user) {
 
   const adminRegistrationHtml = createAdminRegistrationHtml(user.id);
 
+  const updateCheckHtml = createStudentUpdateCheckHtml(user.id);
+
   return `
         <div class="admin-user-item">
 
@@ -656,10 +690,19 @@ function createUserHtml(user) {
 
                 </div>` : ""}
 
+                ${updateCheckHtml}
+
             </div>
 
             <div class="admin-user-item-actions">
                 ${adminRegistrationHtml}
+                <button
+                    type="button"
+                    class="btn admin-user-update-check-button"
+                    data-student-number="${escapeHtml(user.id)}"
+                    ${["queued", "running"].includes(studentUpdateChecks[user.id]?.status) ? "disabled" : ""}>
+                    ${["queued", "running"].includes(studentUpdateChecks[user.id]?.status) ? "更新確認中…" : "↻ この学生を更新"}
+                </button>
                 <button
                     type="button"
                     class="btn btn-primary admin-user-detail-button"
@@ -672,6 +715,69 @@ function createUserHtml(user) {
 
         </div>
     `;
+}
+
+function createStudentUpdateCheckHtml(studentNumber) {
+  const data = studentUpdateChecks[studentNumber] || null;
+  const progress = Math.max(0, Math.min(100, Number(data?.progress || 0)));
+  const status = String(data?.status || "idle");
+  const statusLabels = {
+    idle: "未実行",
+    queued: "実行待ち",
+    running: "更新確認中",
+    success: "更新完了",
+    partial: "一部確認できませんでした",
+    failed: "更新失敗",
+    "dispatch-failed": "開始失敗",
+  };
+  const message = String(
+    data?.message || "必要な時に右側の更新ボタンから確認できます。",
+  );
+  const completedAt = data?.completedAt;
+  const timeLabel = completedAt
+    ? `・${formatDeviceAuditDate(completedAt)}`
+    : "";
+
+  return `
+    <div class="admin-student-update-status" data-status="${escapeHtml(status)}">
+      <div class="admin-student-update-heading">
+        <span><b>${escapeHtml(statusLabels[status] || "確認状況")}</b>${escapeHtml(timeLabel)}</span>
+        <strong>${progress}%</strong>
+      </div>
+      <div
+        class="admin-student-update-track"
+        role="progressbar"
+        aria-label="${escapeHtml(studentNumber)}の更新確認進捗"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="${progress}">
+        <i style="width:${progress}%"></i>
+      </div>
+      <small>${escapeHtml(message)}</small>
+    </div>
+  `;
+}
+
+async function requestStudentUpdateCheck(button) {
+  const targetStudentNumber = String(button.dataset.studentNumber || "");
+  if (!/^\d{7}$/.test(targetStudentNumber)) return;
+  button.disabled = true;
+  button.textContent = "受付中…";
+  try {
+    const requestUpdate = httpsCallable(functions, "requestStudentUpdateCheck");
+    await requestUpdate({ studentNumber: targetStudentNumber });
+    showToast(`${targetStudentNumber}の更新確認を受け付けました`);
+  } catch (error) {
+    console.error("学生別更新確認の受付エラー:", error);
+    const message = String(error?.message || "");
+    alert(
+      message.includes("現在更新確認中") || message.includes("5分")
+        ? message
+        : "更新確認を開始できませんでした。時間をおいて再度お試しください。",
+    );
+    button.disabled = false;
+    button.textContent = "↻ この学生を更新";
+  }
 }
 
 function createAdminRegistrationHtml(targetStudentNumber) {
