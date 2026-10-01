@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20261001-4" />
+    <link rel="stylesheet" href="style.css?v=20261001-8" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -229,6 +229,10 @@
     </button>
 
     <div class="home-weather-search-row">
+      <button id="homeReferralCard" class="home-referral-compact" type="button" hidden>
+        <span class="home-referral-icon">👥</span>
+        <span><b>友達招待</b><small id="homeReferralCount">読み込み中...</small></span>
+      </button>
       <button id="weatherCard" class="home-weather-compact" type="button">
         <span id="weatherLocation" class="home-weather-location">地域</span>
         <span id="weatherMain" class="home-weather-main">読み込み中...</span>
@@ -525,6 +529,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261001-3"></script>
+    <script type="module" src="app.js?v=20261001-4"></script>
   </body>
 </html>

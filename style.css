@@ -20585,3 +20585,103 @@ course-tagが付いたspanには適用しない。
 .admin-user-admin-revoke-button {
   white-space: nowrap;
 }
+
+/* ===============================
+   友達紹介
+================================ */
+.home-weather-search-row:has(#homeReferralCard) {
+  display: grid;
+  grid-template-columns: minmax(145px, .85fr) minmax(170px, 1fr) minmax(210px, 1.15fr);
+  align-items: stretch;
+  gap: 9px;
+}
+.home-referral-compact {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, var(--card)), var(--card));
+  color: var(--text);
+  box-shadow: var(--shadow);
+  padding: 9px 11px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+.home-referral-compact[hidden] { display: none !important; }
+.home-referral-icon { font-size: 22px; line-height: 1; }
+.home-referral-compact span:last-child { display: grid; gap: 2px; min-width: 0; }
+.home-referral-compact b { font-size: 13px; white-space: nowrap; }
+.home-referral-compact small { color: var(--primary); font-weight: 800; white-space: nowrap; }
+.registration-field-help { margin-top: .4rem; color: var(--subtext); font-size: .84rem; line-height: 1.55; }
+.registration-referral-dialog { width: min(92vw, 480px); border: 1px solid var(--border); border-radius: 18px; background: var(--card); color: var(--text); box-shadow: 0 24px 70px rgba(0,0,0,.28); padding: 22px; }
+.registration-referral-dialog::backdrop { background: rgba(10,18,32,.62); backdrop-filter: blur(3px); }
+.registration-referral-dialog h2 { margin-top: 0; }
+.registration-referral-dialog p { color: var(--subtext); line-height: 1.7; }
+.registration-referral-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+
+.referral-shell,
+.referral-admin-shell { width: min(100% - 24px, 980px); margin: 0 auto 100px; display: grid; gap: 16px; }
+.referral-header .logo { background: linear-gradient(135deg, #27b39f, #5178e8); }
+.referral-progress-card { padding: clamp(20px, 4vw, 32px); overflow: hidden; position: relative; }
+.referral-progress-card::after { content: "👥"; position: absolute; right: 20px; top: 12px; font-size: 72px; opacity: .08; }
+.referral-eyebrow { color: var(--primary); font-size: 11px; font-weight: 900; letter-spacing: .12em; }
+.referral-count { display: flex; align-items: baseline; gap: 7px; margin: 8px 0 12px; }
+.referral-count strong { font-size: clamp(38px, 8vw, 58px); line-height: 1; }
+.referral-count span { color: var(--subtext); font-weight: 800; }
+.referral-progress-track { height: 12px; border-radius: 999px; background: color-mix(in srgb, var(--border) 65%, transparent); overflow: hidden; }
+.referral-progress-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1cb49b, #5478ec); transition: width .35s ease; }
+.referral-progress-card p { margin: 12px 0 0; color: var(--subtext); font-weight: 700; }
+.referral-code-card,
+.referral-roadmap-card,
+.referral-admin-list-card { padding: clamp(18px, 3vw, 26px); }
+.referral-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.referral-section-heading h2 { margin: 3px 0 0; font-size: 20px; }
+.referral-status-chip { border-radius: 999px; padding: 6px 10px; background: color-mix(in srgb, var(--primary) 12%, var(--card)); color: var(--primary); font-size: 12px; font-weight: 900; }
+.referral-empty { padding: 18px; border: 1px dashed var(--border); border-radius: 14px; text-align: center; color: var(--subtext); }
+.referral-code-value { display: block; width: 100%; border: 0; border-radius: 16px; background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--text); padding: 18px 12px; font: 900 clamp(23px, 6vw, 34px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; text-align: center; overflow-wrap: anywhere; cursor: pointer; }
+.referral-code-expiry { text-align: center; color: var(--subtext); font-size: 13px; }
+.referral-code-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.referral-safety-note { margin: 14px 0 0; color: var(--subtext); font-size: .83rem; line-height: 1.65; }
+.referral-roadmap { display: grid; gap: 10px; }
+.referral-roadmap-item { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; opacity: .72; }
+.referral-roadmap-item.is-unlocked { opacity: 1; border-color: color-mix(in srgb, #17a87e 45%, var(--border)); background: color-mix(in srgb, #17a87e 8%, var(--card)); }
+.referral-roadmap-marker { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--border) 65%, var(--card)); font-weight: 900; }
+.referral-roadmap-item.is-unlocked .referral-roadmap-marker { background: #17a87e; color: #fff; }
+.referral-roadmap-item div:last-child { display: grid; gap: 4px; }
+.referral-roadmap-item small { color: var(--subtext); }
+.referral-gift-banner { padding: 24px; text-align: center; border: 1px solid #eab949; background: linear-gradient(145deg, color-mix(in srgb, #ffd869 19%, var(--card)), var(--card)); }
+.referral-gift-banner h2 { margin: 0 0 8px; }
+.referral-gift-banner small { display: block; margin-top: 10px; color: var(--subtext); }
+
+.referral-admin-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.referral-admin-summary .card { padding: 18px; display: grid; gap: 7px; }
+.referral-admin-summary small { color: var(--subtext); }
+.referral-admin-summary strong { font-size: 26px; }
+.referral-admin-list { display: grid; gap: 12px; }
+.referral-reward-item { border: 1px solid var(--border); border-radius: 15px; padding: 15px; display: grid; gap: 12px; }
+.referral-reward-item.is-granted { border-color: color-mix(in srgb, #17a87e 45%, var(--border)); }
+.referral-reward-head,
+.referral-reward-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.referral-reward-head > div { display: grid; gap: 4px; }
+.referral-reward-head span { border-radius: 999px; padding: 5px 9px; background: color-mix(in srgb, #f1ae34 15%, var(--card)); color: #a76c00; font-size: 12px; font-weight: 900; }
+.referral-reward-item.is-granted .referral-reward-head span { background: color-mix(in srgb, #17a87e 14%, var(--card)); color: #087a5a; }
+.referral-reward-item label { display: grid; gap: 6px; font-size: 13px; font-weight: 800; }
+.referral-reward-actions small { color: var(--subtext); }
+
+@media (max-width: 760px) {
+  .home-weather-search-row:has(#homeReferralCard) { grid-template-columns: 1fr 1fr; }
+  .home-weather-search-row:has(#homeReferralCard) .home-search-form { grid-column: 1 / -1; }
+  .home-weather-search-row:has(#homeReferralCard) .home-search-form input { width: 100%; }
+  .referral-admin-summary { grid-template-columns: 1fr; }
+  .referral-reward-actions { align-items: stretch; flex-direction: column; }
+  .referral-reward-actions .btn { width: 100%; }
+}
+@media (max-width: 420px) {
+  .home-referral-compact { padding-inline: 9px; }
+  .home-referral-icon { font-size: 19px; }
+  .home-referral-compact b { font-size: 12px; }
+  .referral-code-actions { grid-template-columns: 1fr; }
+  .referral-code-value { letter-spacing: .07em; }
+}

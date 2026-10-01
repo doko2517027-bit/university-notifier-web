@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>紹介特典管理 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css?v=20261001-8" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading referral-admin-page">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" type="button">←</button>
+      <div class="top-right"><button id="themeButton" class="circle-button" type="button">🌙</button></div>
+    </div>
+    <header class="header"><div class="logo">🎁</div><h1>紹介特典管理</h1><p>10人達成者へのギフトを手動で付与</p></header>
+    <main class="referral-admin-shell">
+      <section class="referral-admin-summary">
+        <article class="card"><small>10人達成者</small><strong id="rewardTotal">--</strong></article>
+        <article class="card"><small>ギフト未付与</small><strong id="rewardPending">--</strong></article>
+        <article class="card"><small>付与済み</small><strong id="rewardGranted">--</strong></article>
+      </section>
+      <section class="card referral-admin-list-card">
+        <div class="referral-section-heading"><div><span class="referral-eyebrow">REWARDS</span><h2>達成者一覧</h2></div><button id="refreshRewards" class="btn" type="button">↻ 更新</button></div>
+        <p class="referral-safety-note">ギフトは自動発行されません。用意したHTTPSの受取URLを対象学生へ個別に付与してください。</p>
+        <div id="rewardList" class="referral-admin-list">読み込み中...</div>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a>
+      <a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
+      <a class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
+    </nav>
+    <script type="module" src="referral_admin.js?v=20261001-1"></script>
+  </body>
+</html>

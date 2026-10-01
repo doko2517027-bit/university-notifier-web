@@ -353,6 +353,35 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    /*
+       友達紹介制度。コード、永久重複防止台帳、人数、履歴、ギフトURLは
+       すべてCloud Functionsだけが読み書きし、クライアント直アクセスを拒否する。
+    */
+    match /referralAccounts/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralCodes/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralHistory/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralIdentityRegistry/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralPrivateRewards/{documentId} {
+      allow read, write: if false;
+    }
+    match /registrationVerificationProofs/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralRegistrationProofs/{documentId} {
+      allow read, write: if false;
+    }
+    match /referralRateLimits/{documentId} {
+      allow read, write: if false;
+    }
+
 
     /* ========================================
        公開ユーザー情報

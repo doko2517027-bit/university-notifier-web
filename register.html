@@ -11,7 +11,7 @@
 
     <title>初回登録 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261001-5" />
+    <link rel="stylesheet" href="style.css?v=20261001-8" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
@@ -81,6 +81,19 @@
       />
       <p id="registrationGradeHint">学籍番号の先頭2桁から初回登録時の学年を判定します。</p>
 
+      <p><b>招待コード（任意）</b></p>
+      <input
+        id="referralCode"
+        type="text"
+        maxlength="32"
+        autocomplete="off"
+        autocapitalize="characters"
+        placeholder="招待コードをお持ちの場合"
+      />
+      <p class="registration-field-help">
+        CareMateを利用している学生から招待コードを受け取った場合のみ入力してください。
+      </p>
+
       <p><b>学生ページID 必須</b></p>
       <input id="studentPageId" type="text" placeholder="学生ページID" />
 
@@ -101,6 +114,9 @@
         type="password"
         placeholder="未入力でも登録できます"
       />
+      <p class="registration-field-help">
+        大学メールは学籍番号から「7桁の学籍番号@sums.ac.jp」としてCareMateが決定します。招待コードを使う場合は本人確認のため入力必須です。
+      </p>
 
       <p><b>manabaパスワード 任意</b></p>
       <input
@@ -130,10 +146,25 @@
       <br /><br />
 
       <button id="subscribe" class="btn btn-primary">登録</button>
+
+      <p class="registration-field-help registration-identity-note">
+        友達紹介の重複防止のため、正常登録した学籍番号・初回登録日時・紹介カウント有無の最小記録は、アカウント削除後も保持します。パスワードや大学メール本文はこの記録に保存しません。
+      </p>
     </div>
 
     <footer id="version"></footer>
 
-    <script type="module" src="register.js?v=20261001-3"></script>
+    <dialog id="referralExistingDialog" class="registration-referral-dialog">
+      <h2>初回登録ではありません</h2>
+      <p>
+        この学籍番号は過去にCareMateへ登録されています。初回登録ではないため、招待者の招待人数および紹介特典には反映されません。このまま登録を続けますか？
+      </p>
+      <div class="registration-referral-dialog-actions">
+        <button id="cancelPreviousRegistration" class="btn" type="button">キャンセル</button>
+        <button id="continuePreviousRegistration" class="btn btn-primary" type="button">登録を続ける</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="register.js?v=20261001-4"></script>
   </body>
 </html>

@@ -1,11 +1,14 @@
 import {
   db,
+  functions,
   initializePage,
   updateAccentColor,
   encryptData,
   signInCareMateAuth,
   refreshAdminClaim,
 } from "./common.js";
+
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
   doc,
@@ -34,6 +37,7 @@ const major = document.getElementById("major");
 const departmentGrade = document.getElementById("departmentGrade");
 const majorGrade = document.getElementById("majorGrade");
 const studentNumber = document.getElementById("studentNumber");
+const referralCode = document.getElementById("referralCode");
 const studentPageId = document.getElementById("studentPageId");
 const studentPagePassword = document.getElementById("studentPagePassword");
 const activeMailPassword = document.getElementById("activeMailPassword");
@@ -42,6 +46,9 @@ const appPassword = document.getElementById("appPassword");
 const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
+const referralExistingDialog = document.getElementById(
+  "referralExistingDialog",
+);
 
 document.getElementById("backButton").onclick = () => {
   location.href = "login.html";
@@ -76,6 +83,11 @@ majorGrade.addEventListener("change", () => {
 });
 
 studentNumber.addEventListener("input", updateState);
+referralCode.addEventListener("input", () => {
+  referralCode.value = referralCode.value
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, "");
+});
 
 studentPageId.addEventListener("input", () => {
   updateState();
@@ -151,6 +163,7 @@ function updateState() {
 
 button.addEventListener("click", async () => {
   const value = studentNumber.value.trim();
+  const referralCodeValue = referralCode.value.trim();
 
   if (appPassword.value.length < 6) {
     alert("アプリ用パスワードは6文字以上で入力してください。");
@@ -170,6 +183,13 @@ button.addEventListener("click", async () => {
 
   if (!/^\d{7}$/.test(value)) {
     alert("学生番号は7桁の数字で入力してください。");
+    return;
+  }
+
+  if (referralCodeValue && !activeMailPassword.value.trim()) {
+    alert(
+      "招待制度の本人確認には大学メール（学籍番号@sums.ac.jp）のパスワードが必要です。Active!Mailパスワードを入力してください。",
+    );
     return;
   }
 
@@ -275,8 +295,12 @@ button.addEventListener("click", async () => {
   /*
      学生ページへ実際にログインできた場合だけ、
      CareMateの登録を続行する。
-    */
+  */
   button.disabled = true;
+
+  let studentPageVerificationToken = "";
+  let referralProofToken = "";
+  let referralPreviouslyRegistered = false;
 
   try {
     const verificationResponse = await fetch(
@@ -287,6 +311,7 @@ button.addEventListener("click", async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          studentNumber: value,
           studentPageId: studentPageId.value.trim(),
           studentPagePassword: studentPagePassword.value,
         }),
@@ -302,6 +327,14 @@ button.addEventListener("click", async () => {
 
       return;
     }
+    studentPageVerificationToken = String(
+      verification.registrationVerificationToken || "",
+    );
+    if (!studentPageVerificationToken) {
+      alert("登録用の本人確認情報を作成できませんでした。もう一度お試しください。");
+      button.disabled = false;
+      return;
+    }
   } catch (error) {
     console.error("学生ページ認証エラー:", error);
 
@@ -310,6 +343,44 @@ button.addEventListener("click", async () => {
     button.disabled = false;
 
     return;
+  }
+
+  if (referralCodeValue) {
+    try {
+      const prepareReferral = httpsCallable(
+        functions,
+        "prepareReferralRegistration",
+        { timeout: 70_000 },
+      );
+      const prepared = await prepareReferral({
+        studentNumber: value,
+        referralCode: referralCodeValue,
+        activeMailPassword: activeMailPassword.value,
+        studentPageVerificationToken,
+      });
+      referralPreviouslyRegistered =
+        prepared.data?.previouslyRegistered === true;
+      if (referralPreviouslyRegistered) {
+        const continueRegistration = await confirmPreviousRegistration();
+        if (!continueRegistration) {
+          button.disabled = false;
+          return;
+        }
+      } else {
+        referralProofToken = String(
+          prepared.data?.referralProofToken || "",
+        );
+        if (!referralProofToken) throw new Error("referral-proof-missing");
+      }
+    } catch (error) {
+      console.error("招待コード確認エラー:", error);
+      alert(
+        error?.message?.replace(/^FirebaseError:\s*/, "") ||
+          "招待コードまたは大学メールを確認できませんでした。",
+      );
+      button.disabled = false;
+      return;
+    }
   }
 
   try {
@@ -360,6 +431,13 @@ button.addEventListener("click", async () => {
       await signInCareMateAuth(studentNumber.value, appPassword.value);
 
       await refreshAdminClaim();
+
+      await finalizeReferralRegistration({
+        studentPageVerificationToken,
+        referralProofToken: referralPreviouslyRegistered
+          ? ""
+          : referralProofToken,
+      });
 
       localStorage.setItem("registered", "true");
       localStorage.setItem("department", selectedDepartment);
@@ -441,6 +519,11 @@ button.addEventListener("click", async () => {
 
     await refreshAdminClaim();
 
+    const referralResult = await finalizeReferralRegistration({
+      studentPageVerificationToken,
+      referralProofToken,
+    });
+
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);
@@ -450,14 +533,63 @@ button.addEventListener("click", async () => {
 
     localStorage.setItem("migrated", "true");
 
-    alert("登録が完了しました。");
+    alert(
+      referralResult?.counted
+        ? "登録が完了し、友達紹介が成立しました。"
+        : "登録が完了しました。",
+    );
     localStorage.setItem("loggedIn", "true");
     location.href = "index.html";
   } catch (e) {
     console.error(e);
     alert("登録に失敗しました。");
+    button.disabled = false;
   }
 });
+
+function confirmPreviousRegistration() {
+  return new Promise((resolve) => {
+    const cancel = document.getElementById("cancelPreviousRegistration");
+    const proceed = document.getElementById("continuePreviousRegistration");
+    const onCancel = (event) => {
+      event.preventDefault();
+      finish(false);
+    };
+    const finish = (choice) => {
+      if (referralExistingDialog.open) referralExistingDialog.close();
+      cancel.onclick = null;
+      proceed.onclick = null;
+      referralExistingDialog.removeEventListener("cancel", onCancel);
+      resolve(choice);
+    };
+    cancel.onclick = () => finish(false);
+    proceed.onclick = () => finish(true);
+    referralExistingDialog.addEventListener("cancel", onCancel);
+    referralExistingDialog.showModal();
+  });
+}
+
+async function finalizeReferralRegistration({
+  studentPageVerificationToken,
+  referralProofToken,
+}) {
+  try {
+    const complete = httpsCallable(functions, "completeReferralRegistration");
+    const result = await complete({
+      studentPageVerificationToken,
+      referralProofToken,
+    });
+    return result.data || {};
+  } catch (error) {
+    console.error("紹介登録の確定エラー:", error);
+    if (referralProofToken) {
+      alert(
+        "CareMateの登録は完了しましたが、紹介人数は安全のため加算されませんでした。招待コードの状態を確認してください。",
+      );
+    }
+    return { counted: false };
+  }
+}
 
 const SECRET = "UniversityNotifier2026";
 

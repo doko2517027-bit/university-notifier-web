@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>友達紹介 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css?v=20261001-8" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading referral-page">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" type="button" aria-label="ホームへ戻る">←</button>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button" type="button">🌙</button>
+        <button id="profileButton" class="circle-button" type="button"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button>
+      </div>
+    </div>
+
+    <header class="header referral-header">
+      <div class="logo">👥</div>
+      <h1>友達紹介</h1>
+      <p>CareMateを友達に紹介して特典を解放</p>
+    </header>
+
+    <main class="referral-shell">
+      <section class="card referral-progress-card">
+        <span class="referral-eyebrow">有効招待人数</span>
+        <div class="referral-count"><strong id="referralCount">--</strong><span>/ 10人</span></div>
+        <div class="referral-progress-track"><i id="referralProgressBar"></i></div>
+        <p id="referralNextReward">読み込み中...</p>
+      </section>
+
+      <section class="card referral-code-card">
+        <div class="referral-section-heading">
+          <div><span class="referral-eyebrow">INVITE CODE</span><h2>招待コード</h2></div>
+          <span id="referralCodeState" class="referral-status-chip">未発行</span>
+        </div>
+        <div id="referralCodeEmpty" class="referral-empty">
+          <p>コードは1人が使用すると終了します。有効期限は発行から14日です。</p>
+          <button id="issueReferralCode" class="btn btn-primary" type="button">招待コードを発行</button>
+        </div>
+        <div id="referralCodePanel" hidden>
+          <button id="referralCodeValue" class="referral-code-value" type="button" aria-label="招待コードをコピー">----</button>
+          <p id="referralCodeExpiry" class="referral-code-expiry"></p>
+          <div class="referral-code-actions">
+            <button id="copyReferralCode" class="btn" type="button">コピー</button>
+            <button id="shareReferralCode" class="btn btn-primary" type="button">共有</button>
+          </div>
+        </div>
+        <p class="referral-safety-note">招待人数に反映されるのは、初回登録と大学メール本人確認がすべて完了した学生だけです。</p>
+      </section>
+
+      <section id="referralGiftBanner" class="card referral-gift-banner" hidden>
+        <h2>🎉 10人招待達成！</h2>
+        <p>500円分のデジタルギフトを獲得しました。</p>
+        <button id="openReferralGift" class="btn btn-primary" type="button" hidden>500円分ギフトを受け取る</button>
+        <small id="referralGiftStatus">運営者が付与を準備しています。</small>
+      </section>
+
+      <section class="card referral-roadmap-card">
+        <div class="referral-section-heading"><div><span class="referral-eyebrow">ROADMAP</span><h2>特典ロードマップ</h2></div></div>
+        <div id="referralRoadmap" class="referral-roadmap" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span><span id="assignmentNavBadge" class="nav-notification-badge" hidden>0</span></span><span>課題</span></a>
+      <a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
+    </nav>
+    <script type="module" src="referral.js?v=20261001-1"></script>
+  </body>
+</html>

@@ -78,6 +78,18 @@ async function verifyActiveMail({ browser, studentNumber, user, updateProgress }
     return { configured: false, verified: false, message: "Active!Mailが未設定です。" };
   }
   const password = String(decryptStoredCredential(encryptedPassword));
+  return verifyActiveMailPassword({
+    browser,
+    studentNumber,
+    password,
+    updateProgress,
+  });
+}
+
+async function verifyActiveMailPassword({ browser, studentNumber, password, updateProgress }) {
+  if (!/^\d{7}$/.test(String(studentNumber || "")) || !String(password || "")) {
+    return { configured: false, verified: false, message: "大学メールの認証情報が不足しています。" };
+  }
   await updateProgress(25, "Active!Mailへ接続しています");
   const context = await browser.newContext();
   await blockHeavyResources(context);
@@ -114,5 +126,6 @@ async function verifyActiveMail({ browser, studentNumber, user, updateProgress }
 module.exports = {
   decryptStoredCredential,
   verifyActiveMail,
+  verifyActiveMailPassword,
   verifyManaba,
 };

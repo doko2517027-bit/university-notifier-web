@@ -1,5 +1,6 @@
 import {
   db,
+  functions,
   auth,
   studentNumber,
   setupTheme,
@@ -18,6 +19,8 @@ import {
   setupAttendanceWebPush,
   studentAcademicContext,
 } from "./common.js";
+
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
   loadPersonalTimetableData,
@@ -72,6 +75,8 @@ const weatherUpdated = document.getElementById("weatherUpdated");
 const weatherDate = document.getElementById("weatherDate");
 const homeSearchForm = document.getElementById("homeSearchForm");
 const homeSearchInput = document.getElementById("homeSearchInput");
+const homeReferralCard = document.getElementById("homeReferralCard");
+const homeReferralCount = document.getElementById("homeReferralCount");
 const examStatusCard = document.getElementById("examStatusCard");
 const examStatusLabel = document.getElementById("examStatusLabel");
 const examStatusText = document.getElementById("examStatusText");
@@ -401,6 +406,7 @@ async function startApp() {
     }
 
     currentHomeUser = user;
+    setupHomeReferral();
     if (user.grade) localStorage.setItem("grade", String(user.grade));
     if (resumeStudySlide) resumeStudySlide.hidden = !isLeaveActive(user);
 
@@ -443,6 +449,8 @@ async function startApp() {
     loadActiveMailBadge(user),
 
     updateAssignmentNavBadge(),
+
+    loadHomeReferralSummary(),
   ]).catch((error) => {
     console.error("ホーム基本情報読み込みエラー:", error);
   });
@@ -516,6 +524,25 @@ async function startApp() {
       console.error("ホーム後続表示の読み込みエラー:", error);
     });
   });
+}
+
+function setupHomeReferral() {
+  if (!homeReferralCard || studentNumber === "2510044") return;
+  homeReferralCard.hidden = false;
+  homeReferralCard.onclick = () => location.assign("referral.html");
+}
+
+async function loadHomeReferralSummary() {
+  if (!homeReferralCard || studentNumber === "2510044") return;
+  try {
+    const call = httpsCallable(functions, "getReferralDashboard");
+    const result = await call();
+    const count = Math.max(0, Math.min(10, Number(result.data?.invitedCount || 0)));
+    homeReferralCount.textContent = `${count} / 10人`;
+  } catch (error) {
+    console.warn("友達招待情報を取得できませんでした:", error);
+    homeReferralCount.textContent = "確認する";
+  }
 }
 
 function academicYearForTransition(date = new Date()) {

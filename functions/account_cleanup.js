@@ -40,6 +40,7 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
     "subjectPoints", "totalRanking", "userDeviceSessions",
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
+    "referralAccounts", "referralPrivateRewards",
   ];
   await Promise.all(directCollections.map((name) =>
     removeDocument(db.collection(name).doc(target))));
@@ -49,6 +50,7 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
     removeMatches("calendarEvents", "ownerId"),
     removeMatches("reports", "reporterStudentNumber"),
     removeMatches("calendarReminderDispatches", "userId"),
+    removeMatches("referralCodes", "inviterStudentNumber"),
   ]);
   const rankingDays = await db.collection("dailyRanking").listDocuments();
   for (let index = 0; index < rankingDays.length; index += 25) {

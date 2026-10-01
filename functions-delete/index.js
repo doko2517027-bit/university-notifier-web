@@ -37,14 +37,16 @@ async function deleteUserData(target) {
     "subjectPoints", "totalRanking", "userDeviceSessions",
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
+    "referralAccounts", "referralPrivateRewards",
   ];
   await Promise.all(directCollections.map((name) => removeDocument(db.collection(name).doc(target))));
-  const [contacts, featureRequests, calendarEvents, reports, calendarDispatches] = await Promise.all([
+  const [contacts, featureRequests, calendarEvents, reports, calendarDispatches, referralCodes] = await Promise.all([
     removeMatches("contacts", "studentNumber"),
     removeMatches("featureRequests", "studentNumber"),
     removeMatches("calendarEvents", "ownerId"),
     removeMatches("reports", "reporterStudentNumber"),
     removeMatches("calendarReminderDispatches", "userId"),
+    removeMatches("referralCodes", "inviterStudentNumber"),
   ]);
   // 日別ランキングは日付を親文書、学籍番号を子文書IDとして保持している。
   const rankingDays = await db.collection("dailyRanking").listDocuments();
@@ -60,7 +62,7 @@ async function deleteUserData(target) {
   }
   // 再試行の起点となるusers文書は最後に消す。
   await removeDocument(db.collection("users").doc(target));
-  return { contacts, featureRequests, calendarEvents, reports, calendarDispatches };
+  return { contacts, featureRequests, calendarEvents, reports, calendarDispatches, referralCodes };
 }
 
 exports.deleteCareMateUser = onCall(

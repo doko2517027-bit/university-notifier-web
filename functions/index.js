@@ -55,6 +55,22 @@ const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 
 const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
+const {
+  REFERRAL_MAX_INVITES,
+  REFERRAL_CODE_TTL_DAYS,
+  REFERRAL_PROOF_TTL_MINUTES,
+  REFERRAL_RATE_LIMIT_WINDOW_MINUTES,
+  REFERRAL_RATE_LIMIT_ATTEMPTS,
+  REFERRAL_MILESTONES,
+  normalizeReferralCode,
+  createReferralCode,
+  createProofToken,
+  sha256,
+  isReferralCodeUsable,
+  milestoneState,
+  nextMilestone,
+  validGiftUrl,
+} = require("./referral_policy.js");
 
 const PRESENCE_DEVICE_MIGRATION_VERSION = 1;
 
@@ -410,6 +426,666 @@ async function requireEnabledCareMateAdmin(request) {
   }
   return studentNumber;
 }
+
+function referralAccountRef(studentNumber) {
+  return db.collection("referralAccounts").doc(studentNumber);
+}
+
+function referralIdentityRef(studentNumber) {
+  return db.collection("referralIdentityRegistry").doc(studentNumber);
+}
+
+function referralCodeRefFromValue(code) {
+  return db.collection("referralCodes").doc(sha256(normalizeReferralCode(code)));
+}
+
+async function ensureReferralIdentityForCurrentUser(studentNumber) {
+  const identityRef = referralIdentityRef(studentNumber);
+  const identitySnapshot = await identityRef.get();
+  if (identitySnapshot.exists) return;
+  const userSnapshot = await db.collection("users").doc(studentNumber).get();
+  if (!userSnapshot.exists) return;
+  try {
+    await identityRef.create({
+      studentNumber,
+      everRegistered: true,
+      firstRegisteredAt: new Date(),
+      referralEverCounted: false,
+      inviterStudentNumber: null,
+      referralCountedAt: null,
+      registrySource: "existing-user-referral-access",
+    });
+  } catch (error) {
+    if (error?.code !== 6 && error?.code !== "already-exists") throw error;
+  }
+}
+
+function referralRequestIp(request) {
+  return String(
+    request.rawRequest?.headers?.["x-forwarded-for"] ||
+      request.rawRequest?.ip ||
+      "unknown",
+  )
+    .split(",")[0]
+    .trim();
+}
+
+async function enforceReferralRateLimit(request, studentNumber) {
+  const now = Date.now();
+  const ref = db
+    .collection("referralRateLimits")
+    .doc(sha256(`${referralRequestIp(request)}:${studentNumber}`));
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data() || {};
+    const windowStart = timestampMillis(data.windowStartedAt);
+    const sameWindow =
+      windowStart > 0 &&
+      now - windowStart < REFERRAL_RATE_LIMIT_WINDOW_MINUTES * 60_000;
+    const attempts = sameWindow ? Number(data.attempts || 0) : 0;
+    if (attempts >= REFERRAL_RATE_LIMIT_ATTEMPTS) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "確認回数が多すぎます。15分ほど待ってからお試しください。",
+      );
+    }
+    transaction.set(
+      ref,
+      {
+        attempts: attempts + 1,
+        windowStartedAt: sameWindow ? data.windowStartedAt : new Date(now),
+        expiresAt: new Date(
+          now + REFERRAL_RATE_LIMIT_WINDOW_MINUTES * 2 * 60_000,
+        ),
+      },
+      { merge: true },
+    );
+  });
+}
+
+function serializeReferralMilestones(stored = {}, invitedCount = 0) {
+  return REFERRAL_MILESTONES.map((item) => {
+    const state = stored[`m${item.count}`] || {};
+    return {
+      ...item,
+      unlocked: invitedCount >= item.count && Boolean(state.unlockedAt),
+      unlockedAt: timestampMillis(state.unlockedAt),
+      claimedAt: timestampMillis(state.claimedAt),
+    };
+  });
+}
+
+exports.getReferralDashboard = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    if (studentNumber === "2510044") {
+      throw new HttpsError(
+        "permission-denied",
+        "総管理者は紹介制度の対象外です。",
+      );
+    }
+    await ensureReferralIdentityForCurrentUser(studentNumber);
+    const accountRef = referralAccountRef(studentNumber);
+    const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
+    const [accountSnapshot, rewardSnapshot] = await Promise.all([
+      accountRef.get(),
+      rewardRef.get(),
+    ]);
+    const account = accountSnapshot.data() || {};
+    const invitedCount = Math.min(
+      REFERRAL_MAX_INVITES,
+      Math.max(0, Number(account.invitedCount || 0)),
+    );
+    let activeCode = null;
+    if (account.activeCodeHash && invitedCount < REFERRAL_MAX_INVITES) {
+      const codeSnapshot = await db
+        .collection("referralCodes")
+        .doc(String(account.activeCodeHash))
+        .get();
+      const code = codeSnapshot.data();
+      if (isReferralCodeUsable(code)) {
+        activeCode = {
+          code: String(code.code || ""),
+          expiresAt: timestampMillis(code.expiresAt),
+        };
+      }
+    }
+    const next = nextMilestone(invitedCount);
+    const reward = rewardSnapshot.data() || {};
+    return {
+      invitedCount,
+      maxInvites: REFERRAL_MAX_INVITES,
+      nextMilestone: next
+        ? { ...next, remaining: next.count - invitedCount }
+        : null,
+      milestones: serializeReferralMilestones(
+        account.milestones,
+        invitedCount,
+      ),
+      activeCode,
+      codeTtlDays: REFERRAL_CODE_TTL_DAYS,
+      gift:
+        reward.status === "granted" && validGiftUrl(reward.giftUrl)
+          ? {
+              available: true,
+              url: reward.giftUrl,
+              grantedAt: timestampMillis(reward.grantedAt),
+              claimedAt: timestampMillis(reward.claimedAt),
+            }
+          : { available: false },
+    };
+  },
+);
+
+exports.issueReferralCode = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    if (studentNumber === "2510044") {
+      throw new HttpsError(
+        "permission-denied",
+        "総管理者は招待コードを発行できません。",
+      );
+    }
+    await ensureReferralIdentityForCurrentUser(studentNumber);
+    const accountRef = referralAccountRef(studentNumber);
+    const newCode = createReferralCode();
+    const newHash = sha256(newCode);
+    const newCodeRef = db.collection("referralCodes").doc(newHash);
+    const now = new Date();
+    const expiresAt = new Date(
+      now.getTime() + REFERRAL_CODE_TTL_DAYS * 86_400_000,
+    );
+    return db.runTransaction(async (transaction) => {
+      const accountSnapshot = await transaction.get(accountRef);
+      const account = accountSnapshot.data() || {};
+      const invitedCount = Math.max(0, Number(account.invitedCount || 0));
+      if (invitedCount >= REFERRAL_MAX_INVITES) {
+        throw new HttpsError(
+          "failed-precondition",
+          "10人達成後は新しい招待コードを発行できません。",
+        );
+      }
+      let currentRef = null;
+      let currentSnapshot = null;
+      if (account.activeCodeHash) {
+        currentRef = db
+          .collection("referralCodes")
+          .doc(String(account.activeCodeHash));
+        currentSnapshot = await transaction.get(currentRef);
+        if (isReferralCodeUsable(currentSnapshot.data())) {
+          return {
+            code: String(currentSnapshot.data().code || ""),
+            expiresAt: timestampMillis(currentSnapshot.data().expiresAt),
+            reused: true,
+          };
+        }
+      }
+      const collisionSnapshot = await transaction.get(newCodeRef);
+      if (collisionSnapshot.exists) {
+        throw new HttpsError(
+          "aborted",
+          "コードを作成できませんでした。もう一度お試しください。",
+        );
+      }
+      if (currentRef && currentSnapshot?.exists) {
+        transaction.set(
+          currentRef,
+          { revoked: true, revokedAt: now },
+          { merge: true },
+        );
+      }
+      transaction.create(newCodeRef, {
+        code: newCode,
+        inviterStudentNumber: studentNumber,
+        issuedAt: now,
+        expiresAt,
+        used: false,
+        usedByStudentNumber: null,
+        usedAt: null,
+        revoked: false,
+      });
+      transaction.set(
+        accountRef,
+        {
+          studentNumber,
+          invitedCount,
+          activeCodeHash: newHash,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+      return { code: newCode, expiresAt: expiresAt.getTime(), reused: false };
+    });
+  },
+);
+
+exports.prepareReferralRegistration = onCall(
+  {
+    region: "asia-northeast1",
+    cors: [SITE_ORIGIN],
+    timeoutSeconds: 60,
+    memory: "1GiB",
+  },
+  async (request) => {
+    const studentNumber = String(request.data?.studentNumber || "").trim();
+    const code = normalizeReferralCode(request.data?.referralCode);
+    const activeMailPassword = String(
+      request.data?.activeMailPassword || "",
+    );
+    const studentPageProofToken = String(
+      request.data?.studentPageVerificationToken || "",
+    );
+    if (!/^\d{7}$/.test(studentNumber) || !code || !studentPageProofToken) {
+      throw new HttpsError(
+        "invalid-argument",
+        "招待コードまたは本人確認情報が不足しています。",
+      );
+    }
+    if (studentNumber === "2510044") {
+      throw new HttpsError(
+        "failed-precondition",
+        "総管理者は紹介制度の対象外です。",
+      );
+    }
+    await enforceReferralRateLimit(request, studentNumber);
+    const pageProofRef = db
+      .collection("registrationVerificationProofs")
+      .doc(sha256(studentPageProofToken));
+    const [pageProofSnapshot, identitySnapshot, userSnapshot] =
+      await Promise.all([
+        pageProofRef.get(),
+        referralIdentityRef(studentNumber).get(),
+        db.collection("users").doc(studentNumber).get(),
+      ]);
+    const pageProof = pageProofSnapshot.data() || {};
+    if (
+      !pageProofSnapshot.exists ||
+      pageProof.studentNumber !== studentNumber ||
+      pageProof.used === true ||
+      timestampMillis(pageProof.expiresAt) <= Date.now()
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "学生本人の確認期限が切れました。もう一度登録操作を行ってください。",
+      );
+    }
+    if (identitySnapshot.exists || userSnapshot.exists) {
+      return { previouslyRegistered: true, eligible: false };
+    }
+    const codeRef = referralCodeRefFromValue(code);
+    const codeSnapshot = await codeRef.get();
+    const codeData = codeSnapshot.data() || {};
+    if (
+      !codeSnapshot.exists ||
+      !isReferralCodeUsable(codeData) ||
+      codeData.inviterStudentNumber === studentNumber ||
+      codeData.inviterStudentNumber === "2510044"
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "招待コードを利用できません。コードと有効期限を確認してください。",
+      );
+    }
+    const inviterAccount = await referralAccountRef(
+      codeData.inviterStudentNumber,
+    ).get();
+    if (Number(inviterAccount.data()?.invitedCount || 0) >= REFERRAL_MAX_INVITES) {
+      throw new HttpsError(
+        "failed-precondition",
+        "この招待コードは受付上限に達しています。",
+      );
+    }
+    if (!activeMailPassword) {
+      throw new HttpsError(
+        "invalid-argument",
+        "招待制度を利用する場合は大学メールのパスワードが必要です。",
+      );
+    }
+
+    let browser;
+    try {
+      const chromium = require("@sparticuz/chromium");
+      const { chromium: playwrightChromium } = require("playwright-core");
+      const { verifyActiveMailPassword } = require("./external_auth_check.js");
+      browser = await playwrightChromium.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+      const result = await verifyActiveMailPassword({
+        browser,
+        studentNumber,
+        password: activeMailPassword,
+        updateProgress: async () => {},
+      });
+      if (!result.verified) {
+        throw new HttpsError(
+          "permission-denied",
+          `${studentNumber}@sums.ac.jp の本人確認に失敗しました。`,
+        );
+      }
+    } finally {
+      if (browser) await browser.close();
+    }
+
+    const proofToken = createProofToken();
+    await db
+      .collection("referralRegistrationProofs")
+      .doc(sha256(proofToken))
+      .set({
+        studentNumber,
+        codeHash: codeSnapshot.id,
+        inviterStudentNumber: codeData.inviterStudentNumber,
+        universityEmail: `${studentNumber}@sums.ac.jp`,
+        universityEmailVerifiedAt: new Date(),
+        userExistedAtVerification: false,
+        identityExistedAtVerification: false,
+        createdAt: new Date(),
+        expiresAt: new Date(
+          Date.now() + REFERRAL_PROOF_TTL_MINUTES * 60_000,
+        ),
+        used: false,
+      });
+    return {
+      previouslyRegistered: false,
+      eligible: true,
+      referralProofToken: proofToken,
+    };
+  },
+);
+
+exports.completeReferralRegistration = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const pageToken = String(
+      request.data?.studentPageVerificationToken || "",
+    );
+    const referralProofToken = String(
+      request.data?.referralProofToken || "",
+    );
+    if (!pageToken) {
+      throw new HttpsError(
+        "invalid-argument",
+        "登録時の本人確認情報がありません。",
+      );
+    }
+    const pageProofRef = db
+      .collection("registrationVerificationProofs")
+      .doc(sha256(pageToken));
+    const identityRef = referralIdentityRef(studentNumber);
+    const userRef = db.collection("users").doc(studentNumber);
+    return db.runTransaction(async (transaction) => {
+      const [pageProofSnapshot, identitySnapshot, userSnapshot] =
+        await Promise.all([
+          transaction.get(pageProofRef),
+          transaction.get(identityRef),
+          transaction.get(userRef),
+        ]);
+      const pageProof = pageProofSnapshot.data() || {};
+      if (
+        !pageProofSnapshot.exists ||
+        pageProof.studentNumber !== studentNumber ||
+        timestampMillis(pageProof.expiresAt) <= Date.now() ||
+        !userSnapshot.exists ||
+        String(userSnapshot.data()?.studentNumber || "") !== studentNumber
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "登録完了を確認できませんでした。",
+        );
+      }
+      if (identitySnapshot.exists) {
+        transaction.set(
+          pageProofRef,
+          { used: true, usedAt: new Date() },
+          { merge: true },
+        );
+        return { counted: false, firstRegistration: false };
+      }
+      const now = new Date();
+      const baseIdentity = {
+        studentNumber,
+        everRegistered: true,
+        firstRegisteredAt: now,
+        referralEverCounted: false,
+        inviterStudentNumber: null,
+        referralCountedAt: null,
+      };
+      if (!referralProofToken || studentNumber === "2510044") {
+        transaction.create(identityRef, baseIdentity);
+        transaction.set(
+          pageProofRef,
+          { used: true, usedAt: now },
+          { merge: true },
+        );
+        return { counted: false, firstRegistration: true };
+      }
+
+      const referralProofRef = db
+        .collection("referralRegistrationProofs")
+        .doc(sha256(referralProofToken));
+      const referralProofSnapshot = await transaction.get(referralProofRef);
+      const referralProof = referralProofSnapshot.data() || {};
+      if (
+        !referralProofSnapshot.exists ||
+        referralProof.studentNumber !== studentNumber ||
+        referralProof.used === true ||
+        referralProof.userExistedAtVerification !== false ||
+        referralProof.identityExistedAtVerification !== false ||
+        timestampMillis(referralProof.expiresAt) <= Date.now()
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "招待の本人確認期限が切れました。紹介人数には反映されません。",
+        );
+      }
+      const codeRef = db
+        .collection("referralCodes")
+        .doc(String(referralProof.codeHash || "invalid"));
+      const inviter = String(referralProof.inviterStudentNumber || "");
+      const accountRef = referralAccountRef(inviter);
+      const historyRef = db.collection("referralHistory").doc(studentNumber);
+      const [codeSnapshot, accountSnapshot, historySnapshot] =
+        await Promise.all([
+          transaction.get(codeRef),
+          transaction.get(accountRef),
+          transaction.get(historyRef),
+        ]);
+      const code = codeSnapshot.data() || {};
+      const account = accountSnapshot.data() || {};
+      const invitedCount = Math.max(0, Number(account.invitedCount || 0));
+      if (
+        !codeSnapshot.exists ||
+        !isReferralCodeUsable(code) ||
+        code.inviterStudentNumber !== inviter ||
+        inviter === studentNumber ||
+        inviter === "2510044" ||
+        invitedCount >= REFERRAL_MAX_INVITES ||
+        historySnapshot.exists
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "招待コードは使用できません。紹介人数には反映されません。",
+        );
+      }
+      const nextCount = invitedCount + 1;
+      const milestones = milestoneState(account.milestones || {}, nextCount, now);
+      transaction.create(identityRef, {
+        ...baseIdentity,
+        referralEverCounted: true,
+        inviterStudentNumber: inviter,
+        referralCountedAt: now,
+      });
+      transaction.create(historyRef, {
+        inviterStudentNumber: inviter,
+        invitedStudentNumber: studentNumber,
+        codeHash: codeSnapshot.id,
+        codePreview: String(code.code || "").slice(-4),
+        establishedAt: now,
+      });
+      transaction.set(
+        codeRef,
+        {
+          used: true,
+          usedByStudentNumber: studentNumber,
+          usedAt: now,
+        },
+        { merge: true },
+      );
+      transaction.set(
+        accountRef,
+        {
+          studentNumber: inviter,
+          invitedCount: nextCount,
+          milestones,
+          activeCodeHash: null,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+      transaction.set(
+        referralProofRef,
+        { used: true, usedAt: now },
+        { merge: true },
+      );
+      transaction.set(
+        pageProofRef,
+        { used: true, usedAt: now },
+        { merge: true },
+      );
+      if (nextCount === REFERRAL_MAX_INVITES) {
+        transaction.set(
+          db.collection("referralPrivateRewards").doc(inviter),
+          {
+            studentNumber: inviter,
+            reachedAt: now,
+            status: "pending",
+            giftUrl: null,
+            grantedAt: null,
+            grantedBy: null,
+            claimedAt: null,
+          },
+          { merge: true },
+        );
+      }
+      return {
+        counted: true,
+        firstRegistration: true,
+        inviterStudentNumber: inviter,
+        invitedCount: nextCount,
+      };
+    });
+  },
+);
+
+exports.getReferralRewardAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requirePrimaryDeviceAuditAdmin(request);
+    const snapshot = await db.collection("referralPrivateRewards").get();
+    return {
+      rewards: snapshot.docs
+        .map((item) => {
+          const data = item.data() || {};
+          return {
+            studentNumber: item.id,
+            reachedAt: timestampMillis(data.reachedAt),
+            status: String(data.status || "pending"),
+            giftUrl: String(data.giftUrl || ""),
+            grantedAt: timestampMillis(data.grantedAt),
+            claimedAt: timestampMillis(data.claimedAt),
+          };
+        })
+        .sort((left, right) => right.reachedAt - left.reachedAt),
+    };
+  },
+);
+
+exports.grantReferralReward = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const grantedBy = await requirePrimaryDeviceAuditAdmin(request);
+    const target = String(request.data?.studentNumber || "").trim();
+    const giftUrl = String(request.data?.giftUrl || "").trim();
+    if (!/^\d{7}$/.test(target) || !validGiftUrl(giftUrl)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "学籍番号またはHTTPSのギフトURLを確認してください。",
+      );
+    }
+    const rewardRef = db.collection("referralPrivateRewards").doc(target);
+    const accountRef = referralAccountRef(target);
+    await db.runTransaction(async (transaction) => {
+      const [rewardSnapshot, accountSnapshot] = await Promise.all([
+        transaction.get(rewardRef),
+        transaction.get(accountRef),
+      ]);
+      if (
+        !rewardSnapshot.exists ||
+        Number(accountSnapshot.data()?.invitedCount || 0) <
+          REFERRAL_MAX_INVITES
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "10人達成を確認できません。",
+        );
+      }
+      transaction.set(
+        rewardRef,
+        {
+          giftUrl,
+          status: "granted",
+          grantedAt: new Date(),
+          grantedBy,
+        },
+        { merge: true },
+      );
+    });
+    return { granted: true };
+  },
+);
+
+exports.claimReferralGift = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    if (studentNumber === "2510044") {
+      throw new HttpsError("permission-denied", "紹介制度の対象外です。");
+    }
+    const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
+    const accountRef = referralAccountRef(studentNumber);
+    return db.runTransaction(async (transaction) => {
+      const [rewardSnapshot, accountSnapshot] = await Promise.all([
+        transaction.get(rewardRef),
+        transaction.get(accountRef),
+      ]);
+      const reward = rewardSnapshot.data() || {};
+      if (
+        reward.status !== "granted" ||
+        !validGiftUrl(reward.giftUrl)
+      ) {
+        throw new HttpsError("failed-precondition", "受け取れるギフトがありません。");
+      }
+      const now = new Date();
+      transaction.set(
+        rewardRef,
+        { claimedAt: reward.claimedAt || now },
+        { merge: true },
+      );
+      const account = accountSnapshot.data() || {};
+      const milestones = { ...(account.milestones || {}) };
+      milestones.m10 = {
+        ...(milestones.m10 || {}),
+        claimedAt: milestones.m10?.claimedAt || now,
+      };
+      transaction.set(accountRef, { milestones, updatedAt: now }, { merge: true });
+      return { url: reward.giftUrl };
+    });
+  },
+);
 
 // 管理者が指定した学生1人だけの確認処理を、その場で起動する。
 exports.requestStudentUpdateCheck = onCall(
@@ -1029,12 +1705,79 @@ exports.cleanupStaleLoginDevices = onSchedule(
       await batch.commit();
       console.log(`期限切れ認証確認履歴を削除: ${expiredChecks.size}件`);
     }
+
+    // 現在登録中の学生を、生涯1回だけ数える紹介不正防止台帳へ補完する。
+    // 通常アカウント削除時もこの最小台帳は削除しない。
+    const allUsers = await db.collection("users").get();
+    const identityWrites = [];
+    for (const userDoc of allUsers.docs) {
+      const identityRef = referralIdentityRef(userDoc.id);
+      const identitySnapshot = await identityRef.get();
+      if (!identitySnapshot.exists) {
+        identityWrites.push({ ref: identityRef, studentNumber: userDoc.id });
+      }
+    }
+    for (let index = 0; index < identityWrites.length; index += 400) {
+      const batch = db.batch();
+      identityWrites.slice(index, index + 400).forEach((item) => {
+        batch.create(item.ref, {
+          studentNumber: item.studentNumber,
+          everRegistered: true,
+          firstRegisteredAt: now,
+          referralEverCounted: false,
+          inviterStudentNumber: null,
+          referralCountedAt: null,
+          registrySource: "existing-user-backfill",
+        });
+      });
+      await batch.commit();
+    }
+
+    for (const collectionName of [
+      "registrationVerificationProofs",
+      "referralRegistrationProofs",
+      "referralRateLimits",
+    ]) {
+      const expired = await db
+        .collection(collectionName)
+        .where("expiresAt", "<=", now)
+        .limit(400)
+        .get();
+      if (!expired.empty) {
+        const batch = db.batch();
+        expired.docs.forEach((document) => batch.delete(document.ref));
+        await batch.commit();
+      }
+    }
   },
 );
 
 // ======================
 // 学生ページ認証
 // ======================
+
+async function createStudentPageRegistrationProof(studentNumber) {
+  if (!/^\d{7}$/.test(studentNumber)) return "";
+  const token = createProofToken();
+  const [userSnapshot, identitySnapshot] = await Promise.all([
+    db.collection("users").doc(studentNumber).get(),
+    referralIdentityRef(studentNumber).get(),
+  ]);
+  await db
+    .collection("registrationVerificationProofs")
+    .doc(sha256(token))
+    .set({
+      studentNumber,
+      verifiedAt: new Date(),
+      expiresAt: new Date(
+        Date.now() + REFERRAL_PROOF_TTL_MINUTES * 60_000,
+      ),
+      userExistedAtVerification: userSnapshot.exists,
+      identityExistedAtVerification: identitySnapshot.exists,
+      used: false,
+    });
+  return token;
+}
 
 exports.verifyStudentPageCredentials = onRequest(
   {
@@ -1061,6 +1804,7 @@ exports.verifyStudentPageCredentials = onRequest(
     const studentPageId = String(request.body?.studentPageId || "").trim();
 
     const studentPagePassword = String(request.body?.studentPagePassword || "");
+    const studentNumber = String(request.body?.studentNumber || "").trim();
 
     if (!studentPageId || !studentPagePassword) {
       response.status(400).json({
@@ -1081,10 +1825,14 @@ exports.verifyStudentPageCredentials = onRequest(
     const testPassword = REGISTRATION_TEST_STUDENT_PAGE_PASSWORD.value();
 
     if (testId && testPassword) {
+      const verified =
+        studentPageId === testId && studentPagePassword === testPassword;
       response.json({
-        verified:
-          studentPageId === testId && studentPagePassword === testPassword,
+        verified,
         mode: "test",
+        registrationVerificationToken: verified
+          ? await createStudentPageRegistrationProof(studentNumber)
+          : "",
       });
 
       return;
@@ -1141,7 +1889,12 @@ exports.verifyStudentPageCredentials = onRequest(
           .getByRole("link", { name: "授業について。" })
           .count()) > 0;
 
-      response.json({ verified });
+      response.json({
+        verified,
+        registrationVerificationToken: verified
+          ? await createStudentPageRegistrationProof(studentNumber)
+          : "",
+      });
     } catch (error) {
       console.warn("学生ページ認証失敗:", error?.message || "unknown");
 
