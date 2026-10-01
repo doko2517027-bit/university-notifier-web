@@ -529,8 +529,23 @@ const REFERRAL_THEME_IDS = new Set([
   "purple",
   "brown",
 ]);
-const REFERRAL_PET_IDS = new Set(["cat", "dog", "bird"]);
-const REFERRAL_ACCESSORY_IDS = new Set(["none", "hat", "ribbon", "crown"]);
+const REFERRAL_PET_IDS = new Set(["cat", "dog", "rabbit", "bird"]);
+const REFERRAL_PET_INTERACTIONS = new Set(["feed", "play", "pet", "rest"]);
+
+function referralJapanDateKey(value = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
+function previousReferralDateKey(dateKey) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
 
 function referralRewardGrantState(account = {}, invitedCount = 0, now = new Date()) {
   const rewardGrants = { ...(account.rewardGrants || {}) };
@@ -618,7 +633,7 @@ exports.getReferralDashboard = onCall(
         learningPoints100: Boolean(account.rewardGrants?.m2LearningPoints?.grantedAt) && !account.rewardSuppressions?.m2?.deletedAt,
         themes: Boolean(account.milestones?.m4?.unlockedAt) && !account.rewardSuppressions?.m4?.deletedAt,
         pet: Boolean(account.milestones?.m6?.unlockedAt) && !account.rewardSuppressions?.m6?.deletedAt,
-        petAccessory: Boolean(account.milestones?.m8?.unlockedAt) && !account.rewardSuppressions?.m8?.deletedAt,
+        petCare: Boolean(account.milestones?.m8?.unlockedAt) && !account.rewardSuppressions?.m8?.deletedAt,
       },
       personalization: {
         theme: REFERRAL_THEME_IDS.has(account.personalization?.theme)
@@ -631,10 +646,17 @@ exports.getReferralDashboard = onCall(
               selectedAt: timestampMillis(account.personalization.pet.selectedAt),
             }
           : null,
-        accessory: REFERRAL_ACCESSORY_IDS.has(account.personalization?.accessory)
-          ? account.personalization.accessory
-          : "none",
         petVisible: account.personalization?.petVisible !== false,
+      },
+      petCare: {
+        date: referralJapanDateKey(),
+        completedActions:
+          account.petCare?.date === referralJapanDateKey() && Array.isArray(account.petCare?.completedActions)
+            ? account.petCare.completedActions.filter((item) => REFERRAL_PET_INTERACTIONS.has(item))
+            : [],
+        streak: Math.max(0, Number(account.petCare?.streak || 0)),
+        totalDays: Math.max(0, Number(account.petCare?.totalDays || 0)),
+        lastCompletedDate: String(account.petCare?.lastCompletedDate || ""),
       },
       activeCode,
       codeTtlDays: REFERRAL_CODE_TTL_DAYS,
@@ -738,6 +760,7 @@ exports.saveReferralPersonalization = onCall(
       const accountSnapshot = await transaction.get(accountRef);
       const account = accountSnapshot.data() || {};
       const personalization = { ...(account.personalization || {}) };
+      let petCare = { ...(account.petCare || {}) };
       if (action === "theme") {
         const theme = String(request.data?.theme || "");
         const coloredTheme = !["light", "dark"].includes(theme);
@@ -766,19 +789,35 @@ exports.saveReferralPersonalization = onCall(
           throw new HttpsError("invalid-argument", "ペットの種類または名前を確認してください。");
         }
         personalization.pet = { kind, name, selectedAt: new Date() };
-        personalization.accessory = "none";
         personalization.petVisible = true;
-      } else if (action === "accessory") {
-        const accessory = String(request.data?.accessory || "");
+      } else if (action === "pet_interaction") {
+        const interaction = String(request.data?.interaction || "");
         if (
           !account.milestones?.m8?.unlockedAt ||
           account.rewardSuppressions?.m8?.deletedAt ||
           !personalization.pet?.kind ||
-          !REFERRAL_ACCESSORY_IDS.has(accessory)
+          !REFERRAL_PET_INTERACTIONS.has(interaction)
         ) {
-          throw new HttpsError("permission-denied", "アクセサリーを変更できません。");
+          throw new HttpsError("permission-denied", "このお世話機能はまだ利用できません。");
         }
-        personalization.accessory = accessory;
+        const today = referralJapanDateKey();
+        const completedActions = petCare.date === today && Array.isArray(petCare.completedActions)
+          ? petCare.completedActions.filter((item) => REFERRAL_PET_INTERACTIONS.has(item))
+          : [];
+        if (completedActions.includes(interaction)) {
+          throw new HttpsError("already-exists", "今日のこのお世話は完了しています。");
+        }
+        completedActions.push(interaction);
+        const completedToday = completedActions.length === REFERRAL_PET_INTERACTIONS.size;
+        let streak = Math.max(0, Number(petCare.streak || 0));
+        let totalDays = Math.max(0, Number(petCare.totalDays || 0));
+        let lastCompletedDate = String(petCare.lastCompletedDate || "");
+        if (completedToday && lastCompletedDate !== today) {
+          streak = lastCompletedDate === previousReferralDateKey(today) ? streak + 1 : 1;
+          totalDays += 1;
+          lastCompletedDate = today;
+        }
+        petCare = { date: today, completedActions, streak, totalDays, lastCompletedDate, updatedAt: new Date() };
       } else if (action === "pet_visibility") {
         if (
           !account.milestones?.m6?.unlockedAt ||
@@ -794,7 +833,7 @@ exports.saveReferralPersonalization = onCall(
       }
       transaction.set(
         accountRef,
-        { studentNumber, personalization, updatedAt: new Date() },
+        { studentNumber, personalization, petCare, updatedAt: new Date() },
         { merge: true },
       );
       return {
@@ -802,8 +841,14 @@ exports.saveReferralPersonalization = onCall(
         personalization: {
           theme: personalization.theme || "light",
           pet: personalization.pet || null,
-          accessory: personalization.accessory || "none",
           petVisible: personalization.petVisible !== false,
+        },
+        petCare: {
+          date: petCare.date || referralJapanDateKey(),
+          completedActions: Array.isArray(petCare.completedActions) ? petCare.completedActions : [],
+          streak: Math.max(0, Number(petCare.streak || 0)),
+          totalDays: Math.max(0, Number(petCare.totalDays || 0)),
+          lastCompletedDate: String(petCare.lastCompletedDate || ""),
         },
       };
     });
@@ -1329,9 +1374,8 @@ exports.setReferralRewardDeletedAdmin = onCall(
         if (milestoneCount === 6) {
           delete personalization.pet;
           personalization.petVisible = false;
-          personalization.accessory = "none";
+          transaction.set(accountRef, { petCare: FieldValue.delete() }, { merge: true });
         }
-        if (milestoneCount === 8) personalization.accessory = "none";
         if (milestoneCount === 10 && rewardSnapshot.exists) {
           transaction.set(
             rewardRef,

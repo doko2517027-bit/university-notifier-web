@@ -22,7 +22,7 @@ test("2人達成の100ポイントはサーバー側の一度限りの記録と�
   assert.match(functionsSource, /rewardGrants:\s*rewardGrantState\.rewardGrants/);
 });
 
-test("色テーマ・ペット・アクセサリーは達成人数に応じてサーバー側で制限する", () => {
+test("色テーマ・ペット・毎日のお世話は達成人数に応じてサーバー側で制限する", () => {
   assert.match(functionsSource, /exports\.saveReferralPersonalization = onCall/);
   assert.match(functionsSource, /account\.milestones\?\.m4\?\.unlockedAt/);
   assert.match(functionsSource, /account\.milestones\?\.m6\?\.unlockedAt/);
@@ -59,15 +59,22 @@ test("2510044の特典管理からホーム招待枠だけをオンオフでき�
   assert.match(appSource, /homeReferralCard\.hidden = !homeVisible/);
 });
 
-test("ペットの部屋で表示切替と8人特典の着せ替えを管理する", () => {
+test("ペットの部屋で表示切替と8人特典の毎日のお世話を管理する", () => {
   assert.match(petRoomHtml, /id="petVisibilityToggle"/);
-  assert.match(petRoomHtml, /id="petRoomAccessories"/);
+  assert.match(petRoomHtml, /id="petCareActions"/);
   assert.match(petRoomSource, /action: "pet_visibility"/);
-  assert.match(petRoomSource, /entitlements\?\.petAccessory/);
+  assert.match(petRoomSource, /action: "pet_interaction"/);
+  assert.match(petRoomSource, /entitlements\?\.petCare/);
   assert.match(functionsSource, /action === "pet_visibility"/);
+  assert.match(functionsSource, /action === "pet_interaction"/);
 });
 
-test("キャラクター画像受領前から行動と表情の固定IDを保持する", () => {
+test("3体の透過スプライトで行動と表情の固定IDを保持する", () => {
+  assert.match(petConfigSource, /CAREMATE_PET_ASSETS_READY = true/);
+  assert.match(petConfigSource, /images\/pets\/cat\.webp/);
+  assert.match(petConfigSource, /images\/pets\/dog\.webp/);
+  assert.match(petConfigSource, /images\/pets\/rabbit\.webp/);
+  assert.match(petConfigSource, /applyPetSprite/);
   for (const action of ["rampage", "walk", "run", "stop", "sleep", "jump", "stretch", "eat", "play", "wave"]) {
     assert.match(petConfigSource, new RegExp(`id: "${action}"`));
   }

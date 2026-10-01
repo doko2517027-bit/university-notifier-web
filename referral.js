@@ -11,6 +11,7 @@ import {
   updateNewsNavBadge,
 } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { applyPetSprite } from "./pet_character_config.mjs";
 
 const $ = (id) => document.getElementById(id);
 let dashboard = null;
@@ -26,8 +27,10 @@ $("shareReferralCode").onclick = shareCode;
 $("openReferralGift").onclick = openGift;
 $("saveReferralPet").onclick = savePet;
 $("referralPetChoices").onclick = selectPet;
-$("referralAccessoryArea").onclick = selectAccessory;
 $("openPetRoom").onclick = () => location.assign("pet_room.html");
+document.querySelectorAll("[data-pet-kind]").forEach((button) => {
+  applyPetSprite(button.querySelector(".pet-choice-sprite"), button.dataset.petKind, "stop", "neutral");
+});
 
 await auth.authStateReady();
 if (!auth.currentUser || auth.currentUser.uid !== `caremate-${studentNumber}`) {
@@ -118,20 +121,8 @@ function renderPetReward() {
   $("referralPetCurrent").hidden = !pet?.kind;
   $("referralPetState").textContent = pet?.kind ? "設定済み" : "未設定";
   if (pet?.kind) {
-    const icons = { cat: "🐱", dog: "🐶", bird: "🐥" };
-    const accessories = { none: "", hat: "🎩", ribbon: "🎀", crown: "👑" };
-    $("referralPetPreview").innerHTML = `<span>${accessories[dashboard.personalization?.accessory] || ""}${icons[pet.kind] || "🐾"}</span><b>${escapeHtml(pet.name)}</b>`;
-  }
-
-  const canUseAccessory = dashboard.entitlements?.petAccessory === true && Boolean(pet?.kind);
-  $("referralAccessoryArea").hidden = !canUseAccessory;
-  if (canUseAccessory) {
-    const current = dashboard.personalization?.accessory || "none";
-    document.querySelectorAll("[data-accessory]").forEach((button) => {
-      const selected = button.dataset.accessory === current;
-      button.classList.toggle("is-selected", selected);
-      button.setAttribute("aria-pressed", String(selected));
-    });
+    $("referralPetPreview").innerHTML = `<span class="referral-current-pet-sprite"></span><b>${escapeHtml(pet.name)}</b>`;
+    applyPetSprite($("referralPetPreview").querySelector(".referral-current-pet-sprite"), pet.kind, "stop", "smile");
   }
 }
 
@@ -169,23 +160,6 @@ async function savePet() {
     alert(error?.message || "ペットを設定できませんでした。");
     button.disabled = false;
     button.textContent = "このペットで確定";
-  }
-}
-
-async function selectAccessory(event) {
-  const button = event.target.closest("[data-accessory]");
-  if (!button || button.classList.contains("is-selected")) return;
-  document.querySelectorAll("[data-accessory]").forEach((item) => (item.disabled = true));
-  try {
-    await httpsCallable(functions, "saveReferralPersonalization")({ action: "accessory", accessory: button.dataset.accessory });
-    localStorage.removeItem(`careMateReferralPersonalization:${studentNumber}`);
-    showToast("アクセサリーを変更しました");
-    location.reload();
-  } catch (error) {
-    console.error("アクセサリー設定エラー:", error);
-    alert("アクセサリーを変更できませんでした。");
-  } finally {
-    document.querySelectorAll("[data-accessory]").forEach((item) => (item.disabled = false));
   }
 }
 

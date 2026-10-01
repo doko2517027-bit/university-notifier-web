@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>友達紹介 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20261001-14" />
+    <link rel="stylesheet" href="style.css?v=20261002-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -74,9 +74,9 @@
         <div id="referralPetSetup">
           <p class="referral-feature-description">3種類から1匹を選び、名前を付けてください。確定後は種類と名前を変更できません。</p>
           <div id="referralPetChoices" class="referral-pet-choices" role="radiogroup" aria-label="ペットを選択">
-            <button type="button" data-pet-kind="cat" aria-pressed="false"><span>🐱</span><b>ねこ</b></button>
-            <button type="button" data-pet-kind="dog" aria-pressed="false"><span>🐶</span><b>いぬ</b></button>
-            <button type="button" data-pet-kind="bird" aria-pressed="false"><span>🐥</span><b>ことり</b></button>
+            <button type="button" data-pet-kind="cat" aria-pressed="false"><span class="pet-choice-sprite"></span><b>ねこ</b></button>
+            <button type="button" data-pet-kind="dog" aria-pressed="false"><span class="pet-choice-sprite"></span><b>いぬ</b></button>
+            <button type="button" data-pet-kind="rabbit" aria-pressed="false"><span class="pet-choice-sprite"></span><b>うさぎ</b></button>
           </div>
           <label class="referral-pet-name">ペットの名前
             <input id="referralPetName" type="text" maxlength="12" autocomplete="off" placeholder="1〜12文字" />
@@ -87,16 +87,6 @@
           <div id="referralPetPreview" class="referral-pet-preview"></div>
           <p>このペットはすべてのCareMate画面に表示されます。</p>
           <button id="openPetRoom" class="btn btn-primary" type="button">ペットの部屋へ</button>
-        </div>
-        <div id="referralAccessoryArea" class="referral-accessory-area" hidden>
-          <h3>8人達成特典：アクセサリー</h3>
-          <p>アクセサリーはいつでも変更できます。</p>
-          <div class="referral-accessory-choices" role="radiogroup" aria-label="アクセサリーを選択">
-            <button type="button" data-accessory="none">なし</button>
-            <button type="button" data-accessory="hat">🎩 帽子</button>
-            <button type="button" data-accessory="ribbon">🎀 リボン</button>
-            <button type="button" data-accessory="crown">👑 王冠</button>
-          </div>
         </div>
       </section>
     </main>
@@ -109,6 +99,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
     </nav>
-    <script type="module" src="referral.js?v=20261001-4"></script>
+    <script type="module" src="referral.js?v=20261002-1"></script>
   </body>
 </html>

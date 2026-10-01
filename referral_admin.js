@@ -156,7 +156,7 @@ async function changeRewardState(button) {
   const detail = milestoneCount === 2 && deleted
     ? "学習ポイント100ptも差し引かれます。"
     : milestoneCount === 6 && deleted
-      ? "設定済みのペット・名前・着せ替えも削除されます。"
+      ? "設定済みのペット・名前・お世話記録も削除されます。"
       : milestoneCount === 10 && deleted
         ? "登録済みのギフトURLも削除されます。"
         : "";

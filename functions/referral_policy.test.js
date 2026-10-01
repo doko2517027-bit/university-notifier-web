@@ -39,7 +39,7 @@ test("2・4・6・8・10人の特典を一度だけ解放する", () => {
   assert.equal(nextMilestone(10), null);
   assert.deepEqual(
     REFERRAL_MILESTONES.map(({ count, kind }) => [count, kind]),
-    [[2, "points"], [4, "theme"], [6, "pet"], [8, "pet_accessory"], [10, "gift"]],
+    [[2, "points"], [4, "theme"], [6, "pet"], [8, "pet_care"], [10, "gift"]],
   );
 });
 

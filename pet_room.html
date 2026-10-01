@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>ペットの部屋 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20261001-14" />
+    <link rel="stylesheet" href="style.css?v=20261002-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -16,11 +16,11 @@
       <button id="backButton" class="circle-button" type="button" aria-label="紹介画面へ戻る">←</button>
       <div class="top-right"><button id="themeButton" class="circle-button" type="button">🌙</button></div>
     </div>
-    <header class="header pet-room-header"><div class="logo">🐾</div><h1>ペットの部屋</h1><p>ペットの表示と着せ替え</p></header>
+    <header class="header pet-room-header"><div class="logo">🐾</div><h1>ペットの部屋</h1><p>ペットとふれあう場所</p></header>
     <main class="pet-room-shell">
       <section class="card pet-room-stage">
         <span id="petRoomState" class="pet-room-state">読み込み中...</span>
-        <div id="petRoomCharacter" class="pet-room-character" aria-live="polite"><span>🐾</span><b>読み込み中</b></div>
+        <div id="petRoomCharacter" class="pet-room-character" aria-live="polite"><span class="pet-room-sprite"></span><b>読み込み中</b></div>
         <p id="petRoomAction">ペットを呼んでいます...</p>
       </section>
 
@@ -32,14 +32,18 @@
         </label>
       </section>
 
-      <section class="card pet-room-accessory-card">
-        <div class="referral-section-heading"><div><span class="referral-eyebrow">DRESS UP</span><h2>着せ替え</h2></div><span id="petAccessoryLock" class="referral-status-chip">確認中</span></div>
-        <p id="petAccessoryHelp">8人招待達成でアクセサリーを変更できます。</p>
-        <div id="petRoomAccessories" class="referral-accessory-choices" hidden>
-          <button type="button" data-accessory="none">なし</button>
-          <button type="button" data-accessory="hat">🎩 帽子</button>
-          <button type="button" data-accessory="ribbon">🎀 リボン</button>
-          <button type="button" data-accessory="crown">👑 王冠</button>
+      <section class="card pet-room-care-card">
+        <div class="referral-section-heading"><div><span class="referral-eyebrow">DAILY CARE</span><h2>今日のお世話</h2></div><span id="petCareLock" class="referral-status-chip">確認中</span></div>
+        <p id="petCareHelp">8人招待達成で、毎日ペットとふれあえるようになります。</p>
+        <div id="petCareArea" hidden>
+          <div class="pet-care-summary"><b id="petCareProgress">0 / 4</b><span id="petCareStreak">連続0日</span></div>
+          <div class="pet-care-progress" aria-hidden="true"><span id="petCareProgressBar"></span></div>
+          <div id="petCareActions" class="pet-care-actions">
+            <button type="button" data-pet-care="feed"><span>🍚</span><b>ごはん</b></button>
+            <button type="button" data-pet-care="play"><span>🎾</span><b>遊ぶ</b></button>
+            <button type="button" data-pet-care="pet"><span>🫳</span><b>なでる</b></button>
+            <button type="button" data-pet-care="rest"><span>🌙</span><b>おやすみ</b></button>
+          </div>
         </div>
       </section>
     </main>
@@ -51,6 +55,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
     </nav>
-    <script type="module" src="pet_room.js?v=20261001-1"></script>
+    <script type="module" src="pet_room.js?v=20261002-1"></script>
   </body>
 </html>

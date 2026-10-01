@@ -64,7 +64,7 @@ import { describePresenceDevice } from "./presence_device_label.mjs";
 import {
   CAREMATE_PET_ACTIONS,
   CAREMATE_PET_EXPRESSIONS,
-  petFallbackGlyph,
+  applyPetSprite,
 } from "./pet_character_config.mjs";
 
 const firebaseConfig = {
@@ -813,13 +813,12 @@ function renderCareMatePet(state) {
     !pet?.kind ||
     !pet?.name
   ) return;
-  const accessories = { none: "", hat: "🎩", ribbon: "🎀", crown: "👑" };
   const element = document.createElement("button");
   element.id = "careMateReferralPet";
   element.className = "caremate-referral-pet";
   element.type = "button";
   element.setAttribute("aria-label", `${pet.name}を表示`);
-  element.innerHTML = `<span class="caremate-pet-accessory">${accessories[state.personalization?.accessory] || ""}</span><span class="caremate-pet-character">${petFallbackGlyph(pet.kind)}</span><small>${escapeCommonHtml(pet.name)}</small>`;
+  element.innerHTML = `<span class="caremate-pet-character" aria-hidden="true"></span><small>${escapeCommonHtml(pet.name)}</small>`;
   document.body.append(element);
   referralPetMotionCleanup = startCareMatePetMotion(element, pet.kind);
 }
@@ -834,6 +833,8 @@ function startCareMatePetMotion(element, kind) {
   let y = Number(savedPosition?.y) || Math.max(82, window.innerHeight - 175);
   let moveTimer = 0;
   let expressionTimer = 0;
+  let spriteTimer = 0;
+  let animationFrame = 0;
   let destroyed = false;
   let drag = null;
   let didDrag = false;
@@ -842,7 +843,7 @@ function startCareMatePetMotion(element, kind) {
     if (destroyed || !character) return;
     element.dataset.action = actionId;
     element.dataset.expression = expressionId;
-    character.textContent = petFallbackGlyph(kind, expressionId);
+    applyPetSprite(character, kind, actionId, expressionId, animationFrame);
   };
 
   const randomExpression = () => {
@@ -936,6 +937,13 @@ function startCareMatePetMotion(element, kind) {
   setState("stop", "neutral");
   if (!reducedMotion) {
     moveTimer = window.setTimeout(scheduleMove, 900);
+    spriteTimer = window.setInterval(() => {
+      if (!character || drag) return;
+      const action = element.dataset.action || "stop";
+      if (!["walk", "run"].includes(action)) return;
+      animationFrame = animationFrame === 0 ? 1 : 0;
+      applyPetSprite(character, kind, action, element.dataset.expression || "neutral", animationFrame);
+    }, 240);
     expressionTimer = window.setInterval(() => {
       if (!element.classList.contains("is-walking") && !drag) randomExpression();
     }, 4200);
@@ -945,6 +953,7 @@ function startCareMatePetMotion(element, kind) {
     destroyed = true;
     clearTimeout(moveTimer);
     clearInterval(expressionTimer);
+    clearInterval(spriteTimer);
     window.removeEventListener("resize", onResize);
     element.removeEventListener("pointerdown", onPointerDown);
     element.removeEventListener("pointermove", onPointerMove);
