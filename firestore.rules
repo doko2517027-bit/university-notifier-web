@@ -381,6 +381,9 @@ service cloud.firestore {
     match /referralRateLimits/{documentId} {
       allow read, write: if false;
     }
+    match /referralManualAdjustments/{documentId} {
+      allow read, write: if false;
+    }
 
 
     /* ========================================

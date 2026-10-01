@@ -20692,3 +20692,99 @@ course-tagが付いたspanには適用しない。
   .referral-code-actions { grid-template-columns: 1fr; }
   .referral-code-value { letter-spacing: .07em; }
 }
+
+/* 紹介制度・学生詳細の機能別管理 */
+.referral-admin-summary { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
+.referral-admin-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, auto); gap: 10px; margin-bottom: 12px; }
+.referral-admin-toolbar input,
+.referral-admin-toolbar select { width: 100%; box-sizing: border-box; }
+.referral-admin-student { border: 1px solid var(--border); border-radius: 16px; background: var(--card); overflow: hidden; }
+.referral-admin-student.is-reached { border-color: color-mix(in srgb, #e0a72f 55%, var(--border)); }
+.referral-admin-student > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px; cursor: pointer; list-style: none; }
+.referral-admin-student > summary::-webkit-details-marker { display: none; }
+.referral-admin-student > summary::after { content: "⌄"; grid-column: 2; grid-row: 1; justify-self: end; color: var(--subtext); font-size: 18px; transition: transform .2s ease; }
+.referral-admin-student[open] > summary::after { transform: rotate(180deg); }
+.referral-admin-student-title { display: grid; gap: 4px; min-width: 0; }
+.referral-admin-student-title strong { overflow-wrap: anywhere; }
+.referral-admin-student-title small { color: var(--subtext); }
+.referral-admin-student-progress { grid-column: 2; grid-row: 1; display: grid; justify-items: end; gap: 3px; padding-right: 28px; }
+.referral-admin-student-progress b { color: var(--primary); font-size: 18px; }
+.referral-admin-student-progress span { color: var(--subtext); font-size: 11px; }
+.referral-admin-student-body { display: grid; gap: 18px; padding: 0 16px 18px; border-top: 1px solid var(--border); }
+.referral-admin-progress-track { height: 10px; margin-top: 16px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--border) 70%, transparent); }
+.referral-admin-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #17a87e, #507ae8); }
+.referral-admin-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.referral-admin-info-grid > div { display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: var(--bg); }
+.referral-admin-info-grid small,
+.referral-admin-info-grid em { color: var(--subtext); font-size: 11px; font-style: normal; }
+.referral-admin-student-body h3 { margin: 0 0 9px; font-size: 14px; }
+.referral-admin-milestones { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.referral-admin-milestones span { padding: 9px 5px; border: 1px solid var(--border); border-radius: 10px; color: var(--subtext); text-align: center; font-size: 12px; font-weight: 800; }
+.referral-admin-milestones span.is-unlocked { border-color: #17a87e; background: color-mix(in srgb, #17a87e 11%, var(--card)); color: #087a5a; }
+.referral-admin-history { display: grid; gap: 7px; }
+.referral-admin-history > div,
+.referral-adjust-history > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border-radius: 10px; background: var(--bg); }
+.referral-admin-history span,
+.referral-adjust-history span { color: var(--subtext); font-size: 11px; text-align: right; }
+.referral-adjust-editor,
+.referral-reward-editor { padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--primary) 4%, var(--card)); }
+.referral-adjust-editor > p { margin: -3px 0 12px; color: var(--subtext); font-size: 12px; }
+.referral-adjust-controls { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; align-items: end; gap: 9px; }
+.referral-adjust-controls label,
+.referral-reward-editor label { display: grid; gap: 5px; font-size: 12px; font-weight: 750; }
+.referral-adjust-controls input,
+.referral-reward-editor input { width: 100%; box-sizing: border-box; }
+.referral-adjust-history { margin-top: 12px; }
+.referral-adjust-history summary { cursor: pointer; color: var(--primary); font-size: 12px; font-weight: 800; }
+
+.student-feature-admin { display: grid; gap: 16px; }
+.student-feature-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.student-feature-summary > div { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+.student-feature-summary small { color: var(--subtext); }
+.student-feature-summary b { color: var(--primary); font-size: 18px; }
+.student-feature-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.student-feature-tabs button { min-height: 42px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg); color: var(--text); font-weight: 750; cursor: pointer; }
+.student-feature-tabs button.is-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--card)); color: var(--primary); }
+.student-feature-status,
+.student-feature-empty { padding: 18px; border: 1px dashed var(--border); border-radius: 12px; color: var(--subtext); text-align: center; }
+.student-feature-status[hidden],
+.student-feature-panel[hidden] { display: none !important; }
+.student-feature-list { display: grid; gap: 9px; max-height: min(62vh, 620px); overflow: auto; }
+.student-feature-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.student-feature-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.student-feature-row small { color: var(--subtext); line-height: 1.5; overflow-wrap: anywhere; }
+.student-feature-edit { display: flex; align-items: center; gap: 8px; }
+.student-feature-edit select { min-width: 128px; }
+.student-feature-exam-edit label { display: grid; gap: 4px; color: var(--subtext); font-size: 11px; }
+.student-feature-exam-edit input[type="number"] { width: 84px; }
+.student-feature-exam-edit .student-feature-check { display: flex; align-items: center; color: var(--text); font-size: 12px; white-space: nowrap; }
+.student-feature-help { margin: 0 0 10px; color: var(--subtext); font-size: 12px; line-height: 1.6; }
+.student-feature-solved { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.student-feature-solved summary { cursor: pointer; color: var(--primary); font-weight: 800; }
+.student-feature-solved > div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.student-feature-solved span { color: var(--subtext); font-size: 12px; }
+.student-referral-overview { display: grid; gap: 9px; }
+.student-referral-overview > strong { font-size: 26px; color: var(--primary); }
+
+@media (max-width: 760px) {
+  .referral-admin-info-grid { grid-template-columns: 1fr; }
+  .referral-adjust-controls { grid-template-columns: 1fr; }
+  .student-feature-summary { grid-template-columns: 1fr 1fr; }
+  .student-feature-tabs { grid-template-columns: 1fr 1fr; }
+  .student-feature-row { grid-template-columns: 1fr; }
+  .student-feature-edit { align-items: stretch; flex-direction: column; }
+  .student-feature-edit select,
+  .student-feature-edit .btn { width: 100%; }
+  .student-feature-exam-edit input[type="number"] { width: 100%; box-sizing: border-box; }
+}
+@media (max-width: 420px) {
+  .referral-admin-toolbar { grid-template-columns: 1fr; }
+  .referral-admin-student > summary { grid-template-columns: 1fr; }
+  .referral-admin-student-progress { grid-column: 1; grid-row: 2; justify-items: start; padding-right: 0; }
+  .referral-admin-student > summary::after { grid-column: 1; grid-row: 1 / 3; align-self: center; }
+  .referral-admin-milestones { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .referral-admin-history > div,
+  .referral-adjust-history > div { align-items: flex-start; flex-direction: column; }
+  .referral-admin-history span,
+  .referral-adjust-history span { text-align: left; }
+}

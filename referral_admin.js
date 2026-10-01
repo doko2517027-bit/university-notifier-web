@@ -12,91 +12,169 @@ import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/fire
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const $ = (id) => document.getElementById(id);
-let rewards = [];
+let students = [];
+let totals = {};
 
 setupTheme($("themeButton"));
 $("backButton").onclick = () => location.assign("admin.html");
-$("refreshRewards").onclick = loadRewards;
+$("refreshRewards").onclick = loadReferralAdmin;
+$("referralSearch").addEventListener("input", render);
+$("referralFilter").addEventListener("change", render);
 
 await auth.authStateReady();
 const admin = await isAdmin();
 const token = auth.currentUser ? await getIdTokenResult(auth.currentUser) : null;
 if (
-  !admin ||
-  studentNumber !== "2510044" ||
+  !admin || studentNumber !== "2510044" ||
   auth.currentUser?.uid !== "caremate-2510044" ||
-  token?.claims?.studentNumber !== "2510044" ||
-  token?.claims?.admin !== true
+  token?.claims?.studentNumber !== "2510044" || token?.claims?.admin !== true
 ) {
   location.replace("admin.html");
-  throw new Error("紹介特典を管理できるアカウントではありません。");
+  throw new Error("紹介制度を管理できるアカウントではありません。");
 }
 
 $("rewardList").addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-grant-reward]");
-  if (!button) return;
+  const grantButton = event.target.closest("[data-grant-reward]");
+  if (grantButton) {
+    await grantReward(grantButton);
+    return;
+  }
+  const adjustButton = event.target.closest("[data-adjust-referral]");
+  if (adjustButton) await adjustReferralCount(adjustButton);
+});
+
+await initializePage([setupAdminTab(), loadReferralAdmin()]);
+
+async function loadReferralAdmin() {
+  $("refreshRewards").disabled = true;
+  try {
+    const response = await httpsCallable(functions, "getReferralRewardAdmin")();
+    students = Array.isArray(response.data?.students) ? response.data.students : [];
+    totals = response.data?.totals || {};
+    render();
+  } catch (error) {
+    console.error("紹介制度一覧取得エラー:", error);
+    $("rewardList").textContent = "紹介制度の情報を取得できませんでした。";
+  } finally {
+    $("refreshRewards").disabled = false;
+  }
+}
+
+async function grantReward(button) {
   const target = button.dataset.grantReward;
-  const input = document.querySelector(`[data-gift-url="${target}"]`);
-  const giftUrl = input?.value.trim() || "";
+  const giftUrl = document.querySelector(`[data-gift-url="${target}"]`)?.value.trim() || "";
   if (!giftUrl.startsWith("https://")) {
     alert("HTTPSで始まるギフトURLを入力してください。");
     return;
   }
   if (!confirm(`${target}へこのギフトURLを付与しますか？`)) return;
   button.disabled = true;
-  button.textContent = "付与中...";
   try {
-    const grant = httpsCallable(functions, "grantReferralReward");
-    await grant({ studentNumber: target, giftUrl });
+    await httpsCallable(functions, "grantReferralReward")({ studentNumber: target, giftUrl });
     showToast("ギフトを付与しました");
-    await loadRewards();
+    await loadReferralAdmin();
   } catch (error) {
     console.error("ギフト付与エラー:", error);
     alert("ギフトを付与できませんでした。");
     button.disabled = false;
-    button.textContent = "付与する";
   }
-});
+}
 
-await initializePage([setupAdminTab(), loadRewards()]);
-
-async function loadRewards() {
-  $("refreshRewards").disabled = true;
+async function adjustReferralCount(button) {
+  const target = button.dataset.adjustReferral;
+  const countInput = document.querySelector(`[data-referral-count="${target}"]`);
+  const reasonInput = document.querySelector(`[data-referral-reason="${target}"]`);
+  const targetCount = Number(countInput?.value);
+  const reason = reasonInput?.value.trim() || "";
+  if (!Number.isInteger(targetCount) || targetCount < 0 || targetCount > 10) {
+    alert("達成人数は0〜10の整数で入力してください。");
+    return;
+  }
+  if (reason.length < 4) {
+    alert("修正理由を4文字以上で入力してください。");
+    reasonInput?.focus();
+    return;
+  }
+  if (!confirm(`${target}の達成人数を${targetCount}人へ修正しますか？\n修正履歴は保存されます。`)) return;
+  button.disabled = true;
   try {
-    const call = httpsCallable(functions, "getReferralRewardAdmin");
-    const response = await call();
-    rewards = response.data?.rewards || [];
-    render();
+    await httpsCallable(functions, "adjustReferralCountAdmin")({
+      studentNumber: target,
+      targetCount,
+      reason,
+    });
+    showToast("紹介進捗を修正しました");
+    await loadReferralAdmin();
   } catch (error) {
-    console.error("紹介特典一覧取得エラー:", error);
-    $("rewardList").textContent = "紹介特典を取得できませんでした。";
-  } finally {
-    $("refreshRewards").disabled = false;
+    console.error("紹介進捗修正エラー:", error);
+    alert("紹介進捗を修正できませんでした。");
+    button.disabled = false;
   }
 }
 
 function render() {
-  $("rewardTotal").textContent = `${rewards.length}人`;
-  $("rewardPending").textContent = `${rewards.filter((item) => item.status !== "granted").length}人`;
-  $("rewardGranted").textContent = `${rewards.filter((item) => item.status === "granted").length}人`;
-  if (!rewards.length) {
-    $("rewardList").innerHTML = '<div class="referral-empty">まだ10人達成者はいません。</div>';
-    return;
-  }
-  $("rewardList").innerHTML = rewards.map((item) => `
-    <article class="referral-reward-item ${item.status === "granted" ? "is-granted" : ""}">
-      <div class="referral-reward-head"><div><strong>${escapeHtml(item.studentNumber)}</strong><small>達成：${formatDateTime(item.reachedAt)}</small></div><span>${item.status === "granted" ? "付与済み" : "未付与"}</span></div>
-      <label>ギフトURL<input data-gift-url="${escapeHtml(item.studentNumber)}" type="url" value="${escapeHtml(item.giftUrl)}" placeholder="https://..." /></label>
-      <div class="referral-reward-actions"><small>${item.grantedAt ? `付与：${formatDateTime(item.grantedAt)}` : "URLは対象学生だけに表示されます"}${item.claimedAt ? ` / 受取確認：${formatDateTime(item.claimedAt)}` : ""}</small><button class="btn btn-primary" data-grant-reward="${escapeHtml(item.studentNumber)}" type="button">${item.status === "granted" ? "URLを更新" : "付与する"}</button></div>
-    </article>`).join("");
+  $("referralStudentTotal").textContent = `${Number(totals.students || students.length)}人`;
+  $("referralTotal").textContent = `${Number(totals.referrals || 0)}件`;
+  $("activeCodeTotal").textContent = `${Number(totals.activeCodes || 0)}件`;
+  $("rewardTotal").textContent = `${Number(totals.reachedTen || 0)}人`;
+  $("rewardPending").textContent = `${Number(totals.pendingRewards || 0)}人`;
+  const search = $("referralSearch").value.trim().toLowerCase();
+  const filter = $("referralFilter").value;
+  const visible = students.filter((item) => {
+    if (search && !`${item.studentNumber} ${item.name} ${item.department}`.toLowerCase().includes(search)) return false;
+    if (filter === "progress") return Number(item.invitedCount || 0) > 0;
+    if (filter === "active-code") return Boolean(item.activeCode);
+    if (filter === "reached") return Number(item.invitedCount || 0) >= 10;
+    if (filter === "pending") return Number(item.invitedCount || 0) >= 10 && item.reward?.status !== "granted";
+    return true;
+  });
+  $("rewardList").innerHTML = visible.length
+    ? visible.map(renderStudent).join("")
+    : '<div class="referral-empty">条件に一致する学生はいません。</div>';
 }
 
+function renderStudent(item) {
+  const count = Math.max(0, Math.min(10, Number(item.invitedCount || 0)));
+  const reward = item.reward || {};
+  const histories = Array.isArray(item.histories) ? item.histories : [];
+  const adjustments = Array.isArray(item.adjustments) ? item.adjustments : [];
+  const milestones = Array.isArray(item.milestones) ? item.milestones : [];
+  const reached = count >= 10;
+  return `
+    <details class="referral-admin-student ${reached ? "is-reached" : ""}">
+      <summary>
+        <div class="referral-admin-student-title"><strong>${escapeHtml(item.studentNumber)}${item.name ? ` / ${escapeHtml(item.name)}` : ""}</strong><small>${escapeHtml([item.department, item.grade ? `${item.grade}年` : ""].filter(Boolean).join("・") || "所属未設定")}</small></div>
+        <div class="referral-admin-student-progress"><b>${count} / 10人</b><span>${reached ? "🎉 10人達成" : item.activeCode ? "コード発行中" : count ? "進行中" : "未開始"}</span></div>
+      </summary>
+      <div class="referral-admin-student-body">
+        <div class="referral-admin-progress-track"><i style="width:${count * 10}%"></i></div>
+        <div class="referral-admin-info-grid">
+          <div><small>現在の招待コード</small><b>${item.activeCode ? escapeHtml(item.activeCode.code) : "なし"}</b>${item.activeCode ? `<em>期限：${formatDateTime(item.activeCode.expiresAt)}</em>` : ""}</div>
+          <div><small>自動成立履歴</small><b>${histories.length}件</b><em>${Number(item.manualAdjustment || 0) ? `手動補正 ${Number(item.manualAdjustment) > 0 ? "+" : ""}${Number(item.manualAdjustment)}人` : "補正なし"}</em></div>
+          <div><small>ギフト状態</small><b>${rewardStatus(reward, reached)}</b>${reward.claimedAt ? `<em>受取確認：${formatDateTime(reward.claimedAt)}</em>` : ""}</div>
+        </div>
+        <section><h3>マイルストーン</h3><div class="referral-admin-milestones">${milestones.map((m) => `<span class="${m.unlocked ? "is-unlocked" : ""}">${m.count}人 ${m.unlocked ? "✓" : ""}</span>`).join("")}</div></section>
+        <section><h3>紹介成立履歴</h3><div class="referral-admin-history">${histories.length ? histories.map((h) => `<div><b>${escapeHtml(h.invitedStudentNumber)}</b><span>${formatDateTime(h.establishedAt)}${h.codePreview ? `・コード末尾 ${escapeHtml(h.codePreview)}` : ""}</span></div>`).join("") : '<p class="referral-empty">成立履歴はありません。</p>'}</div></section>
+        <section class="referral-adjust-editor">
+          <h3>進捗を手動補正</h3>
+          <p>自動カウント漏れなどの修正専用です。変更者・変更前後・理由が保存されます。</p>
+          <div class="referral-adjust-controls"><label>達成人数<input data-referral-count="${escapeHtml(item.studentNumber)}" type="number" min="0" max="10" step="1" value="${count}" /></label><label>修正理由<input data-referral-reason="${escapeHtml(item.studentNumber)}" type="text" maxlength="120" placeholder="例：登録時のFunctions障害で未加算" /></label><button class="btn" data-adjust-referral="${escapeHtml(item.studentNumber)}" type="button">進捗を修正</button></div>
+          ${adjustments.length ? `<details class="referral-adjust-history"><summary>補正履歴 ${adjustments.length}件</summary>${adjustments.map((a) => `<div><b>${a.fromCount} → ${a.toCount}人</b><span>${escapeHtml(a.reason)}・${formatDateTime(a.adjustedAt)}・${escapeHtml(a.adjustedBy)}</span></div>`).join("")}</details>` : ""}
+        </section>
+        ${reached ? `<section class="referral-reward-editor ${reward.status === "granted" ? "is-granted" : ""}"><h3>500円分デジタルギフト</h3><label>ギフトURL<input data-gift-url="${escapeHtml(item.studentNumber)}" type="url" value="${escapeHtml(reward.giftUrl || "")}" placeholder="https://..." /></label><div class="referral-reward-actions"><small>${reward.grantedAt ? `付与：${formatDateTime(reward.grantedAt)}` : "未付与"}${reward.claimedAt ? ` / 受取：${formatDateTime(reward.claimedAt)}` : ""}</small><button class="btn btn-primary" data-grant-reward="${escapeHtml(item.studentNumber)}" type="button">${reward.status === "granted" ? "URLを更新" : "付与する"}</button></div></section>` : ""}
+      </div>
+    </details>`;
+}
+
+function rewardStatus(reward, reached) {
+  if (!reached) return "対象外";
+  if (reward.claimedAt) return "受取確認済み";
+  return reward.status === "granted" ? "付与済み" : "未付与";
+}
 function formatDateTime(value) {
   const date = new Date(Number(value || 0));
-  if (Number.isNaN(date.getTime()) || date.getTime() <= 0) return "--";
-  return new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+  return Number.isNaN(date.getTime()) || date.getTime() <= 0 ? "--" : new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
 }
-
 function escapeHtml(value) {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }

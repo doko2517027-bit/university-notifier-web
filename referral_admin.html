@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>紹介特典管理 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20261001-8" />
+    <title>紹介制度管理 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css?v=20261001-10" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -16,16 +16,28 @@
       <button id="backButton" class="circle-button" type="button">←</button>
       <div class="top-right"><button id="themeButton" class="circle-button" type="button">🌙</button></div>
     </div>
-    <header class="header"><div class="logo">🎁</div><h1>紹介特典管理</h1><p>10人達成者へのギフトを手動で付与</p></header>
+    <header class="header"><div class="logo">🎁</div><h1>紹介制度管理</h1><p>全学生の紹介進捗・招待コード・成立履歴・特典をまとめて管理</p></header>
     <main class="referral-admin-shell">
       <section class="referral-admin-summary">
-        <article class="card"><small>10人達成者</small><strong id="rewardTotal">--</strong></article>
+        <article class="card"><small>対象学生</small><strong id="referralStudentTotal">--</strong></article>
+        <article class="card"><small>紹介成立</small><strong id="referralTotal">--</strong></article>
+        <article class="card"><small>使用中コード</small><strong id="activeCodeTotal">--</strong></article>
+        <article class="card"><small>10人達成</small><strong id="rewardTotal">--</strong></article>
         <article class="card"><small>ギフト未付与</small><strong id="rewardPending">--</strong></article>
-        <article class="card"><small>付与済み</small><strong id="rewardGranted">--</strong></article>
       </section>
       <section class="card referral-admin-list-card">
-        <div class="referral-section-heading"><div><span class="referral-eyebrow">REWARDS</span><h2>達成者一覧</h2></div><button id="refreshRewards" class="btn" type="button">↻ 更新</button></div>
-        <p class="referral-safety-note">ギフトは自動発行されません。用意したHTTPSの受取URLを対象学生へ個別に付与してください。</p>
+        <div class="referral-section-heading"><div><span class="referral-eyebrow">REFERRALS</span><h2>学生別の紹介状況</h2></div><button id="refreshRewards" class="btn" type="button">↻ 更新</button></div>
+        <div class="referral-admin-toolbar">
+          <input id="referralSearch" type="search" placeholder="学籍番号・名前で検索" aria-label="紹介状況を検索" />
+          <select id="referralFilter" aria-label="紹介状況で絞り込み">
+            <option value="all">すべて</option>
+            <option value="progress">1人以上</option>
+            <option value="active-code">使用中コードあり</option>
+            <option value="reached">10人達成</option>
+            <option value="pending">ギフト未付与</option>
+          </select>
+        </div>
+        <p class="referral-safety-note">学生カードを開くと、マイルストーン、現在の招待コード、紹介成立者と日時、ギフト状態を確認できます。ギフトは自動発行されません。</p>
         <div id="rewardList" class="referral-admin-list">読み込み中...</div>
       </section>
     </main>
@@ -37,6 +49,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
       <a class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="referral_admin.js?v=20261001-1"></script>
+    <script type="module" src="referral_admin.js?v=20261001-2"></script>
   </body>
 </html>

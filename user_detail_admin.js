@@ -202,6 +202,14 @@ let refreshDeviceSessionsButton = null;
 
 let forceLogoutAllDevicesButton = null;
 
+const studentFeatureAdmin = document.getElementById("studentFeatureAdmin");
+const studentFeatureSummary = document.getElementById("studentFeatureSummary");
+const studentFeatureStatus = document.getElementById("studentFeatureStatus");
+const studentEnrollmentPanel = document.getElementById("studentEnrollmentPanel");
+const studentAttendancePanel = document.getElementById("studentAttendancePanel");
+const studentExamPanel = document.getElementById("studentExamPanel");
+const studentReferralPanel = document.getElementById("studentReferralPanel");
+
 /* ========================================
    状態
 ======================================== */
@@ -211,6 +219,8 @@ let targetUserData = null;
 let stopPresenceListener = null;
 
 let deviceAuditAuthorized = false;
+
+let studentFeatureData = null;
 
 /*
 FirestoreのWeb SDKでは、存在するサブコレクションを
@@ -272,6 +282,7 @@ await initializePage([
   loadMyRanking(),
   loadProfileImage(topProfileImage),
   loadTargetUser(),
+  loadStudentFeatures(),
   updateAssignmentNavBadge(),
   updateNewsNavBadge(),
 ]);
@@ -419,6 +430,135 @@ function renderUserInformation() {
     notifySystemNews.checked = settings.systemNews ?? true;
   }
 
+}
+
+/* ========================================
+   機能別の利用・管理状況
+======================================== */
+
+const attendanceStatusOptions = {
+  present: "出席",
+  late: "遅刻",
+  early_leave: "早退",
+  late_and_early_leave: "遅刻・早退",
+  absent: "欠席",
+  unrecorded: "未打刻",
+};
+
+async function loadStudentFeatures() {
+  if (!studentFeatureAdmin) return;
+  studentFeatureStatus.hidden = false;
+  studentFeatureStatus.textContent = "機能別データを読み込んでいます...";
+  try {
+    const response = await httpsCallable(functions, "getStudentFeatureAdmin")({
+      studentNumber: targetStudentNumber,
+    });
+    studentFeatureData = response.data || {};
+    renderStudentFeatures();
+    studentFeatureStatus.hidden = true;
+  } catch (error) {
+    console.error("機能別データ取得エラー:", error);
+    studentFeatureStatus.hidden = false;
+    studentFeatureStatus.textContent = "機能別データを取得できませんでした。更新してもう一度お試しください。";
+  }
+}
+
+function renderStudentFeatures() {
+  const enrollments = studentFeatureData?.enrollments || [];
+  const attendance = studentFeatureData?.attendanceRecords || [];
+  const progress = studentFeatureData?.testProgress || [];
+  const solved = studentFeatureData?.solvedQuestions || [];
+  const referral = studentFeatureData?.referral || { invitedCount: 0, milestones: [] };
+  const activeEnrollments = enrollments.filter((item) => item.status === "enrolled");
+  studentFeatureSummary.innerHTML = `
+    <div><small>履修</small><b>${activeEnrollments.length}科目</b></div>
+    <div><small>出席記録</small><b>${attendance.length}件</b></div>
+    <div><small>テスト進捗</small><b>${progress.length}件</b></div>
+    <div><small>紹介</small><b>${Number(referral.invitedCount || 0)} / 10人</b></div>`;
+
+  studentEnrollmentPanel.innerHTML = activeEnrollments.length
+    ? `<div class="student-feature-list">${activeEnrollments.map((item) => `
+      <article class="student-feature-row" data-feature-row="enrollment" data-document-id="${escapeAuditHtml(item.id)}">
+        <div><b>${escapeAuditHtml(item.name)}</b><small>${escapeAuditHtml([item.academicYear ? `${item.academicYear}年度` : "", semesterLabel(item.semester), item.credits ? `${item.credits}単位` : ""].filter(Boolean).join("・"))}</small></div>
+        <div class="student-feature-edit"><select aria-label="履修状態"><option value="enrolled" selected>履修中</option><option value="not_enrolled">履修から外す</option></select><button type="button" class="btn" data-save-feature>保存</button></div>
+      </article>`).join("")}</div>`
+    : '<div class="student-feature-empty">現在の履修登録はありません。</div>';
+
+  studentAttendancePanel.innerHTML = attendance.length
+    ? `<p class="student-feature-help">最新100件を表示します。変更すると管理者修正日時も記録されます。</p><div class="student-feature-list">${attendance.slice(0, 100).map((item) => `
+      <article class="student-feature-row" data-feature-row="attendance" data-document-id="${escapeAuditHtml(item.id)}">
+        <div><b>${escapeAuditHtml(item.subject)}</b><small>${escapeAuditHtml(item.date || "日付不明")} ${item.period ? `${item.period}限` : ""}${item.classGroup ? `・${escapeAuditHtml(item.classGroup)}クラス` : ""}${item.adminEditedAt ? `・修正済み ${escapeAuditHtml(formatAuditDate(item.adminEditedAt))}` : ""}</small></div>
+        <div class="student-feature-edit"><select aria-label="出席状態">${Object.entries(attendanceStatusOptions).map(([value, label]) => `<option value="${value}" ${item.status === value ? "selected" : ""}>${label}</option>`).join("")}</select><button type="button" class="btn" data-save-feature>保存</button></div>
+      </article>`).join("")}</div>`
+    : '<div class="student-feature-empty">出席記録はまだありません。</div>';
+
+  studentExamPanel.innerHTML = progress.length || solved.length
+    ? `${progress.length ? `<p class="student-feature-help">現在位置と完了状態を修正できます。問題番号は1から始まります。</p><div class="student-feature-list">${progress.map((item) => `
+      <article class="student-feature-row student-feature-exam-row" data-feature-row="examProgress" data-document-id="${escapeAuditHtml(item.id)}">
+        <div><b>${escapeAuditHtml(item.subjectName)}</b><small>${escapeAuditHtml(testTypeLabel(item.type))}・単元 ${escapeAuditHtml(item.unitId || "未設定")}・現在 ${item.totalQuestions ? `${Math.min(item.totalQuestions, item.currentIndex + 1)} / ${item.totalQuestions}問` : "問題数不明"}${item.currentQuestionId ? `・問題ID ${escapeAuditHtml(item.currentQuestionId)}` : ""}</small></div>
+        <div class="student-feature-edit student-feature-exam-edit"><label>問題番号<input type="number" min="1" max="${Math.max(1, item.totalQuestions)}" value="${Math.min(Math.max(1, item.currentIndex + 1), Math.max(1, item.totalQuestions))}" /></label><label class="student-feature-check"><input type="checkbox" ${item.completed ? "checked" : ""} /> 完了</label><button type="button" class="btn" data-save-feature>保存</button></div>
+      </article>`).join("")}</div>` : '<div class="student-feature-empty">進行中のテストはありません。</div>'}
+      <details class="student-feature-solved"><summary>解答・獲得ポイント履歴 ${solved.length}件</summary>${solved.length ? solved.map((item) => `<div><b>${escapeAuditHtml(item.day || "日付不明")}・${escapeAuditHtml(item.questionId || "問題IDなし")}</b><span>${escapeAuditHtml(testTypeLabel(item.type))} / ${Number(item.points || 0)}pt</span></div>`).join("") : '<p>履歴はありません。</p>'}</details>`
+    : '<div class="student-feature-empty">テスト対策の利用履歴はありません。</div>';
+
+  studentReferralPanel.innerHTML = `
+    <div class="student-referral-overview"><strong>${Number(referral.invitedCount || 0)} / 10人</strong><div class="referral-admin-progress-track"><i style="width:${Math.min(100, Number(referral.invitedCount || 0) * 10)}%"></i></div></div>
+    <div class="referral-admin-milestones">${(referral.milestones || []).map((item) => `<span class="${item.unlocked ? "is-unlocked" : ""}">${item.count}人 ${item.unlocked ? "✓" : ""}</span>`).join("")}</div>
+    <p class="student-feature-help">紹介人数の補正、成立履歴、コード、ギフトは2510044専用の「紹介制度管理」で確認・変更できます。</p>`;
+}
+
+function setStudentFeatureTab(tabName) {
+  studentFeatureAdmin.querySelectorAll("[data-feature-tab]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.featureTab === tabName);
+  });
+  studentFeatureAdmin.querySelectorAll("[data-feature-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.featurePanel !== tabName;
+  });
+}
+
+async function saveStudentFeature(button) {
+  const row = button.closest("[data-feature-row]");
+  if (!row) return;
+  const feature = row.dataset.featureRow;
+  const data = {
+    studentNumber: targetStudentNumber,
+    feature,
+    documentId: row.dataset.documentId,
+  };
+  if (feature === "enrollment" || feature === "attendance") {
+    data.status = row.querySelector("select")?.value || "";
+  } else if (feature === "examProgress") {
+    const numberInput = row.querySelector('input[type="number"]');
+    data.currentIndex = Math.max(0, Number(numberInput?.value || 1) - 1);
+    data.completed = Boolean(row.querySelector('input[type="checkbox"]')?.checked);
+  }
+  const actionLabel = feature === "enrollment" && data.status === "not_enrolled"
+    ? "この科目を履修登録から外しますか？"
+    : "この内容で保存しますか？";
+  if (!confirm(actionLabel)) return;
+  button.disabled = true;
+  button.textContent = "保存中...";
+  try {
+    await httpsCallable(functions, "updateStudentFeatureAdmin")(data);
+    showToast("機能別の状態を保存しました");
+    await loadStudentFeatures();
+  } catch (error) {
+    console.error("機能別データ更新エラー:", error);
+    alert("変更を保存できませんでした。");
+    button.disabled = false;
+    button.textContent = "保存";
+  }
+}
+
+function semesterLabel(value) {
+  if (value === "first" || value === "前期") return "前期";
+  if (value === "second" || value === "後期") return "後期";
+  if (value === "full" || value === "通期") return "通期";
+  return String(value || "");
+}
+
+function testTypeLabel(value) {
+  return ({ quiz: "選択問題", fillBlank: "穴埋め", qa: "一問一答", daily: "今日の一問", important: "重要ポイント" })[value] || String(value || "形式不明");
 }
 
 /* ========================================
@@ -852,6 +992,18 @@ function renderPresence(presence) {
 ======================================== */
 
 function setupEvents() {
+  if (studentFeatureAdmin) {
+    studentFeatureAdmin.addEventListener("click", async (event) => {
+      const tabButton = event.target.closest("[data-feature-tab]");
+      if (tabButton) {
+        setStudentFeatureTab(tabButton.dataset.featureTab);
+        return;
+      }
+      const saveButton = event.target.closest("[data-save-feature]");
+      if (saveButton) await saveStudentFeature(saveButton);
+    });
+  }
+
   if (backButton) {
     backButton.onclick = () => {
       location.href = "users_admin.html";

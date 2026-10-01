@@ -208,7 +208,7 @@ if (
     card.setAttribute("onclick", "location.href='referral_admin.html'");
     card.innerHTML = `
       <div class="admin-menu-icon">🎁</div>
-      <h3>紹介特典管理</h3>
+      <h3>紹介制度管理</h3>
       <p>10人達成・ギフト付与</p>
     `;
     menu.append(card);

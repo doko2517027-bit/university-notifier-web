@@ -10,7 +10,7 @@
 
     <title>学生詳細 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261001-1" />
+    <link rel="stylesheet" href="style.css?v=20261001-10" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -267,6 +267,28 @@
         </div>
       </div>
     </div>
+
+    <h2>🧭 機能別の利用・管理状況</h2>
+
+    <section id="studentFeatureAdmin" class="card setting-card student-feature-admin">
+      <div class="student-feature-summary" id="studentFeatureSummary">
+        <div><small>履修</small><b>読込中</b></div>
+        <div><small>出席記録</small><b>読込中</b></div>
+        <div><small>テスト進捗</small><b>読込中</b></div>
+        <div><small>紹介</small><b>読込中</b></div>
+      </div>
+      <div class="student-feature-tabs" role="tablist" aria-label="管理する機能">
+        <button class="is-active" type="button" data-feature-tab="enrollment">📚 履修登録</button>
+        <button type="button" data-feature-tab="attendance">✅ 出席管理</button>
+        <button type="button" data-feature-tab="exam">📝 テスト対策</button>
+        <button type="button" data-feature-tab="referral">👥 紹介進捗</button>
+      </div>
+      <div id="studentFeatureStatus" class="student-feature-status">機能別データを読み込んでいます...</div>
+      <div id="studentEnrollmentPanel" class="student-feature-panel" data-feature-panel="enrollment"></div>
+      <div id="studentAttendancePanel" class="student-feature-panel" data-feature-panel="attendance" hidden></div>
+      <div id="studentExamPanel" class="student-feature-panel" data-feature-panel="exam" hidden></div>
+      <div id="studentReferralPanel" class="student-feature-panel" data-feature-panel="referral" hidden></div>
+    </section>
 
     <div id="deviceAuditMount"></div>
 
@@ -599,6 +621,6 @@
       </a>
     </nav>
 
-    <script type="module" src="user_detail_admin.js?v=20261001-4"></script>
+    <script type="module" src="user_detail_admin.js?v=20261001-5"></script>
   </body>
 </html>

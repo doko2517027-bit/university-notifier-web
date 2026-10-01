@@ -965,21 +965,111 @@ exports.getReferralRewardAdmin = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     await requirePrimaryDeviceAuditAdmin(request);
-    const snapshot = await db.collection("referralPrivateRewards").get();
+    const [userSnapshot, accountSnapshot, codeSnapshot, historySnapshot, rewardSnapshot, adjustmentSnapshot] =
+      await Promise.all([
+        db.collection("users").get(),
+        db.collection("referralAccounts").get(),
+        db.collection("referralCodes").get(),
+        db.collection("referralHistory").get(),
+        db.collection("referralPrivateRewards").get(),
+        db.collection("referralManualAdjustments").get(),
+      ]);
+    const accounts = new Map(accountSnapshot.docs.map((item) => [item.id, item.data() || {}]));
+    const rewards = new Map(rewardSnapshot.docs.map((item) => [item.id, item.data() || {}]));
+    const codesByInviter = new Map();
+    codeSnapshot.docs.forEach((item) => {
+      const data = item.data() || {};
+      const inviter = String(data.inviterStudentNumber || "");
+      if (!inviter) return;
+      const current = codesByInviter.get(inviter);
+      if (!current || timestampMillis(data.issuedAt) > timestampMillis(current.issuedAt)) {
+        codesByInviter.set(inviter, data);
+      }
+    });
+    const historiesByInviter = new Map();
+    historySnapshot.docs.forEach((item) => {
+      const data = item.data() || {};
+      const inviter = String(data.inviterStudentNumber || "");
+      if (!inviter) return;
+      const histories = historiesByInviter.get(inviter) || [];
+      histories.push({
+        invitedStudentNumber: String(data.invitedStudentNumber || item.id),
+        codePreview: String(data.codePreview || ""),
+        establishedAt: timestampMillis(data.establishedAt),
+      });
+      historiesByInviter.set(inviter, histories);
+    });
+    const adjustmentsByStudent = new Map();
+    adjustmentSnapshot.docs.forEach((item) => {
+      const data = item.data() || {};
+      const target = String(data.studentNumber || "");
+      if (!target) return;
+      const adjustments = adjustmentsByStudent.get(target) || [];
+      adjustments.push({
+        fromCount: Number(data.fromCount || 0),
+        toCount: Number(data.toCount || 0),
+        reason: String(data.reason || ""),
+        adjustedBy: String(data.adjustedBy || ""),
+        adjustedAt: timestampMillis(data.adjustedAt),
+      });
+      adjustmentsByStudent.set(target, adjustments);
+    });
+    const students = userSnapshot.docs
+      .map((item) => {
+        const user = item.data() || {};
+        const account = accounts.get(item.id) || {};
+        const reward = rewards.get(item.id) || {};
+        const invitedCount = Math.min(
+          REFERRAL_MAX_INVITES,
+          Math.max(0, Number(account.invitedCount || 0)),
+        );
+        const latestCode = codesByInviter.get(item.id) || null;
+        const activeCode = isReferralCodeUsable(latestCode)
+          ? {
+              code: String(latestCode.code || ""),
+              issuedAt: timestampMillis(latestCode.issuedAt),
+              expiresAt: timestampMillis(latestCode.expiresAt),
+            }
+          : null;
+        return {
+          studentNumber: item.id,
+          name: String(user.name || user.displayName || user.fullName || ""),
+          department: String(user.department || ""),
+          grade: String(user.grade || ""),
+          invitedCount,
+          manualAdjustment: Number(account.manualAdjustment || 0),
+          milestones: serializeReferralMilestones(account.milestones, invitedCount),
+          activeCode,
+          histories: (historiesByInviter.get(item.id) || []).sort(
+            (left, right) => right.establishedAt - left.establishedAt,
+          ),
+          adjustments: (adjustmentsByStudent.get(item.id) || [])
+            .sort((left, right) => right.adjustedAt - left.adjustedAt)
+            .slice(0, 20),
+          reward: {
+            reachedAt: timestampMillis(reward.reachedAt),
+            status: String(reward.status || "none"),
+            giftUrl: String(reward.giftUrl || ""),
+            grantedAt: timestampMillis(reward.grantedAt),
+            claimedAt: timestampMillis(reward.claimedAt),
+          },
+        };
+      })
+      .sort((left, right) =>
+        right.invitedCount - left.invitedCount ||
+        left.studentNumber.localeCompare(right.studentNumber),
+      );
     return {
-      rewards: snapshot.docs
-        .map((item) => {
-          const data = item.data() || {};
-          return {
-            studentNumber: item.id,
-            reachedAt: timestampMillis(data.reachedAt),
-            status: String(data.status || "pending"),
-            giftUrl: String(data.giftUrl || ""),
-            grantedAt: timestampMillis(data.grantedAt),
-            claimedAt: timestampMillis(data.claimedAt),
-          };
-        })
-        .sort((left, right) => right.reachedAt - left.reachedAt),
+      students,
+      totals: {
+        students: students.length,
+        referrals: historySnapshot.size,
+        activeCodes: students.filter((item) => item.activeCode).length,
+        reachedTen: students.filter((item) => item.invitedCount >= REFERRAL_MAX_INVITES).length,
+        pendingRewards: students.filter(
+          (item) => item.invitedCount >= REFERRAL_MAX_INVITES && item.reward.status !== "granted",
+        ).length,
+      },
     };
   },
 );
@@ -1028,6 +1118,111 @@ exports.grantReferralReward = onCall(
   },
 );
 
+exports.adjustReferralCountAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const adjustedBy = await requirePrimaryDeviceAuditAdmin(request);
+    const target = String(request.data?.studentNumber || "").trim();
+    const targetCount = Number(request.data?.targetCount);
+    const reason = String(request.data?.reason || "").trim();
+    if (
+      !/^\d{7}$/.test(target) ||
+      !Number.isInteger(targetCount) ||
+      targetCount < 0 ||
+      targetCount > REFERRAL_MAX_INVITES ||
+      reason.length < 4 ||
+      reason.length > 120
+    ) {
+      throw new HttpsError("invalid-argument", "達成人数または修正理由を確認してください。");
+    }
+    const accountRef = referralAccountRef(target);
+    const rewardRef = db.collection("referralPrivateRewards").doc(target);
+    const adjustmentRef = db.collection("referralManualAdjustments").doc();
+    await db.runTransaction(async (transaction) => {
+      const [userSnapshot, accountSnapshot, rewardSnapshot] = await Promise.all([
+        transaction.get(db.collection("users").doc(target)),
+        transaction.get(accountRef),
+        transaction.get(rewardRef),
+      ]);
+      if (!userSnapshot.exists) {
+        throw new HttpsError("not-found", "対象学生が見つかりません。");
+      }
+      const account = accountSnapshot.data() || {};
+      const fromCount = Math.min(
+        REFERRAL_MAX_INVITES,
+        Math.max(0, Number(account.invitedCount || 0)),
+      );
+      if (fromCount === targetCount) {
+        throw new HttpsError("already-exists", "達成人数は変更されていません。");
+      }
+      const previousAdjustment = Number(account.manualAdjustment || 0);
+      const verifiedCount = Math.max(0, fromCount - previousAdjustment);
+      const now = new Date();
+      const milestones = { ...(account.milestones || {}) };
+      REFERRAL_MILESTONES.forEach((milestone) => {
+        const key = `m${milestone.count}`;
+        const current = milestones[key] || {};
+        if (targetCount >= milestone.count) {
+          milestones[key] = { ...current, unlockedAt: current.unlockedAt || now };
+        } else if (!current.claimedAt) {
+          delete milestones[key];
+        }
+      });
+      transaction.set(
+        accountRef,
+        {
+          studentNumber: target,
+          invitedCount: targetCount,
+          manualAdjustment: targetCount - verifiedCount,
+          milestones,
+          updatedAt: now,
+          lastAdjustedAt: now,
+          lastAdjustedBy: adjustedBy,
+        },
+        { merge: true },
+      );
+      transaction.create(adjustmentRef, {
+        studentNumber: target,
+        fromCount,
+        toCount: targetCount,
+        previousManualAdjustment: previousAdjustment,
+        nextManualAdjustment: targetCount - verifiedCount,
+        reason,
+        adjustedBy,
+        adjustedAt: now,
+      });
+      if (targetCount === REFERRAL_MAX_INVITES) {
+        transaction.set(
+          rewardRef,
+          {
+            studentNumber: target,
+            reachedAt: rewardSnapshot.data()?.reachedAt || now,
+            status:
+              rewardSnapshot.data()?.status === "granted" ? "granted" : "pending",
+            giftUrl: rewardSnapshot.data()?.giftUrl || null,
+            grantedAt: rewardSnapshot.data()?.grantedAt || null,
+            grantedBy: rewardSnapshot.data()?.grantedBy || null,
+            claimedAt: rewardSnapshot.data()?.claimedAt || null,
+            reachedByManualAdjustment: true,
+          },
+          { merge: true },
+        );
+      } else if (
+        targetCount < REFERRAL_MAX_INVITES &&
+        rewardSnapshot.exists &&
+        rewardSnapshot.data()?.status === "pending"
+      ) {
+        transaction.set(
+          rewardRef,
+          { status: "not_eligible", eligibilityRemovedAt: now },
+          { merge: true },
+        );
+      }
+    });
+    return { updated: true, invitedCount: targetCount };
+  },
+);
+
 exports.claimReferralGift = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
@@ -1061,6 +1256,216 @@ exports.claimReferralGift = onCall(
       transaction.set(accountRef, { milestones, updatedAt: now }, { merge: true });
       return { url: reward.giftUrl };
     });
+  },
+);
+
+const ADMIN_ATTENDANCE_STATUSES = Object.freeze({
+  present: "出席",
+  late: "遅刻",
+  early_leave: "早退",
+  late_and_early_leave: "遅刻・早退",
+  absent: "欠席",
+  unrecorded: "未打刻",
+});
+
+exports.getStudentFeatureAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requireEnabledCareMateAdmin(request);
+    const target = String(request.data?.studentNumber || "").trim();
+    if (!/^\d{7}$/.test(target)) {
+      throw new HttpsError("invalid-argument", "対象学生が正しくありません。");
+    }
+    const userRef = db.collection("users").doc(target);
+    const [user, enrollment, attendance, progress, solved, referral] = await Promise.all([
+      userRef.get(),
+      userRef.collection("enrolledSubjects").get(),
+      userRef.collection("attendanceRecords").get(),
+      userRef.collection("examProgress").get(),
+      userRef.collection("solvedQuestions").get(),
+      referralAccountRef(target).get(),
+    ]);
+    if (!user.exists) {
+      throw new HttpsError("not-found", "対象学生が見つかりません。");
+    }
+    const enrollments = enrollment.docs
+      .map((item) => {
+        const data = item.data() || {};
+        return {
+          id: item.id,
+          name: String(data.name || data.subject || data.subjectKey || item.id),
+          status: String(data.status || "enrolled"),
+          academicYear: Number(data.academicYear || 0),
+          semester: String(data.registeredSemester || data.semester || ""),
+          credits: Number(data.credits || 0),
+          updatedAt: timestampMillis(data.updatedAt || data.registeredAt),
+        };
+      })
+      .sort((left, right) => left.name.localeCompare(right.name, "ja"));
+    const attendanceRecords = attendance.docs
+      .map((item) => {
+        const data = item.data() || {};
+        return {
+          id: item.id,
+          subject: String(data.subject || "科目未設定"),
+          date: String(data.date || ""),
+          period: Number(data.period || 0),
+          classGroup: String(data.classGroup || ""),
+          status: Object.hasOwn(ADMIN_ATTENDANCE_STATUSES, data.status)
+            ? data.status
+            : "unrecorded",
+          statusLabel: String(data.statusLabel || ""),
+          adminEditedAt: timestampMillis(data.adminEditedAt),
+          updatedAt: timestampMillis(data.updatedAt),
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.date.localeCompare(left.date) || right.period - left.period,
+      );
+    const testProgress = progress.docs
+      .map((item) => {
+        const data = item.data() || {};
+        const currentIndex = Math.max(0, Number(data.currentIndex || 0));
+        const questionOrder = Array.isArray(data.questionOrder)
+          ? data.questionOrder.map(String)
+          : [];
+        return {
+          id: item.id,
+          type: String(data.type || ""),
+          subjectId: String(data.subjectId || ""),
+          subjectName: String(data.subjectName || "名称未設定"),
+          unitId: String(data.unitId || ""),
+          currentIndex,
+          totalQuestions: Math.max(0, Number(data.totalQuestions || 0)),
+          currentQuestionId: String(questionOrder[currentIndex] || ""),
+          completed: data.completed === true,
+          updatedAt: timestampMillis(data.updatedAt || data.completedAt),
+        };
+      })
+      .sort((left, right) => right.updatedAt - left.updatedAt);
+    const solvedQuestions = solved.docs
+      .map((item) => {
+        const data = item.data() || {};
+        return {
+          id: item.id,
+          day: String(data.day || ""),
+          type: String(data.type || ""),
+          subjectId: String(data.subjectId || ""),
+          unitId: String(data.unitId || ""),
+          questionId: String(data.questionId || ""),
+          points: Number(data.points || 0),
+          correctAt: timestampMillis(data.correctAt),
+        };
+      })
+      .sort((left, right) => right.correctAt - left.correctAt)
+      .slice(0, 100);
+    const referralData = referral.data() || {};
+    const invitedCount = Math.min(
+      REFERRAL_MAX_INVITES,
+      Math.max(0, Number(referralData.invitedCount || 0)),
+    );
+    return {
+      enrollments,
+      attendanceRecords,
+      testProgress,
+      solvedQuestions,
+      referral: {
+        invitedCount,
+        milestones: serializeReferralMilestones(referralData.milestones, invitedCount),
+      },
+    };
+  },
+);
+
+exports.updateStudentFeatureAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const updatedBy = await requireEnabledCareMateAdmin(request);
+    const target = String(request.data?.studentNumber || "").trim();
+    const feature = String(request.data?.feature || "");
+    const documentId = String(request.data?.documentId || "").trim();
+    if (!/^\d{7}$/.test(target) || !documentId || documentId.includes("/")) {
+      throw new HttpsError("invalid-argument", "更新対象が正しくありません。");
+    }
+    const userRef = db.collection("users").doc(target);
+    if (!(await userRef.get()).exists) {
+      throw new HttpsError("not-found", "対象学生が見つかりません。");
+    }
+    if (feature === "enrollment") {
+      const status = String(request.data?.status || "");
+      const enrollmentRef = userRef.collection("enrolledSubjects").doc(documentId);
+      if (status === "not_enrolled") {
+        await enrollmentRef.delete();
+      } else if (status === "enrolled") {
+        const enrollment = await enrollmentRef.get();
+        if (!enrollment.exists) {
+          throw new HttpsError("not-found", "履修科目が見つかりません。");
+        }
+        await enrollmentRef.set(
+          {
+            status: "enrolled",
+            adminEditedAt: new Date(),
+            adminEditedBy: updatedBy,
+            updatedAt: new Date(),
+          },
+          { merge: true },
+        );
+      } else {
+        throw new HttpsError("invalid-argument", "履修状態が正しくありません。");
+      }
+      return { updated: true };
+    }
+    if (feature === "attendance") {
+      const status = String(request.data?.status || "");
+      if (!Object.hasOwn(ADMIN_ATTENDANCE_STATUSES, status)) {
+        throw new HttpsError("invalid-argument", "出席状態が正しくありません。");
+      }
+      const attendanceRef = userRef.collection("attendanceRecords").doc(documentId);
+      if (!(await attendanceRef.get()).exists) {
+        throw new HttpsError("not-found", "出席記録が見つかりません。");
+      }
+      await attendanceRef.set(
+        {
+          status,
+          statusLabel: ADMIN_ATTENDANCE_STATUSES[status],
+          statusFinalized: true,
+          adminEditedAt: new Date(),
+          adminEditedBy: updatedBy,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      return { updated: true };
+    }
+    if (feature === "examProgress") {
+      const currentIndex = Number(request.data?.currentIndex);
+      const completed = request.data?.completed === true;
+      if (!Number.isInteger(currentIndex) || currentIndex < 0) {
+        throw new HttpsError("invalid-argument", "問題番号が正しくありません。");
+      }
+      const progressRef = userRef.collection("examProgress").doc(documentId);
+      const progress = await progressRef.get();
+      if (!progress.exists) {
+        throw new HttpsError("not-found", "テスト進捗が見つかりません。");
+      }
+      const totalQuestions = Math.max(0, Number(progress.data()?.totalQuestions || 0));
+      if (totalQuestions > 0 && currentIndex >= totalQuestions) {
+        throw new HttpsError("invalid-argument", "問題番号が問題数を超えています。");
+      }
+      await progressRef.set(
+        {
+          currentIndex,
+          completed,
+          adminEditedAt: new Date(),
+          adminEditedBy: updatedBy,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      return { updated: true };
+    }
+    throw new HttpsError("invalid-argument", "更新できない機能です。");
   },
 );
 
