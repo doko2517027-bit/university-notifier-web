@@ -60,11 +60,6 @@ const departmentFilter = document.getElementById("departmentFilter");
 const gradeFilter = document.getElementById("gradeFilter");
 
 const statusFilter = document.getElementById("statusFilter");
-const appInstallFilter = document.getElementById("appInstallFilter");
-const appReinstallCount = document.getElementById("appReinstallCount");
-const notifyAppReinstallButton = document.getElementById(
-  "notifyAppReinstallButton",
-);
 
 const userTotalCount = document.getElementById("userTotalCount");
 
@@ -83,7 +78,6 @@ let users = [];
 let presenceStatuses = {};
 
 let presenceTimer = null;
-let deviceSummaryTimer = null;
 
 let stopUsersListener = null;
 
@@ -273,17 +267,13 @@ function setupEvents() {
     };
   }
 
-  [userSearchInput, departmentFilter, gradeFilter, statusFilter, appInstallFilter]
+  [userSearchInput, departmentFilter, gradeFilter, statusFilter]
     .filter(Boolean)
     .forEach((element) => {
       const eventName = element.tagName === "INPUT" ? "input" : "change";
 
       element.addEventListener(eventName, renderUsers);
     });
-
-  if (notifyAppReinstallButton) {
-    notifyAppReinstallButton.onclick = notifyStudentsNeedingAppReinstall;
-  }
 
   if (userList) {
     userList.addEventListener("click", async (event) => {
@@ -449,11 +439,6 @@ async function initializeDeviceRiskSummariesIfAuthorized() {
       loadDeviceRiskSummaries(),
       loadRegisteredAdminIds(),
     ]);
-    clearInterval(deviceSummaryTimer);
-    deviceSummaryTimer = setInterval(
-      () => loadDeviceRiskSummaries(false),
-      60 * 1000,
-    );
   } catch (error) {
     console.error("端末確認サマリー初期化エラー:", error);
     deviceAuditEnabled = false;
@@ -557,7 +542,6 @@ function getFilteredUsers() {
   const selectedGrade = gradeFilter?.value || "";
 
   const selectedStatus = statusFilter?.value || "";
-  const selectedAppInstallStatus = appInstallFilter?.value || "";
 
   return users.filter((user) => {
     const presence = getPrimaryPresenceDevice(
@@ -587,18 +571,13 @@ function getFilteredUsers() {
       !selectedGrade || String(user.grade || "") === selectedGrade;
 
     const matchesStatus = !selectedStatus || statusKey === selectedStatus;
-    const appInstallStatus = getAppInstallStatus(user.id);
-    const matchesAppInstall =
-      !selectedAppInstallStatus ||
-      appInstallStatus === selectedAppInstallStatus;
 
     return (
       matchesAdminScope(user, adminScope) &&
       matchesKeyword &&
       matchesDepartment &&
       matchesGrade &&
-      matchesStatus &&
-      matchesAppInstall
+      matchesStatus
     );
   });
 }
@@ -661,7 +640,6 @@ function createUserHtml(user) {
   const adminRegistrationHtml = createAdminRegistrationHtml(user.id);
 
   const updateCheckHtml = createStudentUpdateCheckHtml(user.id);
-  const appInstallBadgeHtml = createAppInstallBadgeHtml(user.id);
 
   return `
         <div class="admin-user-item">
@@ -705,8 +683,6 @@ function createUserHtml(user) {
 
                 ${deviceSummaryHtml}
 
-                ${appInstallBadgeHtml}
-
                 ${deviceAuditEnabled ? `<div class="admin-user-presence-detail">
                     ${createPresenceDeviceHtml(presenceEntries)}
 
@@ -737,55 +713,6 @@ function createUserHtml(user) {
 
         </div>
     `;
-}
-
-function getAppInstallStatus(studentId) {
-  const summary = deviceRiskSummaries[studentId] || {};
-  return summary.appInstallStatus === "current" &&
-    summary.appInstallGeneration === "20261001-medical-icon"
-    ? "current"
-    : "needs-reinstall";
-}
-
-function createAppInstallBadgeHtml(studentId) {
-  if (!deviceAuditEnabled || deviceSummaryLoadState !== "ready") return "";
-  const current = getAppInstallStatus(studentId) === "current";
-  return `
-    <div class="admin-app-install-badge ${current ? "is-current" : "is-required"}">
-      ${current ? "✅ 最新アイコン確認済み" : "🔄 再インストール要確認"}
-    </div>
-  `;
-}
-
-async function notifyStudentsNeedingAppReinstall() {
-  if (!deviceAuditEnabled || !notifyAppReinstallButton) return;
-  const targets = users.filter(
-    (user) => getAppInstallStatus(user.id) === "needs-reinstall",
-  );
-  if (!targets.length) {
-    alert("再インストール要確認の学生はいません。");
-    return;
-  }
-  if (
-    !confirm(
-      `${targets.length}人へCareMateの再インストール案内を送信しますか？`,
-    )
-  ) {
-    return;
-  }
-  notifyAppReinstallButton.disabled = true;
-  notifyAppReinstallButton.textContent = "通知送信中…";
-  try {
-    const notify = httpsCallable(functions, "notifyStudentsNeedingAppReinstall");
-    const result = await notify();
-    showToast(`${Number(result.data?.targetCount || 0)}人へ案内を送信しました`);
-  } catch (error) {
-    console.error("再インストール案内送信エラー:", error);
-    alert("案内を送信できませんでした。時間をおいて再度お試しください。");
-  } finally {
-    notifyAppReinstallButton.disabled = false;
-    notifyAppReinstallButton.textContent = "対象学生へ通知";
-  }
 }
 
 function createStudentUpdateCheckHtml(studentNumber) {
@@ -1315,13 +1242,6 @@ function updateSummary() {
 
     offlineUserCount.title = `オフライン ${offlineCount}人 / 接続履歴なし ${unknownCount}人`;
   }
-
-  if (appReinstallCount) {
-    const count = users.filter(
-      (user) => getAppInstallStatus(user.id) === "needs-reinstall",
-    ).length;
-    appReinstallCount.textContent = `${count}人`;
-  }
 }
 
 function getPresenceStatusKey(presence) {
@@ -1500,7 +1420,6 @@ function escapeHtml(value) {
 
 window.addEventListener("beforeunload", () => {
   clearInterval(presenceTimer);
-  clearInterval(deviceSummaryTimer);
 
   if (stopUsersListener) {
     stopUsersListener();

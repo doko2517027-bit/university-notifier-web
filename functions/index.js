@@ -57,18 +57,6 @@ const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
 
 const PRESENCE_DEVICE_MIGRATION_VERSION = 1;
-const CURRENT_APP_INSTALL_GENERATION = "20261001-medical-icon";
-
-function appInstallReportFromRequest(request) {
-  return {
-    appInstallGeneration: String(
-      request.data?.appInstallGeneration || "",
-    ).slice(0, 80),
-    appInstallConfirmed: request.data?.appInstallConfirmed === true,
-    appStandalone: request.data?.appStandalone === true,
-    currentAppInstallGeneration: CURRENT_APP_INSTALL_GENERATION,
-  };
-}
 
 async function pruneLegacyPresenceDevices(studentNumber) {
   const sessionRef = db.collection("userDeviceSessions").doc(studentNumber);
@@ -304,7 +292,6 @@ exports.authenticateCareMate = onCall(
           deviceId,
           rawRequest: request.rawRequest,
           eventType: "login",
-          ...appInstallReportFromRequest(request),
         });
         await pruneLegacyPresenceDevices(studentNumber);
       } catch (error) {
@@ -839,7 +826,6 @@ exports.touchCareMateDevice = onCall(
         eventType: "activity",
         authTimeMillis:
           Number(request.auth?.token?.auth_time || 0) * 1000,
-        ...appInstallReportFromRequest(request),
       });
 
       await pruneLegacyPresenceDevices(studentNumber);
@@ -1231,79 +1217,6 @@ async function sendToUserDevices(
   }
   return results;
 }
-
-// 旧ホーム画面アイコンの可能性がある学生へ、入れ直し案内を送る。
-// 実際のインストール世代を確認できた学生は自動的に対象外になる。
-exports.notifyStudentsNeedingAppReinstall = onCall(
-  {
-    region: "asia-northeast1",
-    cors: [SITE_ORIGIN],
-    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
-  },
-  async (request) => {
-    const requestedBy = await requirePrimaryDeviceAuditAdmin(request);
-    const [usersSnapshot, sessionsSnapshot] = await Promise.all([
-      db.collection("users").get(),
-      db.collection("userDeviceSessions").get(),
-    ]);
-    const currentStudents = new Set(
-      sessionsSnapshot.docs
-        .filter(
-          (item) =>
-            item.data()?.appInstallStatus === "current" &&
-            item.data()?.appInstallGeneration ===
-              CURRENT_APP_INSTALL_GENERATION,
-        )
-        .map((item) => item.id),
-    );
-    const targets = usersSnapshot.docs.filter(
-      (item) => !currentStudents.has(item.id),
-    );
-    const newsId = `app-reinstall-${Date.now()}`;
-    const title = "CareMateを最新版へ入れ直してください";
-    const body =
-      "ホーム画面の古いCareMateを削除し、CareMateサイトをSafariまたはChromeで開いて、もう一度ホーム画面へ追加してください。時間割などの学生データは消えません。";
-
-    webpush.setVapidDetails(
-      "mailto:kidokohei.shonaniryo2517027@gmail.com",
-      WEB_PUSH_PUBLIC_KEY.value(),
-      WEB_PUSH_PRIVATE_KEY.value(),
-    );
-
-    const results = [];
-    for (const userDoc of targets) {
-      await userDoc.ref.collection("targetedSystemNews").doc(newsId).set({
-        title,
-        body,
-        attachments: [],
-        author: requestedBy,
-        createdAt: new Date(),
-        important: true,
-        sourceNewsId: newsId,
-      });
-      results.push({
-        studentNumber: userDoc.id,
-        results: await sendToUserDevices(userDoc.id, {
-          title: `🔄 ${title}`,
-          body,
-          url: `${SITE_URL}/news.html?systemNews=${encodeURIComponent(newsId)}`,
-          tag: `app-reinstall-${CURRENT_APP_INSTALL_GENERATION}`,
-        }),
-      });
-    }
-
-    await db.collection("privateAdminSettings").doc("appReinstallCampaign").set(
-      {
-        generation: CURRENT_APP_INSTALL_GENERATION,
-        lastSentAt: new Date(),
-        lastSentBy: requestedBy,
-        lastTargetCount: targets.length,
-      },
-      { merge: true },
-    );
-    return { targetCount: targets.length, results };
-  },
-);
 
 // 2510044が設定した月額アラートを1日1回確認する。
 // 同じ月・同じ金額では重複通知せず、未設定時は外部請求データを照会しない。

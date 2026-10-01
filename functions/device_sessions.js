@@ -528,10 +528,6 @@ function createDeviceSessionStore(db, FieldValue) {
     rawRequest,
     eventType = "activity",
     authTimeMillis = 0,
-    appInstallGeneration = "",
-    appInstallConfirmed = false,
-    appStandalone = false,
-    currentAppInstallGeneration = "",
   }) {
     const deviceId = normalizeDeviceId(rawDeviceId);
     if (!deviceId) return { recorded: false, reason: "invalid-device-id" };
@@ -545,9 +541,8 @@ function createDeviceSessionStore(db, FieldValue) {
       .doc(studentNumber)
       .collection("loginDevices")
       .doc(deviceId);
-    const [existingSnapshot, accountSnapshot, forceLogoutState] = await Promise.all([
+    const [existingSnapshot, forceLogoutState] = await Promise.all([
       deviceRef.get(),
-      rootCollection.doc(studentNumber).get(),
       readForceLogoutState(studentNumber, deviceId, authTimeMillis),
     ]);
 
@@ -583,24 +578,6 @@ function createDeviceSessionStore(db, FieldValue) {
       ),
       updatedAt: now,
     };
-
-    const normalizedInstallGeneration = cleanText(appInstallGeneration, 80);
-    const normalizedCurrentGeneration = cleanText(
-      currentAppInstallGeneration,
-      80,
-    );
-    const currentInstallConfirmed = Boolean(
-      appStandalone === true &&
-      appInstallConfirmed === true &&
-      normalizedInstallGeneration &&
-      normalizedInstallGeneration === normalizedCurrentGeneration,
-    );
-    if (normalizedInstallGeneration) {
-      data.appInstallGeneration = normalizedInstallGeneration;
-      data.appInstallConfirmed = currentInstallConfirmed;
-      data.appStandalone = appStandalone === true;
-      data.appInstallReportedAt = now;
-    }
 
     if (timestampToMillis(authTimeMillis) > 0) {
       data.lastAuthenticatedAt = new Date(timestampToMillis(authTimeMillis));
@@ -646,27 +623,6 @@ function createDeviceSessionStore(db, FieldValue) {
     }
 
     await deviceRef.set(data, { merge: true });
-    if (normalizedInstallGeneration) {
-      const accountAlreadyCurrent =
-        accountSnapshot.data()?.appInstallStatus === "current" &&
-        accountSnapshot.data()?.appInstallGeneration ===
-          normalizedCurrentGeneration;
-      const installSummary = {
-        appInstallLastReportedAt: now,
-        appInstallLastDeviceId: deviceId,
-      };
-      if (currentInstallConfirmed) {
-        installSummary.appInstallStatus = "current";
-        installSummary.appInstallGeneration = normalizedInstallGeneration;
-        installSummary.appInstallConfirmedAt = now;
-      } else if (!accountAlreadyCurrent) {
-        installSummary.appInstallStatus = "needs-reinstall";
-        installSummary.appInstallGeneration = normalizedInstallGeneration;
-      }
-      await rootCollection.doc(studentNumber).set(installSummary, {
-        merge: true,
-      });
-    }
     const risk = await refreshRiskSummary(studentNumber);
     return { recorded: true, risk };
   }
@@ -835,14 +791,6 @@ function createDeviceSessionStore(db, FieldValue) {
         activeDeviceCount: Number(data.activeDeviceCount || 0),
         recentDeviceCount: Number(data.recentDeviceCount || 0),
         riskEvaluatedAt: timestampToMillis(data.riskEvaluatedAt),
-        appInstallStatus: cleanText(data.appInstallStatus, 40),
-        appInstallGeneration: cleanText(data.appInstallGeneration, 80),
-        appInstallConfirmedAt: timestampToMillis(
-          data.appInstallConfirmedAt,
-        ),
-        appInstallLastReportedAt: timestampToMillis(
-          data.appInstallLastReportedAt,
-        ),
       };
     });
   }

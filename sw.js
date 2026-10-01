@@ -12,18 +12,11 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v64";
+const STATIC_CACHE = "caremate-static-v65";
 
-const RUNTIME_CACHE = "caremate-runtime-v64";
+const RUNTIME_CACHE = "caremate-runtime-v65";
 
-const INSTALL_STATUS_CACHE = "caremate-install-status-v1";
-const INSTALL_GENERATION = "20261001-medical-icon";
-const INSTALL_STATUS_URL = new URL(
-  "__caremate_install_status__",
-  self.registration.scope,
-).href;
-
-const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE, INSTALL_STATUS_CACHE];
+const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
 /*
 確実に存在する主要ファイルだけ
@@ -40,7 +33,7 @@ const CORE_ASSETS = [
 
   "offline.html",
 
-  "style.css?v=20261001-7",
+  "style.css?v=20261001-6",
 
   "loading_indicator.js?v=20260929-7",
 
@@ -74,7 +67,7 @@ const CORE_ASSETS = [
 
   "users_admin.html",
 
-  "users_admin.js?v=20261001-10",
+  "users_admin.js?v=20261001-9",
 
   "push_subscription.js",
 
@@ -136,7 +129,7 @@ const CORE_ASSETS = [
 
   "images/default.png",
 
-  "icon-192.png?v=20261001-medical",
+  "icon-192.png",
 ];
 
 /* ========================================
@@ -146,32 +139,6 @@ const CORE_ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
-      const cacheKeysBeforeInstall = await caches.keys();
-      const installStatusCache = await caches.open(INSTALL_STATUS_CACHE);
-      const existingInstallStatus = await installStatusCache.match(
-        INSTALL_STATUS_URL,
-      );
-      if (!existingInstallStatus) {
-        const hadPreviousCareMateCache = cacheKeysBeforeInstall.some(
-          (cacheName) =>
-            cacheName.startsWith("caremate-static-") ||
-            cacheName.startsWith("caremate-runtime-"),
-        );
-        await installStatusCache.put(
-          INSTALL_STATUS_URL,
-          new Response(
-            JSON.stringify({
-              generation: hadPreviousCareMateCache
-                ? "legacy"
-                : INSTALL_GENERATION,
-              confirmed: !hadPreviousCareMateCache,
-              detectedAt: Date.now(),
-            }),
-            { headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
       const cache = await caches.open(STATIC_CACHE);
 
       /*
