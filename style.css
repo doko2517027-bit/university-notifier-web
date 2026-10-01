@@ -20591,12 +20591,14 @@ course-tagが付いたspanには適用しない。
 ================================ */
 .home-weather-search-row:has(#homeReferralCard) {
   display: grid;
-  grid-template-columns: minmax(145px, .85fr) minmax(170px, 1fr) minmax(210px, 1.15fr);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: center;
   gap: 9px;
 }
 .home-referral-compact {
   min-width: 0;
+  max-width: 100%;
+  justify-self: start;
   border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
   border-radius: 14px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, var(--card)), var(--card));
@@ -20671,12 +20673,17 @@ course-tagが付いたspanには適用しない。
 .referral-reward-actions small { color: var(--subtext); }
 
 @media (max-width: 760px) {
-  .home-weather-search-row:has(#homeReferralCard) { grid-template-columns: 1fr 1fr; }
-  .home-weather-search-row:has(#homeReferralCard) .home-search-form { grid-column: 1 / -1; }
-  .home-weather-search-row:has(#homeReferralCard) .home-search-form input { width: 100%; }
   .referral-admin-summary { grid-template-columns: 1fr; }
   .referral-reward-actions { align-items: stretch; flex-direction: column; }
   .referral-reward-actions .btn { width: 100%; }
+}
+@media (max-width: 560px) {
+  .home-weather-search-row:has(#homeReferralCard) {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .home-referral-compact { align-self: flex-start; }
 }
 @media (max-width: 420px) {
   .home-referral-compact { padding-inline: 9px; }
