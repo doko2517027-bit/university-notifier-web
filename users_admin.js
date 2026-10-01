@@ -98,10 +98,8 @@ let deviceDetailsByStudent = {};
 let registeredAdminIds = new Set();
 
 let adminRegistrationLoadState = "hidden";
-const presenceDisplayOptions = () => ({
-  now: Date.now(),
-  offlineRetentionMs: 15 * 60 * 1000,
-});
+// 明示的にログアウトするまでは、最後に使った端末をオフライン表示で残す。
+const presenceDisplayOptions = () => ({});
 
 const adminScope = readAdminScopeFromUrl();
 

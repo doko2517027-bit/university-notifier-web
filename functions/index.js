@@ -53,7 +53,6 @@ const adminAuth = getAuth();
 
 const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 
-const { buildStalePresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
 
 const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
@@ -962,17 +961,6 @@ exports.cleanupStaleLoginDevices = onSchedule(
     console.log("古いログイン端末情報を削除しました", result);
 
     const realtimeDb = require("firebase-admin/database").getDatabase();
-    const presenceSnapshot = await realtimeDb.ref("status").get();
-    const presenceUpdates = buildStalePresenceUpdates(
-      presenceSnapshot.val() || {},
-    );
-    if (Object.keys(presenceUpdates).length) {
-      await realtimeDb.ref().update(presenceUpdates);
-      console.log(
-        `古いリアルタイム監視情報を削除: ${Object.keys(presenceUpdates).length}件`,
-      );
-    }
-
     // 新しいジョブを増やさず、既存の日次処理で卒業・退学後30日の保持期限を適用する。
     const now = new Date();
     const snapshot = await db.collection("users")

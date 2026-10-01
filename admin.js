@@ -22,6 +22,7 @@ import {
   showToast,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
+  logoutCareMateSession,
 } from "./common.js";
 
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -488,14 +489,12 @@ function setupEvents() {
   }
 
   if (logoutButton) {
-    logoutButton.onclick = () => {
+    logoutButton.onclick = async () => {
       if (!confirm("ログアウトしますか？")) {
         return;
       }
 
-      localStorage.removeItem("loggedIn");
-
-      location.href = "login.html";
+      await logoutCareMateSession();
     };
   }
 

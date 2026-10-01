@@ -67,14 +67,17 @@ test("旧形式と端末別形式が混在しても全端末の画面を表示�
   );
 });
 
-test("リアルタイム監視では古いオフライン接続を現在端末として残さない", () => {
+test("ログアウトしていない端末は時間が経ってもオフライン表示に残す", () => {
   const entries = normalizePresenceDevices(
     {
       current: { state: "online", lastChanged: 1_000_000, pageName: "ホーム" },
       recent: { state: "offline", lastChanged: 950_000, pageName: "設定" },
       stale: { state: "offline", lastChanged: 1, pageName: "古い画面" },
     },
-    { now: 1_000_000, offlineRetentionMs: 100_000 },
   );
-  assert.deepEqual(entries.map((item) => item.deviceId).sort(), ["current", "recent"]);
+  assert.deepEqual(entries.map((item) => item.deviceId).sort(), [
+    "current",
+    "recent",
+    "stale",
+  ]);
 });

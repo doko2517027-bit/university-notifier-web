@@ -17,6 +17,8 @@ import {
   updateNewsNavBadge,
   encryptData,
   clearCareMateStoragePreservingDeviceId,
+  logoutCareMateSession,
+  removeCurrentCareMatePresence,
 } from "./common.js";
 
 import {
@@ -292,6 +294,7 @@ document.getElementById("saveCareMatePassword").onclick = async () => {
     confirmInput.value = "";
     localStorage.removeItem("loggedIn");
     try {
+      await removeCurrentCareMatePresence();
       await signOut(auth);
     } catch (signOutError) {
       console.warn("パスワード変更後のログアウトエラー:", signOutError);
@@ -344,6 +347,7 @@ document.getElementById("unregister").addEventListener("click", async () => {
   }
 
   try {
+    await removeCurrentCareMatePresence();
     if (studentNumber) {
       await deleteDoc(doc(db, "users", studentNumber));
 
@@ -364,14 +368,12 @@ document.getElementById("unregister").addEventListener("click", async () => {
   location.href = "register.html";
 });
 
-document.getElementById("logout").addEventListener("click", () => {
+document.getElementById("logout").addEventListener("click", async () => {
   if (!confirm("ログアウトしますか？")) {
     return;
   }
 
-  localStorage.removeItem("loggedIn");
-
-  location.href = "login.html";
+  await logoutCareMateSession();
 });
 
 async function loadnotificationSettings() {

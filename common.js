@@ -5,6 +5,7 @@ import {
   ref,
   set,
   update,
+  remove,
   onValue,
   onDisconnect,
   serverTimestamp as databaseServerTimestamp,
@@ -233,10 +234,44 @@ function getCareMateAuthenticationTimeMillis(tokenResult) {
 
 let forceLogoutInProgress = false;
 
+export async function removeCurrentCareMatePresence() {
+  if (!/^\d{7}$/.test(String(studentNumber || ""))) return;
+  const deviceId = getOrCreateCareMateDeviceId();
+  const statusRef = ref(realtimeDb, `status/${studentNumber}/${deviceId}`);
+  try {
+    await Promise.race([
+      (async () => {
+        await onDisconnect(statusRef).cancel();
+        await remove(statusRef);
+      })(),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]);
+  } catch (error) {
+    // ログアウト自体は妨げず、認証が残っている間だけ削除を試みる。
+    console.warn("端末の接続状態を削除できませんでした:", error);
+  }
+}
+
+export async function logoutCareMateSession(redirectTo = "login.html") {
+  await removeCurrentCareMatePresence();
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem(DEVICE_TOUCH_LAST_SUCCESS_KEY);
+  localStorage.removeItem(DEVICE_TOUCH_PENDING_KEY);
+  localStorage.removeItem(FORCE_LOGOUT_CHECK_STORAGE_KEY);
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.warn("Firebase認証のログアウトに失敗しました:", error);
+  } finally {
+    location.replace(redirectTo);
+  }
+}
+
 async function forceLogoutCurrentCareMateDevice() {
   if (forceLogoutInProgress) return;
 
   forceLogoutInProgress = true;
+  await removeCurrentCareMatePresence();
   localStorage.removeItem("loggedIn");
   localStorage.removeItem(DEVICE_TOUCH_LAST_SUCCESS_KEY);
   localStorage.removeItem(DEVICE_TOUCH_PENDING_KEY);
