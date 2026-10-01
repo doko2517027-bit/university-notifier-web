@@ -10,7 +10,7 @@
 
     <title>ユーザー管理 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261001-6" />
+    <link rel="stylesheet" href="style.css?v=20261001-7" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -84,6 +84,11 @@
 
         <strong id="offlineUserCount"> -- </strong>
       </div>
+
+      <div class="card setting-card admin-user-summary-card primary-admin-only" hidden>
+        <small>再インストール要確認</small>
+        <strong id="appReinstallCount"> -- </strong>
+      </div>
     </div>
 
     <h2>🔍 学生検索</h2>
@@ -156,6 +161,25 @@
             <option value="unknown">接続履歴なし</option>
           </select>
         </div>
+
+        <div class="primary-admin-only" hidden>
+          <label for="appInstallFilter"><b>アプリアイコン</b></label>
+          <select id="appInstallFilter">
+            <option value="">すべて</option>
+            <option value="needs-reinstall">再インストール要確認</option>
+            <option value="current">最新確認済み</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin-app-reinstall-actions primary-admin-only" hidden>
+        <div>
+          <b>CareMateアイコン更新</b>
+          <small>確認できていない学生だけに、入れ直し案内を送信します。</small>
+        </div>
+        <button id="notifyAppReinstallButton" class="btn" type="button">
+          対象学生へ通知
+        </button>
       </div>
     </div>
 
@@ -229,6 +253,6 @@
       </a>
     </nav>
 
-    <script type="module" src="users_admin.js?v=20261001-9"></script>
+    <script type="module" src="users_admin.js?v=20261001-10"></script>
   </body>
 </html>

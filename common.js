@@ -115,6 +115,8 @@ export const studentNumber = localStorage.getItem("studentNumber");
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
 const DEVICE_ID_COOKIE_KEY = "careMateDeviceId";
+const APP_INSTALL_GENERATION = "20261001-medical-icon";
+const APP_INSTALL_STATUS_CACHE = "caremate-install-status-v1";
 const FORCE_LOGOUT_CHECK_STORAGE_KEY = "careMateForceLogoutCheckedAt";
 const FORCE_LOGOUT_CHECK_INTERVAL_MS = 60 * 1000;
 const PUSH_REFRESH_STORAGE_KEY = "careMatePushRefreshAt";
@@ -176,10 +178,12 @@ export async function signInCareMateAuth(studentNumber, password) {
     timeout: 30000,
   });
 
+  const installReport = await readCareMateInstallReport();
   const result = await authenticateCareMate({
     studentNumber: String(studentNumber || "").trim(),
     password: String(password || ""),
     deviceId: getOrCreateCareMateDeviceId(),
+    ...installReport,
   });
 
   await signInWithCustomToken(auth, result.data.token);
@@ -444,7 +448,8 @@ const runCareMateDeviceTouch = createCareMateDeviceTouchController({
   getDeviceId: getOrCreateCareMateDeviceId,
   sendTouch: async (deviceId) => {
     const touchDevice = httpsCallable(functions, "touchCareMateDevice");
-    const result = await touchDevice({ deviceId });
+    const installReport = await readCareMateInstallReport();
+    const result = await touchDevice({ deviceId, ...installReport });
 
     if (result.data?.forceLogout === true) {
       await forceLogoutCurrentCareMateDevice();
@@ -458,6 +463,36 @@ const runCareMateDeviceTouch = createCareMateDeviceTouchController({
     console.warn("端末の最終利用時刻を更新できませんでした:", error);
   },
 });
+
+async function readCareMateInstallReport() {
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)")?.matches === true ||
+    window.navigator.standalone === true;
+  let marker = null;
+  try {
+    if ("caches" in window && "serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      const markerUrl = new URL(
+        "__caremate_install_status__",
+        registration.scope,
+      ).href;
+      const cache = await caches.open(APP_INSTALL_STATUS_CACHE);
+      const response = await cache.match(markerUrl);
+      if (response) marker = await response.json();
+    }
+  } catch (error) {
+    console.warn("アプリのインストール世代を確認できませんでした:", error);
+  }
+
+  return {
+    appInstallGeneration: String(marker?.generation || "legacy").slice(0, 80),
+    appInstallConfirmed:
+      standalone === true &&
+      marker?.confirmed === true &&
+      marker?.generation === APP_INSTALL_GENERATION,
+    appStandalone: standalone === true,
+  };
+}
 
 export async function touchCareMateDevice() {
   return runCareMateDeviceTouch();

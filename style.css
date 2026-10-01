@@ -3439,6 +3439,43 @@ body.page-busy::after{
     font-weight: 800;
 }
 
+.admin-app-reinstall-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px solid color-mix(in srgb, #e5a724 36%, var(--border));
+    border-radius: 14px;
+    background: color-mix(in srgb, #e5a724 8%, var(--card));
+}
+.admin-app-reinstall-actions > div { display: grid; gap: 4px; }
+.admin-app-reinstall-actions small { color: var(--subtext); line-height: 1.5; }
+.admin-app-reinstall-actions .btn { flex: 0 0 auto; margin: 0; }
+.admin-app-install-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin: 8px 0 4px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+.admin-app-install-badge.is-required {
+    background: color-mix(in srgb, #e5a724 16%, var(--card));
+    color: #a46800;
+}
+.admin-app-install-badge.is-current {
+    background: color-mix(in srgb, #20ad72 14%, var(--card));
+    color: #128052;
+}
+@media (max-width: 640px) {
+    .admin-app-reinstall-actions { align-items: stretch; flex-direction: column; }
+    .admin-app-reinstall-actions .btn { width: 100%; }
+}
+
 
 /* ダークモード */
 
