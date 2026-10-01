@@ -15,11 +15,6 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 const $ = (id) => document.getElementById(id);
 let dashboard = null;
 
-if (studentNumber === "2510044") {
-  location.replace("index.html");
-  throw new Error("総管理者は紹介制度の対象外です。");
-}
-
 setupTheme($("themeButton"));
 $("backButton").onclick = () => location.assign("index.html");
 $("profileButton").onclick = () => location.assign("profile.html");

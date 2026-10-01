@@ -519,12 +519,6 @@ exports.getReferralDashboard = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
-    if (studentNumber === "2510044") {
-      throw new HttpsError(
-        "permission-denied",
-        "総管理者は紹介制度の対象外です。",
-      );
-    }
     await ensureReferralIdentityForCurrentUser(studentNumber);
     const accountRef = referralAccountRef(studentNumber);
     const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
@@ -582,12 +576,6 @@ exports.issueReferralCode = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
-    if (studentNumber === "2510044") {
-      throw new HttpsError(
-        "permission-denied",
-        "総管理者は招待コードを発行できません。",
-      );
-    }
     await ensureReferralIdentityForCurrentUser(studentNumber);
     const accountRef = referralAccountRef(studentNumber);
     const newCode = createReferralCode();
@@ -683,12 +671,6 @@ exports.prepareReferralRegistration = onCall(
         "招待コードまたは本人確認情報が不足しています。",
       );
     }
-    if (studentNumber === "2510044") {
-      throw new HttpsError(
-        "failed-precondition",
-        "総管理者は紹介制度の対象外です。",
-      );
-    }
     await enforceReferralRateLimit(request, studentNumber);
     const pageProofRef = db
       .collection("registrationVerificationProofs")
@@ -720,8 +702,7 @@ exports.prepareReferralRegistration = onCall(
     if (
       !codeSnapshot.exists ||
       !isReferralCodeUsable(codeData) ||
-      codeData.inviterStudentNumber === studentNumber ||
-      codeData.inviterStudentNumber === "2510044"
+      codeData.inviterStudentNumber === studentNumber
     ) {
       throw new HttpsError(
         "failed-precondition",
@@ -854,7 +835,7 @@ exports.completeReferralRegistration = onCall(
         inviterStudentNumber: null,
         referralCountedAt: null,
       };
-      if (!referralProofToken || studentNumber === "2510044") {
+      if (!referralProofToken) {
         transaction.create(identityRef, baseIdentity);
         transaction.set(
           pageProofRef,
@@ -902,7 +883,6 @@ exports.completeReferralRegistration = onCall(
         !isReferralCodeUsable(code) ||
         code.inviterStudentNumber !== inviter ||
         inviter === studentNumber ||
-        inviter === "2510044" ||
         invitedCount >= REFERRAL_MAX_INVITES ||
         historySnapshot.exists
       ) {
@@ -1052,9 +1032,6 @@ exports.claimReferralGift = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
-    if (studentNumber === "2510044") {
-      throw new HttpsError("permission-denied", "紹介制度の対象外です。");
-    }
     const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
     const accountRef = referralAccountRef(studentNumber);
     return db.runTransaction(async (transaction) => {

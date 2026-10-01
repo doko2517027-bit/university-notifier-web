@@ -527,13 +527,13 @@ async function startApp() {
 }
 
 function setupHomeReferral() {
-  if (!homeReferralCard || studentNumber === "2510044") return;
+  if (!homeReferralCard) return;
   homeReferralCard.hidden = false;
   homeReferralCard.onclick = () => location.assign("referral.html");
 }
 
 async function loadHomeReferralSummary() {
-  if (!homeReferralCard || studentNumber === "2510044") return;
+  if (!homeReferralCard) return;
   try {
     const call = httpsCallable(functions, "getReferralDashboard");
     const result = await call();
