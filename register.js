@@ -5,7 +5,12 @@ import {
   encryptData,
   signInCareMateAuth,
   refreshAdminClaim,
+  auth,
+  functions,
 } from "./common.js";
+
+import { signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
   doc,
@@ -42,6 +47,57 @@ const appPassword = document.getElementById("appPassword");
 const appPasswordConfirm = document.getElementById("appPasswordConfirm");
 const button = document.getElementById("subscribe");
 const registered = localStorage.getItem("registered");
+const studentRoleButton = document.getElementById("studentRoleButton");
+const guardianRoleButton = document.getElementById("guardianRoleButton");
+const guardianRegistration = document.getElementById("guardianRegistration");
+const studentRegistrationSections = [...document.querySelectorAll(".student-registration-section")];
+
+function selectRegistrationRole(role) {
+  const guardian = role === "guardian";
+  studentRegistrationSections.forEach((section) => { section.hidden = guardian; });
+  guardianRegistration.hidden = !guardian;
+  studentRoleButton.classList.toggle("btn-primary", !guardian);
+  studentRoleButton.classList.toggle("is-active", !guardian);
+  guardianRoleButton.classList.toggle("btn-primary", guardian);
+  guardianRoleButton.classList.toggle("is-active", guardian);
+}
+
+studentRoleButton.addEventListener("click", () => selectRegistrationRole("student"));
+guardianRoleButton.addEventListener("click", () => selectRegistrationRole("guardian"));
+
+document.getElementById("guardianSubscribe").addEventListener("click", async (event) => {
+  const guardianButton = event.currentTarget;
+  const linkedStudentNumber = document.getElementById("guardianStudentNumber").value.trim();
+  const inviteCode = document.getElementById("guardianInviteCode").value.trim();
+  const displayName = document.getElementById("guardianDisplayName").value.trim();
+  const password = document.getElementById("guardianPassword").value;
+  const confirmation = document.getElementById("guardianPasswordConfirm").value;
+  if (!/^\d{7}$/.test(linkedStudentNumber) || !inviteCode || !displayName || password.length < 6) {
+    alert("学籍番号・連携コード・お名前・6文字以上のパスワードを入力してください。");
+    return;
+  }
+  if (password !== confirmation) {
+    alert("保護者用パスワードが一致しません。");
+    return;
+  }
+  guardianButton.disabled = true;
+  guardianButton.textContent = "登録中…";
+  try {
+    const registerGuardianAccount = httpsCallable(functions, "registerGuardianAccount");
+    const result = await registerGuardianAccount({ studentNumber: linkedStudentNumber, inviteCode, displayName, password });
+    await signInWithCustomToken(auth, result.data.token);
+    localStorage.clear();
+    localStorage.setItem("careMateRole", "guardian");
+    localStorage.setItem("guardianLoggedIn", "true");
+    localStorage.setItem("guardianStudentNumber", linkedStudentNumber);
+    location.href = "guardian_timetable.html";
+  } catch (error) {
+    console.error("保護者登録エラー:", error);
+    alert(error?.message || "保護者登録に失敗しました。連携コードを確認してください。");
+    guardianButton.disabled = false;
+    guardianButton.textContent = "保護者として登録";
+  }
+});
 
 document.getElementById("backButton").onclick = () => {
   location.href = "login.html";
@@ -361,6 +417,9 @@ button.addEventListener("click", async () => {
 
       await refreshAdminClaim();
 
+      localStorage.removeItem("careMateRole");
+      localStorage.removeItem("guardianLoggedIn");
+      localStorage.removeItem("guardianStudentNumber");
       localStorage.setItem("registered", "true");
       localStorage.setItem("department", selectedDepartment);
       localStorage.setItem("major", selectedMajor);
@@ -441,6 +500,9 @@ button.addEventListener("click", async () => {
 
     await refreshAdminClaim();
 
+    localStorage.removeItem("careMateRole");
+    localStorage.removeItem("guardianLoggedIn");
+    localStorage.removeItem("guardianStudentNumber");
     localStorage.setItem("registered", "true");
     localStorage.setItem("department", selectedDepartment);
     localStorage.setItem("major", selectedMajor);

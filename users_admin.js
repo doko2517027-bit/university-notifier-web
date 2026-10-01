@@ -72,6 +72,14 @@ const offlineUserCount = document.getElementById("offlineUserCount");
 const filteredUserCount = document.getElementById("filteredUserCount");
 
 const userList = document.getElementById("userList");
+const studentUsersTab = document.getElementById("studentUsersTab");
+const guardianUsersTab = document.getElementById("guardianUsersTab");
+const studentManagementView = document.getElementById("studentManagementView");
+const guardianManagementView = document.getElementById("guardianManagementView");
+const guardianUserList = document.getElementById("guardianUserList");
+const guardianUserCount = document.getElementById("guardianUserCount");
+let guardianUsers = [];
+let guardiansLoaded = false;
 
 let users = [];
 
@@ -131,7 +139,7 @@ if (gradeFilter) {
 
 startUsersListener();
 
-startPresenceListener();
+if (deviceAuditEnabled) startPresenceListener();
 
 setupEvents();
 
@@ -202,6 +210,9 @@ function startPresenceListener() {
 }
 
 function setupEvents() {
+  studentUsersTab?.addEventListener("click", () => selectUserManagementTab("student"));
+  guardianUsersTab?.addEventListener("click", () => selectUserManagementTab("guardian"));
+  document.getElementById("refreshGuardiansButton")?.addEventListener("click", loadGuardianUsers);
   if (backButton) {
     backButton.onclick = () => {
       location.href = withAdminScope("admin.html");
@@ -296,6 +307,14 @@ function setupEvents() {
         return;
       }
 
+      const adminRevokeButton = event.target.closest(
+        ".admin-user-admin-revoke-button",
+      );
+      if (adminRevokeButton) {
+        await revokeUserAdmin(adminRevokeButton);
+        return;
+      }
+
       const button = event.target.closest(".admin-user-detail-button");
 
       if (!button) {
@@ -313,6 +332,33 @@ function setupEvents() {
         "?studentNumber=" +
         encodeURIComponent(selectedStudentNumber);
     });
+  }
+}
+
+async function selectUserManagementTab(tab) {
+  const guardian = tab === "guardian";
+  studentManagementView.hidden = guardian;
+  guardianManagementView.hidden = !guardian;
+  studentUsersTab.classList.toggle("btn-primary", !guardian);
+  guardianUsersTab.classList.toggle("btn-primary", guardian);
+  if (guardian && !guardiansLoaded) await loadGuardianUsers();
+}
+
+async function loadGuardianUsers() {
+  if (!guardianUserList) return;
+  guardianUserList.innerHTML = '<div class="admin-user-loading">保護者ユーザーを読み込んでいます…</div>';
+  try {
+    const listGuardianAccounts = httpsCallable(functions, "listGuardianAccounts");
+    const result = await listGuardianAccounts();
+    guardianUsers = Array.isArray(result.data?.guardians) ? result.data.guardians : [];
+    guardiansLoaded = true;
+    guardianUserCount.textContent = `${guardianUsers.length}人`;
+    guardianUserList.innerHTML = guardianUsers.length
+      ? guardianUsers.map((guardian) => `<div class="admin-user-item guardian-user-item"><div class="admin-user-main"><div class="admin-user-title"><strong>👪 ${escapeHtml(guardian.displayName || "保護者")}</strong><span class="admin-user-status">${guardian.enabled ? "利用中" : "停止中"}</span></div><p class="admin-user-affiliation">連携学生：${escapeHtml(guardian.linkedStudentNumber)}</p><small>登録：${escapeHtml(formatDeviceAuditDate(guardian.createdAt))}</small></div></div>`).join("")
+      : '<div class="admin-user-loading">登録済みの保護者ユーザーはいません。</div>';
+  } catch (error) {
+    console.error("保護者ユーザー取得エラー:", error);
+    guardianUserList.innerHTML = '<div class="admin-user-loading">保護者ユーザーを取得できませんでした。</div>';
   }
 }
 
@@ -356,6 +402,27 @@ async function registerUserAsAdmin(button) {
   }
 }
 
+async function revokeUserAdmin(button) {
+  if (!deviceAuditEnabled) return;
+  const targetStudentNumber = button.dataset.studentNumber || "";
+  if (!/^\d{7}$/.test(targetStudentNumber) || targetStudentNumber === "2510044") return;
+  if (!confirm(`${targetStudentNumber}の管理者権限を解除しますか？\n対象者は管理画面を利用できなくなり、ログイン中の認証も更新されます。`)) return;
+  button.disabled = true;
+  button.textContent = "解除中…";
+  try {
+    const revokeCareMateAdmin = httpsCallable(functions, "revokeCareMateAdmin");
+    await revokeCareMateAdmin({ studentNumber: targetStudentNumber });
+    registeredAdminIds.delete(targetStudentNumber);
+    renderUsers();
+    showToast(`${targetStudentNumber}の管理者権限を解除しました`);
+  } catch (error) {
+    console.error("管理者解除エラー:", error);
+    alert("管理者権限を解除できませんでした。");
+    button.disabled = false;
+    button.textContent = "管理者解除";
+  }
+}
+
 async function initializeDeviceRiskSummariesIfAuthorized() {
   try {
     await auth.authStateReady();
@@ -365,6 +432,9 @@ async function initializeDeviceRiskSummariesIfAuthorized() {
       token?.claims,
     );
 
+    document.querySelectorAll(".primary-admin-only").forEach((element) => {
+      element.hidden = !deviceAuditEnabled;
+    });
     if (!deviceAuditEnabled) return;
 
     deviceSummaryLoadState = "loading";
@@ -566,15 +636,15 @@ function createUserHtml(user) {
                 <div class="admin-user-title">
 
                     <strong>
-                        ${status.icon}
+                        ${deviceAuditEnabled ? status.icon : "👤"}
                         ${escapeHtml(user.id)}
                         /
                         ${escapeHtml(rankingNicknameLabel)}
                     </strong>
 
-                    <span class="admin-user-status">
+                    ${deviceAuditEnabled ? `<span class="admin-user-status">
                         ${escapeHtml(status.text)}
-                    </span>
+                    </span>` : ""}
 
                 </div>
 
@@ -600,10 +670,10 @@ function createUserHtml(user) {
 
                 ${deviceSummaryHtml}
 
-                <div class="admin-user-presence-detail">
+                ${deviceAuditEnabled ? `<div class="admin-user-presence-detail">
                     ${createPresenceDeviceHtml(presenceEntries)}
 
-                </div>
+                </div>` : ""}
 
             </div>
 
@@ -635,7 +705,10 @@ function createAdminRegistrationHtml(targetStudentNumber) {
   }
 
   if (registeredAdminIds.has(targetStudentNumber)) {
-    return '<span class="admin-user-admin-badge">管理者登録済み</span>';
+    if (targetStudentNumber === "2510044") {
+      return '<span class="admin-user-admin-badge">主管理者</span>';
+    }
+    return `<button type="button" class="btn btn-danger admin-user-admin-revoke-button" data-student-number="${escapeHtml(targetStudentNumber)}">管理者解除</button>`;
   }
 
   return `

@@ -6,7 +6,12 @@ import {
   refreshAdminClaim,
   showLoadingIndicator,
   hideLoadingIndicator,
+  auth,
+  functions,
 } from "./common.js?v=20260929-7";
+
+import { signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import {
   doc,
@@ -19,6 +24,23 @@ const studentNumber = document.getElementById("studentNumber");
 const appPassword = document.getElementById("appPassword");
 const loginButton = document.getElementById("loginButton");
 const registerButton = document.getElementById("registerButton");
+const studentLoginRole = document.getElementById("studentLoginRole");
+const guardianLoginRole = document.getElementById("guardianLoginRole");
+let loginRole = "student";
+
+function setLoginRole(role) {
+  loginRole = role;
+  const guardian = role === "guardian";
+  studentLoginRole.classList.toggle("btn-primary", !guardian);
+  studentLoginRole.classList.toggle("is-active", !guardian);
+  guardianLoginRole.classList.toggle("btn-primary", guardian);
+  guardianLoginRole.classList.toggle("is-active", guardian);
+  document.getElementById("loginIdentifierLabel").textContent = guardian ? "連携する学生の学籍番号" : "学籍番号";
+  document.getElementById("loginPasswordLabel").textContent = guardian ? "保護者用パスワード" : "アプリ用パスワード";
+  appPassword.placeholder = guardian ? "保護者登録時のパスワード" : "登録したパスワード";
+}
+studentLoginRole.addEventListener("click", () => setLoginRole("student"));
+guardianLoginRole.addEventListener("click", () => setLoginRole("guardian"));
 
 await initializePage();
 
@@ -49,6 +71,18 @@ loginButton.addEventListener("click", async () => {
     showLoadingIndicator("接続に時間がかかっています…");
   }, 10000);
   try {
+    if (loginRole === "guardian") {
+      const authenticateGuardian = httpsCallable(functions, "authenticateGuardian");
+      const result = await authenticateGuardian({ studentNumber: value, password: appPassword.value });
+      await signInWithCustomToken(auth, result.data.token);
+      localStorage.clear();
+      localStorage.setItem("careMateRole", "guardian");
+      localStorage.setItem("guardianLoggedIn", "true");
+      localStorage.setItem("guardianStudentNumber", value);
+      navigating = true;
+      location.href = "guardian_timetable.html";
+      return;
+    }
     const userRef = doc(db, "users", value);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
@@ -66,6 +100,9 @@ loginButton.addEventListener("click", async () => {
     await signInCareMateAuth(value, appPassword.value);
     await refreshAdminClaim();
 
+    localStorage.removeItem("careMateRole");
+    localStorage.removeItem("guardianLoggedIn");
+    localStorage.removeItem("guardianStudentNumber");
     localStorage.setItem("registered", "true");
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("studentNumber", value);

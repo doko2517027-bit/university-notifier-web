@@ -9,7 +9,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>ログイン | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20260929-7" />
+    <link rel="stylesheet" href="style.css?v=20261001-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
@@ -24,7 +24,11 @@
     </header>
 
     <div class="card setting-card">
-      <h3>学籍番号</h3>
+      <div class="account-role-switch" role="tablist" aria-label="ログインする方を選択">
+        <button id="studentLoginRole" type="button" class="btn btn-primary is-active">学生</button>
+        <button id="guardianLoginRole" type="button" class="btn">保護者</button>
+      </div>
+      <h3 id="loginIdentifierLabel">学籍番号</h3>
       <input
         id="studentNumber"
         type="text"
@@ -32,7 +36,7 @@
         placeholder="例：2510000"
       />
 
-      <h3>アプリ用パスワード</h3>
+      <h3 id="loginPasswordLabel">アプリ用パスワード</h3>
       <input
         id="appPassword"
         type="password"
@@ -48,6 +52,6 @@
       </button>
     </div>
 
-    <script type="module" src="login.js?v=20260929-7"></script>
+    <script type="module" src="login.js?v=20261001-1"></script>
   </body>
 </html>

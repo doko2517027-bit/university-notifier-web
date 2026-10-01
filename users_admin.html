@@ -10,7 +10,7 @@
 
     <title>ユーザー管理 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261001-4" />
+    <link rel="stylesheet" href="style.css?v=20261001-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -58,22 +58,29 @@
       </div>
     </div>
 
+    <div class="card setting-card admin-user-tabs" role="tablist" aria-label="利用者種別">
+      <button id="studentUsersTab" type="button" class="btn btn-primary is-active">学生</button>
+      <button id="guardianUsersTab" type="button" class="btn">保護者</button>
+    </div>
+
+    <div id="studentManagementView">
+
     <h2>📊 利用状況</h2>
 
     <div class="admin-user-summary-grid">
-      <div class="card setting-card admin-user-summary-card">
+      <div class="card setting-card admin-user-summary-card primary-admin-only" hidden>
         <small>登録ユーザー</small>
 
         <strong id="userTotalCount"> -- </strong>
       </div>
 
-      <div class="card setting-card admin-user-summary-card">
+      <div class="card setting-card admin-user-summary-card primary-admin-only" hidden>
         <small>オンライン</small>
 
         <strong id="onlineUserCount"> -- </strong>
       </div>
 
-      <div class="card setting-card admin-user-summary-card">
+      <div class="card setting-card admin-user-summary-card primary-admin-only" hidden>
         <small>バックグラウンド</small>
 
         <strong id="awayUserCount"> -- </strong>
@@ -105,7 +112,7 @@
       <br /><br />
 
       <div class="admin-user-filter-grid">
-        <div>
+        <div class="primary-admin-only" hidden>
           <label for="departmentFilter">
             <b>所属</b>
           </label>
@@ -168,7 +175,7 @@
         <button id="refreshUsersButton" class="btn">↻ 更新</button>
       </div>
 
-      <div class="admin-presence-legend">
+      <div class="admin-presence-legend primary-admin-only" hidden>
         <span>🟢 オンライン</span>
 
         <span>🟡 バックグラウンド</span>
@@ -180,6 +187,19 @@
 
       <div id="userList">
         <div class="admin-user-loading">ユーザー情報を読み込んでいます...</div>
+      </div>
+    </div>
+    </div>
+
+    <div id="guardianManagementView" hidden>
+      <h2>👪 保護者ユーザー</h2>
+      <div class="card setting-card">
+        <div class="admin-user-list-header">
+          <span id="guardianUserCount">読み込み前</span>
+          <button id="refreshGuardiansButton" type="button" class="btn">↻ 更新</button>
+        </div>
+        <p class="account-role-note">学生本人が発行した連携コードで登録した保護者です。現在は連携学生の時間割だけを閲覧できます。</p>
+        <div id="guardianUserList"><div class="admin-user-loading">「保護者」タブを開くと読み込みます。</div></div>
       </div>
     </div>
 
@@ -230,6 +250,6 @@
       </a>
     </nav>
 
-    <script type="module" src="users_admin.js?v=20261001-4"></script>
+    <script type="module" src="users_admin.js?v=20261001-5"></script>
   </body>
 </html>

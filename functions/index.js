@@ -415,6 +415,227 @@ exports.registerCareMateAdmin = onCall(
   },
 );
 
+exports.revokeCareMateAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const revokedBy = await requirePrimaryDeviceAuditAdmin(request);
+    const targetStudentNumber = String(request.data?.studentNumber || "").trim();
+    if (!/^\d{7}$/.test(targetStudentNumber)) {
+      throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+    }
+    if (targetStudentNumber === "2510044") {
+      throw new HttpsError("failed-precondition", "主管理者は解除できません。");
+    }
+
+    await db.collection("admins").doc(targetStudentNumber).set(
+      {
+        enabled: false,
+        revokedBy,
+        revokedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    try {
+      const uid = `caremate-${targetStudentNumber}`;
+      const authUser = await adminAuth.getUser(uid);
+      await adminAuth.setCustomUserClaims(uid, {
+        ...(authUser.customClaims || {}),
+        admin: false,
+        studentNumber: targetStudentNumber,
+      });
+      await adminAuth.revokeRefreshTokens(uid);
+    } catch (error) {
+      if (error?.code !== "auth/user-not-found") throw error;
+    }
+    return { revoked: true, studentNumber: targetStudentNumber };
+  },
+);
+
+function hashGuardianValue(value) {
+  return crypto.createHash("sha256").update(String(value || ""), "utf8").digest("hex");
+}
+
+function guardianUid(studentNumber) {
+  return `guardian-${studentNumber}`;
+}
+
+async function issueGuardianToken(studentNumber) {
+  return adminAuth.createCustomToken(guardianUid(studentNumber), {
+    role: "guardian",
+    linkedStudentNumber: studentNumber,
+  });
+}
+
+exports.createGuardianInvite = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const code = Array.from(crypto.randomBytes(8), (byte) =>
+      "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[byte % 32],
+    ).join("");
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await db.collection("guardianInvites").doc(studentNumber).set({
+      codeHash: hashGuardianValue(code),
+      expiresAt,
+      usedAt: null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { code, expiresAt };
+  },
+);
+
+exports.registerGuardianAccount = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = String(request.data?.studentNumber || "").trim();
+    const inviteCode = String(request.data?.inviteCode || "").trim().toUpperCase();
+    const displayName = String(request.data?.displayName || "").trim().slice(0, 60);
+    const password = String(request.data?.password || "");
+    if (!/^\d{7}$/.test(studentNumber) || !inviteCode || !displayName || password.length < 6) {
+      throw new HttpsError("invalid-argument", "登録内容を確認してください。");
+    }
+    const studentRef = db.collection("users").doc(studentNumber);
+    const inviteRef = db.collection("guardianInvites").doc(studentNumber);
+    const guardianRef = db.collection("guardianAccounts").doc(studentNumber);
+    await db.runTransaction(async (transaction) => {
+      const [studentSnap, inviteSnap] = await Promise.all([
+        transaction.get(studentRef),
+        transaction.get(inviteRef),
+      ]);
+      const invite = inviteSnap.data() || {};
+      if (!studentSnap.exists || !inviteSnap.exists || invite.usedAt || Number(invite.expiresAt || 0) < Date.now()) {
+        throw new HttpsError("failed-precondition", "連携コードが無効または期限切れです。");
+      }
+      const suppliedHash = hashGuardianValue(inviteCode);
+      if (suppliedHash !== String(invite.codeHash || "")) {
+        throw new HttpsError("permission-denied", "連携コードが違います。");
+      }
+      transaction.set(guardianRef, {
+        linkedStudentNumber: studentNumber,
+        displayName,
+        appPasswordHash: hashGuardianValue(password),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        enabled: true,
+      });
+      transaction.update(inviteRef, { usedAt: FieldValue.serverTimestamp() });
+    });
+    return { token: await issueGuardianToken(studentNumber), linkedStudentNumber: studentNumber };
+  },
+);
+
+exports.authenticateGuardian = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = String(request.data?.studentNumber || "").trim();
+    const password = String(request.data?.password || "");
+    if (!/^\d{7}$/.test(studentNumber) || !password) {
+      throw new HttpsError("invalid-argument", "ログイン情報を確認してください。");
+    }
+    const snapshot = await db.collection("guardianAccounts").doc(studentNumber).get();
+    const storedHash = String(snapshot.data()?.appPasswordHash || "");
+    const suppliedHash = hashGuardianValue(password);
+    if (!snapshot.exists || snapshot.data()?.enabled !== true || storedHash.length !== suppliedHash.length ||
+        !crypto.timingSafeEqual(Buffer.from(storedHash), Buffer.from(suppliedHash))) {
+      throw new HttpsError("unauthenticated", "連携学生番号またはパスワードが違います。");
+    }
+    return { token: await issueGuardianToken(studentNumber), linkedStudentNumber: studentNumber };
+  },
+);
+
+exports.listGuardianAccounts = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    await requireEnabledCareMateAdmin(request);
+    const snapshot = await db.collection("guardianAccounts").get();
+    return {
+      guardians: snapshot.docs.map((item) => ({
+        linkedStudentNumber: item.id,
+        displayName: String(item.data()?.displayName || "保護者"),
+        enabled: item.data()?.enabled === true,
+        createdAt: timestampMillis(item.data()?.createdAt),
+      })),
+    };
+  },
+);
+
+function isCommonGuardianScheduleEvent(item) {
+  if (item?.displayForAll === true || item?.isCommonEvent === true || item?.isGuidance === true) return true;
+  return /ガイダンス|オリエンテーション|説明会|健康診断|入学式|卒業式|ホームルーム|国家試験対策|国試対策|模擬試験|模試|特別講義|講演会?|セミナー|研修会?|学内行事|就職支援|キャリア支援|防災訓練|避難訓練/.test(
+    [item?.type, item?.category, item?.subject, item?.title].filter(Boolean).join(" "),
+  );
+}
+
+exports.getGuardianTimetable = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const linkedStudentNumber = String(request.auth?.token?.linkedStudentNumber || "");
+    if (!/^\d{7}$/.test(linkedStudentNumber) || request.auth?.uid !== guardianUid(linkedStudentNumber) || request.auth?.token?.role !== "guardian") {
+      throw new HttpsError("permission-denied", "保護者としてログインしてください。");
+    }
+    const guardianSnap = await db.collection("guardianAccounts").doc(linkedStudentNumber).get();
+    if (!guardianSnap.exists || guardianSnap.data()?.enabled !== true) {
+      throw new HttpsError("permission-denied", "保護者連携が無効です。");
+    }
+    const userRef = db.collection("users").doc(linkedStudentNumber);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) throw new HttpsError("not-found", "学生情報が見つかりません。");
+    const user = userSnap.data() || {};
+    const scheduleId = scheduleDocumentId(user);
+    const [enrolledSnap, scheduleSnap] = await Promise.all([
+      userRef.collection("enrolledSubjects").get(),
+      scheduleId ? db.collection("schedule").doc(scheduleId).get() : Promise.resolve(null),
+    ]);
+    const enrolled = new Set();
+    enrolledSnap.docs.forEach((item) => {
+      const data = item.data() || {};
+      if (data.status === "removed") return;
+      [item.id, data.name, data.subjectKey, data.subjectId].forEach((value) => {
+        const key = normalizeCourseName(value);
+        if (key) enrolled.add(key);
+      });
+    });
+    const scheduleData = scheduleSnap?.data() || {};
+    const grade = normalizeGrade(user.grade);
+    const classSelections = effectiveClassSelections(user);
+    const days = Array.isArray(scheduleData.allDays) ? scheduleData.allDays : [];
+    const entries = [];
+    for (const day of days) {
+      for (const item of Array.isArray(day.schedules) ? day.schedules : []) {
+        if (grade && normalizeGrade(item.grade) && normalizeGrade(item.grade) !== grade) continue;
+        if (!enrolled.has(normalizeCourseName(item.subject)) && !isCommonGuardianScheduleEvent(item)) continue;
+        const period = Number(String(item.period || "").normalize("NFKC").match(/\d+/)?.[0] || 0);
+        const classGroups = String(item.classGroup || "")
+          .normalize("NFKC")
+          .toUpperCase()
+          .match(/([A-Z])(?:\s*クラス|\s*組)?/g)?.map((value) => value.match(/[A-Z]/)?.[0]).filter(Boolean) || [];
+        const classSelectionKey = `${String(item.subject || "").replace(/\s+/g, " ").trim()}_${String(day.date || "")}_${period}`;
+        if (classGroups.length && Object.prototype.hasOwnProperty.call(classSelections, classSelectionKey)) {
+          const selected = String(classSelections[classSelectionKey] || "").normalize("NFKC").toUpperCase();
+          if (selected === "__NONE__" || !classGroups.includes(selected.match(/[A-Z]/)?.[0] || "")) continue;
+        }
+        entries.push({
+          date: String(day.date || ""),
+          period,
+          subject: String(item.subject || item.title || "予定"),
+          startTime: String(item.startTime || ""),
+          endTime: String(item.endTime || ""),
+          room: String(item.room || ""),
+          classGroup: String(item.classGroup || ""),
+        });
+      }
+    }
+    entries.sort((a, b) => a.date.localeCompare(b.date) || a.period - b.period);
+    return {
+      linkedStudentNumber,
+      studentName: String(user.name || user.userName || user.displayName || linkedStudentNumber),
+      grade: String(user.grade || ""),
+      entries,
+    };
+  },
+);
+
 const costDashboardSettingsRef = db
   .collection("privateAdminSettings")
   .doc("costDashboard");

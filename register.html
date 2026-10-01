@@ -11,7 +11,7 @@
 
     <title>初回登録 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20260929-14" />
+    <link rel="stylesheet" href="style.css?v=20261001-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
@@ -32,7 +32,16 @@
       <p>初回登録</p>
     </header>
 
-    <div class="card setting-card">
+    <div class="card setting-card account-role-card">
+      <h3>登録する方</h3>
+      <div class="account-role-switch" role="tablist" aria-label="登録する方を選択">
+        <button id="studentRoleButton" type="button" class="btn btn-primary is-active">学生</button>
+        <button id="guardianRoleButton" type="button" class="btn">保護者</button>
+      </div>
+      <p class="account-role-note">学生は従来どおり登録できます。保護者は学生が発行した連携コードが必要です。</p>
+    </div>
+
+    <div class="card setting-card student-registration-section">
       <h3>所属</h3>
 
       <p><b>学科</b></p>
@@ -69,7 +78,7 @@
       </select>
     </div>
 
-    <div class="card setting-card">
+    <div class="card setting-card student-registration-section">
       <h3>学生情報</h3>
 
       <p><b>学籍番号 必須</b></p>
@@ -92,7 +101,7 @@
       />
     </div>
 
-    <div class="card setting-card">
+    <div class="card setting-card student-registration-section">
       <h3>追加ログイン情報</h3>
 
       <p><b>Active!Mailパスワード 任意</b></p>
@@ -110,7 +119,7 @@
       />
     </div>
 
-    <div class="card setting-card">
+    <div class="card setting-card student-registration-section">
       <h3>アプリログイン</h3>
 
       <p><b>アプリ用パスワード 必須</b></p>
@@ -132,8 +141,29 @@
       <button id="subscribe" class="btn btn-primary">登録</button>
     </div>
 
+    <div id="guardianRegistration" class="card setting-card guardian-registration-section" hidden>
+      <h3>保護者登録</h3>
+      <p>学生本人の設定画面で発行した連携コードを使います。</p>
+      <label><b>連携する学生の学籍番号</b>
+        <input id="guardianStudentNumber" type="text" inputmode="numeric" maxlength="7" placeholder="例：2510000" />
+      </label>
+      <label><b>連携コード</b>
+        <input id="guardianInviteCode" type="text" maxlength="8" autocomplete="one-time-code" placeholder="8文字のコード" />
+      </label>
+      <label><b>保護者のお名前</b>
+        <input id="guardianDisplayName" type="text" maxlength="60" placeholder="例：保護者氏名" />
+      </label>
+      <label><b>保護者用パスワード</b>
+        <input id="guardianPassword" type="password" minlength="6" autocomplete="new-password" placeholder="6文字以上" />
+      </label>
+      <label><b>パスワード確認</b>
+        <input id="guardianPasswordConfirm" type="password" minlength="6" autocomplete="new-password" placeholder="もう一度入力" />
+      </label>
+      <button id="guardianSubscribe" type="button" class="btn btn-primary">保護者として登録</button>
+    </div>
+
     <footer id="version"></footer>
 
-    <script type="module" src="register.js?v=20261001-1"></script>
+    <script type="module" src="register.js?v=20261001-2"></script>
   </body>
 </html>
