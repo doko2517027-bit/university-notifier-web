@@ -16,6 +16,7 @@ import {
   updateAssignmentNavBadge,
   updateNewsNavBadge,
   encryptData,
+  clearCareMateStoragePreservingDeviceId,
 } from "./common.js";
 
 import {
@@ -381,7 +382,7 @@ document.getElementById("unregister").addEventListener("click", async () => {
     return;
   }
 
-  localStorage.clear();
+  clearCareMateStoragePreservingDeviceId();
 
   location.href = "register.html";
 });

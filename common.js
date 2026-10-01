@@ -113,6 +113,7 @@ export const functions = getFunctions(app, "asia-northeast1");
 export const studentNumber = localStorage.getItem("studentNumber");
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
+const DEVICE_ID_COOKIE_KEY = "careMateDeviceId";
 const FORCE_LOGOUT_CHECK_STORAGE_KEY = "careMateForceLogoutCheckedAt";
 const FORCE_LOGOUT_CHECK_INTERVAL_MS = 60 * 1000;
 const PUSH_REFRESH_STORAGE_KEY = "careMatePushRefreshAt";
@@ -122,7 +123,14 @@ export function getOrCreateCareMateDeviceId() {
   const storedDeviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "";
 
   if (/^[a-zA-Z0-9_-]{16,80}$/.test(storedDeviceId)) {
+    persistCareMateDeviceIdCookie(storedDeviceId);
     return storedDeviceId;
+  }
+
+  const cookieDeviceId = readCareMateDeviceIdCookie();
+  if (/^[a-zA-Z0-9_-]{16,80}$/.test(cookieDeviceId)) {
+    localStorage.setItem(DEVICE_ID_STORAGE_KEY, cookieDeviceId);
+    return cookieDeviceId;
   }
 
   const generatedDeviceId = crypto.randomUUID
@@ -132,7 +140,34 @@ export function getOrCreateCareMateDeviceId() {
       ).join("");
 
   localStorage.setItem(DEVICE_ID_STORAGE_KEY, generatedDeviceId);
+  persistCareMateDeviceIdCookie(generatedDeviceId);
   return generatedDeviceId;
+}
+
+function readCareMateDeviceIdCookie() {
+  const prefix = `${DEVICE_ID_COOKIE_KEY}=`;
+  const item = String(document.cookie || "")
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
+  return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+}
+
+function persistCareMateDeviceIdCookie(deviceId) {
+  try {
+    document.cookie = `${DEVICE_ID_COOKIE_KEY}=${encodeURIComponent(deviceId)}; Max-Age=31536000; Path=/; SameSite=Lax; Secure`;
+  } catch {
+    // Cookieが利用できない環境ではlocalStorageだけで継続する。
+  }
+}
+
+export function clearCareMateStoragePreservingDeviceId() {
+  const deviceId = getOrCreateCareMateDeviceId();
+  const theme = localStorage.getItem("theme");
+  localStorage.clear();
+  localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
+  if (theme) localStorage.setItem("theme", theme);
+  persistCareMateDeviceIdCookie(deviceId);
 }
 
 export async function signInCareMateAuth(studentNumber, password) {
@@ -143,6 +178,7 @@ export async function signInCareMateAuth(studentNumber, password) {
   const result = await authenticateCareMate({
     studentNumber: String(studentNumber || "").trim(),
     password: String(password || ""),
+    deviceId: getOrCreateCareMateDeviceId(),
   });
 
   await signInWithCustomToken(auth, result.data.token);

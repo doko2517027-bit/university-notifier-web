@@ -7,6 +7,7 @@ import {
   refreshAdminClaim,
   auth,
   functions,
+  clearCareMateStoragePreservingDeviceId,
 } from "./common.js";
 
 import { signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -86,7 +87,7 @@ document.getElementById("guardianSubscribe").addEventListener("click", async (ev
     const registerGuardianAccount = httpsCallable(functions, "registerGuardianAccount");
     const result = await registerGuardianAccount({ studentNumber: linkedStudentNumber, inviteCode, displayName, password });
     await signInWithCustomToken(auth, result.data.token);
-    localStorage.clear();
+    clearCareMateStoragePreservingDeviceId();
     localStorage.setItem("careMateRole", "guardian");
     localStorage.setItem("guardianLoggedIn", "true");
     localStorage.setItem("guardianStudentNumber", linkedStudentNumber);

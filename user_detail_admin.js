@@ -38,7 +38,7 @@ import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
 import {
   getPrimaryPresenceDevice,
   normalizePresenceDevices,
-} from "./presence_devices.mjs?v=20261001-1";
+} from "./presence_devices.mjs?v=20261001-2";
 
 import {
   ref,
@@ -781,7 +781,10 @@ function startPresenceListener() {
 }
 
 function renderPresence(presence) {
-  const entries = normalizePresenceDevices(presence);
+  const entries = normalizePresenceDevices(presence, {
+    now: Date.now(),
+    offlineRetentionMs: 15 * 60 * 1000,
+  });
 
   if (!entries.length) {
     setText(presenceStatus, "⚫ 接続履歴なし");
@@ -795,7 +798,10 @@ function renderPresence(presence) {
     return;
   }
 
-  const primaryPresence = getPrimaryPresenceDevice(presence);
+  const primaryPresence = getPrimaryPresenceDevice(presence, {
+    now: Date.now(),
+    offlineRetentionMs: 15 * 60 * 1000,
+  });
 
   const onlineCount = entries.filter((item) => item.state === "online").length;
   const awayCount = entries.filter((item) => item.state === "away").length;

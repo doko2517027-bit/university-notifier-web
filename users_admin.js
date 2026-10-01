@@ -26,7 +26,7 @@ import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
 import {
   getPrimaryPresenceDevice,
   normalizePresenceDevices,
-} from "./presence_devices.mjs?v=20261001-1";
+} from "./presence_devices.mjs?v=20261001-2";
 
 import {
   collection,
@@ -102,6 +102,10 @@ let deviceDetailsByStudent = {};
 let registeredAdminIds = new Set();
 
 let adminRegistrationLoadState = "hidden";
+const presenceDisplayOptions = () => ({
+  now: Date.now(),
+  offlineRetentionMs: 15 * 60 * 1000,
+});
 
 const adminScope = readAdminScopeFromUrl();
 
@@ -548,7 +552,10 @@ function getFilteredUsers() {
   const selectedStatus = statusFilter?.value || "";
 
   return users.filter((user) => {
-    const presence = getPrimaryPresenceDevice(presenceStatuses[user.id]);
+    const presence = getPrimaryPresenceDevice(
+      presenceStatuses[user.id],
+      presenceDisplayOptions(),
+    );
 
     const statusKey = getPresenceStatusKey(presence);
 
@@ -584,9 +591,15 @@ function getFilteredUsers() {
 }
 
 function compareUsers(userA, userB) {
-  const presenceA = getPrimaryPresenceDevice(presenceStatuses[userA.id]);
+  const presenceA = getPrimaryPresenceDevice(
+    presenceStatuses[userA.id],
+    presenceDisplayOptions(),
+  );
 
-  const presenceB = getPrimaryPresenceDevice(presenceStatuses[userB.id]);
+  const presenceB = getPrimaryPresenceDevice(
+    presenceStatuses[userB.id],
+    presenceDisplayOptions(),
+  );
 
   const priorityA = getPresencePriority(presenceA);
 
@@ -608,9 +621,15 @@ function compareUsers(userA, userB) {
 }
 
 function createUserHtml(user) {
-  const presenceEntries = normalizePresenceDevices(presenceStatuses[user.id]);
+  const presenceEntries = normalizePresenceDevices(
+    presenceStatuses[user.id],
+    presenceDisplayOptions(),
+  );
 
-  const presence = getPrimaryPresenceDevice(presenceStatuses[user.id]);
+  const presence = getPrimaryPresenceDevice(
+    presenceStatuses[user.id],
+    presenceDisplayOptions(),
+  );
 
   const status = formatPresenceStatus(presence);
 
@@ -1123,7 +1142,10 @@ function updateSummary() {
 
   users.forEach((user) => {
     const statusKey = getPresenceStatusKey(
-      getPrimaryPresenceDevice(presenceStatuses[user.id]),
+      getPrimaryPresenceDevice(
+        presenceStatuses[user.id],
+        presenceDisplayOptions(),
+      ),
     );
 
     if (statusKey === "online") {
