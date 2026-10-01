@@ -648,31 +648,59 @@ export function parseStudentNumber(value) {
 // 現在ログイン中の学生情報
 export const studentAcademicContext = parseStudentNumber(studentNumber);
 
+const CAREMATE_THEMES = Object.freeze({
+  light: { label: "ライト", icon: "☀️" },
+  dark: { label: "ブラック", icon: "🌙" },
+  pink: { label: "ピンク", icon: "🌸" },
+  green: { label: "グリーン", icon: "🌿" },
+  blue: { label: "ブルー", icon: "💧" },
+  yellow: { label: "イエロー", icon: "🌼" },
+  red: { label: "レッド", icon: "🍎" },
+  purple: { label: "パープル", icon: "🔮" },
+  brown: { label: "ブラウン", icon: "🪵" },
+});
+const REFERRAL_PERSONALIZATION_CACHE_KEY = `careMateReferralPersonalization:${studentNumber || "guest"}`;
+// 画面移動のたびにFunctionsを呼ばず、同じ設定は1時間キャッシュする。
+const REFERRAL_PERSONALIZATION_CACHE_MS = 60 * 60 * 1000;
+let referralPersonalizationState = readReferralPersonalizationCache();
+let referralPersonalizationInFlight = false;
+
+function readReferralPersonalizationCache() {
+  try {
+    return JSON.parse(localStorage.getItem(REFERRAL_PERSONALIZATION_CACHE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function applyCareMateTheme(theme, themeButton = document.getElementById("themeButton")) {
+  const normalized = Object.hasOwn(CAREMATE_THEMES, theme) ? theme : "light";
+  document.documentElement.classList.toggle("dark", normalized === "dark");
+  document.documentElement.dataset.caremateTheme = normalized;
+  localStorage.setItem("theme", normalized);
+  if (themeButton) {
+    const hasPalette = referralPersonalizationState?.entitlements?.themes === true;
+    themeButton.textContent = hasPalette ? "🎨" : normalized === "dark" ? "☀️" : "🌙";
+    themeButton.setAttribute("aria-label", hasPalette ? "背景テーマを選ぶ" : normalized === "dark" ? "ライトモードに切り替える" : "ダークモードに切り替える");
+  }
+}
+
 export function setupTheme(themeButton) {
-  const applyTheme = (theme) => {
-    const isDark = theme === "dark";
-
-    document.documentElement.classList.toggle("dark", isDark);
-
-    if (themeButton) {
-      themeButton.textContent = isDark ? "☀️" : "🌙";
-      themeButton.setAttribute(
-        "aria-label",
-        isDark ? "ライトモードに切り替える" : "ダークモードに切り替える",
-      );
-    }
-  };
-
-  applyTheme(localStorage.getItem("theme") === "dark" ? "dark" : "light");
+  const storedTheme = localStorage.getItem("theme") || "light";
+  applyCareMateTheme(storedTheme, themeButton);
+  void initializeReferralPersonalization();
 
   if (themeButton) {
     themeButton.onclick = () => {
+      if (referralPersonalizationState?.entitlements?.themes === true) {
+        openCareMateThemePicker(themeButton);
+        return;
+      }
       const theme = document.documentElement.classList.contains("dark")
         ? "light"
         : "dark";
-
-      localStorage.setItem("theme", theme);
-      applyTheme(theme);
+      applyCareMateTheme(theme, themeButton);
+      void saveCareMatePersonalization({ action: "theme", theme });
     };
   }
 
@@ -691,9 +719,100 @@ export function setupTheme(themeButton) {
 
   window.addEventListener("storage", (event) => {
     if (event.key === "theme") {
-      applyTheme(event.newValue === "dark" ? "dark" : "light");
+      applyCareMateTheme(event.newValue || "light", themeButton);
     }
   });
+}
+
+function openCareMateThemePicker(anchor) {
+  document.getElementById("careMateThemePicker")?.remove();
+  const picker = document.createElement("div");
+  picker.id = "careMateThemePicker";
+  picker.className = "caremate-theme-picker";
+  picker.setAttribute("role", "dialog");
+  picker.setAttribute("aria-label", "背景テーマを選択");
+  picker.innerHTML = `<div class="caremate-theme-picker-head"><b>背景テーマ</b><button type="button" aria-label="閉じる">×</button></div><div class="caremate-theme-options">${Object.entries(CAREMATE_THEMES).map(([id, item]) => `<button type="button" data-theme-id="${id}" class="${localStorage.getItem("theme") === id ? "is-selected" : ""}"><span>${item.icon}</span><small>${item.label}</small></button>`).join("")}</div>`;
+  document.body.append(picker);
+  picker.querySelector(".caremate-theme-picker-head button").onclick = () => picker.remove();
+  picker.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-theme-id]");
+    if (!button) return;
+    const theme = button.dataset.themeId;
+    applyCareMateTheme(theme, anchor);
+    picker.remove();
+    await saveCareMatePersonalization({ action: "theme", theme });
+  });
+}
+
+async function saveCareMatePersonalization(data) {
+  if (!auth.currentUser || !studentNumber) return;
+  try {
+    const result = await httpsCallable(functions, "saveReferralPersonalization")(data);
+    referralPersonalizationState = {
+      ...(referralPersonalizationState || {}),
+      personalization: result.data?.personalization || referralPersonalizationState?.personalization,
+    };
+    localStorage.setItem(REFERRAL_PERSONALIZATION_CACHE_KEY, JSON.stringify(referralPersonalizationState));
+  } catch (error) {
+    console.warn("テーマ設定を同期できませんでした:", error);
+  }
+}
+
+async function initializeReferralPersonalization() {
+  if (localStorage.getItem("loggedIn") !== "true" || !/^\d{7}$/.test(String(studentNumber || ""))) return;
+  if (referralPersonalizationState) applyReferralPersonalization(referralPersonalizationState);
+  if (
+    referralPersonalizationState?.fetchedAt &&
+    Date.now() - Number(referralPersonalizationState.fetchedAt) < REFERRAL_PERSONALIZATION_CACHE_MS
+  ) return;
+  if (referralPersonalizationInFlight) return;
+  referralPersonalizationInFlight = true;
+  try {
+    await auth.authStateReady();
+    if (auth.currentUser?.uid !== `caremate-${studentNumber}`) return;
+    const response = await httpsCallable(functions, "getReferralDashboard")();
+    referralPersonalizationState = {
+      entitlements: response.data?.entitlements || {},
+      personalization: response.data?.personalization || {},
+      fetchedAt: Date.now(),
+    };
+    localStorage.setItem(REFERRAL_PERSONALIZATION_CACHE_KEY, JSON.stringify(referralPersonalizationState));
+    applyReferralPersonalization(referralPersonalizationState);
+  } catch (error) {
+    console.warn("紹介特典の表示設定を取得できませんでした:", error);
+  } finally {
+    referralPersonalizationInFlight = false;
+  }
+}
+
+function applyReferralPersonalization(state) {
+  const serverTheme = state?.personalization?.theme;
+  if (serverTheme && Object.hasOwn(CAREMATE_THEMES, serverTheme)) {
+    applyCareMateTheme(serverTheme);
+  } else {
+    applyCareMateTheme(localStorage.getItem("theme") || "light");
+  }
+  renderCareMatePet(state);
+}
+
+function renderCareMatePet(state) {
+  document.getElementById("careMateReferralPet")?.remove();
+  const pet = state?.personalization?.pet;
+  if (state?.entitlements?.pet !== true || !pet?.kind || !pet?.name) return;
+  const icons = { cat: "🐱", dog: "🐶", bird: "🐥" };
+  const accessories = { none: "", hat: "🎩", ribbon: "🎀", crown: "👑" };
+  const element = document.createElement("button");
+  element.id = "careMateReferralPet";
+  element.className = "caremate-referral-pet";
+  element.type = "button";
+  element.setAttribute("aria-label", `${pet.name}を表示`);
+  element.innerHTML = `<span class="caremate-pet-accessory">${accessories[state.personalization?.accessory] || ""}</span><span class="caremate-pet-character">${icons[pet.kind] || "🐾"}</span><small>${escapeCommonHtml(pet.name)}</small>`;
+  element.onclick = () => element.classList.toggle("is-speaking");
+  document.body.append(element);
+}
+
+function escapeCommonHtml(value) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
 export function setupOfflineAlert() {
@@ -1316,6 +1435,8 @@ export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
   setupAutoBackButton();
   showPage();
+  // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
+  void initializeReferralPersonalization();
 
   await Promise.all(tasks).catch((error) => {
     console.error("初期読み込みエラー:", error);

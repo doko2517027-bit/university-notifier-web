@@ -6,11 +6,11 @@ const REFERRAL_PROOF_TTL_MINUTES = 15;
 const REFERRAL_RATE_LIMIT_WINDOW_MINUTES = 15;
 const REFERRAL_RATE_LIMIT_ATTEMPTS = 5;
 const REFERRAL_MILESTONES = Object.freeze([
-  { count: 2, title: "特典①（準備中）", kind: "caremate" },
-  { count: 4, title: "特典②（準備中）", kind: "caremate" },
-  { count: 6, title: "特典③（準備中）", kind: "caremate" },
-  { count: 8, title: "特典④（準備中）", kind: "caremate" },
-  { count: 10, title: "500円分デジタルギフト", kind: "gift" },
+  { count: 2, title: "学習ポイント100pt", kind: "points", description: "テスト問題で貯まる累計ポイントへ100ptを一度だけ加算します。" },
+  { count: 4, title: "全9色のテーマ変更", kind: "theme", description: "ライト・ブラックに加えて7色を解放。右上の🎨から全画面の色を変更できます。" },
+  { count: 6, title: "CareMateペット", kind: "pet", description: "3種類から1匹を選び、名前を付けて全画面に表示できます。種類と名前は確定後変更できません。" },
+  { count: 8, title: "ペットアクセサリー", kind: "pet_accessory", description: "ペット用の帽子・リボン・王冠を解放。アクセサリーはいつでも変更できます。" },
+  { count: 10, title: "500円分デジタルギフト", kind: "gift", description: "運営者が確認後、紹介画面に受取ボタンを表示します。自動発行ではありません。" },
 ]);
 
 function normalizeReferralCode(value) {

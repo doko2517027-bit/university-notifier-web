@@ -7,6 +7,7 @@ const {
   milestoneState,
   nextMilestone,
   validGiftUrl,
+  REFERRAL_MILESTONES,
 } = require("./referral_policy");
 
 test("招待コードは推測困難なランダム形式で正規化できる", () => {
@@ -36,6 +37,10 @@ test("2・4・6・8・10人の特典を一度だけ解放する", () => {
   assert.equal(preserved.m2.claimedAt, "done");
   assert.equal(nextMilestone(8).count, 10);
   assert.equal(nextMilestone(10), null);
+  assert.deepEqual(
+    REFERRAL_MILESTONES.map(({ count, kind }) => [count, kind]),
+    [[2, "points"], [4, "theme"], [6, "pet"], [8, "pet_accessory"], [10, "gift"]],
+  );
 });
 
 test("ギフトURLは認証情報を含まないHTTPSだけを許可する", () => {

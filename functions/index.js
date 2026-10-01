@@ -508,10 +508,56 @@ function serializeReferralMilestones(stored = {}, invitedCount = 0) {
     const state = stored[`m${item.count}`] || {};
     return {
       ...item,
-      unlocked: invitedCount >= item.count && Boolean(state.unlockedAt),
+      unlocked: Boolean(state.unlockedAt),
       unlockedAt: timestampMillis(state.unlockedAt),
       claimedAt: timestampMillis(state.claimedAt),
     };
+  });
+}
+
+const REFERRAL_THEME_IDS = new Set([
+  "light",
+  "dark",
+  "pink",
+  "green",
+  "blue",
+  "yellow",
+  "red",
+  "purple",
+  "brown",
+]);
+const REFERRAL_PET_IDS = new Set(["cat", "dog", "bird"]);
+const REFERRAL_ACCESSORY_IDS = new Set(["none", "hat", "ribbon", "crown"]);
+
+function referralRewardGrantState(account = {}, invitedCount = 0, now = new Date()) {
+  const rewardGrants = { ...(account.rewardGrants || {}) };
+  const shouldGrantPoints =
+    invitedCount >= 2 && !rewardGrants.m2LearningPoints?.grantedAt;
+  if (shouldGrantPoints) {
+    rewardGrants.m2LearningPoints = { grantedAt: now, points: 100 };
+  }
+  return { rewardGrants, shouldGrantPoints };
+}
+
+async function ensureReferralPointReward(studentNumber) {
+  const accountRef = referralAccountRef(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const accountSnapshot = await transaction.get(accountRef);
+    if (!accountSnapshot.exists) return;
+    const account = accountSnapshot.data() || {};
+    const invitedCount = Math.max(0, Number(account.invitedCount || 0));
+    const state = referralRewardGrantState(account, invitedCount, new Date());
+    if (!state.shouldGrantPoints) return;
+    transaction.set(
+      accountRef,
+      { rewardGrants: state.rewardGrants, updatedAt: new Date() },
+      { merge: true },
+    );
+    transaction.set(
+      db.collection("totalRanking").doc(studentNumber),
+      { point: FieldValue.increment(100), updatedAt: new Date() },
+      { merge: true },
+    );
   });
 }
 
@@ -520,6 +566,7 @@ exports.getReferralDashboard = onCall(
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
     await ensureReferralIdentityForCurrentUser(studentNumber);
+    await ensureReferralPointReward(studentNumber);
     const accountRef = referralAccountRef(studentNumber);
     const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
     const [accountSnapshot, rewardSnapshot] = await Promise.all([
@@ -557,6 +604,27 @@ exports.getReferralDashboard = onCall(
         account.milestones,
         invitedCount,
       ),
+      entitlements: {
+        learningPoints100: Boolean(account.rewardGrants?.m2LearningPoints?.grantedAt),
+        themes: Boolean(account.milestones?.m4?.unlockedAt),
+        pet: Boolean(account.milestones?.m6?.unlockedAt),
+        petAccessory: Boolean(account.milestones?.m8?.unlockedAt),
+      },
+      personalization: {
+        theme: REFERRAL_THEME_IDS.has(account.personalization?.theme)
+          ? account.personalization.theme
+          : null,
+        pet: account.personalization?.pet?.kind
+          ? {
+              kind: String(account.personalization.pet.kind),
+              name: String(account.personalization.pet.name || ""),
+              selectedAt: timestampMillis(account.personalization.pet.selectedAt),
+            }
+          : null,
+        accessory: REFERRAL_ACCESSORY_IDS.has(account.personalization?.accessory)
+          ? account.personalization.accessory
+          : "none",
+      },
       activeCode,
       codeTtlDays: REFERRAL_CODE_TTL_DAYS,
       gift:
@@ -645,6 +713,70 @@ exports.issueReferralCode = onCall(
         { merge: true },
       );
       return { code: newCode, expiresAt: expiresAt.getTime(), reused: false };
+    });
+  },
+);
+
+exports.saveReferralPersonalization = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const action = String(request.data?.action || "");
+    const accountRef = referralAccountRef(studentNumber);
+    return db.runTransaction(async (transaction) => {
+      const accountSnapshot = await transaction.get(accountRef);
+      const account = accountSnapshot.data() || {};
+      const personalization = { ...(account.personalization || {}) };
+      if (action === "theme") {
+        const theme = String(request.data?.theme || "");
+        const coloredTheme = !["light", "dark"].includes(theme);
+        if (
+          !REFERRAL_THEME_IDS.has(theme) ||
+          (coloredTheme && !account.milestones?.m4?.unlockedAt)
+        ) {
+          throw new HttpsError("permission-denied", "このテーマはまだ解放されていません。");
+        }
+        personalization.theme = theme;
+      } else if (action === "pet") {
+        const kind = String(request.data?.kind || "");
+        const name = String(request.data?.name || "").trim();
+        if (!account.milestones?.m6?.unlockedAt) {
+          throw new HttpsError("permission-denied", "ペットはまだ解放されていません。");
+        }
+        if (personalization.pet?.kind) {
+          throw new HttpsError("failed-precondition", "ペットの種類と名前は確定済みです。");
+        }
+        if (!REFERRAL_PET_IDS.has(kind) || name.length < 1 || name.length > 12) {
+          throw new HttpsError("invalid-argument", "ペットの種類または名前を確認してください。");
+        }
+        personalization.pet = { kind, name, selectedAt: new Date() };
+        personalization.accessory = "none";
+      } else if (action === "accessory") {
+        const accessory = String(request.data?.accessory || "");
+        if (
+          !account.milestones?.m8?.unlockedAt ||
+          !personalization.pet?.kind ||
+          !REFERRAL_ACCESSORY_IDS.has(accessory)
+        ) {
+          throw new HttpsError("permission-denied", "アクセサリーを変更できません。");
+        }
+        personalization.accessory = accessory;
+      } else {
+        throw new HttpsError("invalid-argument", "設定内容が正しくありません。");
+      }
+      transaction.set(
+        accountRef,
+        { studentNumber, personalization, updatedAt: new Date() },
+        { merge: true },
+      );
+      return {
+        saved: true,
+        personalization: {
+          theme: personalization.theme || "light",
+          pet: personalization.pet || null,
+          accessory: personalization.accessory || "none",
+        },
+      };
     });
   },
 );
@@ -893,6 +1025,7 @@ exports.completeReferralRegistration = onCall(
       }
       const nextCount = invitedCount + 1;
       const milestones = milestoneState(account.milestones || {}, nextCount, now);
+      const rewardGrantState = referralRewardGrantState(account, nextCount, now);
       transaction.create(identityRef, {
         ...baseIdentity,
         referralEverCounted: true,
@@ -921,11 +1054,19 @@ exports.completeReferralRegistration = onCall(
           studentNumber: inviter,
           invitedCount: nextCount,
           milestones,
+          rewardGrants: rewardGrantState.rewardGrants,
           activeCodeHash: null,
           updatedAt: now,
         },
         { merge: true },
       );
+      if (rewardGrantState.shouldGrantPoints) {
+        transaction.set(
+          db.collection("totalRanking").doc(inviter),
+          { point: FieldValue.increment(100), updatedAt: now },
+          { merge: true },
+        );
+      }
       transaction.set(
         referralProofRef,
         { used: true, usedAt: now },
@@ -1158,16 +1299,8 @@ exports.adjustReferralCountAdmin = onCall(
       const previousAdjustment = Number(account.manualAdjustment || 0);
       const verifiedCount = Math.max(0, fromCount - previousAdjustment);
       const now = new Date();
-      const milestones = { ...(account.milestones || {}) };
-      REFERRAL_MILESTONES.forEach((milestone) => {
-        const key = `m${milestone.count}`;
-        const current = milestones[key] || {};
-        if (targetCount >= milestone.count) {
-          milestones[key] = { ...current, unlockedAt: current.unlockedAt || now };
-        } else if (!current.claimedAt) {
-          delete milestones[key];
-        }
-      });
+      const milestones = milestoneState(account.milestones || {}, targetCount, now);
+      const rewardGrantState = referralRewardGrantState(account, targetCount, now);
       transaction.set(
         accountRef,
         {
@@ -1175,12 +1308,20 @@ exports.adjustReferralCountAdmin = onCall(
           invitedCount: targetCount,
           manualAdjustment: targetCount - verifiedCount,
           milestones,
+          rewardGrants: rewardGrantState.rewardGrants,
           updatedAt: now,
           lastAdjustedAt: now,
           lastAdjustedBy: adjustedBy,
         },
         { merge: true },
       );
+      if (rewardGrantState.shouldGrantPoints) {
+        transaction.set(
+          db.collection("totalRanking").doc(target),
+          { point: FieldValue.increment(100), updatedAt: now },
+          { merge: true },
+        );
+      }
       transaction.create(adjustmentRef, {
         studentNumber: target,
         fromCount,

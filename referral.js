@@ -14,6 +14,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 
 const $ = (id) => document.getElementById(id);
 let dashboard = null;
+let selectedPetKind = "";
 
 setupTheme($("themeButton"));
 $("backButton").onclick = () => location.assign("index.html");
@@ -23,6 +24,9 @@ $("copyReferralCode").onclick = copyCode;
 $("referralCodeValue").onclick = copyCode;
 $("shareReferralCode").onclick = shareCode;
 $("openReferralGift").onclick = openGift;
+$("saveReferralPet").onclick = savePet;
+$("referralPetChoices").onclick = selectPet;
+$("referralAccessoryArea").onclick = selectAccessory;
 
 await auth.authStateReady();
 if (!auth.currentUser || auth.currentUser.uid !== `caremate-${studentNumber}`) {
@@ -43,6 +47,14 @@ async function loadDashboard() {
     const call = httpsCallable(functions, "getReferralDashboard");
     const response = await call();
     dashboard = response.data;
+    localStorage.setItem(
+      `careMateReferralPersonalization:${studentNumber}`,
+      JSON.stringify({
+        entitlements: dashboard.entitlements || {},
+        personalization: dashboard.personalization || {},
+        fetchedAt: Date.now(),
+      }),
+    );
     render();
   } catch (error) {
     console.error("紹介情報取得エラー:", error);
@@ -77,7 +89,7 @@ function render() {
     .map((item) => `
       <article class="referral-roadmap-item ${item.unlocked ? "is-unlocked" : ""}">
         <div class="referral-roadmap-marker">${item.unlocked ? "✓" : item.count}</div>
-        <div><b>${item.count}人 → ${escapeHtml(item.title)}</b><small>${item.unlocked ? `達成：${formatDateTime(item.unlockedAt)}` : `あと${Math.max(0, item.count - count)}人`}</small></div>
+        <div><b>${item.count}人 → ${escapeHtml(item.title)}</b><p>${escapeHtml(item.description || "")}</p><small>${item.unlocked ? `達成：${formatDateTime(item.unlockedAt)}` : `あと${Math.max(0, item.count - count)}人`}</small></div>
       </article>`)
     .join("");
 
@@ -90,6 +102,89 @@ function render() {
         ? `受取確認：${formatDateTime(dashboard.gift.claimedAt)}`
         : "ギフトの準備ができました。"
       : "運営者が付与を準備しています。";
+  }
+
+  renderPetReward();
+}
+
+function renderPetReward() {
+  const canUsePet = dashboard.entitlements?.pet === true;
+  const pet = dashboard.personalization?.pet;
+  $("referralPetCard").hidden = !canUsePet;
+  if (!canUsePet) return;
+
+  $("referralPetSetup").hidden = Boolean(pet?.kind);
+  $("referralPetCurrent").hidden = !pet?.kind;
+  $("referralPetState").textContent = pet?.kind ? "設定済み" : "未設定";
+  if (pet?.kind) {
+    const icons = { cat: "🐱", dog: "🐶", bird: "🐥" };
+    const accessories = { none: "", hat: "🎩", ribbon: "🎀", crown: "👑" };
+    $("referralPetPreview").innerHTML = `<span>${accessories[dashboard.personalization?.accessory] || ""}${icons[pet.kind] || "🐾"}</span><b>${escapeHtml(pet.name)}</b>`;
+  }
+
+  const canUseAccessory = dashboard.entitlements?.petAccessory === true && Boolean(pet?.kind);
+  $("referralAccessoryArea").hidden = !canUseAccessory;
+  if (canUseAccessory) {
+    const current = dashboard.personalization?.accessory || "none";
+    document.querySelectorAll("[data-accessory]").forEach((button) => {
+      const selected = button.dataset.accessory === current;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+  }
+}
+
+function selectPet(event) {
+  const button = event.target.closest("[data-pet-kind]");
+  if (!button) return;
+  selectedPetKind = button.dataset.petKind;
+  document.querySelectorAll("[data-pet-kind]").forEach((item) => {
+    const selected = item === button;
+    item.classList.toggle("is-selected", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+async function savePet() {
+  const name = $("referralPetName").value.trim();
+  if (!selectedPetKind) {
+    alert("ペットを1匹選んでください。");
+    return;
+  }
+  if (!name || name.length > 12) {
+    alert("ペットの名前を1〜12文字で入力してください。");
+    return;
+  }
+  if (!confirm(`「${name}」で確定します。種類と名前は後から変更できません。`)) return;
+  const button = $("saveReferralPet");
+  button.disabled = true;
+  button.textContent = "設定中...";
+  try {
+    await httpsCallable(functions, "saveReferralPersonalization")({ action: "pet", kind: selectedPetKind, name });
+    showToast("ペットを設定しました");
+    location.reload();
+  } catch (error) {
+    console.error("ペット設定エラー:", error);
+    alert(error?.message || "ペットを設定できませんでした。");
+    button.disabled = false;
+    button.textContent = "このペットで確定";
+  }
+}
+
+async function selectAccessory(event) {
+  const button = event.target.closest("[data-accessory]");
+  if (!button || button.classList.contains("is-selected")) return;
+  document.querySelectorAll("[data-accessory]").forEach((item) => (item.disabled = true));
+  try {
+    await httpsCallable(functions, "saveReferralPersonalization")({ action: "accessory", accessory: button.dataset.accessory });
+    localStorage.removeItem(`careMateReferralPersonalization:${studentNumber}`);
+    showToast("アクセサリーを変更しました");
+    location.reload();
+  } catch (error) {
+    console.error("アクセサリー設定エラー:", error);
+    alert("アクセサリーを変更できませんでした。");
+  } finally {
+    document.querySelectorAll("[data-accessory]").forEach((item) => (item.disabled = false));
   }
 }
 

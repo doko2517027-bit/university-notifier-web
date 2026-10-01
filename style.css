@@ -20652,6 +20652,7 @@ course-tagが付いたspanには適用しない。
 .referral-roadmap-marker { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--border) 65%, var(--card)); font-weight: 900; }
 .referral-roadmap-item.is-unlocked .referral-roadmap-marker { background: #17a87e; color: #fff; }
 .referral-roadmap-item div:last-child { display: grid; gap: 4px; }
+.referral-roadmap-item p { margin: 0; color: var(--subtext); font-size: 12px; line-height: 1.55; }
 .referral-roadmap-item small { color: var(--subtext); }
 .referral-gift-banner { padding: 24px; text-align: center; border: 1px solid #eab949; background: linear-gradient(145deg, color-mix(in srgb, #ffd869 19%, var(--card)), var(--card)); }
 .referral-gift-banner h2 { margin: 0 0 8px; }
@@ -20788,4 +20789,98 @@ course-tagが付いたspanには適用しない。
   .referral-adjust-history > div { align-items: flex-start; flex-direction: column; }
   .referral-admin-history span,
   .referral-adjust-history span { text-align: left; }
+}
+
+/* 紹介特典：全画面共通テーマ */
+html[data-caremate-theme="pink"] {
+  --primary: #d84f88; --primary-light: #ea75a5; --accent: #ffd9e8;
+  --bg: #fff7fa; --card: #fffefe; --text: #361b28; --subtext: #805d6d;
+  --border: #efd4df; --shadow: 0 6px 18px rgba(178, 63, 112, .11);
+}
+html[data-caremate-theme="green"] {
+  --primary: #288a5d; --primary-light: #42a976; --accent: #d4f0df;
+  --bg: #f5fbf7; --card: #ffffff; --text: #153426; --subtext: #577568;
+  --border: #d2e7da; --shadow: 0 6px 18px rgba(28, 105, 68, .10);
+}
+html[data-caremate-theme="blue"] {
+  --primary: #3978c7; --primary-light: #5a96de; --accent: #dcecff;
+  --bg: #f5f9ff; --card: #ffffff; --text: #162d49; --subtext: #5a708b;
+  --border: #d4e2f2; --shadow: 0 6px 18px rgba(51, 104, 170, .11);
+}
+html[data-caremate-theme="yellow"] {
+  --primary: #ae7b05; --primary-light: #d09a17; --accent: #fff0b8;
+  --bg: #fffbef; --card: #fffefa; --text: #382c12; --subtext: #786a48;
+  --border: #ecdfb8; --shadow: 0 6px 18px rgba(151, 107, 7, .10);
+}
+html[data-caremate-theme="red"] {
+  --primary: #c94a4a; --primary-light: #df6767; --accent: #ffdcdc;
+  --bg: #fff7f7; --card: #ffffff; --text: #3b1b1b; --subtext: #805f5f;
+  --border: #eed5d5; --shadow: 0 6px 18px rgba(158, 52, 52, .11);
+}
+html[data-caremate-theme="purple"] {
+  --primary: #7957bb; --primary-light: #9472d3; --accent: #eadfff;
+  --bg: #faf7ff; --card: #ffffff; --text: #2e2145; --subtext: #6d5e81;
+  --border: #e0d7ee; --shadow: 0 6px 18px rgba(103, 73, 159, .11);
+}
+html[data-caremate-theme="brown"] {
+  --primary: #8b6246; --primary-light: #a97c5c; --accent: #eadccd;
+  --bg: #faf7f3; --card: #fffefd; --text: #34261e; --subtext: #75655a;
+  --border: #e5d9cf; --shadow: 0 6px 18px rgba(103, 73, 53, .11);
+}
+
+.caremate-theme-picker {
+  position: fixed; z-index: 10050; top: max(68px, calc(env(safe-area-inset-top) + 58px)); right: max(12px, env(safe-area-inset-right));
+  width: min(318px, calc(100vw - 24px)); box-sizing: border-box; padding: 14px;
+  border: 1px solid var(--border); border-radius: 18px; background: var(--card); color: var(--text);
+  box-shadow: 0 20px 55px rgba(15, 23, 42, .24);
+}
+.caremate-theme-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.caremate-theme-picker-head button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg); color: var(--text); font-size: 20px; cursor: pointer; }
+.caremate-theme-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.caremate-theme-options button { display: grid; min-height: 64px; place-items: center; gap: 2px; padding: 7px 3px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); cursor: pointer; }
+.caremate-theme-options button span { font-size: 22px; }
+.caremate-theme-options button small { font-weight: 750; }
+.caremate-theme-options button.is-selected { border: 2px solid var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--primary); }
+
+/* 紹介特典：軽量2Dペット */
+.caremate-referral-pet {
+  --pet-travel: min(540px, calc(100vw - 100px));
+  position: fixed; z-index: 880; left: max(14px, calc(50vw - 330px)); bottom: calc(78px + env(safe-area-inset-bottom));
+  display: grid; min-width: 58px; place-items: center; padding: 0; border: 0; background: transparent; color: var(--text);
+  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, .18)); cursor: pointer; pointer-events: auto;
+  animation: caremate-pet-walk 15s ease-in-out infinite alternate;
+}
+.caremate-pet-character { display: block; font-size: 40px; line-height: 1; animation: caremate-pet-bob .8s ease-in-out infinite alternate; }
+.caremate-pet-accessory { position: absolute; z-index: 2; top: -17px; left: 50%; font-size: 23px; transform: translateX(-50%); }
+.caremate-referral-pet small { max-width: 82px; margin-top: 3px; padding: 2px 7px; overflow: hidden; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--card) 91%, transparent); color: var(--text); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.caremate-referral-pet.is-speaking small::after { content: " ♪"; color: var(--primary); }
+@keyframes caremate-pet-walk { from { transform: translateX(0); } to { transform: translateX(var(--pet-travel)); } }
+@keyframes caremate-pet-bob { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
+
+.referral-pet-card { padding: clamp(18px, 3vw, 26px); }
+.referral-feature-description { margin-top: 0; font-size: 13px; }
+.referral-pet-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.referral-pet-choices button { display: grid; min-height: 92px; place-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 15px; background: var(--bg); color: var(--text); cursor: pointer; }
+.referral-pet-choices button span { font-size: 38px; }
+.referral-pet-choices button.is-selected { border: 2px solid var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--primary); }
+.referral-pet-name { display: grid; gap: 7px; margin: 16px 0 12px; font-size: 13px; font-weight: 800; }
+.referral-pet-name input { width: 100%; box-sizing: border-box; }
+.referral-pet-current { padding: 18px; border-radius: 15px; background: color-mix(in srgb, var(--primary) 7%, var(--card)); text-align: center; }
+.referral-pet-preview { display: grid; place-items: center; gap: 6px; }
+.referral-pet-preview span { font-size: 58px; }
+.referral-pet-preview b { font-size: 18px; }
+.referral-pet-current p { margin-bottom: 0; font-size: 12px; }
+.referral-accessory-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.referral-accessory-area h3 { margin: 0; font-size: 16px; }
+.referral-accessory-area p { margin: 4px 0 12px; font-size: 12px; }
+.referral-accessory-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.referral-accessory-choices button { min-height: 44px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg); color: var(--text); font-weight: 750; cursor: pointer; }
+.referral-accessory-choices button.is-selected { border: 2px solid var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--primary); }
+
+@media (max-width: 520px) {
+  .caremate-referral-pet { --pet-travel: calc(100vw - 92px); bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .referral-accessory-choices { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caremate-referral-pet, .caremate-pet-character { animation: none; }
 }
