@@ -338,29 +338,6 @@ document.getElementById("sendContact").onclick = async () => {
 
 document.getElementById("versionText").textContent = `Version ${VERSION}`;
 
-document.getElementById("createGuardianInvite")?.addEventListener("click", async (event) => {
-  const button = event.currentTarget;
-  if (!confirm("保護者用の連携コードを新しく発行しますか？\n以前に発行した未使用コードは使えなくなります。")) return;
-  button.disabled = true;
-  button.textContent = "発行中…";
-  try {
-    await requireOwnLogin();
-    const createGuardianInvite = httpsCallable(functions, "createGuardianInvite");
-    const result = await createGuardianInvite();
-    const target = document.getElementById("guardianInviteResult");
-    const expires = new Date(Number(result.data?.expiresAt || 0));
-    target.hidden = false;
-    target.innerHTML = `<small>連携コード</small><strong>${String(result.data?.code || "")}</strong><span>${expires.toLocaleString("ja-JP")}まで有効</span>`;
-    button.textContent = "新しい連携コードを発行";
-  } catch (error) {
-    console.error("保護者連携コード発行エラー:", error);
-    alert("連携コードを発行できませんでした。ログイン状態を確認してください。");
-    button.textContent = "保護者連携コードを発行";
-  } finally {
-    button.disabled = false;
-  }
-});
-
 document.getElementById("unregister").addEventListener("click", async () => {
   if (!confirm("登録を解除しますか？")) {
     return;

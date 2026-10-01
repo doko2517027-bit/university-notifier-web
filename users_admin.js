@@ -72,14 +72,6 @@ const offlineUserCount = document.getElementById("offlineUserCount");
 const filteredUserCount = document.getElementById("filteredUserCount");
 
 const userList = document.getElementById("userList");
-const studentUsersTab = document.getElementById("studentUsersTab");
-const guardianUsersTab = document.getElementById("guardianUsersTab");
-const studentManagementView = document.getElementById("studentManagementView");
-const guardianManagementView = document.getElementById("guardianManagementView");
-const guardianUserList = document.getElementById("guardianUserList");
-const guardianUserCount = document.getElementById("guardianUserCount");
-let guardianUsers = [];
-let guardiansLoaded = false;
 
 let users = [];
 
@@ -214,9 +206,6 @@ function startPresenceListener() {
 }
 
 function setupEvents() {
-  studentUsersTab?.addEventListener("click", () => selectUserManagementTab("student"));
-  guardianUsersTab?.addEventListener("click", () => selectUserManagementTab("guardian"));
-  document.getElementById("refreshGuardiansButton")?.addEventListener("click", loadGuardianUsers);
   if (backButton) {
     backButton.onclick = () => {
       location.href = withAdminScope("admin.html");
@@ -336,33 +325,6 @@ function setupEvents() {
         "?studentNumber=" +
         encodeURIComponent(selectedStudentNumber);
     });
-  }
-}
-
-async function selectUserManagementTab(tab) {
-  const guardian = tab === "guardian";
-  studentManagementView.hidden = guardian;
-  guardianManagementView.hidden = !guardian;
-  studentUsersTab.classList.toggle("btn-primary", !guardian);
-  guardianUsersTab.classList.toggle("btn-primary", guardian);
-  if (guardian && !guardiansLoaded) await loadGuardianUsers();
-}
-
-async function loadGuardianUsers() {
-  if (!guardianUserList) return;
-  guardianUserList.innerHTML = '<div class="admin-user-loading">保護者ユーザーを読み込んでいます…</div>';
-  try {
-    const listGuardianAccounts = httpsCallable(functions, "listGuardianAccounts");
-    const result = await listGuardianAccounts();
-    guardianUsers = Array.isArray(result.data?.guardians) ? result.data.guardians : [];
-    guardiansLoaded = true;
-    guardianUserCount.textContent = `${guardianUsers.length}人`;
-    guardianUserList.innerHTML = guardianUsers.length
-      ? guardianUsers.map((guardian) => `<div class="admin-user-item guardian-user-item"><div class="admin-user-main"><div class="admin-user-title"><strong>👪 ${escapeHtml(guardian.displayName || "保護者")}</strong><span class="admin-user-status">${guardian.enabled ? "利用中" : "停止中"}</span></div><p class="admin-user-affiliation">連携学生：${escapeHtml(guardian.linkedStudentNumber)}</p><small>登録：${escapeHtml(formatDeviceAuditDate(guardian.createdAt))}</small></div></div>`).join("")
-      : '<div class="admin-user-loading">登録済みの保護者ユーザーはいません。</div>';
-  } catch (error) {
-    console.error("保護者ユーザー取得エラー:", error);
-    guardianUserList.innerHTML = '<div class="admin-user-loading">保護者ユーザーを取得できませんでした。</div>';
   }
 }
 

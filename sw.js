@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v59";
+const STATIC_CACHE = "caremate-static-v60";
 
-const RUNTIME_CACHE = "caremate-runtime-v59";
+const RUNTIME_CACHE = "caremate-runtime-v60";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -41,7 +41,7 @@ const CORE_ASSETS = [
 
   "settings.html",
 
-  "settings.js?v=20261001-2",
+  "settings.js?v=20261001-3",
 
   "academic_lifecycle.mjs",
 
@@ -59,19 +59,15 @@ const CORE_ASSETS = [
 
   "login.html",
 
-  "login.js?v=20261001-1",
+  "login.js?v=20261001-2",
 
   "register.html",
 
-  "register.js?v=20261001-2",
-
-  "guardian_timetable.html",
-
-  "guardian_timetable.js?v=20261001-1",
+  "register.js?v=20261001-3",
 
   "users_admin.html",
 
-  "users_admin.js?v=20261001-6",
+  "users_admin.js?v=20261001-7",
 
   "push_subscription.js",
 
