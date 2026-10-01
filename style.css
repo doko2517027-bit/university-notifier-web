@@ -15427,6 +15427,101 @@ body:has(#universityNews) .news-body {
     overflow-wrap: anywhere;
 }
 
+body:has(#universityNews) .news-summary {
+    color: var(--subtext);
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.news-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 18px 0 28px;
+}
+
+.news-pagination button {
+    min-width: 38px;
+    min-height: 36px;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-weight: 750;
+}
+
+.news-pagination button.is-active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.news-detail-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.news-detail-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(3px);
+}
+
+.news-detail-dialog {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: min(80vh, 720px);
+    overflow: auto;
+    padding: 28px 24px;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
+    border-radius: 20px;
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+}
+
+.news-detail-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    color: var(--text);
+    font-size: 24px;
+}
+
+.news-detail-type {
+    margin-bottom: 8px;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.news-detail-dialog h2 {
+    margin: 0 40px 8px 0;
+    font-size: clamp(20px, 4vw, 28px);
+    line-height: 1.45;
+}
+
+.news-detail-dialog time {
+    color: var(--subtext);
+    font-size: 12px;
+}
+
+.news-detail-body {
+    margin-top: 22px;
+    font-size: 16px;
+    line-height: 1.9;
+    overflow-wrap: anywhere;
+}
+
 
 /* ==================================================
    PDFリンク
@@ -20875,7 +20970,7 @@ html[data-caremate-theme="brown"] {
 }
 .caremate-referral-pet.is-dragging { transition: none !important; cursor: grabbing; filter: drop-shadow(0 8px 9px rgba(15, 23, 42, .28)); }
 .caremate-referral-pet[data-facing="left"] { --pet-facing: -1; }
-.caremate-pet-character { display: block; width: 72px; height: 72px; animation: caremate-pet-bob .9s ease-in-out infinite alternate; }
+.caremate-pet-character { display: block; width: 104px; height: 104px; animation: caremate-pet-bob .9s ease-in-out infinite alternate; }
 .caremate-pet-sprite { display: block; background-repeat: no-repeat; background-size: 600% 400%; background-color: transparent; }
 .caremate-referral-pet.is-walking .caremate-pet-character { animation-duration: .42s; }
 .caremate-referral-pet[data-action="run"] .caremate-pet-character { animation-duration: .22s; }

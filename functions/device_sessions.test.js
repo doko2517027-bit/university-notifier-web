@@ -7,6 +7,8 @@ const {
   extractClientIp,
   getIpPrivacyValues,
   parseDeviceInfo,
+  buildDeviceSignature,
+  collapseEquivalentDevices,
   evaluateAccountSharingRisk,
   shouldRefreshApproximateRegion,
   shouldForceLogoutSession,
@@ -106,6 +108,18 @@ test("Androidの機種名、iPhone/iPadの詳細不明表示、PC情報を安全
   );
   assert.equal(pc.deviceType, "PC");
   assert.equal(pc.os, "Windows 10/11");
+});
+
+test("同じ端末情報の再ログイン履歴は管理画面上で1台に統合する", () => {
+  const info = parseDeviceInfo("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36");
+  const signature = buildDeviceSignature(info);
+  const devices = collapseEquivalentDevices([
+    { id: "old-device", ...info, canonicalDeviceKey: signature, lastSeenAt: new Date("2026-09-30T00:00:00Z") },
+    { id: "new-device", ...info, canonicalDeviceKey: signature, lastSeenAt: new Date("2026-10-01T00:00:00Z") },
+  ]);
+  assert.equal(devices.length, 1);
+  assert.equal(devices[0].id, "new-device");
+  assert.equal(devices[0].mergedDeviceCount, 2);
 });
 
 test("同じ場所・同じネットワークの通常の2端末利用だけでは警告しない", () => {

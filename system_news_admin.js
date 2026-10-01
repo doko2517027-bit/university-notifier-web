@@ -85,6 +85,10 @@ const sendSystemNewsNotification = document.getElementById(
 );
 
 const systemNewsImportant = document.getElementById("systemNewsImportant");
+const systemNewsFontSize = document.getElementById("systemNewsFontSize");
+const systemNewsTextColor = document.getElementById("systemNewsTextColor");
+const systemNewsBold = document.getElementById("systemNewsBold");
+const systemNewsUnderline = document.getElementById("systemNewsUnderline");
 
 const systemNewsRecipientMode = document.getElementById(
   "systemNewsRecipientMode",
@@ -136,6 +140,10 @@ const editSystemNewsBody = document.getElementById("editSystemNewsBody");
 const editSystemNewsImportant = document.getElementById(
   "editSystemNewsImportant",
 );
+const editSystemNewsFontSize = document.getElementById("editSystemNewsFontSize");
+const editSystemNewsTextColor = document.getElementById("editSystemNewsTextColor");
+const editSystemNewsBold = document.getElementById("editSystemNewsBold");
+const editSystemNewsUnderline = document.getElementById("editSystemNewsUnderline");
 
 const cancelSystemNewsEdit = document.getElementById("cancelSystemNewsEdit");
 
@@ -169,6 +177,16 @@ let selectedDeleteCollection = "systemNews";
 let stopSystemNewsListener = null;
 
 let stopTargetedSystemNewsListener = null;
+
+function readNewsFormat(prefix = "") {
+  const pick = (id, fallback) => document.getElementById(`${prefix}${id}`)?.value || fallback;
+  return {
+    fontSize: ["14px", "16px", "18px"].includes(pick("FontSize", "14px")) ? pick("FontSize", "14px") : "14px",
+    color: /^#[0-9a-f]{6}$/i.test(pick("TextColor", "#1f2937")) ? pick("TextColor", "#1f2937") : "#1f2937",
+    bold: Boolean(document.getElementById(`${prefix}Bold`)?.checked),
+    underline: Boolean(document.getElementById(`${prefix}Underline`)?.checked),
+  };
+}
 
 /* ========================================
    初期化
@@ -453,6 +471,7 @@ async function postNews() {
         updatedBy: null,
 
         important: systemNewsImportant?.checked === true,
+        format: readNewsFormat("systemNews"),
 
         /*
                 既存通知処理との互換性を維持
@@ -484,6 +503,10 @@ async function postNews() {
     if (systemNewsImportant) {
       systemNewsImportant.checked = false;
     }
+    if (systemNewsFontSize) systemNewsFontSize.value = "14px";
+    if (systemNewsTextColor) systemNewsTextColor.value = "#1f2937";
+    if (systemNewsBold) systemNewsBold.checked = false;
+    if (systemNewsUnderline) systemNewsUnderline.checked = false;
 
     if (sendSystemNewsNotification) {
       sendSystemNewsNotification.checked = true;
@@ -760,6 +783,11 @@ function openEditModal(newsId, sourceCollection = "systemNews") {
   if (editSystemNewsImportant) {
     editSystemNewsImportant.checked = news.important === true;
   }
+  const format = news.format || {};
+  if (editSystemNewsFontSize) editSystemNewsFontSize.value = ["14px", "16px", "18px"].includes(format.fontSize) ? format.fontSize : "14px";
+  if (editSystemNewsTextColor) editSystemNewsTextColor.value = /^#[0-9a-f]{6}$/i.test(format.color || "") ? format.color : "#1f2937";
+  if (editSystemNewsBold) editSystemNewsBold.checked = format.bold === true;
+  if (editSystemNewsUnderline) editSystemNewsUnderline.checked = format.underline === true;
 
   openModal(editSystemNewsModal);
 
@@ -797,6 +825,7 @@ async function saveEditedNews() {
       body,
 
       important: editSystemNewsImportant?.checked === true,
+      format: readNewsFormat("editSystemNews"),
 
       updatedAt: serverTimestamp(),
 

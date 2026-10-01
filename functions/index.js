@@ -1636,6 +1636,32 @@ const ADMIN_ATTENDANCE_STATUSES = Object.freeze({
   unrecorded: "未打刻",
 });
 
+function normalizeAdminEnrollmentStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+  return ["removed", "not_enrolled", "dropped", "cancelled"].includes(status)
+    ? "not_enrolled"
+    : "enrolled";
+}
+
+function normalizeAdminAttendanceStatus(data) {
+  const candidates = [
+    data?.status,
+    data?.finalResult?.status,
+    data?.judgement?.status,
+    data?.finalResult?.value,
+    data?.judgement?.value,
+  ];
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim().toLowerCase();
+    if (Object.hasOwn(ADMIN_ATTENDANCE_STATUSES, value)) return value;
+    if (value === "出席") return "present";
+    if (value === "遅刻") return "late";
+    if (value === "早退") return "early_leave";
+    if (value === "欠席") return "absent";
+  }
+  return "unrecorded";
+}
+
 exports.getStudentFeatureAdmin = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
@@ -1645,13 +1671,15 @@ exports.getStudentFeatureAdmin = onCall(
       throw new HttpsError("invalid-argument", "対象学生が正しくありません。");
     }
     const userRef = db.collection("users").doc(target);
-    const [user, enrollment, attendance, progress, solved, referral] = await Promise.all([
+    const [user, enrollment, attendance, progress, solved, referral, referralHistory, referralAdjustments] = await Promise.all([
       userRef.get(),
       userRef.collection("enrolledSubjects").get(),
       userRef.collection("attendanceRecords").get(),
       userRef.collection("examProgress").get(),
       userRef.collection("solvedQuestions").get(),
       referralAccountRef(target).get(),
+      db.collection("referralHistory").where("invitedStudentNumber", "==", target).get(),
+      db.collection("referralManualAdjustments").where("studentNumber", "==", target).get(),
     ]);
     if (!user.exists) {
       throw new HttpsError("not-found", "対象学生が見つかりません。");
@@ -1662,7 +1690,9 @@ exports.getStudentFeatureAdmin = onCall(
         return {
           id: item.id,
           name: String(data.name || data.subject || data.subjectKey || item.id),
-          status: String(data.status || "enrolled"),
+          status: normalizeAdminEnrollmentStatus(data.status),
+          rawStatus: String(data.status || ""),
+          required: data.required === true || data.isRequired === true,
           academicYear: Number(data.academicYear || 0),
           semester: String(data.registeredSemester || data.semester || ""),
           credits: Number(data.credits || 0),
@@ -1679,10 +1709,12 @@ exports.getStudentFeatureAdmin = onCall(
           date: String(data.date || ""),
           period: Number(data.period || 0),
           classGroup: String(data.classGroup || ""),
-          status: Object.hasOwn(ADMIN_ATTENDANCE_STATUSES, data.status)
-            ? data.status
-            : "unrecorded",
-          statusLabel: String(data.statusLabel || ""),
+          status: normalizeAdminAttendanceStatus(data),
+          statusLabel: String(
+            data.statusLabel || data.finalResult?.label || data.judgement?.label ||
+              ADMIN_ATTENDANCE_STATUSES[normalizeAdminAttendanceStatus(data)] || "",
+          ),
+          judgementSource: String(data.judgementSource || ""),
           adminEditedAt: timestampMillis(data.adminEditedAt),
           updatedAt: timestampMillis(data.updatedAt),
         };
@@ -1694,12 +1726,14 @@ exports.getStudentFeatureAdmin = onCall(
     const testProgress = (await Promise.all(progress.docs
       .map(async (item) => {
         const data = item.data() || {};
-        const currentIndex = Math.max(0, Number(data.currentIndex || 0));
+        const currentIndex = Math.max(0, Number(
+          data.currentIndex ?? data.currentQuestionIndex ?? data.index ?? 0,
+        ));
         const questionOrder = Array.isArray(data.questionOrder)
           ? data.questionOrder.map(String)
           : [];
         const currentQuestionId = String(questionOrder[currentIndex] || "");
-        let currentQuestionText = "";
+        let currentQuestionText = String(data.currentQuestionText || data.questionText || "").slice(0, 500);
         if (data.subjectId && data.unitId && currentQuestionId) {
           const published = await db
             .collection("examSubjects")
@@ -1730,10 +1764,12 @@ exports.getStudentFeatureAdmin = onCall(
           id: item.id,
           type: String(data.type || ""),
           subjectId: String(data.subjectId || ""),
-          subjectName: String(data.subjectName || "名称未設定"),
+          subjectName: String(data.subjectName || data.subjectTitle || data.subject || "名称未設定"),
           unitId: String(data.unitId || ""),
           currentIndex,
-          totalQuestions: Math.max(0, Number(data.totalQuestions || 0)),
+          totalQuestions: Math.max(0, Number(
+            data.totalQuestions || questionOrder.length || data.questionCount || 0,
+          )),
           currentQuestionId,
           currentQuestionText,
           completed: data.completed === true,
@@ -1768,7 +1804,28 @@ exports.getStudentFeatureAdmin = onCall(
       solvedQuestions,
       referral: {
         invitedCount,
+        manualAdjustment: Number(referralData.manualAdjustment || 0),
         milestones: serializeReferralMilestones(referralData.milestones, invitedCount),
+        histories: referralHistory.docs.map((item) => {
+          const data = item.data() || {};
+          return {
+            id: item.id,
+            inviterStudentNumber: String(data.inviterStudentNumber || ""),
+            codePreview: String(data.codePreview || ""),
+            establishedAt: timestampMillis(data.establishedAt),
+          };
+        }).sort((left, right) => right.establishedAt - left.establishedAt),
+        adjustments: referralAdjustments.docs.map((item) => {
+          const data = item.data() || {};
+          return {
+            id: item.id,
+            fromCount: Number(data.fromCount || 0),
+            toCount: Number(data.toCount || 0),
+            reason: String(data.reason || ""),
+            adjustedBy: String(data.adjustedBy || ""),
+            adjustedAt: timestampMillis(data.adjustedAt),
+          };
+        }).sort((left, right) => right.adjustedAt - left.adjustedAt).slice(0, 20),
       },
     };
   },

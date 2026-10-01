@@ -73,6 +73,7 @@ test("3体の透過スプライトで行動と表情の固定IDを保持する",
   assert.match(petConfigSource, /CAREMATE_PET_ASSETS_READY = true/);
   assert.match(petConfigSource, /images\/pets\/cat\.webp/);
   assert.match(petConfigSource, /images\/pets\/dog\.webp/);
+  assert.match(petConfigSource, /images\/pets\/dog-emotions\.webp/);
   assert.match(petConfigSource, /images\/pets\/rabbit\.webp/);
   assert.match(petConfigSource, /applyPetSprite/);
   for (const action of ["rampage", "walk", "run", "stop", "sleep", "jump", "stretch", "eat", "play", "wave"]) {

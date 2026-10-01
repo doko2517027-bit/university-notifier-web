@@ -127,6 +127,13 @@
           placeholder="お知らせ本文を入力してください"
         ></textarea>
 
+        <div class="system-news-format-controls" aria-label="本文の表示形式">
+          <label>文字サイズ<select id="systemNewsFontSize"><option value="14px">標準</option><option value="16px">大きめ</option><option value="18px">大きい</option></select></label>
+          <label>文字色<input id="systemNewsTextColor" type="color" value="#1f2937" /></label>
+          <label><input id="systemNewsBold" type="checkbox" /> 太字</label>
+          <label><input id="systemNewsUnderline" type="checkbox" /> 下線</label>
+        </div>
+
         <div class="system-news-character-count">
           <span id="systemNewsBodyCount"> 0 </span>
 
@@ -284,6 +291,13 @@
           placeholder="本文"
         ></textarea>
 
+        <div class="system-news-format-controls" aria-label="本文の表示形式">
+          <label>文字サイズ<select id="editSystemNewsFontSize"><option value="14px">標準</option><option value="16px">大きめ</option><option value="18px">大きい</option></select></label>
+          <label>文字色<input id="editSystemNewsTextColor" type="color" value="#1f2937" /></label>
+          <label><input id="editSystemNewsBold" type="checkbox" /> 太字</label>
+          <label><input id="editSystemNewsUnderline" type="checkbox" /> 下線</label>
+        </div>
+
         <label class="setting-row">
           <span>
             <b> 📌 重要なお知らせ </b>
@@ -386,6 +400,6 @@
       </a>
     </nav>
 
-    <script type="module" src="system_news_admin.js?v=20261001-1"></script>
+    <script type="module" src="system_news_admin.js?v=20261002-2"></script>
   </body>
 </html>

@@ -476,18 +476,18 @@ function renderStudentFeatures() {
     <div><small>テスト進捗</small><b>${progress.length}件</b></div>
     <div><small>紹介</small><b>${Number(referral.invitedCount || 0)} / 10人</b></div>`;
 
-  studentEnrollmentPanel.innerHTML = activeEnrollments.length
-    ? `<div class="student-feature-list">${activeEnrollments.map((item) => `
+  studentEnrollmentPanel.innerHTML = enrollments.length
+    ? `<p class="student-feature-help">履修中 ${activeEnrollments.length}科目 / 登録履歴 ${enrollments.length}件。履修から外した科目も確認できます。</p><div class="student-feature-list">${enrollments.map((item) => `
       <article class="student-feature-row" data-feature-row="enrollment" data-document-id="${escapeAuditHtml(item.id)}">
-        <div><b>${escapeAuditHtml(item.name)}</b><small>${escapeAuditHtml([item.academicYear ? `${item.academicYear}年度` : "", semesterLabel(item.semester), item.credits ? `${item.credits}単位` : ""].filter(Boolean).join("・"))}</small></div>
-        <div class="student-feature-edit"><select aria-label="履修状態"><option value="enrolled" selected>履修中</option><option value="not_enrolled">履修から外す</option></select><button type="button" class="btn" data-save-feature>保存</button></div>
+        <div><b>${escapeAuditHtml(item.name)}</b><small>${escapeAuditHtml([item.academicYear ? `${item.academicYear}年度` : "", semesterLabel(item.semester), item.credits ? `${item.credits}単位` : "", item.required ? "必修" : ""].filter(Boolean).join("・"))}</small></div>
+        <div class="student-feature-edit"><select aria-label="履修状態"><option value="enrolled" ${item.status === "enrolled" ? "selected" : ""}>履修中</option><option value="not_enrolled" ${item.status === "not_enrolled" ? "selected" : ""}>履修から外す</option></select><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>`
     : '<div class="student-feature-empty">現在の履修登録はありません。</div>';
 
   studentAttendancePanel.innerHTML = attendance.length
     ? `<p class="student-feature-help">最新100件を表示します。変更すると管理者修正日時も記録されます。</p><div class="student-feature-list">${attendance.slice(0, 100).map((item) => `
       <article class="student-feature-row" data-feature-row="attendance" data-document-id="${escapeAuditHtml(item.id)}">
-        <div><b>${escapeAuditHtml(item.subject)}</b><small>${escapeAuditHtml(item.date || "日付不明")} ${item.period ? `${item.period}限` : ""}${item.classGroup ? `・${escapeAuditHtml(item.classGroup)}クラス` : ""}${item.adminEditedAt ? `・修正済み ${escapeAuditHtml(formatAuditDate(item.adminEditedAt))}` : ""}</small></div>
+        <div><b>${escapeAuditHtml(item.subject)}</b><small>${escapeAuditHtml(item.date || "日付不明")} ${item.period ? `${item.period}限` : ""}${item.classGroup ? `・${escapeAuditHtml(item.classGroup)}クラス` : ""}・${escapeAuditHtml(item.statusLabel || attendanceStatusOptions[item.status] || "未打刻")}${item.judgementSource ? `・判定: ${escapeAuditHtml(item.judgementSource)}` : ""}${item.adminEditedAt ? `・修正済み ${escapeAuditHtml(formatAuditDate(item.adminEditedAt))}` : ""}</small></div>
         <div class="student-feature-edit"><select aria-label="出席状態">${Object.entries(attendanceStatusOptions).map(([value, label]) => `<option value="${value}" ${item.status === value ? "selected" : ""}>${label}</option>`).join("")}</select><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>`
     : '<div class="student-feature-empty">出席記録はまだありません。</div>';
@@ -504,7 +504,8 @@ function renderStudentFeatures() {
   studentReferralPanel.innerHTML = `
     <div class="student-referral-overview"><strong>${Number(referral.invitedCount || 0)} / 10人</strong><div class="referral-admin-progress-track"><i style="width:${Math.min(100, Number(referral.invitedCount || 0) * 10)}%"></i></div></div>
     <div class="referral-admin-milestones">${(referral.milestones || []).map((item) => `<span class="${item.unlocked ? "is-unlocked" : ""}">${item.count}人 ${item.unlocked ? "✓" : ""}</span>`).join("")}</div>
-    <p class="student-feature-help">紹介人数の補正、成立履歴、コード、ギフトは2510044専用の「紹介制度管理」で確認・変更できます。</p>`;
+    <p class="student-feature-help">手動補正: ${Number(referral.manualAdjustment || 0)}人。成立履歴 ${referral.histories?.length || 0}件、補正履歴 ${referral.adjustments?.length || 0}件。</p>
+    ${(referral.histories || []).length ? `<details><summary>紹介成立履歴</summary>${referral.histories.map((item) => `<div>${escapeAuditHtml(item.inviterStudentNumber || "不明")} → ${escapeAuditHtml(item.codePreview || "コード")}${item.establishedAt ? `・${escapeAuditHtml(formatAuditDate(item.establishedAt))}` : ""}</div>`).join("")}</details>` : ""}`;
 }
 
 function setStudentFeatureTab(tabName) {

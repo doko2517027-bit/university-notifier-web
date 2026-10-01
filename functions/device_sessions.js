@@ -252,6 +252,36 @@ function parseDeviceInfo(userAgentValue) {
   };
 }
 
+function buildDeviceSignature(deviceInfo = {}) {
+  const stable = [
+    deviceInfo.deviceType,
+    deviceInfo.os,
+    deviceInfo.browser,
+    deviceInfo.model,
+  ].map((value) => cleanText(value, 100).toLowerCase()).join("|");
+  return crypto.createHash("sha256").update(stable, "utf8").digest("hex").slice(0, 32);
+}
+
+function collapseEquivalentDevices(devices) {
+  const grouped = new Map();
+  for (const device of devices) {
+    const signature = String(device.canonicalDeviceKey || buildDeviceSignature(device));
+    const existing = grouped.get(signature);
+    if (!existing || timestampToMillis(device.lastSeenAt) > timestampToMillis(existing.lastSeenAt)) {
+      grouped.set(signature, {
+        ...device,
+        canonicalDeviceKey: signature,
+        mergedDeviceCount: (existing?.mergedDeviceCount || 0) + 1,
+        mergedDeviceIds: [...(existing?.mergedDeviceIds || []), device.id].filter(Boolean),
+      });
+    } else {
+      existing.mergedDeviceCount = (existing.mergedDeviceCount || 1) + 1;
+      existing.mergedDeviceIds = [...(existing.mergedDeviceIds || []), device.id].filter(Boolean);
+    }
+  }
+  return [...grouped.values()];
+}
+
 function timestampToMillis(value) {
   if (!value) return 0;
   if (typeof value.toMillis === "function") return value.toMillis();
@@ -506,7 +536,7 @@ function createDeviceSessionStore(db, FieldValue) {
   }
 
   async function refreshRiskSummary(studentNumber) {
-    const devices = await readDevices(studentNumber);
+    const devices = collapseEquivalentDevices(await readDevices(studentNumber));
     const risk = evaluateAccountSharingRisk(devices);
 
     await rootCollection.doc(studentNumber).set(
@@ -537,6 +567,7 @@ function createDeviceSessionStore(db, FieldValue) {
     const userAgent =
       rawRequest?.headers?.["user-agent"] || rawRequest?.get?.("user-agent") || "";
     const deviceInfo = parseDeviceInfo(userAgent);
+    const canonicalDeviceKey = buildDeviceSignature(deviceInfo);
     const deviceRef = rootCollection
       .doc(studentNumber)
       .collection("loginDevices")
@@ -570,6 +601,7 @@ function createDeviceSessionStore(db, FieldValue) {
       studentNumber,
       deviceId,
       ...deviceInfo,
+      canonicalDeviceKey,
       maskedIp: maskedIp || existing.maskedIp || "不明",
       networkKey: networkKey || existing.networkKey || "",
       lastSeenAt: now,
@@ -656,6 +688,8 @@ function createDeviceSessionStore(db, FieldValue) {
       model: cleanText(device.model, 80),
       os: cleanText(device.os, 80),
       browser: cleanText(device.browser, 80),
+      canonicalDeviceKey: cleanText(device.canonicalDeviceKey, 40),
+      mergedDeviceCount: Math.max(1, Number(device.mergedDeviceCount || 1)),
       maskedIp: cleanText(device.maskedIp, 80) || "不明",
       regionCountry: cleanText(device.regionCountry, 80),
       regionName: cleanText(device.regionName, 80),
@@ -684,7 +718,7 @@ function createDeviceSessionStore(db, FieldValue) {
   }
 
   async function listUserDevices(studentNumber) {
-    const [devices, allDevicesSnapshot, deviceRequestsSnapshot] =
+    const [rawDevices, allDevicesSnapshot, deviceRequestsSnapshot] =
       await Promise.all([
         readDevices(studentNumber),
         accessCollection.doc(studentNumber).get(),
@@ -693,6 +727,7 @@ function createDeviceSessionStore(db, FieldValue) {
           .collection("logoutRequests")
           .get(),
       ]);
+    const devices = collapseEquivalentDevices(rawDevices);
     const risk = evaluateAccountSharingRisk(devices);
     const allDevicesRequestedAt = timestampToMillis(
       allDevicesSnapshot.data()?.forceLogoutRequestedAt,
@@ -885,6 +920,8 @@ module.exports = {
   extractClientIp,
   getIpPrivacyValues,
   parseDeviceInfo,
+  buildDeviceSignature,
+  collapseEquivalentDevices,
   evaluateAccountSharingRisk,
   shouldRefreshApproximateRegion,
   shouldForceLogoutSession,

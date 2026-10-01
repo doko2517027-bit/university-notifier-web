@@ -33,7 +33,31 @@ export function normalizePresenceDevices(
     });
   }
 
-  return devices.sort((a, b) => {
+  const merged = new Map();
+  devices.forEach((device) => {
+    const label = String(device.deviceLabel || "").trim();
+    if (!label) {
+      merged.set(`${device.deviceId}`, device);
+      return;
+    }
+    const existing = merged.get(`label:${label}`);
+    if (!existing) {
+      merged.set(`label:${label}`, { ...device, mergedDeviceCount: 1 });
+      return;
+    }
+    const existingPriority = PRESENCE_PRIORITY[existing.state] ?? 3;
+    const devicePriority = PRESENCE_PRIORITY[device.state] ?? 3;
+    const keep = devicePriority < existingPriority ||
+      (devicePriority === existingPriority && Number(device.lastChanged || 0) > Number(existing.lastChanged || 0))
+      ? device : existing;
+    merged.set(`label:${label}`, {
+      ...keep,
+      mergedDeviceCount: Number(existing.mergedDeviceCount || 1) + 1,
+      mergedDeviceIds: [...(existing.mergedDeviceIds || [existing.deviceId]), device.deviceId].filter(Boolean),
+    });
+  });
+
+  return [...merged.values()].sort((a, b) => {
     const priorityDifference =
       (PRESENCE_PRIORITY[a.state] ?? 3) -
       (PRESENCE_PRIORITY[b.state] ?? 3);

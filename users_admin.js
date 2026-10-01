@@ -1285,7 +1285,7 @@ function createPresenceDeviceHtml(entries) {
         const label = presence.deviceLabel || `端末 ${index + 1}`;
         return `
           <div class="admin-user-presence-device">
-            <b>${escapeHtml(label)}</b>
+            <b>${escapeHtml(label)}${Number(presence.mergedDeviceCount || 1) > 1 ? `（同一端末 ${Number(presence.mergedDeviceCount)}件を統合）` : ""}</b>
             <span>${escapeHtml(status.icon)} ${escapeHtml(pageName)}</span>
             <small>${escapeHtml(status.text)}・${escapeHtml(formatLastSeen(Number(presence.lastChanged || 0)))}</small>
           </div>`;

@@ -45,6 +45,55 @@ const systemNewsBadge = document.getElementById("systemNewsBadge");
 const markAllReadButton = document.getElementById("markAllReadButton");
 
 let readNewsIds = new Set();
+const newsDetailMap = new Map();
+
+function showNewsDetail(type, newsId) {
+  const notice = newsDetailMap.get(`${type}_${newsId}`);
+  if (!notice) return;
+  document.getElementById("newsDetailModal")?.remove();
+  const modal = document.createElement("div");
+  modal.id = "newsDetailModal";
+  modal.className = "news-detail-modal";
+  const title = notice.title || notice.course || "お知らせ";
+  const body = notice.body || notice.title || "本文はありません。";
+  const format = notice.format || {};
+  const fontSize = ["14px", "16px", "18px"].includes(format.fontSize) ? format.fontSize : "16px";
+  const color = /^#[0-9a-f]{6}$/i.test(format.color || "") ? format.color : "";
+  const style = `font-size:${fontSize};${color ? `color:${color};` : ""}${format.bold === true ? "font-weight:700;" : ""}${format.underline === true ? "text-decoration:underline;" : ""}`;
+  modal.innerHTML = `<div class="news-detail-backdrop" data-close-news-detail></div><article class="news-detail-dialog" role="dialog" aria-modal="true"><button type="button" class="news-detail-close" data-close-news-detail aria-label="閉じる">×</button><div class="news-detail-type">${type === "system" ? "CareMateからのお知らせ" : type === "course" ? "コースニュース" : "大学からのお知らせ"}</div><h2>${escapeNewsText(title)}</h2><time>${escapeNewsText(formatDateTime(notice.createdAt?.toDate?.() || notice.postedAt?.toDate?.() || notice.posted || notice.date || null))}</time><div class="news-detail-body" style="${style}">${escapeNewsText(body).replace(/\n/g, "<br>")}</div></article>`;
+  document.body.append(modal);
+  modal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-news-detail]")) modal.remove();
+  });
+}
+
+function rememberNewsNotice(type, notice) {
+  newsDetailMap.set(`${type}_${notice.id}`, notice);
+}
+
+function setupNewsPagination(container) {
+  const cards = [...container.querySelectorAll(".news-readable-card")];
+  const pageSize = 5;
+  if (cards.length <= pageSize) return;
+  const pageCount = Math.ceil(cards.length / pageSize);
+  const pager = document.createElement("nav");
+  pager.className = "news-pagination";
+  let page = 0;
+  const render = () => {
+    cards.forEach((card, index) => {
+      card.hidden = Math.floor(index / pageSize) !== page;
+    });
+    pager.innerHTML = Array.from({ length: pageCount }, (_, index) => `<button type="button" class="${index === page ? "is-active" : ""}" data-news-page="${index + 1}">${index + 1}</button>`).join("");
+  };
+  pager.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-news-page]");
+    if (!button) return;
+    page = Number(button.dataset.newsPage || 1) - 1;
+    render();
+  });
+  container.append(pager);
+  render();
+}
 
 async function loadReadNewsIds() {
   if (!studentNumber) {
@@ -312,6 +361,7 @@ async function loadNews() {
 
   const html = notices
     .map((notice) => {
+      rememberNewsNotice("university", notice);
       const posted = notice.postedAt?.toDate?.() || null;
 
       const readId = `university_${notice.id}`;
@@ -336,9 +386,7 @@ async function loadNews() {
                     ${formatDateTime(posted)}
                 </div>
 
-                <div class="news-body">
-                    ${(notice.body || "").replace(/\n/g, "<br>")}
-                </div>
+                <div class="news-summary">タップして本文を表示</div>
 
                 <br>
 
@@ -371,6 +419,7 @@ async function loadNews() {
     .join("");
 
   newsList.innerHTML = html;
+  setupNewsPagination(newsList);
 
   setNewsTabBadge(universityNewsBadge, unreadCount);
 }
@@ -387,6 +436,8 @@ newsList.addEventListener("click", async (event) => {
   const newsId = card.dataset.newsId;
 
   const readId = `${type}_${newsId}`;
+
+  showNewsDetail(type, newsId);
 
   if (readNewsIds.has(readId)) {
     return;
@@ -421,6 +472,8 @@ courseNews.addEventListener("click", async (event) => {
   const newsUrl = card.dataset.newsUrl;
 
   const readId = `${type}_${newsId}`;
+
+  showNewsDetail(type, newsId);
 
   if (!readNewsIds.has(readId)) {
     const saved = await markNewsAsRead(type, newsId);
@@ -576,6 +629,7 @@ async function loadCourseNews() {
 
   const html = notices
     .map((notice) => {
+      rememberNewsNotice("course", notice);
       const readId = `course_${notice.id}`;
 
       const isUnread = !readNewsIds.has(readId);
@@ -601,9 +655,7 @@ async function loadCourseNews() {
                     📘 ${notice.course || ""}
                 </div>
 
-                <div class="news-body">
-                    ${notice.title || ""}
-                </div>
+                <div class="news-summary">${escapeNewsText(notice.title || "タップして全文を表示")}</div>
 
                 <div class="news-link">
                     🗞️ コースニュースを開く
@@ -625,6 +677,7 @@ async function loadCourseNews() {
     .join("");
 
   courseNews.innerHTML = html;
+  setupNewsPagination(courseNews);
 
   setNewsTabBadge(courseNewsBadge, unreadCount);
 }
@@ -680,6 +733,7 @@ async function loadSystemNews() {
 
   const html = notices
     .map((notice) => {
+      rememberNewsNotice("system", notice);
       const created = notice.createdAt?.toDate?.() || null;
 
       const readId = `system_${notice.id}`;
@@ -722,9 +776,7 @@ async function loadSystemNews() {
                     }
                 </div>
 
-                <div class="news-body">
-                    ${escapeNewsText(notice.body).replace(/\n/g, "<br>")}
-                </div>
+                <div class="news-summary">タップして本文を表示</div>
 
                 ${attachmentHtml ? `<div class="system-news-attachments">${attachmentHtml}</div>` : ""}
 
@@ -748,6 +800,7 @@ async function loadSystemNews() {
     .join("");
 
   systemNews.innerHTML = html;
+  setupNewsPagination(systemNews);
 
   setNewsTabBadge(systemNewsBadge, unreadCount);
 }
@@ -767,6 +820,8 @@ systemNews.addEventListener("click", async (event) => {
   const newsId = card.dataset.newsId;
 
   const readId = `${type}_${newsId}`;
+
+  showNewsDetail(type, newsId);
 
   if (readNewsIds.has(readId)) {
     return;
@@ -791,4 +846,18 @@ const params = new URLSearchParams(location.search);
 
 if (params.get("tab") === "course") {
   courseTab.click();
+}
+
+const requestedNewsType = params.has("systemNews")
+  ? "system"
+  : params.has("courseNews")
+    ? "course"
+    : params.has("universityNews")
+      ? "university"
+      : "";
+const requestedNewsId = params.get("systemNews") || params.get("courseNews") || params.get("universityNews") || "";
+if (requestedNewsType && requestedNewsId) {
+  const tab = requestedNewsType === "system" ? systemTab : requestedNewsType === "course" ? courseTab : universityTab;
+  tab?.click();
+  setTimeout(() => showNewsDetail(requestedNewsType, requestedNewsId), 500);
 }

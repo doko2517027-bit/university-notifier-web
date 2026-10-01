@@ -31,7 +31,7 @@ export const CAREMATE_PET_EXPRESSIONS = Object.freeze([
 
 export const CAREMATE_PET_CHARACTERS = Object.freeze({
   cat: { label: "ねこ", fallback: "🐱", sprite: "images/pets/cat.webp" },
-  dog: { label: "いぬ", fallback: "🐶", sprite: "images/pets/dog.webp" },
+  dog: { label: "いぬ", fallback: "🐶", sprite: "images/pets/dog.webp", expressionSprite: "images/pets/dog-emotions.webp" },
   rabbit: { label: "うさぎ", fallback: "🐰", sprite: "images/pets/rabbit.webp" },
   // 旧版で「ことり」を選んだ保存データは、今回追加したうさぎへ安全に引き継ぐ。
   bird: { label: "うさぎ", fallback: "🐰", sprite: "images/pets/rabbit.webp" },
@@ -90,7 +90,9 @@ export function applyPetSprite(element, kind, action = "stop", expression = "neu
   const character = CAREMATE_PET_CHARACTERS[kind] || CAREMATE_PET_CHARACTERS.dog;
   const frame = petSpriteFrame(action, expression, animationFrame);
   element.classList.add("caremate-pet-sprite");
-  element.style.backgroundImage = `url("${character.sprite}")`;
+  const isExpression = expression !== "neutral" && ["stop", "sit"].includes(action);
+  const sprite = isExpression ? (character.expressionSprite || character.sprite) : character.sprite;
+  element.style.backgroundImage = `url("${sprite}")`;
   element.style.backgroundPosition = `${frame.column * 20}% ${frame.row * (100 / 3)}%`;
   element.dataset.spriteFrame = String(frame.index);
   element.setAttribute("role", "img");

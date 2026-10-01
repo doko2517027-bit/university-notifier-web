@@ -852,14 +852,15 @@ function startCareMatePetMotion(element, kind) {
   };
 
   const bounds = () => ({
-    maxX: Math.max(18, window.innerWidth - 82),
-    maxY: Math.max(100, window.innerHeight - 150),
+    maxX: Math.max(24, window.innerWidth - 122),
+    minY: Math.max(96, Math.round(window.innerHeight * 0.62)),
+    maxY: Math.max(118, window.innerHeight - 170),
   });
 
   const place = (nextX, nextY, duration = 0) => {
     const limit = bounds();
     x = Math.max(12, Math.min(limit.maxX, nextX));
-    y = Math.max(72, Math.min(limit.maxY, nextY));
+    y = Math.max(limit.minY, Math.min(limit.maxY, nextY));
     element.style.transitionDuration = `${duration}ms`;
     element.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
   };
@@ -868,11 +869,11 @@ function startCareMatePetMotion(element, kind) {
     if (destroyed || reducedMotion || drag) return;
     const limit = bounds();
     const nextX = 12 + Math.random() * Math.max(1, limit.maxX - 12);
-    const nextY = 72 + Math.random() * Math.max(1, limit.maxY - 72);
+    const nextY = limit.minY + Math.random() * Math.max(1, limit.maxY - limit.minY);
     const distance = Math.hypot(nextX - x, nextY - y);
     const motion = ["walk", "walk", "run", "rampage"][Math.floor(Math.random() * 4)];
     const speed = motion === "run" ? 6 : motion === "rampage" ? 8 : 13;
-    const duration = Math.max(motion === "walk" ? 2600 : 1500, Math.min(7600, distance * speed));
+    const duration = Math.max(motion === "walk" ? 4600 : 3300, Math.min(11000, distance * speed));
     element.dataset.facing = nextX < x ? "left" : "right";
     element.classList.add("is-walking");
     setState(motion, "neutral");
@@ -883,7 +884,7 @@ function startCareMatePetMotion(element, kind) {
       const rest = restActions[Math.floor(Math.random() * restActions.length)] || { id: "stop" };
       const expression = CAREMATE_PET_EXPRESSIONS[Math.floor(Math.random() * CAREMATE_PET_EXPRESSIONS.length)] || { id: "neutral" };
       setState(rest.id, expression.id);
-      moveTimer = window.setTimeout(scheduleMove, 1200 + Math.random() * 3200);
+      moveTimer = window.setTimeout(scheduleMove, 4800 + Math.random() * 4200);
     }, duration);
   };
 
@@ -936,7 +937,7 @@ function startCareMatePetMotion(element, kind) {
   place(x, y, 0);
   setState("stop", "neutral");
   if (!reducedMotion) {
-    moveTimer = window.setTimeout(scheduleMove, 900);
+    moveTimer = window.setTimeout(scheduleMove, 2200);
     spriteTimer = window.setInterval(() => {
       if (!character || drag) return;
       const action = element.dataset.action || "stop";

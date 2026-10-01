@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v75";
+const STATIC_CACHE = "caremate-static-v76";
 
-const RUNTIME_CACHE = "caremate-runtime-v75";
+const RUNTIME_CACHE = "caremate-runtime-v76";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -81,6 +81,8 @@ const CORE_ASSETS = [
 
   "images/pets/dog.webp",
 
+  "images/pets/dog-emotions.webp",
+
   "images/pets/cat.webp",
 
   "images/pets/rabbit.webp",
@@ -94,6 +96,8 @@ const CORE_ASSETS = [
   "device_touch_controller.mjs",
 
   "news_attachments.mjs",
+
+  "news.js?v=20261002-2",
 
   "personal_timetable_data.js?v=20260929-3",
 
