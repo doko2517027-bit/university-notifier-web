@@ -1323,13 +1323,41 @@ exports.getStudentFeatureAdmin = onCall(
         (left, right) =>
           right.date.localeCompare(left.date) || right.period - left.period,
       );
-    const testProgress = progress.docs
-      .map((item) => {
+    const testProgress = (await Promise.all(progress.docs
+      .map(async (item) => {
         const data = item.data() || {};
         const currentIndex = Math.max(0, Number(data.currentIndex || 0));
         const questionOrder = Array.isArray(data.questionOrder)
           ? data.questionOrder.map(String)
           : [];
+        const currentQuestionId = String(questionOrder[currentIndex] || "");
+        let currentQuestionText = "";
+        if (data.subjectId && data.unitId && currentQuestionId) {
+          const published = await db
+            .collection("examSubjects")
+            .doc(String(data.subjectId))
+            .collection("units")
+            .doc(String(data.unitId))
+            .collection("publishedQuestions")
+            .doc("published")
+            .get();
+          const publishedData = published.data() || {};
+          const questionKey =
+            data.type === "fillBlank" ? "fill_blank" :
+              data.type === "quiz" ? "quiz" :
+                data.type === "qa" ? "qa" : "";
+          const prefix =
+            data.type === "fillBlank" ? "fill" :
+              data.type === "quiz" ? "quiz" : "qa";
+          const questions = questionKey && Array.isArray(publishedData[questionKey])
+            ? publishedData[questionKey]
+            : [];
+          const currentQuestion = questions.find(
+            (question, index) =>
+              String(question?.id ?? `${prefix}-${index}`) === currentQuestionId,
+          );
+          currentQuestionText = String(currentQuestion?.question || "").slice(0, 500);
+        }
         return {
           id: item.id,
           type: String(data.type || ""),
@@ -1338,12 +1366,12 @@ exports.getStudentFeatureAdmin = onCall(
           unitId: String(data.unitId || ""),
           currentIndex,
           totalQuestions: Math.max(0, Number(data.totalQuestions || 0)),
-          currentQuestionId: String(questionOrder[currentIndex] || ""),
+          currentQuestionId,
+          currentQuestionText,
           completed: data.completed === true,
           updatedAt: timestampMillis(data.updatedAt || data.completedAt),
         };
-      })
-      .sort((left, right) => right.updatedAt - left.updatedAt);
+      }))).sort((left, right) => right.updatedAt - left.updatedAt);
     const solvedQuestions = solved.docs
       .map((item) => {
         const data = item.data() || {};

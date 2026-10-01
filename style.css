@@ -20753,6 +20753,7 @@ course-tagが付いたspanには適用しない。
 .student-feature-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
 .student-feature-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
 .student-feature-row small { color: var(--subtext); line-height: 1.5; overflow-wrap: anywhere; }
+.student-feature-question { margin: 4px 0 0; padding: 8px 10px; border-left: 3px solid var(--primary); border-radius: 6px; background: var(--bg); font-size: 12px; line-height: 1.6; }
 .student-feature-edit { display: flex; align-items: center; gap: 8px; }
 .student-feature-edit select { min-width: 128px; }
 .student-feature-exam-edit label { display: grid; gap: 4px; color: var(--subtext); font-size: 11px; }
