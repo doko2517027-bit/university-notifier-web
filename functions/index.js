@@ -53,7 +53,44 @@ const adminAuth = getAuth();
 
 const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 
+const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
+
+const PRESENCE_DEVICE_MIGRATION_VERSION = 1;
+
+async function pruneLegacyPresenceDevices(studentNumber) {
+  const sessionRef = db.collection("userDeviceSessions").doc(studentNumber);
+  const markerSnapshot = await sessionRef.get();
+  if (
+    Number(markerSnapshot.data()?.presenceDeviceMigrationVersion || 0) >=
+    PRESENCE_DEVICE_MIGRATION_VERSION
+  ) {
+    return;
+  }
+
+  const [deviceSnapshot, presenceSnapshot] = await Promise.all([
+    sessionRef.collection("loginDevices").get(),
+    require("firebase-admin/database")
+      .getDatabase()
+      .ref(`status/${studentNumber}`)
+      .get(),
+  ]);
+  const updates = buildOrphanedPresenceUpdates(
+    { [studentNumber]: presenceSnapshot.val() || {} },
+    { [studentNumber]: deviceSnapshot.docs.map((item) => item.id) },
+  );
+
+  if (Object.keys(updates).length) {
+    await require("firebase-admin/database").getDatabase().ref().update(updates);
+  }
+  await sessionRef.set(
+    {
+      presenceDeviceMigrationVersion: PRESENCE_DEVICE_MIGRATION_VERSION,
+      presenceDeviceMigratedAt: new Date(),
+    },
+    { merge: true },
+  );
+}
 
 const SITE_URL = "https://doko2517027-bit.github.io/university-notifier-web";
 
@@ -256,6 +293,7 @@ exports.authenticateCareMate = onCall(
           rawRequest: request.rawRequest,
           eventType: "login",
         });
+        await pruneLegacyPresenceDevices(studentNumber);
       } catch (error) {
         console.warn(
           "ログイン端末記録失敗:",
@@ -789,6 +827,8 @@ exports.touchCareMateDevice = onCall(
         authTimeMillis:
           Number(request.auth?.token?.auth_time || 0) * 1000,
       });
+
+      await pruneLegacyPresenceDevices(studentNumber);
 
       if (result.forceLogout === true) {
         return {

@@ -1,18 +1,15 @@
-function buildStalePresenceUpdates(
-  status,
-  nowMillis = Date.now(),
-  retentionMillis = 30 * 60 * 1000,
-) {
+function buildOrphanedPresenceUpdates(status, knownDeviceIdsByStudent = {}) {
   const updates = {};
   for (const [studentNumber, rawPresence] of Object.entries(status || {})) {
     if (!rawPresence || typeof rawPresence !== "object") continue;
+    const knownDeviceIds = new Set(
+      knownDeviceIdsByStudent[studentNumber] || [],
+    );
     for (const [deviceId, presence] of Object.entries(rawPresence)) {
       if (!presence || typeof presence !== "object") continue;
-      const lastChanged = Number(presence.lastChanged || 0);
       if (
         presence.state === "offline" &&
-        lastChanged > 0 &&
-        nowMillis - lastChanged > retentionMillis
+        !knownDeviceIds.has(deviceId)
       ) {
         updates[`status/${studentNumber}/${deviceId}`] = null;
       }
@@ -21,4 +18,4 @@ function buildStalePresenceUpdates(
   return updates;
 }
 
-module.exports = { buildStalePresenceUpdates };
+module.exports = { buildOrphanedPresenceUpdates };
