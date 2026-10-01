@@ -61,6 +61,11 @@ import {
 } from "./device_touch_controller.mjs";
 
 import { describePresenceDevice } from "./presence_device_label.mjs";
+import {
+  CAREMATE_PET_ACTIONS,
+  CAREMATE_PET_EXPRESSIONS,
+  petFallbackGlyph,
+} from "./pet_character_config.mjs";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
@@ -801,37 +806,48 @@ function renderCareMatePet(state) {
   referralPetMotionCleanup = null;
   document.getElementById("careMateReferralPet")?.remove();
   const pet = state?.personalization?.pet;
-  if (state?.entitlements?.pet !== true || !pet?.kind || !pet?.name) return;
-  const icons = { cat: "🐱", dog: "🐶", bird: "🐥" };
+  if (
+    location.pathname.endsWith("/pet_room.html") ||
+    state?.entitlements?.pet !== true ||
+    state?.personalization?.petVisible === false ||
+    !pet?.kind ||
+    !pet?.name
+  ) return;
   const accessories = { none: "", hat: "🎩", ribbon: "🎀", crown: "👑" };
   const element = document.createElement("button");
   element.id = "careMateReferralPet";
   element.className = "caremate-referral-pet";
   element.type = "button";
   element.setAttribute("aria-label", `${pet.name}を表示`);
-  element.innerHTML = `<span class="caremate-pet-accessory">${accessories[state.personalization?.accessory] || ""}</span><span class="caremate-pet-character">${icons[pet.kind] || "🐾"}</span><small>${escapeCommonHtml(pet.name)}</small>`;
+  element.innerHTML = `<span class="caremate-pet-accessory">${accessories[state.personalization?.accessory] || ""}</span><span class="caremate-pet-character">${petFallbackGlyph(pet.kind)}</span><small>${escapeCommonHtml(pet.name)}</small>`;
   document.body.append(element);
   referralPetMotionCleanup = startCareMatePetMotion(element, pet.kind);
 }
 
 function startCareMatePetMotion(element, kind) {
   const character = element.querySelector(".caremate-pet-character");
-  const frames = {
-    cat: ["🐱", "😺", "😸", "😽"],
-    dog: ["🐶", "🐕", "🐩"],
-    bird: ["🐥", "🐤", "🐦"],
-  }[kind] || ["🐾"];
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let x = 18;
-  let y = Math.max(82, window.innerHeight - 175);
+  const positionKey = `careMatePetPosition:${studentNumber || "guest"}`;
+  let savedPosition = null;
+  try { savedPosition = JSON.parse(localStorage.getItem(positionKey) || "null"); } catch { savedPosition = null; }
+  let x = Number(savedPosition?.x) || 18;
+  let y = Number(savedPosition?.y) || Math.max(82, window.innerHeight - 175);
   let moveTimer = 0;
   let expressionTimer = 0;
   let destroyed = false;
+  let drag = null;
+  let didDrag = false;
 
-  const randomFrame = () => {
+  const setState = (actionId, expressionId) => {
     if (destroyed || !character) return;
-    character.textContent = frames[Math.floor(Math.random() * frames.length)];
-    element.dataset.expression = ["normal", "happy", "curious", "sleepy"][Math.floor(Math.random() * 4)];
+    element.dataset.action = actionId;
+    element.dataset.expression = expressionId;
+    character.textContent = petFallbackGlyph(kind, expressionId);
+  };
+
+  const randomExpression = () => {
+    const item = CAREMATE_PET_EXPRESSIONS[Math.floor(Math.random() * CAREMATE_PET_EXPRESSIONS.length)];
+    setState(element.dataset.action || "stop", item.id);
   };
 
   const bounds = () => ({
@@ -848,38 +864,80 @@ function startCareMatePetMotion(element, kind) {
   };
 
   const scheduleMove = () => {
-    if (destroyed || reducedMotion) return;
+    if (destroyed || reducedMotion || drag) return;
     const limit = bounds();
     const nextX = 12 + Math.random() * Math.max(1, limit.maxX - 12);
     const nextY = 72 + Math.random() * Math.max(1, limit.maxY - 72);
     const distance = Math.hypot(nextX - x, nextY - y);
-    const duration = Math.max(2600, Math.min(7600, distance * 13));
+    const motion = ["walk", "walk", "run", "rampage"][Math.floor(Math.random() * 4)];
+    const speed = motion === "run" ? 6 : motion === "rampage" ? 8 : 13;
+    const duration = Math.max(motion === "walk" ? 2600 : 1500, Math.min(7600, distance * speed));
     element.dataset.facing = nextX < x ? "left" : "right";
     element.classList.add("is-walking");
-    character.textContent = frames[0];
+    setState(motion, "neutral");
     place(nextX, nextY, duration);
     moveTimer = window.setTimeout(() => {
       element.classList.remove("is-walking");
-      randomFrame();
+      const restActions = CAREMATE_PET_ACTIONS.filter((item) => !["walk", "run", "rampage"].includes(item.id));
+      const rest = restActions[Math.floor(Math.random() * restActions.length)] || { id: "stop" };
+      const expression = CAREMATE_PET_EXPRESSIONS[Math.floor(Math.random() * CAREMATE_PET_EXPRESSIONS.length)] || { id: "neutral" };
+      setState(rest.id, expression.id);
       moveTimer = window.setTimeout(scheduleMove, 1200 + Math.random() * 3200);
     }, duration);
   };
 
   const onResize = () => place(x, y, 0);
-  const onTap = () => {
-    character.textContent = frames[Math.min(1, frames.length - 1)];
-    element.dataset.expression = "happy";
-    element.classList.add("is-speaking");
-    window.setTimeout(() => element.classList.remove("is-speaking"), 1600);
+  const onPointerDown = (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    clearTimeout(moveTimer);
+    const rect = element.getBoundingClientRect();
+    x = rect.left;
+    y = rect.top;
+    place(x, y, 0);
+    drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offsetX: event.clientX - x, offsetY: event.clientY - y };
+    didDrag = false;
+    element.setPointerCapture?.(event.pointerId);
   };
-  element.addEventListener("click", onTap);
+  const onPointerMove = (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6) didDrag = true;
+    if (!didDrag) return;
+    event.preventDefault();
+    element.classList.add("is-dragging");
+    setState("stop", "surprised");
+    place(event.clientX - drag.offsetX, event.clientY - drag.offsetY, 0);
+  };
+  const onPointerUp = (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    element.releasePointerCapture?.(event.pointerId);
+    element.classList.remove("is-dragging");
+    drag = null;
+    if (didDrag) {
+      localStorage.setItem(positionKey, JSON.stringify({ x: Math.round(x), y: Math.round(y) }));
+      setState("stop", "smile");
+      moveTimer = window.setTimeout(scheduleMove, 6000);
+    } else {
+      location.assign("pet_room.html");
+    }
+  };
+  const onPointerCancel = (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    element.classList.remove("is-dragging");
+    drag = null;
+    setState("stop", "neutral");
+    if (!reducedMotion) moveTimer = window.setTimeout(scheduleMove, 2000);
+  };
+  element.addEventListener("pointerdown", onPointerDown);
+  element.addEventListener("pointermove", onPointerMove);
+  element.addEventListener("pointerup", onPointerUp);
+  element.addEventListener("pointercancel", onPointerCancel);
   window.addEventListener("resize", onResize);
   place(x, y, 0);
-  randomFrame();
+  setState("stop", "neutral");
   if (!reducedMotion) {
     moveTimer = window.setTimeout(scheduleMove, 900);
     expressionTimer = window.setInterval(() => {
-      if (!element.classList.contains("is-walking")) randomFrame();
+      if (!element.classList.contains("is-walking") && !drag) randomExpression();
     }, 4200);
   }
 
@@ -888,7 +946,10 @@ function startCareMatePetMotion(element, kind) {
     clearTimeout(moveTimer);
     clearInterval(expressionTimer);
     window.removeEventListener("resize", onResize);
-    element.removeEventListener("click", onTap);
+    element.removeEventListener("pointerdown", onPointerDown);
+    element.removeEventListener("pointermove", onPointerMove);
+    element.removeEventListener("pointerup", onPointerUp);
+    element.removeEventListener("pointercancel", onPointerCancel);
   };
 }
 

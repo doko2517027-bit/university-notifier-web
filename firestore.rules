@@ -384,6 +384,9 @@ service cloud.firestore {
     match /referralManualAdjustments/{documentId} {
       allow read, write: if false;
     }
+    match /referralRewardDeletions/{documentId} {
+      allow read, write: if false;
+    }
 
 
     /* ========================================

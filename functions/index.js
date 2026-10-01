@@ -503,14 +503,17 @@ async function enforceReferralRateLimit(request, studentNumber) {
   });
 }
 
-function serializeReferralMilestones(stored = {}, invitedCount = 0) {
+function serializeReferralMilestones(stored = {}, invitedCount = 0, suppressions = {}) {
   return REFERRAL_MILESTONES.map((item) => {
     const state = stored[`m${item.count}`] || {};
+    const suppression = suppressions[`m${item.count}`] || {};
     return {
       ...item,
-      unlocked: Boolean(state.unlockedAt),
+      unlocked: Boolean(state.unlockedAt) && !suppression.deletedAt,
       unlockedAt: timestampMillis(state.unlockedAt),
       claimedAt: timestampMillis(state.claimedAt),
+      deleted: Boolean(suppression.deletedAt),
+      deletedAt: timestampMillis(suppression.deletedAt),
     };
   });
 }
@@ -532,7 +535,9 @@ const REFERRAL_ACCESSORY_IDS = new Set(["none", "hat", "ribbon", "crown"]);
 function referralRewardGrantState(account = {}, invitedCount = 0, now = new Date()) {
   const rewardGrants = { ...(account.rewardGrants || {}) };
   const shouldGrantPoints =
-    invitedCount >= 2 && !rewardGrants.m2LearningPoints?.grantedAt;
+    invitedCount >= 2 &&
+    !account.rewardSuppressions?.m2?.deletedAt &&
+    !rewardGrants.m2LearningPoints?.grantedAt;
   if (shouldGrantPoints) {
     rewardGrants.m2LearningPoints = { grantedAt: now, points: 100 };
   }
@@ -607,12 +612,13 @@ exports.getReferralDashboard = onCall(
       milestones: serializeReferralMilestones(
         account.milestones,
         invitedCount,
+        account.rewardSuppressions,
       ),
       entitlements: {
-        learningPoints100: Boolean(account.rewardGrants?.m2LearningPoints?.grantedAt),
-        themes: Boolean(account.milestones?.m4?.unlockedAt),
-        pet: Boolean(account.milestones?.m6?.unlockedAt),
-        petAccessory: Boolean(account.milestones?.m8?.unlockedAt),
+        learningPoints100: Boolean(account.rewardGrants?.m2LearningPoints?.grantedAt) && !account.rewardSuppressions?.m2?.deletedAt,
+        themes: Boolean(account.milestones?.m4?.unlockedAt) && !account.rewardSuppressions?.m4?.deletedAt,
+        pet: Boolean(account.milestones?.m6?.unlockedAt) && !account.rewardSuppressions?.m6?.deletedAt,
+        petAccessory: Boolean(account.milestones?.m8?.unlockedAt) && !account.rewardSuppressions?.m8?.deletedAt,
       },
       personalization: {
         theme: REFERRAL_THEME_IDS.has(account.personalization?.theme)
@@ -628,6 +634,7 @@ exports.getReferralDashboard = onCall(
         accessory: REFERRAL_ACCESSORY_IDS.has(account.personalization?.accessory)
           ? account.personalization.accessory
           : "none",
+        petVisible: account.personalization?.petVisible !== false,
       },
       activeCode,
       codeTtlDays: REFERRAL_CODE_TTL_DAYS,
@@ -736,7 +743,9 @@ exports.saveReferralPersonalization = onCall(
         const coloredTheme = !["light", "dark"].includes(theme);
         if (
           !REFERRAL_THEME_IDS.has(theme) ||
-          (coloredTheme && !account.milestones?.m4?.unlockedAt)
+          (coloredTheme &&
+            (!account.milestones?.m4?.unlockedAt ||
+              account.rewardSuppressions?.m4?.deletedAt))
         ) {
           throw new HttpsError("permission-denied", "このテーマはまだ解放されていません。");
         }
@@ -744,7 +753,10 @@ exports.saveReferralPersonalization = onCall(
       } else if (action === "pet") {
         const kind = String(request.data?.kind || "");
         const name = String(request.data?.name || "").trim();
-        if (!account.milestones?.m6?.unlockedAt) {
+        if (
+          !account.milestones?.m6?.unlockedAt ||
+          account.rewardSuppressions?.m6?.deletedAt
+        ) {
           throw new HttpsError("permission-denied", "ペットはまだ解放されていません。");
         }
         if (personalization.pet?.kind) {
@@ -755,16 +767,28 @@ exports.saveReferralPersonalization = onCall(
         }
         personalization.pet = { kind, name, selectedAt: new Date() };
         personalization.accessory = "none";
+        personalization.petVisible = true;
       } else if (action === "accessory") {
         const accessory = String(request.data?.accessory || "");
         if (
           !account.milestones?.m8?.unlockedAt ||
+          account.rewardSuppressions?.m8?.deletedAt ||
           !personalization.pet?.kind ||
           !REFERRAL_ACCESSORY_IDS.has(accessory)
         ) {
           throw new HttpsError("permission-denied", "アクセサリーを変更できません。");
         }
         personalization.accessory = accessory;
+      } else if (action === "pet_visibility") {
+        if (
+          !account.milestones?.m6?.unlockedAt ||
+          account.rewardSuppressions?.m6?.deletedAt ||
+          !personalization.pet?.kind ||
+          typeof request.data?.visible !== "boolean"
+        ) {
+          throw new HttpsError("permission-denied", "ペットの表示を変更できません。");
+        }
+        personalization.petVisible = request.data.visible;
       } else {
         throw new HttpsError("invalid-argument", "設定内容が正しくありません。");
       }
@@ -779,6 +803,7 @@ exports.saveReferralPersonalization = onCall(
           theme: personalization.theme || "light",
           pet: personalization.pet || null,
           accessory: personalization.accessory || "none",
+          petVisible: personalization.petVisible !== false,
         },
       };
     });
@@ -1184,7 +1209,11 @@ exports.getReferralRewardAdmin = onCall(
           grade: String(user.grade || ""),
           invitedCount,
           manualAdjustment: Number(account.manualAdjustment || 0),
-          milestones: serializeReferralMilestones(account.milestones, invitedCount),
+          milestones: serializeReferralMilestones(
+            account.milestones,
+            invitedCount,
+            account.rewardSuppressions,
+          ),
           activeCode,
           histories: (historiesByInviter.get(item.id) || []).sort(
             (left, right) => right.establishedAt - left.establishedAt,
@@ -1218,7 +1247,9 @@ exports.getReferralRewardAdmin = onCall(
         activeCodes: students.filter((item) => item.activeCode).length,
         reachedTen: students.filter((item) => item.invitedCount >= REFERRAL_MAX_INVITES).length,
         pendingRewards: students.filter(
-          (item) => item.invitedCount >= REFERRAL_MAX_INVITES && item.reward.status !== "granted",
+          (item) =>
+            item.invitedCount >= REFERRAL_MAX_INVITES &&
+            !["granted", "deleted"].includes(item.reward.status),
         ).length,
       },
     };
@@ -1239,6 +1270,109 @@ exports.updateReferralHomeVisibilityAdmin = onCall(
       { merge: true },
     );
     return { saved: true, homeVisible, updatedAt: updatedAt.getTime() };
+  },
+);
+
+exports.setReferralRewardDeletedAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const updatedBy = await requirePrimaryDeviceAuditAdmin(request);
+    const target = String(request.data?.studentNumber || "").trim();
+    const milestoneCount = Number(request.data?.milestoneCount);
+    const deleted = request.data?.deleted;
+    const reason = String(request.data?.reason || "").trim();
+    if (
+      !/^\d{7}$/.test(target) ||
+      ![2, 4, 6, 8, 10].includes(milestoneCount) ||
+      typeof deleted !== "boolean" ||
+      reason.length < 4 ||
+      reason.length > 120
+    ) {
+      throw new HttpsError("invalid-argument", "対象特典または理由を確認してください。");
+    }
+    const key = `m${milestoneCount}`;
+    const accountRef = referralAccountRef(target);
+    const rewardRef = db.collection("referralPrivateRewards").doc(target);
+    const rankingRef = db.collection("totalRanking").doc(target);
+    const auditRef = db.collection("referralRewardDeletions").doc();
+    await db.runTransaction(async (transaction) => {
+      const [userSnapshot, accountSnapshot, rewardSnapshot, rankingSnapshot] = await Promise.all([
+        transaction.get(db.collection("users").doc(target)),
+        transaction.get(accountRef),
+        transaction.get(rewardRef),
+        transaction.get(rankingRef),
+      ]);
+      if (!userSnapshot.exists || !accountSnapshot.exists) {
+        throw new HttpsError("not-found", "対象学生または紹介情報が見つかりません。");
+      }
+      const account = accountSnapshot.data() || {};
+      const suppressions = { ...(account.rewardSuppressions || {}) };
+      const wasDeleted = Boolean(suppressions[key]?.deletedAt);
+      if (deleted === wasDeleted) {
+        throw new HttpsError("already-exists", deleted ? "この特典は削除済みです。" : "この特典は有効です。");
+      }
+      if (deleted && !account.milestones?.[key]?.unlockedAt) {
+        throw new HttpsError("failed-precondition", "未解放の特典は削除できません。");
+      }
+
+      const now = new Date();
+      const personalization = { ...(account.personalization || {}) };
+      const rewardGrants = { ...(account.rewardGrants || {}) };
+      if (deleted) {
+        suppressions[key] = { deletedAt: now, deletedBy: updatedBy, reason };
+        if (milestoneCount === 2 && rewardGrants.m2LearningPoints?.grantedAt && !rewardGrants.m2LearningPoints?.reversedAt) {
+          const currentPoints = Math.max(0, Number(rankingSnapshot.data()?.point || 0));
+          transaction.set(rankingRef, { point: Math.max(0, currentPoints - 100), updatedAt: now }, { merge: true });
+          rewardGrants.m2LearningPoints = { ...rewardGrants.m2LearningPoints, reversedAt: now, reversedBy: updatedBy };
+        }
+        if (milestoneCount === 4 && !["light", "dark"].includes(personalization.theme)) personalization.theme = "light";
+        if (milestoneCount === 6) {
+          delete personalization.pet;
+          personalization.petVisible = false;
+          personalization.accessory = "none";
+        }
+        if (milestoneCount === 8) personalization.accessory = "none";
+        if (milestoneCount === 10 && rewardSnapshot.exists) {
+          transaction.set(
+            rewardRef,
+            {
+              status: "deleted",
+              giftUrl: null,
+              grantedAt: null,
+              grantedBy: null,
+              claimedAt: null,
+              deletedAt: now,
+              deletedBy: updatedBy,
+            },
+            { merge: true },
+          );
+        }
+      } else {
+        delete suppressions[key];
+        if (milestoneCount === 2 && Number(account.invitedCount || 0) >= 2) {
+          const currentPoints = Math.max(0, Number(rankingSnapshot.data()?.point || 0));
+          transaction.set(rankingRef, { point: currentPoints + 100, updatedAt: now }, { merge: true });
+          rewardGrants.m2LearningPoints = { grantedAt: now, points: 100, restoredAt: now, restoredBy: updatedBy };
+        }
+        if (milestoneCount === 10 && Number(account.invitedCount || 0) >= 10) {
+          transaction.set(rewardRef, { studentNumber: target, status: "pending", giftUrl: null, restoredAt: now, restoredBy: updatedBy }, { merge: true });
+        }
+      }
+      transaction.set(
+        accountRef,
+        { rewardSuppressions: suppressions, rewardGrants, personalization, updatedAt: now },
+        { merge: true },
+      );
+      transaction.create(auditRef, {
+        studentNumber: target,
+        milestoneCount,
+        action: deleted ? "delete" : "restore",
+        reason,
+        updatedBy,
+        updatedAt: now,
+      });
+    });
+    return { updated: true, deleted, milestoneCount };
   },
 );
 
@@ -1264,7 +1398,8 @@ exports.grantReferralReward = onCall(
       if (
         !rewardSnapshot.exists ||
         Number(accountSnapshot.data()?.invitedCount || 0) <
-          REFERRAL_MAX_INVITES
+          REFERRAL_MAX_INVITES ||
+        accountSnapshot.data()?.rewardSuppressions?.m10?.deletedAt
       ) {
         throw new HttpsError(
           "failed-precondition",

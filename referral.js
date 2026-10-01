@@ -27,6 +27,7 @@ $("openReferralGift").onclick = openGift;
 $("saveReferralPet").onclick = savePet;
 $("referralPetChoices").onclick = selectPet;
 $("referralAccessoryArea").onclick = selectAccessory;
+$("openPetRoom").onclick = () => location.assign("pet_room.html");
 
 await auth.authStateReady();
 if (!auth.currentUser || auth.currentUser.uid !== `caremate-${studentNumber}`) {
@@ -87,9 +88,9 @@ function render() {
 
   $("referralRoadmap").innerHTML = dashboard.milestones
     .map((item) => `
-      <article class="referral-roadmap-item ${item.unlocked ? "is-unlocked" : ""}">
-        <div class="referral-roadmap-marker">${item.unlocked ? "✓" : item.count}</div>
-        <div><b>${item.count}人 → ${escapeHtml(item.title)}</b><p>${escapeHtml(item.description || "")}</p><small>${item.unlocked ? `達成：${formatDateTime(item.unlockedAt)}` : `あと${Math.max(0, item.count - count)}人`}</small></div>
+      <article class="referral-roadmap-item ${item.unlocked ? "is-unlocked" : ""} ${item.deleted ? "is-deleted" : ""}">
+        <div class="referral-roadmap-marker">${item.unlocked ? "✓" : item.deleted ? "×" : item.count}</div>
+        <div><b>${item.count}人 → ${escapeHtml(item.title)}</b><p>${escapeHtml(item.description || "")}</p><small>${item.deleted ? "管理者により特典停止中" : item.unlocked ? `達成：${formatDateTime(item.unlockedAt)}` : `あと${Math.max(0, item.count - count)}人`}</small></div>
       </article>`)
     .join("");
 

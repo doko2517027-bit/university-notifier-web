@@ -42,7 +42,12 @@ $("rewardList").addEventListener("click", async (event) => {
     return;
   }
   const adjustButton = event.target.closest("[data-adjust-referral]");
-  if (adjustButton) await adjustReferralCount(adjustButton);
+  if (adjustButton) {
+    await adjustReferralCount(adjustButton);
+    return;
+  }
+  const rewardStateButton = event.target.closest("[data-referral-reward-state]");
+  if (rewardStateButton) await changeRewardState(rewardStateButton);
 });
 
 await initializePage([setupAdminTab(), loadReferralAdmin()]);
@@ -137,6 +142,42 @@ async function adjustReferralCount(button) {
   }
 }
 
+async function changeRewardState(button) {
+  const target = button.dataset.studentNumber;
+  const milestoneCount = Number(button.dataset.milestoneCount);
+  const deleted = button.dataset.referralRewardState === "delete";
+  const actionLabel = deleted ? "削除" : "復元";
+  const reason = prompt(`${target}の${milestoneCount}人特典を${actionLabel}する理由を入力してください。\n履歴に保存されます。`);
+  if (reason === null) return;
+  if (reason.trim().length < 4) {
+    alert("理由を4文字以上で入力してください。");
+    return;
+  }
+  const detail = milestoneCount === 2 && deleted
+    ? "学習ポイント100ptも差し引かれます。"
+    : milestoneCount === 6 && deleted
+      ? "設定済みのペット・名前・着せ替えも削除されます。"
+      : milestoneCount === 10 && deleted
+        ? "登録済みのギフトURLも削除されます。"
+        : "";
+  if (!confirm(`${target}の${milestoneCount}人特典を${actionLabel}しますか？${detail ? `\n${detail}` : ""}`)) return;
+  button.disabled = true;
+  try {
+    await httpsCallable(functions, "setReferralRewardDeletedAdmin")({
+      studentNumber: target,
+      milestoneCount,
+      deleted,
+      reason: reason.trim(),
+    });
+    showToast(`特典を${actionLabel}しました`);
+    await loadReferralAdmin();
+  } catch (error) {
+    console.error("紹介特典状態変更エラー:", error);
+    alert(`特典を${actionLabel}できませんでした。`);
+    button.disabled = false;
+  }
+}
+
 function render() {
   renderHomeVisibility();
   $("referralStudentTotal").textContent = `${Number(totals.students || students.length)}人`;
@@ -151,7 +192,7 @@ function render() {
     if (filter === "progress") return Number(item.invitedCount || 0) > 0;
     if (filter === "active-code") return Boolean(item.activeCode);
     if (filter === "reached") return Number(item.invitedCount || 0) >= 10;
-    if (filter === "pending") return Number(item.invitedCount || 0) >= 10 && item.reward?.status !== "granted";
+    if (filter === "pending") return Number(item.invitedCount || 0) >= 10 && !["granted", "deleted"].includes(item.reward?.status);
     return true;
   });
   $("rewardList").innerHTML = visible.length
@@ -173,6 +214,7 @@ function renderStudent(item) {
   const adjustments = Array.isArray(item.adjustments) ? item.adjustments : [];
   const milestones = Array.isArray(item.milestones) ? item.milestones : [];
   const reached = count >= 10;
+  const tenRewardDeleted = milestones.some((milestone) => milestone.count === 10 && milestone.deleted);
   return `
     <details class="referral-admin-student ${reached ? "is-reached" : ""}">
       <summary>
@@ -186,7 +228,7 @@ function renderStudent(item) {
           <div><small>自動成立履歴</small><b>${histories.length}件</b><em>${Number(item.manualAdjustment || 0) ? `手動補正 ${Number(item.manualAdjustment) > 0 ? "+" : ""}${Number(item.manualAdjustment)}人` : "補正なし"}</em></div>
           <div><small>ギフト状態</small><b>${rewardStatus(reward, reached)}</b>${reward.claimedAt ? `<em>受取確認：${formatDateTime(reward.claimedAt)}</em>` : ""}</div>
         </div>
-        <section><h3>マイルストーン</h3><div class="referral-admin-milestones">${milestones.map((m) => `<span class="${m.unlocked ? "is-unlocked" : ""}">${m.count}人 ${m.unlocked ? "✓" : ""}</span>`).join("")}</div></section>
+        <section><h3>マイルストーン・特典管理</h3><div class="referral-admin-milestones">${milestones.map((m) => renderMilestoneControl(item.studentNumber, m)).join("")}</div></section>
         <section><h3>紹介成立履歴</h3><div class="referral-admin-history">${histories.length ? histories.map((h) => `<div><b>${escapeHtml(h.invitedStudentNumber)}</b><span>${formatDateTime(h.establishedAt)}${h.codePreview ? `・コード末尾 ${escapeHtml(h.codePreview)}` : ""}</span></div>`).join("") : '<p class="referral-empty">成立履歴はありません。</p>'}</div></section>
         <section class="referral-adjust-editor">
           <h3>進捗を手動補正</h3>
@@ -194,13 +236,22 @@ function renderStudent(item) {
           <div class="referral-adjust-controls"><label>達成人数<input data-referral-count="${escapeHtml(item.studentNumber)}" type="number" min="0" max="10" step="1" value="${count}" /></label><label>修正理由<input data-referral-reason="${escapeHtml(item.studentNumber)}" type="text" maxlength="120" placeholder="例：登録時のFunctions障害で未加算" /></label><button class="btn" data-adjust-referral="${escapeHtml(item.studentNumber)}" type="button">進捗を修正</button></div>
           ${adjustments.length ? `<details class="referral-adjust-history"><summary>補正履歴 ${adjustments.length}件</summary>${adjustments.map((a) => `<div><b>${a.fromCount} → ${a.toCount}人</b><span>${escapeHtml(a.reason)}・${formatDateTime(a.adjustedAt)}・${escapeHtml(a.adjustedBy)}</span></div>`).join("")}</details>` : ""}
         </section>
-        ${reached ? `<section class="referral-reward-editor ${reward.status === "granted" ? "is-granted" : ""}"><h3>500円分デジタルギフト</h3><label>ギフトURL<input data-gift-url="${escapeHtml(item.studentNumber)}" type="url" value="${escapeHtml(reward.giftUrl || "")}" placeholder="https://..." /></label><div class="referral-reward-actions"><small>${reward.grantedAt ? `付与：${formatDateTime(reward.grantedAt)}` : "未付与"}${reward.claimedAt ? ` / 受取：${formatDateTime(reward.claimedAt)}` : ""}</small><button class="btn btn-primary" data-grant-reward="${escapeHtml(item.studentNumber)}" type="button">${reward.status === "granted" ? "URLを更新" : "付与する"}</button></div></section>` : ""}
+        ${reached ? tenRewardDeleted ? '<section class="referral-reward-editor"><h3>500円分デジタルギフト</h3><p>この特典は削除中です。マイルストーン欄から復元すると再び付与できます。</p></section>' : `<section class="referral-reward-editor ${reward.status === "granted" ? "is-granted" : ""}"><h3>500円分デジタルギフト</h3><label>ギフトURL<input data-gift-url="${escapeHtml(item.studentNumber)}" type="url" value="${escapeHtml(reward.giftUrl || "")}" placeholder="https://..." /></label><div class="referral-reward-actions"><small>${reward.grantedAt ? `付与：${formatDateTime(reward.grantedAt)}` : "未付与"}${reward.claimedAt ? ` / 受取：${formatDateTime(reward.claimedAt)}` : ""}</small><button class="btn btn-primary" data-grant-reward="${escapeHtml(item.studentNumber)}" type="button">${reward.status === "granted" ? "URLを更新" : "付与する"}</button></div></section>` : ""}
       </div>
     </details>`;
 }
 
+function renderMilestoneControl(studentNumber, milestone) {
+  const available = milestone.unlocked || milestone.deleted;
+  return `<div class="referral-admin-milestone-control ${milestone.unlocked ? "is-unlocked" : ""} ${milestone.deleted ? "is-deleted" : ""}">
+    <span>${milestone.count}人 ${milestone.unlocked ? "✓" : milestone.deleted ? "削除済み" : "未達成"}</span>
+    ${available ? `<button type="button" class="btn ${milestone.deleted ? "" : "btn-danger"}" data-referral-reward-state="${milestone.deleted ? "restore" : "delete"}" data-student-number="${escapeHtml(studentNumber)}" data-milestone-count="${milestone.count}">${milestone.deleted ? "復元" : "削除"}</button>` : ""}
+  </div>`;
+}
+
 function rewardStatus(reward, reached) {
   if (!reached) return "対象外";
+  if (reward.status === "deleted") return "削除済み";
   if (reward.claimedAt) return "受取確認済み";
   return reward.status === "granted" ? "付与済み" : "未付与";
 }

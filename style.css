@@ -20649,8 +20649,10 @@ course-tagが付いたspanには適用しない。
 .referral-roadmap { display: grid; gap: 10px; }
 .referral-roadmap-item { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; opacity: .72; }
 .referral-roadmap-item.is-unlocked { opacity: 1; border-color: color-mix(in srgb, #17a87e 45%, var(--border)); background: color-mix(in srgb, #17a87e 8%, var(--card)); }
+.referral-roadmap-item.is-deleted { opacity: 1; border-color: color-mix(in srgb, #ef4444 45%, var(--border)); background: color-mix(in srgb, #ef4444 7%, var(--card)); }
 .referral-roadmap-marker { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--border) 65%, var(--card)); font-weight: 900; }
 .referral-roadmap-item.is-unlocked .referral-roadmap-marker { background: #17a87e; color: #fff; }
+.referral-roadmap-item.is-deleted .referral-roadmap-marker { background: #ef4444; color: #fff; }
 .referral-roadmap-item div:last-child { display: grid; gap: 4px; }
 .referral-roadmap-item p { margin: 0; color: var(--subtext); font-size: 12px; line-height: 1.55; }
 .referral-roadmap-item small { color: var(--subtext); }
@@ -20737,6 +20739,11 @@ course-tagが付いたspanには適用しない。
 .referral-admin-milestones { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 .referral-admin-milestones span { padding: 9px 5px; border: 1px solid var(--border); border-radius: 10px; color: var(--subtext); text-align: center; font-size: 12px; font-weight: 800; }
 .referral-admin-milestones span.is-unlocked { border-color: #17a87e; background: color-mix(in srgb, #17a87e 11%, var(--card)); color: #087a5a; }
+.referral-admin-milestone-control { display: grid; gap: 7px; padding: 8px; border: 1px solid var(--border); border-radius: 12px; }
+.referral-admin-milestone-control > span { padding: 3px; border: 0; }
+.referral-admin-milestone-control.is-unlocked { border-color: color-mix(in srgb, #17a87e 52%, var(--border)); background: color-mix(in srgb, #17a87e 8%, var(--card)); }
+.referral-admin-milestone-control.is-deleted { border-color: color-mix(in srgb, #ef4444 48%, var(--border)); background: color-mix(in srgb, #ef4444 7%, var(--card)); }
+.referral-admin-milestone-control .btn { min-height: 34px; padding: 6px 8px; font-size: 11px; }
 .referral-admin-history { display: grid; gap: 7px; }
 .referral-admin-history > div,
 .referral-adjust-history > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border-radius: 10px; background: var(--bg); }
@@ -20864,16 +20871,24 @@ html[data-caremate-theme="brown"] {
   display: grid; min-width: 58px; place-items: center; padding: 0; border: 0; background: transparent; color: var(--text);
   filter: drop-shadow(0 4px 5px rgba(15, 23, 42, .18)); cursor: pointer; pointer-events: auto;
   transition-property: transform; transition-timing-function: linear; will-change: transform;
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
+.caremate-referral-pet.is-dragging { transition: none !important; cursor: grabbing; filter: drop-shadow(0 8px 9px rgba(15, 23, 42, .28)); }
 .caremate-referral-pet[data-facing="left"] { --pet-facing: -1; }
 .caremate-pet-character { display: block; font-size: 40px; line-height: 1; animation: caremate-pet-bob .9s ease-in-out infinite alternate; }
 .caremate-referral-pet.is-walking .caremate-pet-character { animation-duration: .42s; }
+.caremate-referral-pet[data-action="run"] .caremate-pet-character { animation-duration: .22s; }
+.caremate-referral-pet[data-action="rampage"] .caremate-pet-character { animation: caremate-pet-rampage .18s ease-in-out infinite alternate; }
+.caremate-referral-pet[data-action="sleep"] .caremate-pet-character { animation-duration: 1.8s; }
+.caremate-referral-pet[data-action="jump"] .caremate-pet-character { animation: caremate-pet-jump .75s ease-in-out infinite; }
 .caremate-referral-pet[data-expression="sleepy"] .caremate-pet-character { filter: saturate(.72); opacity: .88; }
 .caremate-referral-pet[data-expression="happy"] small { border-color: color-mix(in srgb, var(--primary) 52%, var(--border)); }
 .caremate-pet-accessory { position: absolute; z-index: 2; top: -17px; left: 50%; font-size: 23px; transform: translateX(-50%); }
 .caremate-referral-pet small { max-width: 82px; margin-top: 3px; padding: 2px 7px; overflow: hidden; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--card) 91%, transparent); color: var(--text); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .caremate-referral-pet.is-speaking small::after { content: " ♪"; color: var(--primary); }
 @keyframes caremate-pet-bob { from { transform: scaleX(var(--pet-facing)) translateY(0) rotate(-2deg); } to { transform: scaleX(var(--pet-facing)) translateY(-4px) rotate(2deg); } }
+@keyframes caremate-pet-rampage { from { transform: scaleX(var(--pet-facing)) translate(-5px, -2px) rotate(-8deg); } to { transform: scaleX(var(--pet-facing)) translate(5px, 1px) rotate(8deg); } }
+@keyframes caremate-pet-jump { 0%,100% { transform: scaleX(var(--pet-facing)) translateY(0); } 50% { transform: scaleX(var(--pet-facing)) translateY(-14px); } }
 
 .referral-pet-card { padding: clamp(18px, 3vw, 26px); }
 .referral-feature-description { margin-top: 0; font-size: 13px; }
@@ -20894,6 +20909,32 @@ html[data-caremate-theme="brown"] {
 .referral-accessory-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .referral-accessory-choices button { min-height: 44px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg); color: var(--text); font-weight: 750; cursor: pointer; }
 .referral-accessory-choices button.is-selected { border: 2px solid var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--primary); }
+
+/* 紹介特典：ペットの部屋 */
+.pet-room-shell { width: min(100% - 24px, 760px); margin: 0 auto 100px; display: grid; gap: 16px; }
+.pet-room-header .logo { background: linear-gradient(135deg, #f3b647, #e8758f); }
+.pet-room-stage { position: relative; min-height: 330px; display: grid; place-items: center; align-content: center; overflow: hidden; padding: 24px; background: radial-gradient(circle at 50% 76%, color-mix(in srgb, var(--primary) 13%, var(--card)), var(--card) 62%); }
+.pet-room-stage::after { content: ""; position: absolute; right: 7%; bottom: 9%; left: 7%; height: 34px; border-radius: 50%; background: rgba(15,23,42,.09); filter: blur(8px); }
+.pet-room-state { position: absolute; z-index: 2; top: 16px; left: 16px; padding: 6px 10px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 11%, var(--card)); color: var(--primary); font-size: 12px; font-weight: 850; }
+.pet-room-character { --pet-facing: 1; position: relative; z-index: 2; display: grid; place-items: center; gap: 8px; animation: caremate-pet-bob 1s ease-in-out infinite alternate; }
+.pet-room-character > span { font-size: clamp(88px, 20vw, 142px); line-height: 1; filter: drop-shadow(0 9px 10px rgba(15,23,42,.16)); }
+.pet-room-character > b { padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 16px; }
+.pet-room-character[data-action="run"] { animation-duration: .28s; }
+.pet-room-character[data-action="rampage"] { animation: caremate-pet-rampage .2s ease-in-out infinite alternate; }
+.pet-room-character[data-action="jump"] { animation: caremate-pet-jump .8s ease-in-out infinite; }
+.pet-room-character[data-action="sleep"] { animation-duration: 2s; opacity: .9; }
+.pet-room-stage > p { position: relative; z-index: 2; margin: 14px 0 0; color: var(--subtext); font-size: 12px; font-weight: 750; }
+.pet-room-control-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px; }
+.pet-room-control-card h2 { margin: 0 0 4px; font-size: 18px; }
+.pet-room-control-card p { margin: 0; font-size: 12px; }
+.pet-room-accessory-card { padding: 20px; }
+.pet-room-accessory-card > p { margin-top: 0; font-size: 12px; }
+
+@media (max-width: 560px) {
+  .pet-room-stage { min-height: 285px; }
+  .pet-room-control-card { align-items: stretch; flex-direction: column; }
+  .pet-room-control-card .referral-visibility-switch { justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); }
+}
 
 @media (max-width: 520px) {
   .referral-accessory-choices { grid-template-columns: 1fr 1fr; }

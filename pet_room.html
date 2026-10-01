@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ペットの部屋 | CareMateApp</title>
+    <link rel="stylesheet" href="style.css?v=20261001-14" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="page-loading pet-room-page">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" type="button" aria-label="紹介画面へ戻る">←</button>
+      <div class="top-right"><button id="themeButton" class="circle-button" type="button">🌙</button></div>
+    </div>
+    <header class="header pet-room-header"><div class="logo">🐾</div><h1>ペットの部屋</h1><p>ペットの表示と着せ替え</p></header>
+    <main class="pet-room-shell">
+      <section class="card pet-room-stage">
+        <span id="petRoomState" class="pet-room-state">読み込み中...</span>
+        <div id="petRoomCharacter" class="pet-room-character" aria-live="polite"><span>🐾</span><b>読み込み中</b></div>
+        <p id="petRoomAction">ペットを呼んでいます...</p>
+      </section>
+
+      <section class="card pet-room-control-card">
+        <div><h2>アプリ内に表示</h2><p>オフにしてもペットと名前は削除されません。</p></div>
+        <label class="referral-visibility-switch">
+          <input id="petVisibilityToggle" type="checkbox" />
+          <span aria-hidden="true"></span><b id="petVisibilityLabel">表示中</b>
+        </label>
+      </section>
+
+      <section class="card pet-room-accessory-card">
+        <div class="referral-section-heading"><div><span class="referral-eyebrow">DRESS UP</span><h2>着せ替え</h2></div><span id="petAccessoryLock" class="referral-status-chip">確認中</span></div>
+        <p id="petAccessoryHelp">8人招待達成でアクセサリーを変更できます。</p>
+        <div id="petRoomAccessories" class="referral-accessory-choices" hidden>
+          <button type="button" data-accessory="none">なし</button>
+          <button type="button" data-accessory="hat">🎩 帽子</button>
+          <button type="button" data-accessory="ribbon">🎀 リボン</button>
+          <button type="button" data-accessory="crown">👑 王冠</button>
+        </div>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a>
+      <a href="requests.html"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>リクエスト</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
+    </nav>
+    <script type="module" src="pet_room.js?v=20261001-1"></script>
+  </body>
+</html>

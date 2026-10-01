@@ -2,13 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [functionsSource, commonSource, referralSource, referralHtml, referralAdminSource, referralAdminHtml, appSource, styleSource] = await Promise.all([
+const [functionsSource, commonSource, referralSource, referralHtml, referralAdminSource, referralAdminHtml, petRoomSource, petRoomHtml, petConfigSource, appSource, styleSource] = await Promise.all([
   readFile(new URL("./functions/index.js", import.meta.url), "utf8"),
   readFile(new URL("./common.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.html", import.meta.url), "utf8"),
   readFile(new URL("./referral_admin.js", import.meta.url), "utf8"),
   readFile(new URL("./referral_admin.html", import.meta.url), "utf8"),
+  readFile(new URL("./pet_room.js", import.meta.url), "utf8"),
+  readFile(new URL("./pet_room.html", import.meta.url), "utf8"),
+  readFile(new URL("./pet_character_config.mjs", import.meta.url), "utf8"),
   readFile(new URL("./app.js", import.meta.url), "utf8"),
   readFile(new URL("./style.css", import.meta.url), "utf8"),
 ]);
@@ -42,6 +45,9 @@ test("ペットは画面内をランダムに移動し表情を切り替える",
   assert.match(commonSource, /Math\.random\(\).*maxX|Math\.random\(\) \* Math\.max\(1, limit\.maxX/);
   assert.match(commonSource, /dataset\.expression/);
   assert.match(commonSource, /prefers-reduced-motion/);
+  assert.match(commonSource, /pointerdown/);
+  assert.match(commonSource, /careMatePetPosition/);
+  assert.match(commonSource, /location\.assign\("pet_room\.html"\)/);
 });
 
 test("2510044の特典管理からホーム招待枠だけをオンオフできる", () => {
@@ -51,4 +57,29 @@ test("2510044の特典管理からホーム招待枠だけをオンオフでき�
   assert.match(referralAdminHtml, /id="referralHomeVisible"/);
   assert.match(referralAdminSource, /updateReferralHomeVisibilityAdmin/);
   assert.match(appSource, /homeReferralCard\.hidden = !homeVisible/);
+});
+
+test("ペットの部屋で表示切替と8人特典の着せ替えを管理する", () => {
+  assert.match(petRoomHtml, /id="petVisibilityToggle"/);
+  assert.match(petRoomHtml, /id="petRoomAccessories"/);
+  assert.match(petRoomSource, /action: "pet_visibility"/);
+  assert.match(petRoomSource, /entitlements\?\.petAccessory/);
+  assert.match(functionsSource, /action === "pet_visibility"/);
+});
+
+test("キャラクター画像受領前から行動と表情の固定IDを保持する", () => {
+  for (const action of ["rampage", "walk", "run", "stop", "sleep", "jump", "stretch", "eat", "play", "wave"]) {
+    assert.match(petConfigSource, new RegExp(`id: "${action}"`));
+  }
+  for (const expression of ["smile", "angry", "cry", "sad", "hurt", "neutral", "surprised", "sleepy", "embarrassed", "worried", "excited", "affection"]) {
+    assert.match(petConfigSource, new RegExp(`id: "${expression}"`));
+  }
+});
+
+test("2510044だけが達成特典を理由付きで削除・復元できる", () => {
+  assert.match(functionsSource, /exports\.setReferralRewardDeletedAdmin = onCall/);
+  assert.match(functionsSource, /requirePrimaryDeviceAuditAdmin\(request\)/);
+  assert.match(functionsSource, /referralRewardDeletions/);
+  assert.match(referralAdminSource, /setReferralRewardDeletedAdmin/);
+  assert.match(referralAdminSource, /学習ポイント100ptも差し引かれます/);
 });
