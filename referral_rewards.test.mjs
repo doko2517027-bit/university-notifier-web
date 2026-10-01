@@ -89,4 +89,6 @@ test("2510044だけが達成特典を理由付きで削除・復元できる", (
   assert.match(functionsSource, /referralRewardDeletions/);
   assert.match(referralAdminSource, /setReferralRewardDeletedAdmin/);
   assert.match(referralAdminSource, /学習ポイント100ptも差し引かれます/);
+  assert.match(functionsSource, /\[`rewardSuppressions\.\$\{key\}`\]: FieldValue\.delete\(\)/);
+  assert.match(referralAdminSource, /error\?\.message/);
 });

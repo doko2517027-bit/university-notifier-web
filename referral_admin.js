@@ -173,7 +173,7 @@ async function changeRewardState(button) {
     await loadReferralAdmin();
   } catch (error) {
     console.error("紹介特典状態変更エラー:", error);
-    alert(`特典を${actionLabel}できませんでした。`);
+    alert(error?.message || `特典を${actionLabel}できませんでした。`);
     button.disabled = false;
   }
 }

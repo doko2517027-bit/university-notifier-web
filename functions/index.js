@@ -1399,14 +1399,35 @@ exports.setReferralRewardDeletedAdmin = onCall(
           rewardGrants.m2LearningPoints = { grantedAt: now, points: 100, restoredAt: now, restoredBy: updatedBy };
         }
         if (milestoneCount === 10 && Number(account.invitedCount || 0) >= 10) {
-          transaction.set(rewardRef, { studentNumber: target, status: "pending", giftUrl: null, restoredAt: now, restoredBy: updatedBy }, { merge: true });
+          transaction.set(
+            rewardRef,
+            {
+              studentNumber: target,
+              status: "pending",
+              giftUrl: null,
+              deletedAt: FieldValue.delete(),
+              deletedBy: FieldValue.delete(),
+              restoredAt: now,
+              restoredBy: updatedBy,
+            },
+            { merge: true },
+          );
         }
       }
-      transaction.set(
-        accountRef,
-        { rewardSuppressions: suppressions, rewardGrants, personalization, updatedAt: now },
-        { merge: true },
-      );
+      if (deleted) {
+        transaction.set(
+          accountRef,
+          { rewardSuppressions: suppressions, rewardGrants, personalization, updatedAt: now },
+          { merge: true },
+        );
+      } else {
+        transaction.update(accountRef, {
+          [`rewardSuppressions.${key}`]: FieldValue.delete(),
+          rewardGrants,
+          personalization,
+          updatedAt: now,
+        });
+      }
       transaction.create(auditRef, {
         studentNumber: target,
         milestoneCount,
