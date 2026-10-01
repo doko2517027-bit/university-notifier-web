@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [functionsSource, commonSource, referralSource, referralHtml, styleSource] = await Promise.all([
+const [functionsSource, commonSource, referralSource, referralHtml, referralAdminSource, referralAdminHtml, appSource, styleSource] = await Promise.all([
   readFile(new URL("./functions/index.js", import.meta.url), "utf8"),
   readFile(new URL("./common.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.html", import.meta.url), "utf8"),
+  readFile(new URL("./referral_admin.js", import.meta.url), "utf8"),
+  readFile(new URL("./referral_admin.html", import.meta.url), "utf8"),
+  readFile(new URL("./app.js", import.meta.url), "utf8"),
   readFile(new URL("./style.css", import.meta.url), "utf8"),
 ]);
 
@@ -32,4 +35,20 @@ test("全画面同期と紹介画面のペット設定UIが接続されている
   assert.match(referralSource, /saveReferralPersonalization/);
   assert.match(styleSource, /data-caremate-theme="pink"/);
   assert.match(styleSource, /\.caremate-referral-pet/);
+});
+
+test("ペットは画面内をランダムに移動し表情を切り替える", () => {
+  assert.match(commonSource, /startCareMatePetMotion/);
+  assert.match(commonSource, /Math\.random\(\).*maxX|Math\.random\(\) \* Math\.max\(1, limit\.maxX/);
+  assert.match(commonSource, /dataset\.expression/);
+  assert.match(commonSource, /prefers-reduced-motion/);
+});
+
+test("2510044の特典管理からホーム招待枠だけをオンオフできる", () => {
+  assert.match(functionsSource, /exports\.updateReferralHomeVisibilityAdmin = onCall/);
+  assert.match(functionsSource, /requirePrimaryDeviceAuditAdmin\(request\)/);
+  assert.match(functionsSource, /homeVisible:\s*settings\.homeVisible !== false/);
+  assert.match(referralAdminHtml, /id="referralHomeVisible"/);
+  assert.match(referralAdminSource, /updateReferralHomeVisibilityAdmin/);
+  assert.match(appSource, /homeReferralCard\.hidden = !homeVisible/);
 });

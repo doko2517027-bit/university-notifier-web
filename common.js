@@ -664,6 +664,7 @@ const REFERRAL_PERSONALIZATION_CACHE_KEY = `careMateReferralPersonalization:${st
 const REFERRAL_PERSONALIZATION_CACHE_MS = 60 * 60 * 1000;
 let referralPersonalizationState = readReferralPersonalizationCache();
 let referralPersonalizationInFlight = false;
+let referralPetMotionCleanup = null;
 
 function readReferralPersonalizationCache() {
   try {
@@ -796,6 +797,8 @@ function applyReferralPersonalization(state) {
 }
 
 function renderCareMatePet(state) {
+  referralPetMotionCleanup?.();
+  referralPetMotionCleanup = null;
   document.getElementById("careMateReferralPet")?.remove();
   const pet = state?.personalization?.pet;
   if (state?.entitlements?.pet !== true || !pet?.kind || !pet?.name) return;
@@ -807,8 +810,86 @@ function renderCareMatePet(state) {
   element.type = "button";
   element.setAttribute("aria-label", `${pet.name}を表示`);
   element.innerHTML = `<span class="caremate-pet-accessory">${accessories[state.personalization?.accessory] || ""}</span><span class="caremate-pet-character">${icons[pet.kind] || "🐾"}</span><small>${escapeCommonHtml(pet.name)}</small>`;
-  element.onclick = () => element.classList.toggle("is-speaking");
   document.body.append(element);
+  referralPetMotionCleanup = startCareMatePetMotion(element, pet.kind);
+}
+
+function startCareMatePetMotion(element, kind) {
+  const character = element.querySelector(".caremate-pet-character");
+  const frames = {
+    cat: ["🐱", "😺", "😸", "😽"],
+    dog: ["🐶", "🐕", "🐩"],
+    bird: ["🐥", "🐤", "🐦"],
+  }[kind] || ["🐾"];
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let x = 18;
+  let y = Math.max(82, window.innerHeight - 175);
+  let moveTimer = 0;
+  let expressionTimer = 0;
+  let destroyed = false;
+
+  const randomFrame = () => {
+    if (destroyed || !character) return;
+    character.textContent = frames[Math.floor(Math.random() * frames.length)];
+    element.dataset.expression = ["normal", "happy", "curious", "sleepy"][Math.floor(Math.random() * 4)];
+  };
+
+  const bounds = () => ({
+    maxX: Math.max(18, window.innerWidth - 82),
+    maxY: Math.max(100, window.innerHeight - 150),
+  });
+
+  const place = (nextX, nextY, duration = 0) => {
+    const limit = bounds();
+    x = Math.max(12, Math.min(limit.maxX, nextX));
+    y = Math.max(72, Math.min(limit.maxY, nextY));
+    element.style.transitionDuration = `${duration}ms`;
+    element.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+  };
+
+  const scheduleMove = () => {
+    if (destroyed || reducedMotion) return;
+    const limit = bounds();
+    const nextX = 12 + Math.random() * Math.max(1, limit.maxX - 12);
+    const nextY = 72 + Math.random() * Math.max(1, limit.maxY - 72);
+    const distance = Math.hypot(nextX - x, nextY - y);
+    const duration = Math.max(2600, Math.min(7600, distance * 13));
+    element.dataset.facing = nextX < x ? "left" : "right";
+    element.classList.add("is-walking");
+    character.textContent = frames[0];
+    place(nextX, nextY, duration);
+    moveTimer = window.setTimeout(() => {
+      element.classList.remove("is-walking");
+      randomFrame();
+      moveTimer = window.setTimeout(scheduleMove, 1200 + Math.random() * 3200);
+    }, duration);
+  };
+
+  const onResize = () => place(x, y, 0);
+  const onTap = () => {
+    character.textContent = frames[Math.min(1, frames.length - 1)];
+    element.dataset.expression = "happy";
+    element.classList.add("is-speaking");
+    window.setTimeout(() => element.classList.remove("is-speaking"), 1600);
+  };
+  element.addEventListener("click", onTap);
+  window.addEventListener("resize", onResize);
+  place(x, y, 0);
+  randomFrame();
+  if (!reducedMotion) {
+    moveTimer = window.setTimeout(scheduleMove, 900);
+    expressionTimer = window.setInterval(() => {
+      if (!element.classList.contains("is-walking")) randomFrame();
+    }, 4200);
+  }
+
+  return () => {
+    destroyed = true;
+    clearTimeout(moveTimer);
+    clearInterval(expressionTimer);
+    window.removeEventListener("resize", onResize);
+    element.removeEventListener("click", onTap);
+  };
 }
 
 function escapeCommonHtml(value) {

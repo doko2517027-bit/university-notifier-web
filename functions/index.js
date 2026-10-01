@@ -569,11 +569,14 @@ exports.getReferralDashboard = onCall(
     await ensureReferralPointReward(studentNumber);
     const accountRef = referralAccountRef(studentNumber);
     const rewardRef = db.collection("referralPrivateRewards").doc(studentNumber);
-    const [accountSnapshot, rewardSnapshot] = await Promise.all([
+    const settingsRef = db.collection("system").doc("referralProgram");
+    const [accountSnapshot, rewardSnapshot, settingsSnapshot] = await Promise.all([
       accountRef.get(),
       rewardRef.get(),
+      settingsRef.get(),
     ]);
     const account = accountSnapshot.data() || {};
+    const settings = settingsSnapshot.data() || {};
     const invitedCount = Math.min(
       REFERRAL_MAX_INVITES,
       Math.max(0, Number(account.invitedCount || 0)),
@@ -597,6 +600,7 @@ exports.getReferralDashboard = onCall(
     return {
       invitedCount,
       maxInvites: REFERRAL_MAX_INVITES,
+      homeVisible: settings.homeVisible !== false,
       nextMilestone: next
         ? { ...next, remaining: next.count - invitedCount }
         : null,
@@ -1106,7 +1110,7 @@ exports.getReferralRewardAdmin = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     await requirePrimaryDeviceAuditAdmin(request);
-    const [userSnapshot, accountSnapshot, codeSnapshot, historySnapshot, rewardSnapshot, adjustmentSnapshot] =
+    const [userSnapshot, accountSnapshot, codeSnapshot, historySnapshot, rewardSnapshot, adjustmentSnapshot, settingsSnapshot] =
       await Promise.all([
         db.collection("users").get(),
         db.collection("referralAccounts").get(),
@@ -1114,6 +1118,7 @@ exports.getReferralRewardAdmin = onCall(
         db.collection("referralHistory").get(),
         db.collection("referralPrivateRewards").get(),
         db.collection("referralManualAdjustments").get(),
+        db.collection("system").doc("referralProgram").get(),
       ]);
     const accounts = new Map(accountSnapshot.docs.map((item) => [item.id, item.data() || {}]));
     const rewards = new Map(rewardSnapshot.docs.map((item) => [item.id, item.data() || {}]));
@@ -1202,6 +1207,11 @@ exports.getReferralRewardAdmin = onCall(
       );
     return {
       students,
+      settings: {
+        homeVisible: settingsSnapshot.data()?.homeVisible !== false,
+        updatedAt: timestampMillis(settingsSnapshot.data()?.updatedAt),
+        updatedBy: String(settingsSnapshot.data()?.updatedBy || ""),
+      },
       totals: {
         students: students.length,
         referrals: historySnapshot.size,
@@ -1212,6 +1222,23 @@ exports.getReferralRewardAdmin = onCall(
         ).length,
       },
     };
+  },
+);
+
+exports.updateReferralHomeVisibilityAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const updatedBy = await requirePrimaryDeviceAuditAdmin(request);
+    if (typeof request.data?.homeVisible !== "boolean") {
+      throw new HttpsError("invalid-argument", "表示設定を確認してください。");
+    }
+    const homeVisible = request.data.homeVisible;
+    const updatedAt = new Date();
+    await db.collection("system").doc("referralProgram").set(
+      { homeVisible, updatedAt, updatedBy },
+      { merge: true },
+    );
+    return { saved: true, homeVisible, updatedAt: updatedAt.getTime() };
   },
 );
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>紹介制度管理 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20261001-12" />
+    <link rel="stylesheet" href="style.css?v=20261001-13" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -18,6 +18,18 @@
     </div>
     <header class="header"><div class="logo">🎁</div><h1>紹介制度管理</h1><p>全学生の紹介進捗・招待コード・成立履歴・特典をまとめて管理</p></header>
     <main class="referral-admin-shell">
+      <section class="card referral-home-visibility-card">
+        <div>
+          <span class="referral-eyebrow">HOME DISPLAY</span>
+          <h2>ホームの「友達招待」表示</h2>
+          <p>オフにすると学生ホームの招待枠だけを隠します。紹介履歴・達成人数・特典データは削除されません。</p>
+        </div>
+        <label class="referral-visibility-switch">
+          <input id="referralHomeVisible" type="checkbox" />
+          <span aria-hidden="true"></span>
+          <b id="referralHomeVisibilityLabel">読み込み中</b>
+        </label>
+      </section>
       <section class="referral-admin-summary">
         <article class="card"><small>対象学生</small><strong id="referralStudentTotal">--</strong></article>
         <article class="card"><small>紹介成立</small><strong id="referralTotal">--</strong></article>
@@ -49,6 +61,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
       <a class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="referral_admin.js?v=20261001-2"></script>
+    <script type="module" src="referral_admin.js?v=20261001-3"></script>
   </body>
 </html>

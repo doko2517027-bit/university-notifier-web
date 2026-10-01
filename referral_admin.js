@@ -14,12 +14,14 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 const $ = (id) => document.getElementById(id);
 let students = [];
 let totals = {};
+let referralSettings = { homeVisible: true };
 
 setupTheme($("themeButton"));
 $("backButton").onclick = () => location.assign("admin.html");
 $("refreshRewards").onclick = loadReferralAdmin;
 $("referralSearch").addEventListener("input", render);
 $("referralFilter").addEventListener("change", render);
+$("referralHomeVisible").addEventListener("change", saveHomeVisibility);
 
 await auth.authStateReady();
 const admin = await isAdmin();
@@ -51,12 +53,35 @@ async function loadReferralAdmin() {
     const response = await httpsCallable(functions, "getReferralRewardAdmin")();
     students = Array.isArray(response.data?.students) ? response.data.students : [];
     totals = response.data?.totals || {};
+    referralSettings = response.data?.settings || { homeVisible: true };
     render();
   } catch (error) {
     console.error("紹介制度一覧取得エラー:", error);
     $("rewardList").textContent = "紹介制度の情報を取得できませんでした。";
   } finally {
     $("refreshRewards").disabled = false;
+  }
+}
+
+async function saveHomeVisibility(event) {
+  const input = event.currentTarget;
+  const previous = referralSettings.homeVisible !== false;
+  const next = input.checked;
+  input.disabled = true;
+  $("referralHomeVisibilityLabel").textContent = "保存中...";
+  try {
+    const response = await httpsCallable(functions, "updateReferralHomeVisibilityAdmin")({ homeVisible: next });
+    referralSettings = { ...referralSettings, homeVisible: response.data?.homeVisible !== false };
+    renderHomeVisibility();
+    showToast(next ? "ホームに友達招待を表示しました" : "ホームの友達招待を非表示にしました");
+  } catch (error) {
+    console.error("紹介表示設定エラー:", error);
+    referralSettings.homeVisible = previous;
+    input.checked = previous;
+    renderHomeVisibility();
+    alert("表示設定を保存できませんでした。");
+  } finally {
+    input.disabled = false;
   }
 }
 
@@ -113,6 +138,7 @@ async function adjustReferralCount(button) {
 }
 
 function render() {
+  renderHomeVisibility();
   $("referralStudentTotal").textContent = `${Number(totals.students || students.length)}人`;
   $("referralTotal").textContent = `${Number(totals.referrals || 0)}件`;
   $("activeCodeTotal").textContent = `${Number(totals.activeCodes || 0)}件`;
@@ -131,6 +157,13 @@ function render() {
   $("rewardList").innerHTML = visible.length
     ? visible.map(renderStudent).join("")
     : '<div class="referral-empty">条件に一致する学生はいません。</div>';
+}
+
+function renderHomeVisibility() {
+  const visible = referralSettings.homeVisible !== false;
+  $("referralHomeVisible").checked = visible;
+  $("referralHomeVisibilityLabel").textContent = visible ? "表示中" : "非表示";
+  $("referralHomeVisibilityLabel").classList.toggle("is-off", !visible);
 }
 
 function renderStudent(item) {

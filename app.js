@@ -528,7 +528,8 @@ async function startApp() {
 
 function setupHomeReferral() {
   if (!homeReferralCard) return;
-  homeReferralCard.hidden = false;
+  // 管理設定を取得するまでは表示せず、オフ設定時の一瞬の表示を防ぐ。
+  homeReferralCard.hidden = true;
   homeReferralCard.onclick = () => location.assign("referral.html");
 }
 
@@ -537,11 +538,14 @@ async function loadHomeReferralSummary() {
   try {
     const call = httpsCallable(functions, "getReferralDashboard");
     const result = await call();
+    const homeVisible = result.data?.homeVisible !== false;
+    homeReferralCard.hidden = !homeVisible;
+    if (!homeVisible) return;
     const count = Math.max(0, Math.min(10, Number(result.data?.invitedCount || 0)));
     homeReferralCount.textContent = `${count} / 10人`;
   } catch (error) {
     console.warn("友達招待情報を取得できませんでした:", error);
-    homeReferralCount.textContent = "確認する";
+    homeReferralCard.hidden = true;
   }
 }
 
