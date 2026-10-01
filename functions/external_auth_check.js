@@ -17,7 +17,14 @@ function decryptStoredCredential(encryptedText) {
     decipher.update(ciphertext),
     decipher.final(),
   ]).toString("utf8");
-  return JSON.parse(decrypted);
+  // 初期版は文字列をそのままAES-GCMで保存し、現行版はJSON文字列として保存する。
+  // 旧利用者だけ認証確認が例外終了しないよう、復号後の形式を両方受け付ける。
+  try {
+    return JSON.parse(decrypted);
+  } catch (error) {
+    if (error instanceof SyntaxError && decrypted) return decrypted;
+    throw error;
+  }
 }
 
 async function blockHeavyResources(context) {
