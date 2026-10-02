@@ -118,8 +118,8 @@ const activeMailConfiguredValue = document.getElementById(
   "activeMailConfiguredValue",
 );
 
-const checkManabaAuthButton = document.getElementById(
-  "checkManabaAuthButton",
+const checkmanabaAuthButton = document.getElementById(
+  "checkmanabaAuthButton",
 );
 
 const checkActiveMailAuthButton = document.getElementById(
@@ -1136,8 +1136,8 @@ function setupEvents() {
     saveUserButton.onclick = saveUserChanges;
   }
 
-  if (checkManabaAuthButton) {
-    checkManabaAuthButton.onclick = () => runExternalAuthCheck("manaba");
+  if (checkmanabaAuthButton) {
+    checkmanabaAuthButton.onclick = () => runExternalAuthCheck("manaba");
   }
 
   if (checkActiveMailAuthButton) {
@@ -1272,11 +1272,11 @@ function updateExternalAuthButtonAvailability() {
   const activeMailConfigured = Boolean(
     targetUserData?.activeMailPasswordEncrypted,
   );
-  if (checkManabaAuthButton && checkManabaAuthButton.dataset.running !== "true") {
-    checkManabaAuthButton.disabled = !manabaConfigured;
-    checkManabaAuthButton.title = manabaConfigured
-      ? "保存済みのManaba情報で認証できるか確認します"
-      : "Manaba IDとパスワードの設定後に実行できます";
+  if (checkmanabaAuthButton && checkmanabaAuthButton.dataset.running !== "true") {
+    checkmanabaAuthButton.disabled = !manabaConfigured;
+    checkmanabaAuthButton.title = manabaConfigured
+      ? "保存済みのmanaba情報で認証できるか確認します"
+      : "manaba IDとパスワードの設定後に実行できます";
   }
   if (
     checkActiveMailAuthButton &&
@@ -1290,11 +1290,11 @@ function updateExternalAuthButtonAvailability() {
 }
 
 async function runExternalAuthCheck(service) {
-  const isManaba = service === "manaba";
-  const button = isManaba
-    ? checkManabaAuthButton
+  const ismanaba = service === "manaba";
+  const button = ismanaba
+    ? checkmanabaAuthButton
     : checkActiveMailAuthButton;
-  const progressElement = isManaba
+  const progressElement = ismanaba
     ? manabaAuthProgress
     : activeMailAuthProgress;
   if (!button || !progressElement || button.dataset.running === "true") return;
@@ -1410,7 +1410,7 @@ async function saveUserChanges() {
 
   const activeMailConfirm = activeMailPasswordConfirm?.value.trim() || "";
 
-  const newManabaPassword = manabaPassword?.value.trim() || "";
+  const newmanabaPassword = manabaPassword?.value.trim() || "";
 
   const manabaConfirm = manabaPasswordConfirm?.value.trim() || "";
 
@@ -1424,8 +1424,8 @@ async function saveUserChanges() {
     return;
   }
 
-  if (newManabaPassword !== manabaConfirm) {
-    alert("Manabaパスワードが一致しません。");
+  if (newmanabaPassword !== manabaConfirm) {
+    alert("manabaパスワードが一致しません。");
 
     return;
   }
@@ -1448,8 +1448,8 @@ async function saveUserChanges() {
     return;
   }
 
-  if (newManabaPassword && newManabaPassword.length < 4) {
-    alert("Manabaパスワードを確認してください。");
+  if (newmanabaPassword && newmanabaPassword.length < 4) {
+    alert("manabaパスワードを確認してください。");
 
     return;
   }
@@ -1501,8 +1501,8 @@ async function saveUserChanges() {
       updates.activeMailVerificationError = null;
     }
 
-    if (newManabaPassword) {
-      updates.manabaPasswordEncrypted = await encryptData(newManabaPassword);
+    if (newmanabaPassword) {
+      updates.manabaPasswordEncrypted = await encryptData(newmanabaPassword);
 
       updates.manabaSetupSkipped = false;
 

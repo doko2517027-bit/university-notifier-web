@@ -37,14 +37,14 @@ async function blockHeavyResources(context) {
   });
 }
 
-async function verifyManaba({ browser, user, updateProgress }) {
+async function verifymanaba({ browser, user, updateProgress }) {
   const loginId = String(user.manabaId || "").trim();
   const encryptedPassword = user.manabaPasswordEncrypted;
   if (!loginId || !encryptedPassword) {
-    return { configured: false, verified: false, message: "Manabaが未設定です。" };
+    return { configured: false, verified: false, message: "manabaが未設定です。" };
   }
   const password = String(decryptStoredCredential(encryptedPassword));
-  await updateProgress(25, "Manabaへ接続しています");
+  await updateProgress(25, "manabaへ接続しています");
   const context = await browser.newContext();
   await blockHeavyResources(context);
   const page = await context.newPage();
@@ -57,7 +57,7 @@ async function verifyManaba({ browser, user, updateProgress }) {
     await updateProgress(45, "ログイン情報を入力しています");
     await page.locator('input[name="userid"]').fill(loginId);
     await page.locator('input[name="password"]').fill(password);
-    await updateProgress(65, "Manabaで認証しています");
+    await updateProgress(65, "manabaで認証しています");
     await page.getByRole("button", { name: "ログイン" }).click();
     await page.waitForLoadState("domcontentloaded", { timeout: 25_000 });
     await updateProgress(90, "認証結果を確認しています");
@@ -65,7 +65,7 @@ async function verifyManaba({ browser, user, updateProgress }) {
     return {
       configured: true,
       verified,
-      message: verified ? "Manaba認証に成功しました。" : "Manaba認証に失敗しました。",
+      message: verified ? "manaba認証に成功しました。" : "manaba認証に失敗しました。",
     };
   } finally {
     await context.close();
@@ -127,5 +127,5 @@ module.exports = {
   decryptStoredCredential,
   verifyActiveMail,
   verifyActiveMailPassword,
-  verifyManaba,
+  verifymanaba,
 };

@@ -222,7 +222,7 @@ button.addEventListener("click", async () => {
 
   if (!manabaPassword.value.trim()) {
     missing.push(
-      "Manabaパスワード未入力\n・課題取得\n・課題通知\n・Manaba関連機能",
+      "manabaパスワード未入力\n・課題取得\n・課題通知\n・manaba関連機能",
     );
   }
 

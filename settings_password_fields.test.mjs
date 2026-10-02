@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { savedExternalPasswordFields } from "./settings_password_fields.mjs";
 
-test("Manaba更新時は再設定要求を解除し、連携確認をやり直す", () => {
+test("manaba更新時は再設定要求を解除し、連携確認をやり直す", () => {
   assert.deepEqual(savedExternalPasswordFields("manaba", "encrypted"), {
     manabaPasswordEncrypted: "encrypted",
     manabaSetupSkipped: false,

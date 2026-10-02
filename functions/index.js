@@ -2385,7 +2385,7 @@ exports.runExternalAuthCheck = onCall(
       await updateProgress(15, "保存済みの設定を確認しています");
       const chromium = require("@sparticuz/chromium");
       const { chromium: playwrightChromium } = require("playwright-core");
-      const { verifyActiveMail, verifyManaba } = require("./external_auth_check.js");
+      const { verifyActiveMail, verifymanaba } = require("./external_auth_check.js");
       browser = await playwrightChromium.launch({
         args: chromium.args,
         executablePath: await chromium.executablePath(),
@@ -2393,7 +2393,7 @@ exports.runExternalAuthCheck = onCall(
       });
       const user = userSnapshot.data() || {};
       const result = service === "manaba"
-        ? await verifyManaba({ browser, user, updateProgress })
+        ? await verifymanaba({ browser, user, updateProgress })
         : await verifyActiveMail({
             browser,
             studentNumber: targetStudentNumber,

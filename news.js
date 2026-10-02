@@ -692,7 +692,7 @@ document.getElementById("profileButton").onclick = () => {
 
 async function loadSystemNews() {
   if (!studentNumber) {
-    systemNews.innerHTML = "Manaba認証後に表示されます。";
+    systemNews.innerHTML = "manaba認証後に表示されます。";
 
     setNewsTabBadge(systemNewsBadge, 0);
 

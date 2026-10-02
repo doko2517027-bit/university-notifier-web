@@ -504,11 +504,11 @@ async function loadAttendanceData() {
     userData = userSnap.exists() ? userSnap.data() : {};
 
     if (userData.manabaVerified !== true) {
-      alert("出席管理はManabaログイン確認が完了している学生のみ利用できます。");
+      alert("出席管理はmanabaログイン確認が完了している学生のみ利用できます。");
 
       location.href = "index.html";
 
-      throw new Error("Manabaログイン確認が完了していません。");
+      throw new Error("manabaログイン確認が完了していません。");
     }
 
     effectiveDate = resolveEffectiveDate(userData);

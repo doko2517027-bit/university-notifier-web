@@ -314,10 +314,10 @@ async function registerStudent() {
 
   if (!manabaPasswordValue) {
     missingSettings.push(
-      "Manabaパスワード未入力\n" +
+      "manabaパスワード未入力\n" +
         "・課題取得\n" +
         "・課題通知\n" +
-        "・Manaba関連機能",
+        "・manaba関連機能",
     );
   }
 

@@ -410,7 +410,7 @@ async function startApp() {
     if (user.grade) localStorage.setItem("grade", String(user.grade));
     if (resumeStudySlide) resumeStudySlide.hidden = !isLeaveActive(user);
 
-    applyManabaFeatureVisibility(user);
+    applymanabaFeatureVisibility(user);
 
     renderAuthSetupCards(user);
 
@@ -1019,7 +1019,7 @@ saveCreditConfirmation?.addEventListener("click", async () => {
   }
 });
 
-function applyManabaFeatureVisibility(user) {
+function applymanabaFeatureVisibility(user) {
   const available = user?.manabaVerified === true;
 
   /*
@@ -1075,11 +1075,11 @@ function renderAuthSetupCards(user) {
                 onclick="location.href='manaba_setup.html'"
                 style="margin:12px 16px; border-radius:18px; cursor:pointer;">
 
-                <b>${needsReset ? "⚠️ Manabaを再設定してください" : "📚 Manaba認証へ進む"}</b><br>
+                <b>${needsReset ? "⚠️ manabaを再設定してください" : "📚 manaba認証へ進む"}</b><br>
                 <small>
                     ${needsReset
                       ? "自動確認でログインできませんでした。現在のパスワードを再設定してください。"
-                      : "課題取得・課題通知・Manaba関連機能を使うには設定が必要です。"}
+                      : "課題取得・課題通知・manaba関連機能を使うには設定が必要です。"}
                 </small>
 
             </div>
@@ -2234,7 +2234,7 @@ async function openCourse(subject) {
   const url = courses[subject];
 
   if (!url) {
-    alert("この授業のManabaリンクはありません。");
+    alert("この授業のmanabaリンクはありません。");
     return;
   }
 

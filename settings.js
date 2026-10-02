@@ -218,7 +218,7 @@ document.getElementById("saveAnnualResponse").addEventListener("click", async (e
   }
 });
 
-document.getElementById("saveManabaPassword").onclick = () =>
+document.getElementById("savemanabaPassword").onclick = () =>
   saveExternalPassword("manaba");
 document.getElementById("saveActiveMailPassword").onclick = () =>
   saveExternalPassword("activeMail");
@@ -230,10 +230,10 @@ async function requireOwnLogin() {
 }
 async function saveExternalPassword(kind) {
   const button = document.getElementById(
-    kind === "manaba" ? "saveManabaPassword" : "saveActiveMailPassword",
+    kind === "manaba" ? "savemanabaPassword" : "saveActiveMailPassword",
   );
   const input = document.getElementById(
-    kind === "manaba" ? "newManabaPassword" : "newActiveMailPassword",
+    kind === "manaba" ? "newmanabaPassword" : "newActiveMailPassword",
   );
   if (!input.value.trim()) {
     alert("新しいパスワードを入力してください。");
@@ -241,7 +241,7 @@ async function saveExternalPassword(kind) {
   }
   if (
     !confirm(
-      `${kind === "manaba" ? "Manaba" : "ActiveMail"}の保存パスワードを変更しますか？`,
+      `${kind === "manaba" ? "manaba" : "ActiveMail"}の保存パスワードを変更しますか？`,
     )
   )
     return;

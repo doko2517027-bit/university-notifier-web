@@ -7,7 +7,7 @@ import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=202609
 import { filterSelectedClassEntries, extractClassGroups, effectiveClassSelections } from "./class_selection.js?v=20260929-4";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 import {
-  REMINDER_OPTIONS, dateKey, parseManabaDeadline, monthCells,
+  REMINDER_OPTIONS, dateKey, parsemanabaDeadline, monthCells,
   matchesSharedAudience, safeReminderMinutes, normalizeCalendarView,
   weekDays, shiftCalendarDate,
 } from "./calendar_model.mjs";
@@ -30,7 +30,7 @@ const formatDay = (key) => {
   return `${date.getMonth() + 1}月${date.getDate()}日（${"日月火水木金土"[date.getDay()]}）`;
 };
 const formatTime = (date) => date?.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) || "";
-const safeManabaUrl = (raw) => {
+const safemanabaUrl = (raw) => {
   try {
     const url = new URL(String(raw || ""), "https://sums.manaba.jp/ct/");
     return url.origin === "https://sums.manaba.jp" && url.pathname.startsWith("/ct/") ? url.href : "";
@@ -64,13 +64,13 @@ async function assignmentId(item) {
 }
 
 function assignmentEvent(id, item) {
-  const deadline = dateTime(item.deadlineAt) || parseManabaDeadline(item.deadlineText || item.deadline);
+  const deadline = dateTime(item.deadlineAt) || parsemanabaDeadline(item.deadlineText || item.deadline);
   if (!deadline) return null;
   return {
     kind: "assignment", id, date: dateKey(deadline), startAt: deadline,
     title: item.title || "課題", subtitle: item.course || "科目名なし",
     note: `締切：${formatDay(dateKey(deadline))} ${formatTime(deadline)}`,
-    url: safeManabaUrl(item.url),
+    url: safemanabaUrl(item.url),
   };
 }
 

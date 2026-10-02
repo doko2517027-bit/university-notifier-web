@@ -1,4 +1,4 @@
-import { dateKey, matchesSharedAudience, parseManabaDeadline } from "./calendar_model.mjs";
+import { dateKey, matchesSharedAudience, parsemanabaDeadline } from "./calendar_model.mjs";
 import { PERIOD_TIMES } from "./attendance_policy.js";
 
 export function asDate(value) {
@@ -50,7 +50,7 @@ export function buildTodayAutomaticItems({ assignments = [], archivedAssignments
   const seenAssignments = new Map();
 
   for (const assignment of [...assignments, ...archivedAssignments]) {
-    const deadline = asDate(assignment.deadlineAt) || parseManabaDeadline(assignment.deadlineText || assignment.deadline);
+    const deadline = asDate(assignment.deadlineAt) || parsemanabaDeadline(assignment.deadlineText || assignment.deadline);
     if (!deadline || dateKey(deadline) !== day) continue;
     const identity = String(assignment.url || "").trim() || `${assignment.course || ""}|${assignment.title || ""}`;
     const submitted = assignment.submitted === true || ["submitted", "提出済み"].includes(String(assignment.status || ""));

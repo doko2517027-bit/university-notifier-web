@@ -324,11 +324,11 @@ async function loadEnrolledSubjects() {
   }
 
   if (user.data()?.manabaVerified !== true) {
-    subjectSelect.innerHTML = "<option>Manaba認証が未完了です</option>";
+    subjectSelect.innerHTML = "<option>manaba認証が未完了です</option>";
 
     sendButton.disabled = true;
 
-    showToast("Manaba認証済みの学生だけテストできます");
+    showToast("manaba認証済みの学生だけテストできます");
 
     return;
   }

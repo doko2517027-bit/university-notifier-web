@@ -518,8 +518,8 @@ async function loadRegistrationData() {
 
     if (!previewMode && userData.manabaVerified !== true) {
       renderUnavailable(
-        "履修登録はManabaログイン確認が完了している学生のみ利用できます。",
-        "Manabaログイン確認が必要です",
+        "履修登録はmanabaログイン確認が完了している学生のみ利用できます。",
+        "manabaログイン確認が必要です",
       );
 
       return;

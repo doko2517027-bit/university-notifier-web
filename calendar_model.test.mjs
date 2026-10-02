@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dateKey, parseManabaDeadline, normalizeGrade, matchesSharedAudience, monthCells, safeReminderMinutes, normalizeCalendarView, weekDays, shiftCalendarDate } from "./calendar_model.mjs";
+import { dateKey, parsemanabaDeadline, normalizeGrade, matchesSharedAudience, monthCells, safeReminderMinutes, normalizeCalendarView, weekDays, shiftCalendarDate } from "./calendar_model.mjs";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 
-test("Manaba締切を実在する日時だけ解析する", () => {
-  assert.equal(dateKey(parseManabaDeadline("2026-10-13 16:30")), "2026-10-13");
-  assert.equal(parseManabaDeadline("2026-02-30 10:00"), null);
+test("manaba締切を実在する日時だけ解析する", () => {
+  assert.equal(dateKey(parsemanabaDeadline("2026-10-13 16:30")), "2026-10-13");
+  assert.equal(parsemanabaDeadline("2026-02-30 10:00"), null);
 });
 
 test("共有予定は学科と学年で絞り、全学年も扱う", () => {

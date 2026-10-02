@@ -28,7 +28,7 @@ studentNumber.value = value;
 
 savePassword.addEventListener("click", async () => {
   if (manabaPassword.value.trim() === "") {
-    alert("Manabaパスワードを入力してください。");
+    alert("manabaパスワードを入力してください。");
     return;
   }
 

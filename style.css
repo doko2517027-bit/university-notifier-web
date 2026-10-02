@@ -629,7 +629,7 @@ select:focus{
 
 .schedule-content .lesson-card::after{
 
-    content:"▶ Manaba";
+    content:"▶ manaba";
 
     position:absolute;
     right:16px;

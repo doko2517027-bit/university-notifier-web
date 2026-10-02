@@ -14,7 +14,7 @@ export function dateKey(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function parseManabaDeadline(value) {
+export function parsemanabaDeadline(value) {
   const match = String(value || "").match(
     /(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?\s*(\d{1,2}):(\d{2})/,
   );
