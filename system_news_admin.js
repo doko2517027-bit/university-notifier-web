@@ -26,6 +26,14 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { cloudinaryNewsAttachmentUrl, validNewsAttachments } from "./news_attachments.mjs";
+import {
+  applyRichNewsCommand,
+  getRichNewsEditorHtml,
+  getRichNewsEditorText,
+  richNewsHtmlFromText,
+  sanitizeRichNewsHtml,
+  setRichNewsEditorContent,
+} from "./news_rich_text.mjs?v=20261002-1";
 
 /* ========================================
    HTML要素
@@ -50,6 +58,9 @@ const systemNewsPendingCount = document.getElementById(
 const systemNewsTitle = document.getElementById("systemNewsTitle");
 
 const systemNewsBody = document.getElementById("systemNewsBody");
+const systemNewsBodyEditor = document.getElementById("systemNewsBodyEditor");
+const systemNewsPreviewTitle = document.getElementById("systemNewsPreviewTitle");
+const systemNewsPreviewBody = document.getElementById("systemNewsPreviewBody");
 const systemNewsAttachments = document.getElementById("systemNewsAttachments");
 const systemNewsAttachmentSummary = document.getElementById("systemNewsAttachmentSummary");
 
@@ -85,10 +96,6 @@ const sendSystemNewsNotification = document.getElementById(
 );
 
 const systemNewsImportant = document.getElementById("systemNewsImportant");
-const systemNewsFontSize = document.getElementById("systemNewsFontSize");
-const systemNewsTextColor = document.getElementById("systemNewsTextColor");
-const systemNewsBold = document.getElementById("systemNewsBold");
-const systemNewsUnderline = document.getElementById("systemNewsUnderline");
 
 const systemNewsRecipientMode = document.getElementById(
   "systemNewsRecipientMode",
@@ -136,14 +143,13 @@ const editSystemNewsId = document.getElementById("editSystemNewsId");
 const editSystemNewsTitle = document.getElementById("editSystemNewsTitle");
 
 const editSystemNewsBody = document.getElementById("editSystemNewsBody");
+const editSystemNewsBodyEditor = document.getElementById("editSystemNewsBodyEditor");
+const editSystemNewsPreviewTitle = document.getElementById("editSystemNewsPreviewTitle");
+const editSystemNewsPreviewBody = document.getElementById("editSystemNewsPreviewBody");
 
 const editSystemNewsImportant = document.getElementById(
   "editSystemNewsImportant",
 );
-const editSystemNewsFontSize = document.getElementById("editSystemNewsFontSize");
-const editSystemNewsTextColor = document.getElementById("editSystemNewsTextColor");
-const editSystemNewsBold = document.getElementById("editSystemNewsBold");
-const editSystemNewsUnderline = document.getElementById("editSystemNewsUnderline");
 
 const cancelSystemNewsEdit = document.getElementById("cancelSystemNewsEdit");
 
@@ -178,14 +184,92 @@ let stopSystemNewsListener = null;
 
 let stopTargetedSystemNewsListener = null;
 
-function readNewsFormat(prefix = "") {
-  const pick = (id, fallback) => document.getElementById(`${prefix}${id}`)?.value || fallback;
-  return {
-    fontSize: ["14px", "16px", "18px"].includes(pick("FontSize", "14px")) ? pick("FontSize", "14px") : "14px",
-    color: /^#[0-9a-f]{6}$/i.test(pick("TextColor", "#1f2937")) ? pick("TextColor", "#1f2937") : "#1f2937",
-    bold: Boolean(document.getElementById(`${prefix}Bold`)?.checked),
-    underline: Boolean(document.getElementById(`${prefix}Underline`)?.checked),
-  };
+const richEditorSelections = new Map();
+
+function saveRichEditorSelection(editor) {
+  const selection = editor?.ownerDocument?.getSelection?.();
+  if (!editor || !selection?.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  if (editor.contains(range.commonAncestorContainer)) {
+    richEditorSelections.set(editor.id, range.cloneRange());
+  }
+}
+
+function restoreRichEditorSelection(editor) {
+  const range = richEditorSelections.get(editor?.id);
+  const selection = editor?.ownerDocument?.getSelection?.();
+  if (!editor || !range || !selection) return;
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function updateRichNewsPreview(editor, hiddenInput, titleInput, previewTitle, previewBody) {
+  if (!editor) return;
+  const text = getRichNewsEditorText(editor);
+  if (hiddenInput) hiddenInput.value = text;
+  if (previewTitle) previewTitle.textContent = titleInput?.value.trim() || "タイトルを入力してください";
+  if (previewBody) {
+    previewBody.innerHTML = getRichNewsEditorHtml(editor) || "本文を入力すると、ここに学生側の表示が出ます。";
+  }
+}
+
+function setupRichNewsEditors() {
+  const editorConfigs = [
+    {
+      editor: systemNewsBodyEditor,
+      hiddenInput: systemNewsBody,
+      titleInput: systemNewsTitle,
+      previewTitle: systemNewsPreviewTitle,
+      previewBody: systemNewsPreviewBody,
+    },
+    {
+      editor: editSystemNewsBodyEditor,
+      hiddenInput: editSystemNewsBody,
+      titleInput: editSystemNewsTitle,
+      previewTitle: editSystemNewsPreviewTitle,
+      previewBody: editSystemNewsPreviewBody,
+    },
+  ];
+
+  editorConfigs.forEach((config) => {
+    const { editor, titleInput } = config;
+    if (!editor) return;
+    editor.addEventListener("input", () => {
+      updateRichNewsPreview(...Object.values(config));
+      updatePostForm();
+    });
+    editor.addEventListener("keyup", () => saveRichEditorSelection(editor));
+    editor.addEventListener("mouseup", () => saveRichEditorSelection(editor));
+    titleInput?.addEventListener("input", () => updateRichNewsPreview(...Object.values(config)));
+    updateRichNewsPreview(...Object.values(config));
+  });
+
+  document.querySelectorAll("[data-rich-toolbar]").forEach((toolbar) => {
+    const editor = document.getElementById(toolbar.dataset.editorId || "");
+    if (!editor) return;
+    toolbar.addEventListener("pointerdown", () => saveRichEditorSelection(editor));
+    toolbar.addEventListener("mousedown", (event) => {
+      if (event.target.closest("button[data-rich-command]")) event.preventDefault();
+    });
+    const applyControl = (control) => {
+      const command = control.dataset.richCommand;
+      if (!command) return;
+      restoreRichEditorSelection(editor);
+      applyRichNewsCommand(editor, command, "value" in control ? control.value : null);
+      saveRichEditorSelection(editor);
+      const config = editorConfigs.find((item) => item.editor === editor);
+      if (config) updateRichNewsPreview(...Object.values(config));
+      updatePostForm();
+    };
+    toolbar.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-rich-command]");
+      if (button) applyControl(button);
+    });
+    toolbar.addEventListener("change", (event) => {
+      const control = event.target.closest("select[data-rich-command], input[data-rich-command]");
+      if (control) applyControl(control);
+    });
+  });
 }
 
 /* ========================================
@@ -218,6 +302,8 @@ loadNewsRecipients().catch((error) =>
 );
 
 setupEvents();
+
+setupRichNewsEditors();
 
 updatePostForm();
 
@@ -312,7 +398,7 @@ function setupEvents() {
     };
   }
 
-  [systemNewsTitle, systemNewsBody].filter(Boolean).forEach((input) => {
+  [systemNewsTitle].filter(Boolean).forEach((input) => {
     input.addEventListener("input", updatePostForm);
   });
   systemNewsAttachments?.addEventListener("change", () => {
@@ -394,7 +480,8 @@ function setupEvents() {
 function updatePostForm() {
   const titleLength = systemNewsTitle?.value.length || 0;
 
-  const bodyLength = systemNewsBody?.value.length || 0;
+  const bodyText = getRichNewsEditorText(systemNewsBodyEditor);
+  const bodyLength = bodyText.length;
 
   if (systemNewsTitleCount) {
     systemNewsTitleCount.textContent = String(titleLength);
@@ -406,7 +493,7 @@ function updatePostForm() {
 
   if (postSystemNews) {
     postSystemNews.disabled =
-      !systemNewsTitle?.value.trim() || !systemNewsBody?.value.trim();
+      !systemNewsTitle?.value.trim() || !bodyText || bodyLength > 5000;
   }
 }
 
@@ -417,9 +504,10 @@ async function postNews() {
 
   const title = systemNewsTitle?.value.trim() || "";
 
-  const body = systemNewsBody?.value.trim() || "";
+  const body = getRichNewsEditorText(systemNewsBodyEditor);
+  const bodyHtml = getRichNewsEditorHtml(systemNewsBodyEditor);
 
-  if (!title || !body) {
+  if (!title || !body || body.length > 5000) {
     alert("タイトルと本文を入力してください。");
 
     return;
@@ -460,6 +548,7 @@ async function postNews() {
     await setDoc(newsRef, {
         title,
         body,
+        bodyHtml,
         attachments,
 
         author: studentNumber || "",
@@ -471,7 +560,7 @@ async function postNews() {
         updatedBy: null,
 
         important: systemNewsImportant?.checked === true,
-        format: readNewsFormat("systemNews"),
+        format: { richText: true, version: 1 },
 
         /*
                 既存通知処理との互換性を維持
@@ -497,16 +586,20 @@ async function postNews() {
     if (systemNewsBody) {
       systemNewsBody.value = "";
     }
+    if (systemNewsBodyEditor) systemNewsBodyEditor.innerHTML = "";
     if (systemNewsAttachments) systemNewsAttachments.value = "";
     if (systemNewsAttachmentSummary) systemNewsAttachmentSummary.textContent = "";
 
     if (systemNewsImportant) {
       systemNewsImportant.checked = false;
     }
-    if (systemNewsFontSize) systemNewsFontSize.value = "14px";
-    if (systemNewsTextColor) systemNewsTextColor.value = "#1f2937";
-    if (systemNewsBold) systemNewsBold.checked = false;
-    if (systemNewsUnderline) systemNewsUnderline.checked = false;
+    updateRichNewsPreview(
+      systemNewsBodyEditor,
+      systemNewsBody,
+      systemNewsTitle,
+      systemNewsPreviewTitle,
+      systemNewsPreviewBody,
+    );
 
     if (sendSystemNewsNotification) {
       sendSystemNewsNotification.checked = true;
@@ -651,7 +744,7 @@ function createSystemNewsHtml(news) {
 
             <div class="system-news-item-body">
 
-                ${escapeHtml(news.body || "").replace(/\n/g, "<br>")}
+                ${sanitizeRichNewsHtml(news.bodyHtml || richNewsHtmlFromText(news.body || ""))}
 
             </div>
 
@@ -779,15 +872,18 @@ function openEditModal(newsId, sourceCollection = "systemNews") {
   if (editSystemNewsBody) {
     editSystemNewsBody.value = news.body || "";
   }
+  setRichNewsEditorContent(editSystemNewsBodyEditor, news.bodyHtml, news.body || "");
 
   if (editSystemNewsImportant) {
     editSystemNewsImportant.checked = news.important === true;
   }
-  const format = news.format || {};
-  if (editSystemNewsFontSize) editSystemNewsFontSize.value = ["14px", "16px", "18px"].includes(format.fontSize) ? format.fontSize : "14px";
-  if (editSystemNewsTextColor) editSystemNewsTextColor.value = /^#[0-9a-f]{6}$/i.test(format.color || "") ? format.color : "#1f2937";
-  if (editSystemNewsBold) editSystemNewsBold.checked = format.bold === true;
-  if (editSystemNewsUnderline) editSystemNewsUnderline.checked = format.underline === true;
+  updateRichNewsPreview(
+    editSystemNewsBodyEditor,
+    editSystemNewsBody,
+    editSystemNewsTitle,
+    editSystemNewsPreviewTitle,
+    editSystemNewsPreviewBody,
+  );
 
   openModal(editSystemNewsModal);
 
@@ -801,13 +897,14 @@ async function saveEditedNews() {
 
   const title = editSystemNewsTitle?.value.trim() || "";
 
-  const body = editSystemNewsBody?.value.trim() || "";
+  const body = getRichNewsEditorText(editSystemNewsBodyEditor);
+  const bodyHtml = getRichNewsEditorHtml(editSystemNewsBodyEditor);
 
   if (!newsId) {
     return;
   }
 
-  if (!title || !body) {
+  if (!title || !body || body.length > 5000) {
     alert("タイトルと本文を入力してください。");
 
     return;
@@ -823,9 +920,10 @@ async function saveEditedNews() {
     await updateDoc(doc(db, sourceCollection, newsId), {
       title,
       body,
+      bodyHtml,
 
       important: editSystemNewsImportant?.checked === true,
-      format: readNewsFormat("editSystemNews"),
+      format: { richText: true, version: 1 },
 
       updatedAt: serverTimestamp(),
 

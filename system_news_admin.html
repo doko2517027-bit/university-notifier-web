@@ -10,7 +10,7 @@
 
     <title>CareMateお知らせ管理 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261002-3" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -116,29 +116,42 @@
 
         <br />
 
-        <label for="systemNewsBody">
+        <label for="systemNewsBodyEditor">
           <b> 本文 </b>
         </label>
 
         <textarea
           id="systemNewsBody"
-          rows="9"
-          maxlength="5000"
-          placeholder="お知らせ本文を入力してください"
+          hidden
+          aria-hidden="true"
+          tabindex="-1"
         ></textarea>
 
-        <div class="system-news-format-controls" aria-label="本文の表示形式">
-          <label>文字サイズ<select id="systemNewsFontSize"><option value="14px">標準</option><option value="16px">大きめ</option><option value="18px">大きい</option></select></label>
-          <label>文字色<input id="systemNewsTextColor" type="color" value="#1f2937" /></label>
-          <label><input id="systemNewsBold" type="checkbox" /> 太字</label>
-          <label><input id="systemNewsUnderline" type="checkbox" /> 下線</label>
+        <div class="system-news-rich-toolbar" data-rich-toolbar data-editor-id="systemNewsBodyEditor" aria-label="選択した文字の書式">
+          <button type="button" data-rich-command="bold"><b>太字</b></button>
+          <button type="button" data-rich-command="underline"><u>下線</u></button>
+          <label>大きさ<select data-rich-command="fontSize"><option value="12px">小</option><option value="14px">標準</option><option value="16px" selected>中</option><option value="18px">大</option><option value="20px">特大</option><option value="24px">最大</option></select></label>
+          <label>色<input type="color" value="#1f2937" data-rich-command="foreColor" /></label>
+          <label>フォント<select data-rich-command="fontName"><option value="sans-serif">標準</option><option value="serif">明朝</option><option value="ui-rounded">丸文字</option><option value="monospace">等幅</option></select></label>
+          <button type="button" data-rich-command="removeFormat">装飾解除</button>
         </div>
+        <small class="system-news-rich-help">装飾したい文字を選択してから、太字・色・大きさなどを選んでください。</small>
+        <div id="systemNewsBodyEditor" class="system-news-rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="お知らせ本文を入力してください"></div>
 
         <div class="system-news-character-count">
           <span id="systemNewsBodyCount"> 0 </span>
 
           / 5000文字
         </div>
+
+        <section class="system-news-live-preview" aria-label="投稿前プレビュー">
+          <div class="system-news-live-preview-label">学生側の投稿前プレビュー</div>
+          <article class="news-detail-dialog system-news-preview-dialog">
+            <div class="news-detail-type">CareMateからのお知らせ</div>
+            <h2 id="systemNewsPreviewTitle">タイトルを入力してください</h2>
+            <div id="systemNewsPreviewBody" class="news-detail-body">本文を入力すると、ここに学生側の表示が出ます。</div>
+          </article>
+        </section>
 
         <br />
 
@@ -280,23 +293,36 @@
 
         <br /><br />
 
-        <label for="editSystemNewsBody">
+        <label for="editSystemNewsBodyEditor">
           <b> 本文 </b>
         </label>
 
         <textarea
           id="editSystemNewsBody"
-          rows="9"
-          maxlength="5000"
-          placeholder="本文"
+          hidden
+          aria-hidden="true"
+          tabindex="-1"
         ></textarea>
 
-        <div class="system-news-format-controls" aria-label="本文の表示形式">
-          <label>文字サイズ<select id="editSystemNewsFontSize"><option value="14px">標準</option><option value="16px">大きめ</option><option value="18px">大きい</option></select></label>
-          <label>文字色<input id="editSystemNewsTextColor" type="color" value="#1f2937" /></label>
-          <label><input id="editSystemNewsBold" type="checkbox" /> 太字</label>
-          <label><input id="editSystemNewsUnderline" type="checkbox" /> 下線</label>
+        <div class="system-news-rich-toolbar" data-rich-toolbar data-editor-id="editSystemNewsBodyEditor" aria-label="選択した文字の書式">
+          <button type="button" data-rich-command="bold"><b>太字</b></button>
+          <button type="button" data-rich-command="underline"><u>下線</u></button>
+          <label>大きさ<select data-rich-command="fontSize"><option value="12px">小</option><option value="14px">標準</option><option value="16px" selected>中</option><option value="18px">大</option><option value="20px">特大</option><option value="24px">最大</option></select></label>
+          <label>色<input type="color" value="#1f2937" data-rich-command="foreColor" /></label>
+          <label>フォント<select data-rich-command="fontName"><option value="sans-serif">標準</option><option value="serif">明朝</option><option value="ui-rounded">丸文字</option><option value="monospace">等幅</option></select></label>
+          <button type="button" data-rich-command="removeFormat">装飾解除</button>
         </div>
+        <small class="system-news-rich-help">選択した部分だけ装飾できます。</small>
+        <div id="editSystemNewsBodyEditor" class="system-news-rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="本文"></div>
+
+        <section class="system-news-live-preview" aria-label="編集プレビュー">
+          <div class="system-news-live-preview-label">学生側の表示プレビュー</div>
+          <article class="news-detail-dialog system-news-preview-dialog">
+            <div class="news-detail-type">CareMateからのお知らせ</div>
+            <h2 id="editSystemNewsPreviewTitle">タイトル</h2>
+            <div id="editSystemNewsPreviewBody" class="news-detail-body"></div>
+          </article>
+        </section>
 
         <label class="setting-row">
           <span>
@@ -400,6 +426,6 @@
       </a>
     </nav>
 
-    <script type="module" src="system_news_admin.js?v=20261002-2"></script>
+    <script type="module" src="system_news_admin.js?v=20261002-3"></script>
   </body>
 </html>

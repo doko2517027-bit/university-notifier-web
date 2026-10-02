@@ -23,6 +23,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { cloudinaryNewsAttachmentUrl } from "./news_attachments.mjs";
+import { richNewsHtmlFromText, sanitizeRichNewsHtml } from "./news_rich_text.mjs?v=20261002-1";
 function escapeNewsText(value) {
   return String(value || "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -60,7 +61,10 @@ function showNewsDetail(type, newsId) {
   const fontSize = ["14px", "16px", "18px"].includes(format.fontSize) ? format.fontSize : "16px";
   const color = /^#[0-9a-f]{6}$/i.test(format.color || "") ? format.color : "";
   const style = `font-size:${fontSize};${color ? `color:${color};` : ""}${format.bold === true ? "font-weight:700;" : ""}${format.underline === true ? "text-decoration:underline;" : ""}`;
-  modal.innerHTML = `<div class="news-detail-backdrop" data-close-news-detail></div><article class="news-detail-dialog" role="dialog" aria-modal="true"><button type="button" class="news-detail-close" data-close-news-detail aria-label="閉じる">×</button><div class="news-detail-type">${type === "system" ? "CareMateからのお知らせ" : type === "course" ? "コースニュース" : "大学からのお知らせ"}</div><h2>${escapeNewsText(title)}</h2><time>${escapeNewsText(formatDateTime(notice.createdAt?.toDate?.() || notice.postedAt?.toDate?.() || notice.posted || notice.date || null))}</time><div class="news-detail-body" style="${style}">${escapeNewsText(body).replace(/\n/g, "<br>")}</div></article>`;
+  const richBody = type === "system" && notice.bodyHtml
+    ? sanitizeRichNewsHtml(notice.bodyHtml)
+    : richNewsHtmlFromText(body);
+  modal.innerHTML = `<div class="news-detail-backdrop" data-close-news-detail></div><article class="news-detail-dialog" role="dialog" aria-modal="true"><button type="button" class="news-detail-close" data-close-news-detail aria-label="閉じる">×</button><div class="news-detail-type">${type === "system" ? "CareMateからのお知らせ" : type === "course" ? "コースニュース" : "大学からのお知らせ"}</div><h2>${escapeNewsText(title)}</h2><time>${escapeNewsText(formatDateTime(notice.createdAt?.toDate?.() || notice.postedAt?.toDate?.() || notice.posted || notice.date || null))}</time><div class="news-detail-body" style="${style}">${richBody}</div></article>`;
   document.body.append(modal);
   modal.addEventListener("click", (event) => {
     if (event.target.closest("[data-close-news-detail]")) modal.remove();
