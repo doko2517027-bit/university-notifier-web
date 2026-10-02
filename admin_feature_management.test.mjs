@@ -38,3 +38,18 @@ test("学生詳細は履修・出席・テスト・紹介を切替表示する",
   assert.match(detailJs, /updateStudentFeatureAdmin/);
   assert.match(detailJs, /feature === "examProgress"/);
 });
+
+test("学生詳細の機能別明細は変更監視と定期再取得で更新される", () => {
+  assert.match(detailHtml, /studentFeatureRealtimeStatus/);
+  assert.match(detailJs, /startStudentFeatureRealtime/);
+  assert.match(detailJs, /onSnapshot\(/);
+  assert.match(detailJs, /setInterval\(\(\) =>/);
+  assert.match(detailJs, /getStudentFeatureAdmin/);
+});
+
+test("機能別明細は一つの描画失敗で他の機能まで空にならない", () => {
+  assert.match(detailJs, /履修明細の描画エラー/);
+  assert.match(detailJs, /出席明細の描画エラー/);
+  assert.match(detailJs, /テスト明細の描画エラー/);
+  assert.match(detailJs, /紹介明細の描画エラー/);
+});

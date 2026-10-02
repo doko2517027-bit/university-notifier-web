@@ -20867,6 +20867,8 @@ course-tagが付いたspanには適用しない。
 .student-feature-empty { padding: 18px; border: 1px dashed var(--border); border-radius: 12px; color: var(--subtext); text-align: center; }
 .student-feature-status[hidden],
 .student-feature-panel[hidden] { display: none !important; }
+.student-feature-realtime-status { margin: 8px 0 12px; color: var(--subtext); font-size: 12px; }
+.student-feature-realtime-status.is-error { color: var(--danger, #c2410c); }
 .student-feature-list { display: grid; gap: 9px; max-height: min(62vh, 620px); overflow: auto; }
 .student-feature-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
 .student-feature-row > div:first-child { display: grid; gap: 4px; min-width: 0; }

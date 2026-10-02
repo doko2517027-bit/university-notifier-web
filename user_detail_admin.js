@@ -205,6 +205,7 @@ let forceLogoutAllDevicesButton = null;
 const studentFeatureAdmin = document.getElementById("studentFeatureAdmin");
 const studentFeatureSummary = document.getElementById("studentFeatureSummary");
 const studentFeatureStatus = document.getElementById("studentFeatureStatus");
+const studentFeatureRealtimeStatus = document.getElementById("studentFeatureRealtimeStatus");
 const studentEnrollmentPanel = document.getElementById("studentEnrollmentPanel");
 const studentAttendancePanel = document.getElementById("studentAttendancePanel");
 const studentExamPanel = document.getElementById("studentExamPanel");
@@ -221,6 +222,11 @@ let stopPresenceListener = null;
 let deviceAuditAuthorized = false;
 
 let studentFeatureData = null;
+let studentFeatureRealtimeUnsubscribers = [];
+let studentFeatureRealtimeTimer = null;
+let studentFeaturePollingInterval = null;
+let studentFeatureLoadInFlight = null;
+let studentFeatureReloadQueued = false;
 
 /*
 FirestoreのWeb SDKでは、存在するサブコレクションを
@@ -286,6 +292,8 @@ await initializePage([
   updateAssignmentNavBadge(),
   updateNewsNavBadge(),
 ]);
+
+startStudentFeatureRealtime();
 
 await initializeDeviceAuditIfAuthorized();
 
@@ -445,30 +453,63 @@ const attendanceStatusOptions = {
   unrecorded: "未打刻",
 };
 
-async function loadStudentFeatures() {
+async function loadStudentFeatures({ silent = false } = {}) {
   if (!studentFeatureAdmin) return;
-  studentFeatureStatus.hidden = false;
-  studentFeatureStatus.textContent = "機能別データを読み込んでいます...";
-  try {
-    const response = await httpsCallable(functions, "getStudentFeatureAdmin")({
-      studentNumber: targetStudentNumber,
-    });
-    studentFeatureData = response.data || {};
-    renderStudentFeatures();
-    studentFeatureStatus.hidden = true;
-  } catch (error) {
-    console.error("機能別データ取得エラー:", error);
-    studentFeatureStatus.hidden = false;
-    studentFeatureStatus.textContent = "機能別データを取得できませんでした。更新してもう一度お試しください。";
+  if (studentFeatureLoadInFlight) {
+    studentFeatureReloadQueued = true;
+    return studentFeatureLoadInFlight;
   }
+
+  if (!silent) {
+    studentFeatureStatus.hidden = false;
+    studentFeatureStatus.textContent = "機能別データを読み込んでいます...";
+  }
+
+  studentFeatureLoadInFlight = (async () => {
+    try {
+      const response = await httpsCallable(functions, "getStudentFeatureAdmin")({
+        studentNumber: targetStudentNumber,
+      });
+      studentFeatureData = response.data || {};
+      renderStudentFeatures();
+      studentFeatureStatus.hidden = true;
+      setStudentFeatureRealtimeStatus("自動更新中");
+    } catch (error) {
+      console.error("機能別データ取得エラー:", error);
+      if (!studentFeatureData) {
+        studentFeatureStatus.hidden = false;
+        studentFeatureStatus.textContent = "機能別データを取得できませんでした。更新してもう一度お試しください。";
+      }
+      setStudentFeatureRealtimeStatus("自動更新を再接続しています。", true);
+    } finally {
+      studentFeatureLoadInFlight = null;
+      if (studentFeatureReloadQueued) {
+        studentFeatureReloadQueued = false;
+        scheduleStudentFeatureReload(0);
+      }
+    }
+  })();
+
+  return studentFeatureLoadInFlight;
 }
 
 function renderStudentFeatures() {
-  const enrollments = studentFeatureData?.enrollments || [];
-  const attendance = studentFeatureData?.attendanceRecords || [];
-  const progress = studentFeatureData?.testProgress || [];
-  const solved = studentFeatureData?.solvedQuestions || [];
+  const enrollments = Array.isArray(studentFeatureData?.enrollments)
+    ? studentFeatureData.enrollments.filter((item) => item && typeof item === "object")
+    : [];
+  const attendance = Array.isArray(studentFeatureData?.attendanceRecords)
+    ? studentFeatureData.attendanceRecords.filter((item) => item && typeof item === "object")
+    : [];
+  const progress = Array.isArray(studentFeatureData?.testProgress)
+    ? studentFeatureData.testProgress.filter((item) => item && typeof item === "object")
+    : [];
+  const solved = Array.isArray(studentFeatureData?.solvedQuestions)
+    ? studentFeatureData.solvedQuestions.filter((item) => item && typeof item === "object")
+    : [];
   const referral = studentFeatureData?.referral || { invitedCount: 0, milestones: [] };
+  const referralMilestones = Array.isArray(referral.milestones) ? referral.milestones : [];
+  const referralHistories = Array.isArray(referral.histories) ? referral.histories : [];
+  const referralAdjustments = Array.isArray(referral.adjustments) ? referral.adjustments : [];
   const activeEnrollments = enrollments.filter((item) => item.status === "enrolled");
   studentFeatureSummary.innerHTML = `
     <div><small>履修</small><b>${activeEnrollments.length}科目</b></div>
@@ -476,37 +517,117 @@ function renderStudentFeatures() {
     <div><small>テスト進捗</small><b>${progress.length}件</b></div>
     <div><small>紹介</small><b>${Number(referral.invitedCount || 0)} / 10人</b></div>`;
 
-  studentEnrollmentPanel.innerHTML = enrollments.length
+  try {
+    studentEnrollmentPanel.innerHTML = enrollments.length
     ? `<p class="student-feature-help">履修中 ${activeEnrollments.length}科目 / 登録履歴 ${enrollments.length}件。履修から外した科目も確認できます。</p><div class="student-feature-list">${enrollments.map((item) => `
       <article class="student-feature-row" data-feature-row="enrollment" data-document-id="${escapeAuditHtml(item.id)}">
         <div><b>${escapeAuditHtml(item.name)}</b><small>${escapeAuditHtml([item.academicYear ? `${item.academicYear}年度` : "", semesterLabel(item.semester), item.credits ? `${item.credits}単位` : "", item.required ? "必修" : ""].filter(Boolean).join("・"))}</small></div>
         <div class="student-feature-edit"><select aria-label="履修状態"><option value="enrolled" ${item.status === "enrolled" ? "selected" : ""}>履修中</option><option value="not_enrolled" ${item.status === "not_enrolled" ? "selected" : ""}>履修から外す</option></select><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>`
-    : '<div class="student-feature-empty">現在の履修登録はありません。</div>';
+      : '<div class="student-feature-empty">現在の履修登録はありません。</div>';
+  } catch (error) {
+    console.error("履修明細の描画エラー:", error);
+    studentEnrollmentPanel.innerHTML = '<div class="student-feature-empty">履修明細を表示できませんでした。自動更新で再取得します。</div>';
+  }
 
-  studentAttendancePanel.innerHTML = attendance.length
+  try {
+    studentAttendancePanel.innerHTML = attendance.length
     ? `<p class="student-feature-help">最新100件を表示します。変更すると管理者修正日時も記録されます。</p><div class="student-feature-list">${attendance.slice(0, 100).map((item) => `
       <article class="student-feature-row" data-feature-row="attendance" data-document-id="${escapeAuditHtml(item.id)}">
         <div><b>${escapeAuditHtml(item.subject)}</b><small>${escapeAuditHtml(item.date || "日付不明")} ${item.period ? `${item.period}限` : ""}${item.classGroup ? `・${escapeAuditHtml(item.classGroup)}クラス` : ""}・${escapeAuditHtml(item.statusLabel || attendanceStatusOptions[item.status] || "未打刻")}${item.judgementSource ? `・判定: ${escapeAuditHtml(item.judgementSource)}` : ""}${item.adminEditedAt ? `・修正済み ${escapeAuditHtml(formatAuditDate(item.adminEditedAt))}` : ""}</small></div>
         <div class="student-feature-edit"><select aria-label="出席状態">${Object.entries(attendanceStatusOptions).map(([value, label]) => `<option value="${value}" ${item.status === value ? "selected" : ""}>${label}</option>`).join("")}</select><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>`
-    : '<div class="student-feature-empty">出席記録はまだありません。</div>';
+      : '<div class="student-feature-empty">出席記録はまだありません。</div>';
+  } catch (error) {
+    console.error("出席明細の描画エラー:", error);
+    studentAttendancePanel.innerHTML = '<div class="student-feature-empty">出席明細を表示できませんでした。自動更新で再取得します。</div>';
+  }
 
-  studentExamPanel.innerHTML = progress.length || solved.length
+  try {
+    studentExamPanel.innerHTML = progress.length || solved.length
     ? `${progress.length ? `<p class="student-feature-help">現在位置と完了状態を修正できます。問題番号は1から始まります。</p><div class="student-feature-list">${progress.map((item) => `
       <article class="student-feature-row student-feature-exam-row" data-feature-row="examProgress" data-document-id="${escapeAuditHtml(item.id)}">
         <div><b>${escapeAuditHtml(item.subjectName)}</b><small>${escapeAuditHtml(testTypeLabel(item.type))}・単元 ${escapeAuditHtml(item.unitId || "未設定")}・現在 ${item.totalQuestions ? `${Math.min(item.totalQuestions, item.currentIndex + 1)} / ${item.totalQuestions}問` : "問題数不明"}${item.currentQuestionId ? `・問題ID ${escapeAuditHtml(item.currentQuestionId)}` : ""}</small>${item.currentQuestionText ? `<p class="student-feature-question">${escapeAuditHtml(item.currentQuestionText)}</p>` : ""}</div>
         <div class="student-feature-edit student-feature-exam-edit"><label>問題番号<input type="number" min="1" max="${Math.max(1, item.totalQuestions)}" value="${Math.min(Math.max(1, item.currentIndex + 1), Math.max(1, item.totalQuestions))}" /></label><label class="student-feature-check"><input type="checkbox" ${item.completed ? "checked" : ""} /> 完了</label><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>` : '<div class="student-feature-empty">進行中のテストはありません。</div>'}
       <details class="student-feature-solved"><summary>解答・獲得ポイント履歴 ${solved.length}件</summary>${solved.length ? solved.map((item) => `<div><b>${escapeAuditHtml(item.day || "日付不明")}・${escapeAuditHtml(item.questionId || "問題IDなし")}</b><span>${escapeAuditHtml(testTypeLabel(item.type))} / ${Number(item.points || 0)}pt</span></div>`).join("") : '<p>履歴はありません。</p>'}</details>`
-    : '<div class="student-feature-empty">テスト対策の利用履歴はありません。</div>';
+      : '<div class="student-feature-empty">テスト対策の利用履歴はありません。</div>';
+  } catch (error) {
+    console.error("テスト明細の描画エラー:", error);
+    studentExamPanel.innerHTML = '<div class="student-feature-empty">テスト対策の明細を表示できませんでした。自動更新で再取得します。</div>';
+  }
 
-  studentReferralPanel.innerHTML = `
+  try {
+    studentReferralPanel.innerHTML = `
     <div class="student-referral-overview"><strong>${Number(referral.invitedCount || 0)} / 10人</strong><div class="referral-admin-progress-track"><i style="width:${Math.min(100, Number(referral.invitedCount || 0) * 10)}%"></i></div></div>
-    <div class="referral-admin-milestones">${(referral.milestones || []).map((item) => `<span class="${item.unlocked ? "is-unlocked" : ""}">${item.count}人 ${item.unlocked ? "✓" : ""}</span>`).join("")}</div>
-    <p class="student-feature-help">手動補正: ${Number(referral.manualAdjustment || 0)}人。成立履歴 ${referral.histories?.length || 0}件、補正履歴 ${referral.adjustments?.length || 0}件。</p>
-    ${(referral.histories || []).length ? `<details><summary>紹介成立履歴</summary>${referral.histories.map((item) => `<div>${escapeAuditHtml(item.inviterStudentNumber || "不明")} → ${escapeAuditHtml(item.codePreview || "コード")}${item.establishedAt ? `・${escapeAuditHtml(formatAuditDate(item.establishedAt))}` : ""}</div>`).join("")}</details>` : ""}`;
+    <div class="referral-admin-milestones">${referralMilestones.map((item) => `<span class="${item.unlocked ? "is-unlocked" : ""}">${item.count}人 ${item.unlocked ? "✓" : ""}</span>`).join("")}</div>
+    <p class="student-feature-help">手動補正: ${Number(referral.manualAdjustment || 0)}人。成立履歴 ${referralHistories.length}件、補正履歴 ${referralAdjustments.length}件。</p>
+      ${referralHistories.length ? `<details><summary>紹介成立履歴</summary>${referralHistories.map((item) => `<div>${escapeAuditHtml(item.inviterStudentNumber || "不明")} → ${escapeAuditHtml(item.codePreview || "コード")}${item.establishedAt ? `・${escapeAuditHtml(formatAuditDate(item.establishedAt))}` : ""}</div>`).join("")}</details>` : ""}`;
+  } catch (error) {
+    console.error("紹介明細の描画エラー:", error);
+    studentReferralPanel.innerHTML = '<div class="student-feature-empty">紹介進捗の明細を表示できませんでした。自動更新で再取得します。</div>';
+  }
 }
+
+function setStudentFeatureRealtimeStatus(message, isError = false) {
+  if (!studentFeatureRealtimeStatus) return;
+  const suffix = message === "自動更新中"
+    ? `・最終更新 ${new Date().toLocaleTimeString("ja-JP")}`
+    : "";
+  studentFeatureRealtimeStatus.textContent = `${message}${suffix}`;
+  studentFeatureRealtimeStatus.classList.toggle("is-error", isError);
+}
+
+function scheduleStudentFeatureReload(delay = 180) {
+  if (studentFeatureRealtimeTimer) clearTimeout(studentFeatureRealtimeTimer);
+  studentFeatureRealtimeTimer = setTimeout(() => {
+    studentFeatureRealtimeTimer = null;
+    loadStudentFeatures({ silent: true });
+  }, delay);
+}
+
+function startStudentFeatureRealtime() {
+  if (!studentFeatureAdmin) return;
+  stopStudentFeatureRealtime();
+  const watchedCollections = [
+    "enrolledSubjects",
+    "attendanceRecords",
+    "examProgress",
+    "solvedQuestions",
+  ];
+  studentFeatureRealtimeUnsubscribers = watchedCollections.map((collectionName) => onSnapshot(
+    collection(db, "users", targetStudentNumber, collectionName),
+    () => scheduleStudentFeatureReload(),
+    (error) => {
+      console.error(`${collectionName}のリアルタイム監視エラー:`, error);
+      setStudentFeatureRealtimeStatus("自動更新を再接続しています。", true);
+      scheduleStudentFeatureReload(1000);
+    },
+  ));
+  // 紹介進捗など管理者限定のCallable経由データも取りこぼさないよう、
+  // 変更監視に加えて短い間隔の軽量再取得を行う。
+  studentFeaturePollingInterval = setInterval(() => {
+    if (document.visibilityState === "visible") scheduleStudentFeatureReload(0);
+  }, 15000);
+  setStudentFeatureRealtimeStatus("自動更新中");
+}
+
+function stopStudentFeatureRealtime() {
+  studentFeatureRealtimeUnsubscribers.forEach((unsubscribe) => {
+    try {
+      unsubscribe();
+    } catch (error) {
+      console.error("機能別監視終了エラー:", error);
+    }
+  });
+  studentFeatureRealtimeUnsubscribers = [];
+  if (studentFeatureRealtimeTimer) clearTimeout(studentFeatureRealtimeTimer);
+  studentFeatureRealtimeTimer = null;
+  if (studentFeaturePollingInterval) clearInterval(studentFeaturePollingInterval);
+  studentFeaturePollingInterval = null;
+}
+
+window.addEventListener("pagehide", stopStudentFeatureRealtime, { once: true });
 
 function setStudentFeatureTab(tabName) {
   studentFeatureAdmin.querySelectorAll("[data-feature-tab]").forEach((button) => {
