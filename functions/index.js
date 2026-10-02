@@ -2116,6 +2116,117 @@ function timestampMillis(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+async function countCostUsageDocuments(reference) {
+  try {
+    const snapshot = await reference.count().get();
+    return Number(snapshot.data()?.count || 0);
+  } catch (error) {
+    console.warn("料金画面の利用件数を取得できません", {
+      code: error?.code || "unavailable",
+    });
+    return null;
+  }
+}
+
+async function fetchPublicGitHubUsage() {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "CareMate-Cost-Dashboard",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  try {
+    const [repositoryResponse, actionsResponse] = await Promise.all([
+      fetch("https://api.github.com/repos/doko2517027-bit/university-notifier-web", {
+        headers,
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch("https://api.github.com/repos/doko2517027-bit/university-notifier-web/actions/runs?per_page=1", {
+        headers,
+        signal: AbortSignal.timeout(5000),
+      }),
+    ]);
+    if (!repositoryResponse.ok) throw new Error(`github-${repositoryResponse.status}`);
+    const repository = await repositoryResponse.json();
+    const actions = actionsResponse.ok ? await actionsResponse.json() : {};
+    return {
+      available: true,
+      repositoryPublic: repository.private === false,
+      repositorySizeKb: Number(repository.size || 0),
+      workflowRuns: Number(actions.total_count || 0),
+      updatedAt: String(repository.updated_at || ""),
+    };
+  } catch (error) {
+    console.warn("GitHub公開利用状況を取得できません", {
+      message: String(error?.message || "unavailable").slice(0, 100),
+    });
+    return { available: false, repositoryPublic: false };
+  }
+}
+
+async function collectFreeCareMateUsage() {
+  const [
+    userCount,
+    deviceCount,
+    pushCount,
+    assignmentCount,
+    systemNewsCount,
+    solvedQuestionCount,
+    github,
+  ] = await Promise.all([
+    countCostUsageDocuments(db.collection("users")),
+    countCostUsageDocuments(db.collectionGroup("loginDevices")),
+    countCostUsageDocuments(db.collectionGroup("pushSubscriptions")),
+    countCostUsageDocuments(db.collection("assignments")),
+    countCostUsageDocuments(db.collection("systemNews")),
+    countCostUsageDocuments(db.collectionGroup("solvedQuestions")),
+    fetchPublicGitHubUsage(),
+  ]);
+  const metrics = [
+    { id: "users", label: "登録学生", value: userCount, unit: "人", note: "Firestore users" },
+    { id: "devices", label: "登録端末", value: deviceCount, unit: "台", note: "ログイン端末" },
+    { id: "push", label: "通知登録", value: pushCount, unit: "件", note: "Push購読" },
+    { id: "assignments", label: "課題データ", value: assignmentCount, unit: "人分", note: "課題ドキュメント" },
+    { id: "news", label: "運営お知らせ", value: systemNewsCount, unit: "件", note: "CareMateお知らせ" },
+    { id: "solved", label: "解答記録", value: solvedQuestionCount, unit: "件", note: "テスト対策" },
+    { id: "actions", label: "更新実行履歴", value: github.available ? github.workflowRuns : null, unit: "回", note: "GitHub Actions" },
+  ];
+  const providerDetections = {};
+  if (github.repositoryPublic) {
+    providerDetections.github = {
+      detectedFreeReason: "公開リポジトリと標準GitHub-hosted runnerを検出（公開リポジトリのActionsは無料対象）",
+    };
+  }
+  return {
+    status: metrics.some((item) => item.value !== null) ? "connected" : "unavailable",
+    checkedAt: new Date().toISOString(),
+    metrics,
+    github,
+    providerDetections,
+    mode: "free-capped",
+    note: "無料範囲を守るため6時間キャッシュし、Firestore件数と公開GitHub情報だけを自動集計しています。",
+  };
+}
+
+async function loadFreeCareMateUsage(config, force) {
+  const cached = config.freeUsageCache || {};
+  const cacheAge = Date.now() - timestampMillis(cached.checkedAt);
+  const shouldRefresh = !cached.status || cacheAge > 6 * 60 * 60 * 1000 || (force && cacheAge > 10 * 60 * 1000);
+  if (!shouldRefresh) {
+    return {
+      ...cached,
+      checkedAt: cached.checkedAt?.toDate?.()?.toISOString?.() || cached.checkedAt || null,
+    };
+  }
+  const usage = await collectFreeCareMateUsage();
+  await costDashboardSettingsRef.set({
+    freeUsageCache: {
+      ...usage,
+      checkedAt: FieldValue.serverTimestamp(),
+    },
+  }, { merge: true });
+  return usage;
+}
+
 async function loadCareMateCostDashboard({ force = false, configSnapshot = null } = {}) {
   const {
     buildDashboard,
@@ -2123,6 +2234,7 @@ async function loadCareMateCostDashboard({ force = false, configSnapshot = null 
   } = require("./cost_dashboard.js");
   const snapshot = configSnapshot || await costDashboardSettingsRef.get();
   const config = snapshot.data() || {};
+  const freeUsage = await loadFreeCareMateUsage(config, force);
   const cached = config.automaticCache || {};
   const cacheAge = Date.now() - timestampMillis(cached.checkedAt);
   let automatic = cached;
@@ -2165,6 +2277,8 @@ async function loadCareMateCostDashboard({ force = false, configSnapshot = null 
     automaticCurrency: automatic.currency || "JPY",
     automaticStatus: automatic.status || "not-connected",
     automaticMessage: automatic.message || "請求データ連携が未設定です。",
+    freeUsage,
+    providerDetections: freeUsage.providerDetections || {},
     config,
   });
   return {

@@ -82,6 +82,7 @@ async function loadDashboard(force) {
 
 function renderDashboard() {
   renderSourceState();
+  renderFreeUsage();
   renderMonthOptions();
   renderSummary();
   renderMonthlyChart();
@@ -95,9 +96,29 @@ function renderSourceState() {
   $("costSourceNotice").className = `cost-source-notice ${connected ? "is-connected" : "is-warning"}`;
   $("costSourceNotice").textContent = connected
     ? `✓ Firebase・Google Cloudは実際の請求データから自動集計しています。最終確認：${formatDateTime(dashboard.refreshedAt)}`
-    : `⚠ ${source.message || "Google Cloud請求データは未連携です。"} 自動取得できないサービスは手入力できます。`;
+    : `⚠ ${source.message || "Google Cloud請求データは未連携です。"} 利用量は無料限定モードで自動監視し、実額を無料で取得できないサービスだけ手入力できます。`;
   $("billingSetupCard").hidden = connected;
   $("billingSetupMessage").textContent = source.message || "請求データ連携が見つかりません。";
+}
+
+function renderFreeUsage() {
+  const usage = dashboard.freeUsage || {};
+  const metrics = Array.isArray(usage.metrics) ? usage.metrics : [];
+  const connected = usage.status === "connected";
+  $("costUsageStatus").textContent = connected ? "自動更新中" : "一部取得不可";
+  $("costUsageStatus").className = `cost-status-chip ${connected ? "is-connected" : "is-warning"}`;
+  $("costUsageNote").textContent = usage.note || "無料で取得できる利用情報を自動集計します。";
+  $("costUsageMetrics").innerHTML = metrics.length
+    ? metrics.map((metric) => `
+        <article class="cost-usage-metric">
+          <small>${escapeHtml(metric.label || "利用量")}</small>
+          <strong>${metric.value === null || metric.value === undefined ? "取得不可" : `${escapeHtml(Number(metric.value).toLocaleString("ja-JP"))}<em>${escapeHtml(metric.unit || "")}</em>`}</strong>
+          <span>${escapeHtml(metric.note || "")}</span>
+        </article>`).join("")
+    : '<div class="cost-usage-empty">利用情報を取得できませんでした。次の自動更新で再確認します。</div>';
+  $("costUsageCheckedAt").textContent = usage.checkedAt
+    ? `最終自動確認：${formatDateTime(usage.checkedAt)}（6時間キャッシュ）`
+    : "最終確認日時を取得できませんでした。";
 }
 
 function renderMonthOptions() {
@@ -223,7 +244,7 @@ function renderSelectedMonth() {
         <div class="cost-provider-copy">
           <div><h3>${escapeHtml(provider.name)}</h3><span class="cost-source-badge is-${escapeHtml(value.source)}">${sourceLabel}</span></div>
           <p>${escapeHtml(provider.detail)}</p>
-          ${provider.knownFreeReason ? `<small>${escapeHtml(provider.knownFreeReason)}。有料契約がある場合は実額を入力してください。</small>` : ""}
+          ${provider.knownFreeReason || provider.detectedFreeReason ? `<small>${escapeHtml(provider.detectedFreeReason || provider.knownFreeReason)}。有料契約がある場合は実額を入力してください。</small>` : ""}
           ${provider.id === "google-cloud" && value.source === "automatic" ? renderGoogleServiceDetails(selectedMonth) : ""}
         </div>
         <label class="cost-provider-amount"><span>${escapeHtml(formatMonth(selectedMonth))}</span><div><b>${currencySymbol()}</b><input data-provider-cost="${escapeHtml(provider.id)}" type="number" min="0" max="10000000" step="1" inputmode="numeric" value="${value.source === "manual" ? value.amount : ""}" placeholder="${value.source === "automatic" ? compactMoney(value.amount) : value.source === "detected-free" ? "0" : "未入力"}" ${value.source === "automatic" ? "disabled" : ""} /></div></label>

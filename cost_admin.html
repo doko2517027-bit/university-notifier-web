@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>料金・利用状況 | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261002-4" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -34,6 +34,16 @@
 
       <section id="costAlertBanner" class="cost-alert-banner" hidden aria-live="assertive"></section>
       <section id="costSourceNotice" class="cost-source-notice" aria-live="polite">料金情報を確認しています...</section>
+
+      <section class="card cost-usage-card">
+        <div class="cost-section-heading">
+          <div><span class="cost-eyebrow">FREE USAGE MONITOR</span><h2>無料範囲の自動利用監視</h2></div>
+          <span id="costUsageStatus" class="cost-status-chip">確認中</span>
+        </div>
+        <p id="costUsageNote" class="cost-help">CareMate内の利用量と無料で確認できる公開情報を集計しています。</p>
+        <div id="costUsageMetrics" class="cost-usage-grid"></div>
+        <small id="costUsageCheckedAt" class="cost-usage-checked-at"></small>
+      </section>
 
       <section class="cost-summary-grid" aria-label="今月の料金概要">
         <article class="card cost-summary-card is-primary">
@@ -107,7 +117,7 @@
         <span class="cost-eyebrow">AUTOMATIC LINK</span>
         <h2>Google Cloud料金の自動取得</h2>
         <p id="billingSetupMessage"></p>
-        <p>月別・サービス別の実額を自動表示するには、Google Cloud請求データのBigQueryエクスポートが必要です。BigQueryには無料枠がありますが、利用量により料金が発生する可能性があるためCareMate側から勝手には有効化しません。未設定中もRender・Cloudinaryなどの金額は手入力で管理できます。</p>
+        <p>月別・サービス別の実額を自動表示するには、Google Cloud請求データのBigQueryエクスポートが必要です。公式仕様では保存・クエリに料金が発生する可能性があるため、無料限定モードでは有効化しません。上の利用量監視と、無料と確認できたサービスの判定は自動で更新されます。</p>
         <a class="btn" href="https://console.cloud.google.com/billing/export" target="_blank" rel="noopener">Google Cloudの請求エクスポート設定を開く</a>
       </section>
     </main>
@@ -119,6 +129,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
       <a id="settingsTab" class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="cost_admin.js?v=20261001-1"></script>
+    <script type="module" src="cost_admin.js?v=20261002-2"></script>
   </body>
 </html>

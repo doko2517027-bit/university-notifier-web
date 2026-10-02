@@ -17599,12 +17599,37 @@ body:has(#userCount)
 .is-cost-up { color: #dc4152; }
 
 .cost-chart-card,
+.cost-usage-card,
 .cost-breakdown-card,
 .cost-budget-card,
 .cost-provider-card,
 .cost-setup-card { padding: 20px; }
 
+.cost-usage-card,
 .cost-chart-card { margin-bottom: 18px; }
+.cost-usage-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+.cost-usage-metric {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+    border-radius: 14px;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 7%, var(--card)), var(--card));
+}
+.cost-usage-metric > small,
+.cost-usage-metric > strong,
+.cost-usage-metric > span { display: block; }
+.cost-usage-metric > small { color: var(--subtext); font-size: 10px; font-weight: 900; }
+.cost-usage-metric > strong { margin: 7px 0 5px; font-size: clamp(19px, 2.4vw, 27px); line-height: 1.1; overflow-wrap: anywhere; }
+.cost-usage-metric > strong em { margin-left: 3px; color: var(--subtext); font-size: 10px; font-style: normal; }
+.cost-usage-metric > span { color: var(--subtext); font-size: 10px; line-height: 1.45; }
+.cost-usage-empty { grid-column: 1 / -1; padding: 18px; border-radius: 12px; background: color-mix(in srgb, var(--primary) 5%, var(--bg)); color: var(--subtext); text-align: center; font-size: 12px; }
+.cost-usage-checked-at { display: block; margin-top: 11px; color: var(--subtext); font-size: 10px; }
+.cost-status-chip.is-connected { background: rgba(15,157,138,.13); color: #087264; }
+.cost-status-chip.is-warning { background: rgba(244,163,64,.14); color: #a36000; }
 .cost-section-heading { align-items: flex-start; margin-bottom: 18px; }
 .cost-section-heading h2,
 .cost-budget-card h2,
@@ -17721,6 +17746,7 @@ body:has(#userCount)
 
 @media (max-width: 900px) {
     .cost-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cost-usage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .cost-detail-grid { grid-template-columns: 1fr; }
     .cost-provider-list { grid-template-columns: 1fr; }
     .cost-budget-meter { margin-top: 20px; }
@@ -17736,10 +17762,13 @@ body:has(#userCount)
     .cost-summary-card { padding: 14px; }
     .cost-summary-card > strong { font-size: 20px; }
     .cost-chart-card,
+    .cost-usage-card,
     .cost-breakdown-card,
     .cost-budget-card,
     .cost-provider-card,
     .cost-setup-card { padding: 15px; }
+    .cost-usage-grid { gap: 8px; }
+    .cost-usage-metric { padding: 12px; }
     .cost-month-chart { grid-template-columns: repeat(12, 38px); min-height: 225px; }
     .cost-chart-column { grid-template-rows: 25px 155px 22px; }
     .cost-breakdown-visual { grid-template-columns: 116px minmax(0, 1fr); gap: 13px; }

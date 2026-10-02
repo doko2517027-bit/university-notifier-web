@@ -57,3 +57,19 @@ test("請求エクスポート以外の任意テーブル名を受け付けな�
   );
   assert.equal(validBillingTable("project.dataset.users"), "");
 });
+
+test("無料構成を自動検出したサービスは0円として可視化する", () => {
+  const dashboard = buildDashboard({
+    now: NOW,
+    providerDetections: {
+      github: { detectedFreeReason: "公開リポジトリの無料対象を検出" },
+    },
+    freeUsage: {
+      status: "connected",
+      metrics: [{ id: "users", label: "登録学生", value: 39, unit: "人" }],
+    },
+  });
+  assert.equal(dashboard.series.at(-1).values.github.amount, 0);
+  assert.equal(dashboard.series.at(-1).values.github.source, "detected-free");
+  assert.equal(dashboard.freeUsage.metrics[0].value, 39);
+});

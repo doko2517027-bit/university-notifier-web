@@ -98,11 +98,16 @@ function buildDashboard({
   now = new Date(),
   automaticStatus = "not-connected",
   automaticMessage = "Google Cloudの請求データ連携が未設定です。",
+  freeUsage = null,
+  providerDetections = {},
 }) {
   const months = recentMonthKeys(12, now);
   const manualCosts = normalizeManualCosts(config.monthlyCosts);
   const googleConnected = automaticStatus === "connected";
-  const providers = DEFAULT_PROVIDERS.map((provider) => ({ ...provider }));
+  const providers = DEFAULT_PROVIDERS.map((provider) => ({
+    ...provider,
+    ...(providerDetections[provider.id] || {}),
+  }));
   const series = months.map((month) => {
     const values = {};
     let incompleteCount = 0;
@@ -116,7 +121,7 @@ function buildDashboard({
       } else if (Object.hasOwn(manualCosts[month] || {}, provider.id)) {
         amount = manualCosts[month][provider.id];
         source = "manual";
-      } else if (provider.knownFreeReason) {
+      } else if (provider.knownFreeReason || provider.detectedFreeReason) {
         amount = 0;
         source = "detected-free";
       } else {
@@ -152,6 +157,7 @@ function buildDashboard({
       message: automaticMessage,
     },
     automaticServiceBreakdown: automaticGoogleServices,
+    freeUsage,
   };
 }
 
