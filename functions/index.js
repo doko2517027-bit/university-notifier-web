@@ -529,22 +529,34 @@ const REFERRAL_THEME_IDS = new Set([
   "purple",
   "brown",
 ]);
-const REFERRAL_PET_IDS = new Set(["cat", "dog", "rabbit", "bird"]);
-const REFERRAL_PET_INTERACTIONS = new Set(["feed", "play", "pet", "rest"]);
+const REFERRAL_BACKGROUND_POSITIONS = new Set(["center", "top", "bottom"]);
 
-function referralJapanDateKey(value = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(value);
+function validReferralBackgroundUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "res.cloudinary.com" &&
+      url.username === "" &&
+      url.password === "" &&
+      url.pathname.startsWith("/vpctonjf/image/upload/")
+    );
+  } catch {
+    return false;
+  }
 }
 
-function previousReferralDateKey(dateKey) {
-  const date = new Date(`${dateKey}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
+function serializeReferralBackground(value) {
+  if (!value || !validReferralBackgroundUrl(value.url)) return null;
+  return {
+    url: String(value.url),
+    publicId: String(value.publicId || "").slice(0, 220),
+    blur: Math.max(0, Math.min(18, Number(value.blur || 0))),
+    brightness: Math.max(40, Math.min(100, Number(value.brightness || 82))),
+    position: REFERRAL_BACKGROUND_POSITIONS.has(value.position) ? value.position : "center",
+    uploadedAt: timestampMillis(value.uploadedAt),
+    updatedAt: timestampMillis(value.updatedAt),
+  };
 }
 
 function referralRewardGrantState(account = {}, invitedCount = 0, now = new Date()) {
@@ -632,31 +644,14 @@ exports.getReferralDashboard = onCall(
       entitlements: {
         learningPoints100: Boolean(account.rewardGrants?.m2LearningPoints?.grantedAt) && !account.rewardSuppressions?.m2?.deletedAt,
         themes: Boolean(account.milestones?.m4?.unlockedAt) && !account.rewardSuppressions?.m4?.deletedAt,
-        pet: Boolean(account.milestones?.m6?.unlockedAt) && !account.rewardSuppressions?.m6?.deletedAt,
-        petCare: Boolean(account.milestones?.m8?.unlockedAt) && !account.rewardSuppressions?.m8?.deletedAt,
+        photoBackground: Boolean(account.milestones?.m6?.unlockedAt) && !account.rewardSuppressions?.m6?.deletedAt,
+        backgroundEffects: Boolean(account.milestones?.m8?.unlockedAt) && !account.rewardSuppressions?.m8?.deletedAt,
       },
       personalization: {
         theme: REFERRAL_THEME_IDS.has(account.personalization?.theme)
           ? account.personalization.theme
           : null,
-        pet: account.personalization?.pet?.kind
-          ? {
-              kind: String(account.personalization.pet.kind),
-              name: String(account.personalization.pet.name || ""),
-              selectedAt: timestampMillis(account.personalization.pet.selectedAt),
-            }
-          : null,
-        petVisible: account.personalization?.petVisible !== false,
-      },
-      petCare: {
-        date: referralJapanDateKey(),
-        completedActions:
-          account.petCare?.date === referralJapanDateKey() && Array.isArray(account.petCare?.completedActions)
-            ? account.petCare.completedActions.filter((item) => REFERRAL_PET_INTERACTIONS.has(item))
-            : [],
-        streak: Math.max(0, Number(account.petCare?.streak || 0)),
-        totalDays: Math.max(0, Number(account.petCare?.totalDays || 0)),
-        lastCompletedDate: String(account.petCare?.lastCompletedDate || ""),
+        background: serializeReferralBackground(account.personalization?.background),
       },
       activeCode,
       codeTtlDays: REFERRAL_CODE_TTL_DAYS,
@@ -760,7 +755,6 @@ exports.saveReferralPersonalization = onCall(
       const accountSnapshot = await transaction.get(accountRef);
       const account = accountSnapshot.data() || {};
       const personalization = { ...(account.personalization || {}) };
-      let petCare = { ...(account.petCare || {}) };
       if (action === "theme") {
         const theme = String(request.data?.theme || "");
         const coloredTheme = !["light", "dark"].includes(theme);
@@ -773,82 +767,86 @@ exports.saveReferralPersonalization = onCall(
           throw new HttpsError("permission-denied", "このテーマはまだ解放されていません。");
         }
         personalization.theme = theme;
-      } else if (action === "pet") {
-        const kind = String(request.data?.kind || "");
-        const name = String(request.data?.name || "").trim();
+      } else if (action === "background") {
+        const url = String(request.data?.url || "").trim();
+        const publicId = String(request.data?.publicId || "").trim();
         if (
           !account.milestones?.m6?.unlockedAt ||
           account.rewardSuppressions?.m6?.deletedAt
         ) {
-          throw new HttpsError("permission-denied", "ペットはまだ解放されていません。");
+          throw new HttpsError("permission-denied", "写真背景はまだ解放されていません。");
         }
-        if (personalization.pet?.kind) {
-          throw new HttpsError("failed-precondition", "ペットの種類と名前は確定済みです。");
+        if (
+          !validReferralBackgroundUrl(url) ||
+          publicId.length > 220 ||
+          /[^a-zA-Z0-9_./-]/.test(publicId)
+        ) {
+          throw new HttpsError("invalid-argument", "背景画像を確認してください。");
         }
-        if (!REFERRAL_PET_IDS.has(kind) || name.length < 1 || name.length > 12) {
-          throw new HttpsError("invalid-argument", "ペットの種類または名前を確認してください。");
-        }
-        personalization.pet = { kind, name, selectedAt: new Date() };
-        personalization.petVisible = true;
-      } else if (action === "pet_interaction") {
-        const interaction = String(request.data?.interaction || "");
+        personalization.background = {
+          url,
+          publicId,
+          blur: Number(personalization.background?.blur || 0),
+          brightness: Number(personalization.background?.brightness || 82),
+          position: REFERRAL_BACKGROUND_POSITIONS.has(personalization.background?.position)
+            ? personalization.background.position
+            : "center",
+          uploadedAt: new Date(),
+          updatedAt: new Date(),
+        };
+        delete personalization.pet;
+        delete personalization.petVisible;
+      } else if (action === "background_effects") {
+        const blur = Number(request.data?.blur);
+        const brightness = Number(request.data?.brightness);
+        const position = String(request.data?.position || "");
         if (
           !account.milestones?.m8?.unlockedAt ||
           account.rewardSuppressions?.m8?.deletedAt ||
-          !personalization.pet?.kind ||
-          !REFERRAL_PET_INTERACTIONS.has(interaction)
+          !validReferralBackgroundUrl(personalization.background?.url) ||
+          !Number.isFinite(blur) ||
+          blur < 0 ||
+          blur > 18 ||
+          !Number.isFinite(brightness) ||
+          brightness < 40 ||
+          brightness > 100 ||
+          !REFERRAL_BACKGROUND_POSITIONS.has(position)
         ) {
-          throw new HttpsError("permission-denied", "このお世話機能はまだ利用できません。");
+          throw new HttpsError("permission-denied", "背景の詳細調整を利用できません。");
         }
-        const today = referralJapanDateKey();
-        const completedActions = petCare.date === today && Array.isArray(petCare.completedActions)
-          ? petCare.completedActions.filter((item) => REFERRAL_PET_INTERACTIONS.has(item))
-          : [];
-        if (completedActions.includes(interaction)) {
-          throw new HttpsError("already-exists", "今日のこのお世話は完了しています。");
-        }
-        completedActions.push(interaction);
-        const completedToday = completedActions.length === REFERRAL_PET_INTERACTIONS.size;
-        let streak = Math.max(0, Number(petCare.streak || 0));
-        let totalDays = Math.max(0, Number(petCare.totalDays || 0));
-        let lastCompletedDate = String(petCare.lastCompletedDate || "");
-        if (completedToday && lastCompletedDate !== today) {
-          streak = lastCompletedDate === previousReferralDateKey(today) ? streak + 1 : 1;
-          totalDays += 1;
-          lastCompletedDate = today;
-        }
-        petCare = { date: today, completedActions, streak, totalDays, lastCompletedDate, updatedAt: new Date() };
-      } else if (action === "pet_visibility") {
+        personalization.background = {
+          ...personalization.background,
+          blur,
+          brightness,
+          position,
+          updatedAt: new Date(),
+        };
+      } else if (action === "background_remove") {
         if (
           !account.milestones?.m6?.unlockedAt ||
-          account.rewardSuppressions?.m6?.deletedAt ||
-          !personalization.pet?.kind ||
-          typeof request.data?.visible !== "boolean"
+          account.rewardSuppressions?.m6?.deletedAt
         ) {
-          throw new HttpsError("permission-denied", "ペットの表示を変更できません。");
+          throw new HttpsError("permission-denied", "写真背景を変更できません。");
         }
-        personalization.petVisible = request.data.visible;
+        delete personalization.background;
       } else {
         throw new HttpsError("invalid-argument", "設定内容が正しくありません。");
       }
       transaction.set(
         accountRef,
-        { studentNumber, personalization, petCare, updatedAt: new Date() },
+        {
+          studentNumber,
+          personalization,
+          petCare: FieldValue.delete(),
+          updatedAt: new Date(),
+        },
         { merge: true },
       );
       return {
         saved: true,
         personalization: {
           theme: personalization.theme || "light",
-          pet: personalization.pet || null,
-          petVisible: personalization.petVisible !== false,
-        },
-        petCare: {
-          date: petCare.date || referralJapanDateKey(),
-          completedActions: Array.isArray(petCare.completedActions) ? petCare.completedActions : [],
-          streak: Math.max(0, Number(petCare.streak || 0)),
-          totalDays: Math.max(0, Number(petCare.totalDays || 0)),
-          lastCompletedDate: String(petCare.lastCompletedDate || ""),
+          background: serializeReferralBackground(personalization.background),
         },
       };
     });
@@ -1372,9 +1370,19 @@ exports.setReferralRewardDeletedAdmin = onCall(
         }
         if (milestoneCount === 4 && !["light", "dark"].includes(personalization.theme)) personalization.theme = "light";
         if (milestoneCount === 6) {
+          delete personalization.background;
           delete personalization.pet;
-          personalization.petVisible = false;
+          delete personalization.petVisible;
           transaction.set(accountRef, { petCare: FieldValue.delete() }, { merge: true });
+        }
+        if (milestoneCount === 8 && personalization.background) {
+          personalization.background = {
+            ...personalization.background,
+            blur: 0,
+            brightness: 82,
+            position: "center",
+            updatedAt: now,
+          };
         }
         if (milestoneCount === 10 && rewardSnapshot.exists) {
           transaction.set(

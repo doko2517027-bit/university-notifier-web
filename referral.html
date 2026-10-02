@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>友達紹介 | CareMateApp</title>
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261002-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -66,27 +66,25 @@
         <div id="referralRoadmap" class="referral-roadmap" aria-live="polite"></div>
       </section>
 
-      <section id="referralPetCard" class="card referral-pet-card" hidden>
+      <section id="referralBackgroundCard" class="card referral-background-card" hidden>
         <div class="referral-section-heading">
-          <div><span class="referral-eyebrow">MY PET</span><h2>CareMateペット</h2></div>
-          <span id="referralPetState" class="referral-status-chip">未設定</span>
+          <div><span class="referral-eyebrow">PHOTO BACKGROUND</span><h2>好きな写真を背景に</h2></div>
+          <span id="referralBackgroundState" class="referral-status-chip">未設定</span>
         </div>
-        <div id="referralPetSetup">
-          <p class="referral-feature-description">3種類から1匹を選び、名前を付けてください。確定後は種類と名前を変更できません。</p>
-          <div id="referralPetChoices" class="referral-pet-choices" role="radiogroup" aria-label="ペットを選択">
-            <button type="button" data-pet-kind="cat" aria-pressed="false"><span class="pet-choice-sprite"></span><b>ねこ</b></button>
-            <button type="button" data-pet-kind="dog" aria-pressed="false"><span class="pet-choice-sprite"></span><b>いぬ</b></button>
-            <button type="button" data-pet-kind="rabbit" aria-pressed="false"><span class="pet-choice-sprite"></span><b>うさぎ</b></button>
-          </div>
-          <label class="referral-pet-name">ペットの名前
-            <input id="referralPetName" type="text" maxlength="12" autocomplete="off" placeholder="1〜12文字" />
-          </label>
-          <button id="saveReferralPet" class="btn btn-primary" type="button">このペットで確定</button>
+        <p class="referral-feature-description">6人達成特典です。選んだ写真は既存のCloudinaryへ保存され、CareMateの全画面へ反映されます。</p>
+        <input id="referralBackgroundFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden />
+        <div id="referralBackgroundPreview" class="referral-background-preview"><span>背景写真を選んでください</span></div>
+        <div class="referral-background-actions">
+          <button id="chooseReferralBackground" class="btn" type="button">写真を選ぶ</button>
+          <button id="saveReferralBackground" class="btn btn-primary" type="button" disabled>背景に設定</button>
+          <button id="removeReferralBackground" class="btn" type="button" hidden>背景を外す</button>
         </div>
-        <div id="referralPetCurrent" class="referral-pet-current" hidden>
-          <div id="referralPetPreview" class="referral-pet-preview"></div>
-          <p>このペットはすべてのCareMate画面に表示されます。</p>
-          <button id="openPetRoom" class="btn btn-primary" type="button">ペットの部屋へ</button>
+        <div id="referralBackgroundEffects" class="referral-background-effects" hidden>
+          <div class="referral-section-heading"><div><span class="referral-eyebrow">BACKGROUND PLUS</span><h3>背景カスタマイズ＋</h3></div><span class="referral-status-chip">8人特典</span></div>
+          <label>ぼかし <output id="referralBackgroundBlurValue">0px</output><input id="referralBackgroundBlur" type="range" min="0" max="18" step="1" value="0" /></label>
+          <label>写真の明るさ <output id="referralBackgroundBrightnessValue">82%</output><input id="referralBackgroundBrightness" type="range" min="40" max="100" step="1" value="82" /></label>
+          <label>表示位置<select id="referralBackgroundPosition"><option value="top">上</option><option value="center" selected>中央</option><option value="bottom">下</option></select></label>
+          <button id="saveReferralBackgroundEffects" class="btn btn-primary" type="button">見え方を保存</button>
         </div>
       </section>
     </main>
@@ -99,6 +97,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
     </nav>
-    <script type="module" src="referral.js?v=20261002-1"></script>
+    <script type="module" src="referral.js?v=20261002-2"></script>
   </body>
 </html>

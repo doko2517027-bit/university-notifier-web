@@ -8,8 +8,8 @@ const REFERRAL_RATE_LIMIT_ATTEMPTS = 5;
 const REFERRAL_MILESTONES = Object.freeze([
   { count: 2, title: "学習ポイント100pt", kind: "points", description: "テスト問題で貯まる累計ポイントへ100ptを一度だけ加算します。" },
   { count: 4, title: "全9色のテーマ変更", kind: "theme", description: "ライト・ブラックに加えて7色を解放。右上の🎨から全画面の色を変更できます。" },
-  { count: 6, title: "CareMateペット", kind: "pet", description: "3種類から1匹を選び、名前を付けて全画面に表示できます。種類と名前は確定後変更できません。" },
-  { count: 8, title: "ペットのお世話", kind: "pet_care", description: "ごはん・遊ぶ・なでる・おやすみの毎日のお世話と、連続お世話日数を解放します。" },
+  { count: 6, title: "写真背景", kind: "photo_background", description: "好きな写真をCareMate全画面の背景に設定できます。画像は既存のCloudinaryへ保存します。" },
+  { count: 8, title: "背景カスタマイズ＋", kind: "background_effects", description: "写真背景のぼかし・明るさ・表示位置を自分好みに調整できます。" },
   { count: 10, title: "500円分デジタルギフト", kind: "gift", description: "運営者が確認後、紹介画面に受取ボタンを表示します。自動発行ではありません。" },
 ]);
 

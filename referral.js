@@ -11,11 +11,11 @@ import {
   updateNewsNavBadge,
 } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
-import { applyPetSprite } from "./pet_character_config.mjs";
 
 const $ = (id) => document.getElementById(id);
 let dashboard = null;
-let selectedPetKind = "";
+let selectedBackgroundFile = null;
+let selectedBackgroundPreviewUrl = "";
 
 setupTheme($("themeButton"));
 $("backButton").onclick = () => location.assign("index.html");
@@ -25,12 +25,14 @@ $("copyReferralCode").onclick = copyCode;
 $("referralCodeValue").onclick = copyCode;
 $("shareReferralCode").onclick = shareCode;
 $("openReferralGift").onclick = openGift;
-$("saveReferralPet").onclick = savePet;
-$("referralPetChoices").onclick = selectPet;
-$("openPetRoom").onclick = () => location.assign("pet_room.html");
-document.querySelectorAll("[data-pet-kind]").forEach((button) => {
-  applyPetSprite(button.querySelector(".pet-choice-sprite"), button.dataset.petKind, "stop", "neutral");
-});
+$("chooseReferralBackground").onclick = () => $("referralBackgroundFile").click();
+$("referralBackgroundFile").onchange = selectBackgroundFile;
+$("saveReferralBackground").onclick = saveBackground;
+$("removeReferralBackground").onclick = removeBackground;
+$("saveReferralBackgroundEffects").onclick = saveBackgroundEffects;
+$("referralBackgroundBlur").oninput = previewBackgroundEffects;
+$("referralBackgroundBrightness").oninput = previewBackgroundEffects;
+$("referralBackgroundPosition").onchange = previewBackgroundEffects;
 
 await auth.authStateReady();
 if (!auth.currentUser || auth.currentUser.uid !== `caremate-${studentNumber}`) {
@@ -108,58 +110,130 @@ function render() {
       : "運営者が付与を準備しています。";
   }
 
-  renderPetReward();
+  renderBackgroundReward();
 }
 
-function renderPetReward() {
-  const canUsePet = dashboard.entitlements?.pet === true;
-  const pet = dashboard.personalization?.pet;
-  $("referralPetCard").hidden = !canUsePet;
-  if (!canUsePet) return;
-
-  $("referralPetSetup").hidden = Boolean(pet?.kind);
-  $("referralPetCurrent").hidden = !pet?.kind;
-  $("referralPetState").textContent = pet?.kind ? "設定済み" : "未設定";
-  if (pet?.kind) {
-    $("referralPetPreview").innerHTML = `<span class="referral-current-pet-sprite"></span><b>${escapeHtml(pet.name)}</b>`;
-    applyPetSprite($("referralPetPreview").querySelector(".referral-current-pet-sprite"), pet.kind, "stop", "smile");
+function renderBackgroundReward() {
+  const allowed = dashboard.entitlements?.photoBackground === true;
+  const effectsAllowed = dashboard.entitlements?.backgroundEffects === true;
+  const background = dashboard.personalization?.background;
+  $("referralBackgroundCard").hidden = !allowed;
+  if (!allowed) return;
+  $("referralBackgroundState").textContent = background?.url ? "設定済み" : "未設定";
+  $("removeReferralBackground").hidden = !background?.url;
+  $("referralBackgroundEffects").hidden = !effectsAllowed || !background?.url;
+  if (background?.url && !selectedBackgroundPreviewUrl) {
+    renderBackgroundPreview(background.url);
   }
+  $("referralBackgroundBlur").value = String(background?.blur ?? 0);
+  $("referralBackgroundBrightness").value = String(background?.brightness ?? 82);
+  $("referralBackgroundPosition").value = background?.position || "center";
+  previewBackgroundEffects();
 }
 
-function selectPet(event) {
-  const button = event.target.closest("[data-pet-kind]");
-  if (!button) return;
-  selectedPetKind = button.dataset.petKind;
-  document.querySelectorAll("[data-pet-kind]").forEach((item) => {
-    const selected = item === button;
-    item.classList.toggle("is-selected", selected);
-    item.setAttribute("aria-pressed", String(selected));
-  });
-}
-
-async function savePet() {
-  const name = $("referralPetName").value.trim();
-  if (!selectedPetKind) {
-    alert("ペットを1匹選んでください。");
+function selectBackgroundFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
+    alert("10MB以下のJPEG・PNG・WebP・HEIC画像を選んでください。");
+    event.target.value = "";
     return;
   }
-  if (!name || name.length > 12) {
-    alert("ペットの名前を1〜12文字で入力してください。");
-    return;
+  if (selectedBackgroundPreviewUrl) URL.revokeObjectURL(selectedBackgroundPreviewUrl);
+  selectedBackgroundFile = file;
+  selectedBackgroundPreviewUrl = URL.createObjectURL(file);
+  renderBackgroundPreview(selectedBackgroundPreviewUrl);
+  $("saveReferralBackground").disabled = false;
+}
+
+function renderBackgroundPreview(url) {
+  const preview = $("referralBackgroundPreview");
+  preview.innerHTML = `<img src="${escapeHtml(url)}" alt="選択した背景のプレビュー" />`;
+}
+
+function previewBackgroundEffects() {
+  const blur = Number($("referralBackgroundBlur").value || 0);
+  const brightness = Number($("referralBackgroundBrightness").value || 82);
+  const position = $("referralBackgroundPosition").value || "center";
+  $("referralBackgroundBlurValue").textContent = `${blur}px`;
+  $("referralBackgroundBrightnessValue").textContent = `${brightness}%`;
+  const image = $("referralBackgroundPreview").querySelector("img");
+  if (image) {
+    image.style.filter = `blur(${blur}px) brightness(${brightness}%)`;
+    image.style.objectPosition = position;
   }
-  if (!confirm(`「${name}」で確定します。種類と名前は後から変更できません。`)) return;
-  const button = $("saveReferralPet");
+}
+
+async function saveBackground() {
+  if (!selectedBackgroundFile || dashboard.entitlements?.photoBackground !== true) return;
+  const button = $("saveReferralBackground");
   button.disabled = true;
-  button.textContent = "設定中...";
+  button.textContent = "アップロード中...";
   try {
-    await httpsCallable(functions, "saveReferralPersonalization")({ action: "pet", kind: selectedPetKind, name });
-    showToast("ペットを設定しました");
+    const formData = new FormData();
+    formData.append("file", selectedBackgroundFile);
+    formData.append("upload_preset", "caremate_upload");
+    formData.append("folder", `caremate/referral-backgrounds/${studentNumber}`);
+    const upload = await fetch("https://api.cloudinary.com/v1_1/vpctonjf/image/upload", { method: "POST", body: formData });
+    const data = await upload.json();
+    if (!upload.ok || !data.secure_url) throw new Error(data.error?.message || "画像を保存できませんでした。");
+    const optimizedUrl = String(data.secure_url).replace(
+      "/image/upload/",
+      "/image/upload/f_auto,q_auto,w_1920,c_limit/",
+    );
+    await httpsCallable(functions, "saveReferralPersonalization")({
+      action: "background",
+      url: optimizedUrl,
+      publicId: data.public_id || "",
+    });
+    showToast("写真背景を設定しました");
+    selectedBackgroundFile = null;
+    selectedBackgroundPreviewUrl = "";
+    await loadDashboard();
     location.reload();
   } catch (error) {
-    console.error("ペット設定エラー:", error);
-    alert(error?.message || "ペットを設定できませんでした。");
+    console.error("写真背景設定エラー:", error);
+    alert(error?.message || "写真背景を設定できませんでした。");
+  } finally {
     button.disabled = false;
-    button.textContent = "このペットで確定";
+    button.textContent = "背景に設定";
+  }
+}
+
+async function removeBackground() {
+  if (!confirm("現在の写真背景を外しますか？")) return;
+  try {
+    await httpsCallable(functions, "saveReferralPersonalization")({ action: "background_remove" });
+    showToast("写真背景を外しました");
+    selectedBackgroundFile = null;
+    selectedBackgroundPreviewUrl = "";
+    $("referralBackgroundPreview").innerHTML = "<span>背景写真を選んでください</span>";
+    await loadDashboard();
+    location.reload();
+  } catch (error) {
+    console.error("写真背景解除エラー:", error);
+    alert(error?.message || "写真背景を外せませんでした。");
+  }
+}
+
+async function saveBackgroundEffects() {
+  const button = $("saveReferralBackgroundEffects");
+  button.disabled = true;
+  try {
+    await httpsCallable(functions, "saveReferralPersonalization")({
+      action: "background_effects",
+      blur: Number($("referralBackgroundBlur").value),
+      brightness: Number($("referralBackgroundBrightness").value),
+      position: $("referralBackgroundPosition").value,
+    });
+    showToast("背景の見え方を保存しました");
+    await loadDashboard();
+    location.reload();
+  } catch (error) {
+    console.error("背景調整エラー:", error);
+    alert(error?.message || "背景の見え方を保存できませんでした。");
+  } finally {
+    button.disabled = false;
   }
 }
 

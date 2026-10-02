@@ -61,12 +61,6 @@ import {
 } from "./device_touch_controller.mjs";
 
 import { describePresenceDevice } from "./presence_device_label.mjs";
-import {
-  CAREMATE_PET_ACTIONS,
-  CAREMATE_PET_EXPRESSIONS,
-  applyPetSprite,
-} from "./pet_character_config.mjs";
-
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",
@@ -669,7 +663,6 @@ const REFERRAL_PERSONALIZATION_CACHE_KEY = `careMateReferralPersonalization:${st
 const REFERRAL_PERSONALIZATION_CACHE_MS = 60 * 60 * 1000;
 let referralPersonalizationState = readReferralPersonalizationCache();
 let referralPersonalizationInFlight = false;
-let referralPetMotionCleanup = null;
 
 function readReferralPersonalizationCache() {
   try {
@@ -798,169 +791,34 @@ function applyReferralPersonalization(state) {
   } else {
     applyCareMateTheme(localStorage.getItem("theme") || "light");
   }
-  renderCareMatePet(state);
+  applyCareMatePhotoBackground(state);
 }
 
-function renderCareMatePet(state) {
-  referralPetMotionCleanup?.();
-  referralPetMotionCleanup = null;
-  document.getElementById("careMateReferralPet")?.remove();
-  const pet = state?.personalization?.pet;
-  if (
-    location.pathname.endsWith("/pet_room.html") ||
-    state?.entitlements?.pet !== true ||
-    state?.personalization?.petVisible === false ||
-    !pet?.kind ||
-    !pet?.name
-  ) return;
-  const element = document.createElement("button");
-  element.id = "careMateReferralPet";
-  element.className = "caremate-referral-pet";
-  element.type = "button";
-  element.setAttribute("aria-label", `${pet.name}を表示`);
-  element.innerHTML = `<span class="caremate-pet-character" aria-hidden="true"></span><small>${escapeCommonHtml(pet.name)}</small>`;
-  document.body.append(element);
-  referralPetMotionCleanup = startCareMatePetMotion(element, pet.kind);
-}
-
-function startCareMatePetMotion(element, kind) {
-  const character = element.querySelector(".caremate-pet-character");
-  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const positionKey = `careMatePetPosition:${studentNumber || "guest"}`;
-  let savedPosition = null;
-  try { savedPosition = JSON.parse(localStorage.getItem(positionKey) || "null"); } catch { savedPosition = null; }
-  let x = Number(savedPosition?.x) || 18;
-  let y = Number(savedPosition?.y) || Math.max(82, window.innerHeight - 175);
-  let moveTimer = 0;
-  let expressionTimer = 0;
-  let spriteTimer = 0;
-  let animationFrame = 0;
-  let destroyed = false;
-  let drag = null;
-  let didDrag = false;
-
-  const setState = (actionId, expressionId) => {
-    if (destroyed || !character) return;
-    element.dataset.action = actionId;
-    element.dataset.expression = expressionId;
-    applyPetSprite(character, kind, actionId, expressionId, animationFrame);
-  };
-
-  const randomExpression = () => {
-    const item = CAREMATE_PET_EXPRESSIONS[Math.floor(Math.random() * CAREMATE_PET_EXPRESSIONS.length)];
-    setState(element.dataset.action || "stop", item.id);
-  };
-
-  const bounds = () => ({
-    maxX: Math.max(24, window.innerWidth - 122),
-    minY: Math.max(96, Math.round(window.innerHeight * 0.62)),
-    maxY: Math.max(118, window.innerHeight - 170),
-  });
-
-  const place = (nextX, nextY, duration = 0) => {
-    const limit = bounds();
-    x = Math.max(12, Math.min(limit.maxX, nextX));
-    y = Math.max(limit.minY, Math.min(limit.maxY, nextY));
-    element.style.transitionDuration = `${duration}ms`;
-    element.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
-  };
-
-  const scheduleMove = () => {
-    if (destroyed || reducedMotion || drag) return;
-    const limit = bounds();
-    const nextX = 12 + Math.random() * Math.max(1, limit.maxX - 12);
-    const nextY = limit.minY + Math.random() * Math.max(1, limit.maxY - limit.minY);
-    const distance = Math.hypot(nextX - x, nextY - y);
-    const motion = ["walk", "walk", "run", "rampage"][Math.floor(Math.random() * 4)];
-    const speed = motion === "run" ? 6 : motion === "rampage" ? 8 : 13;
-    const duration = Math.max(motion === "walk" ? 4600 : 3300, Math.min(11000, distance * speed));
-    element.dataset.facing = nextX < x ? "left" : "right";
-    element.classList.add("is-walking");
-    setState(motion, "neutral");
-    place(nextX, nextY, duration);
-    moveTimer = window.setTimeout(() => {
-      element.classList.remove("is-walking");
-      const restActions = CAREMATE_PET_ACTIONS.filter((item) => !["walk", "run", "rampage"].includes(item.id));
-      const rest = restActions[Math.floor(Math.random() * restActions.length)] || { id: "stop" };
-      const expression = CAREMATE_PET_EXPRESSIONS[Math.floor(Math.random() * CAREMATE_PET_EXPRESSIONS.length)] || { id: "neutral" };
-      setState(rest.id, expression.id);
-      moveTimer = window.setTimeout(scheduleMove, 4800 + Math.random() * 4200);
-    }, duration);
-  };
-
-  const onResize = () => place(x, y, 0);
-  const onPointerDown = (event) => {
-    if (event.button !== undefined && event.button !== 0) return;
-    clearTimeout(moveTimer);
-    const rect = element.getBoundingClientRect();
-    x = rect.left;
-    y = rect.top;
-    place(x, y, 0);
-    drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offsetX: event.clientX - x, offsetY: event.clientY - y };
-    didDrag = false;
-    element.setPointerCapture?.(event.pointerId);
-  };
-  const onPointerMove = (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6) didDrag = true;
-    if (!didDrag) return;
-    event.preventDefault();
-    element.classList.add("is-dragging");
-    setState("stop", "surprised");
-    place(event.clientX - drag.offsetX, event.clientY - drag.offsetY, 0);
-  };
-  const onPointerUp = (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    element.releasePointerCapture?.(event.pointerId);
-    element.classList.remove("is-dragging");
-    drag = null;
-    if (didDrag) {
-      localStorage.setItem(positionKey, JSON.stringify({ x: Math.round(x), y: Math.round(y) }));
-      setState("stop", "smile");
-      moveTimer = window.setTimeout(scheduleMove, 6000);
-    } else {
-      location.assign("pet_room.html");
-    }
-  };
-  const onPointerCancel = (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    element.classList.remove("is-dragging");
-    drag = null;
-    setState("stop", "neutral");
-    if (!reducedMotion) moveTimer = window.setTimeout(scheduleMove, 2000);
-  };
-  element.addEventListener("pointerdown", onPointerDown);
-  element.addEventListener("pointermove", onPointerMove);
-  element.addEventListener("pointerup", onPointerUp);
-  element.addEventListener("pointercancel", onPointerCancel);
-  window.addEventListener("resize", onResize);
-  place(x, y, 0);
-  setState("stop", "neutral");
-  if (!reducedMotion) {
-    moveTimer = window.setTimeout(scheduleMove, 2200);
-    spriteTimer = window.setInterval(() => {
-      if (!character || drag) return;
-      const action = element.dataset.action || "stop";
-      if (!["walk", "run"].includes(action)) return;
-      animationFrame = animationFrame === 0 ? 1 : 0;
-      applyPetSprite(character, kind, action, element.dataset.expression || "neutral", animationFrame);
-    }, 240);
-    expressionTimer = window.setInterval(() => {
-      if (!element.classList.contains("is-walking") && !drag) randomExpression();
-    }, 4200);
+function applyCareMatePhotoBackground(state) {
+  const root = document.documentElement;
+  const background = state?.personalization?.background;
+  const allowed = state?.entitlements?.photoBackground === true;
+  const url = allowed ? String(background?.url || "") : "";
+  if (!/^https:\/\/res\.cloudinary\.com\/vpctonjf\/image\/upload\//.test(url)) {
+    root.removeAttribute("data-caremate-photo-background");
+    root.style.removeProperty("--caremate-photo-background");
+    root.style.removeProperty("--caremate-photo-blur");
+    root.style.removeProperty("--caremate-photo-overlay");
+    root.style.removeProperty("--caremate-photo-position");
+    return;
   }
-
-  return () => {
-    destroyed = true;
-    clearTimeout(moveTimer);
-    clearInterval(expressionTimer);
-    clearInterval(spriteTimer);
-    window.removeEventListener("resize", onResize);
-    element.removeEventListener("pointerdown", onPointerDown);
-    element.removeEventListener("pointermove", onPointerMove);
-    element.removeEventListener("pointerup", onPointerUp);
-    element.removeEventListener("pointercancel", onPointerCancel);
-  };
+  const effectsAllowed = state?.entitlements?.backgroundEffects === true;
+  const blur = effectsAllowed ? Math.max(0, Math.min(18, Number(background.blur || 0))) : 0;
+  const brightness = effectsAllowed ? Math.max(40, Math.min(100, Number(background.brightness || 82))) : 82;
+  const position = effectsAllowed && ["center", "top", "bottom"].includes(background.position)
+    ? background.position
+    : "center";
+  const overlayOpacity = Math.max(0, Math.min(0.6, (100 - brightness) / 100));
+  root.dataset.carematePhotoBackground = "true";
+  root.style.setProperty("--caremate-photo-background", `url(${JSON.stringify(url)})`);
+  root.style.setProperty("--caremate-photo-blur", `${blur}px`);
+  root.style.setProperty("--caremate-photo-overlay", `rgba(8, 18, 28, ${overlayOpacity.toFixed(2)})`);
+  root.style.setProperty("--caremate-photo-position", position);
 }
 
 function escapeCommonHtml(value) {

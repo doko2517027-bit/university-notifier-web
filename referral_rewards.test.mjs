@@ -2,18 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [functionsSource, commonSource, referralSource, referralHtml, referralAdminSource, referralAdminHtml, petRoomSource, petRoomHtml, petConfigSource, appSource, styleSource] = await Promise.all([
+const [functionsSource, commonSource, referralSource, referralHtml, referralAdminSource, referralAdminHtml, appSource, styleSource, serviceWorkerSource] = await Promise.all([
   readFile(new URL("./functions/index.js", import.meta.url), "utf8"),
   readFile(new URL("./common.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.js", import.meta.url), "utf8"),
   readFile(new URL("./referral.html", import.meta.url), "utf8"),
   readFile(new URL("./referral_admin.js", import.meta.url), "utf8"),
   readFile(new URL("./referral_admin.html", import.meta.url), "utf8"),
-  readFile(new URL("./pet_room.js", import.meta.url), "utf8"),
-  readFile(new URL("./pet_room.html", import.meta.url), "utf8"),
-  readFile(new URL("./pet_character_config.mjs", import.meta.url), "utf8"),
   readFile(new URL("./app.js", import.meta.url), "utf8"),
   readFile(new URL("./style.css", import.meta.url), "utf8"),
+  readFile(new URL("./sw.js", import.meta.url), "utf8"),
 ]);
 
 test("2人達成の100ポイントはサーバー側の一度限りの記録と同じ取引で加算する", () => {
@@ -22,32 +20,34 @@ test("2人達成の100ポイントはサーバー側の一度限りの記録と�
   assert.match(functionsSource, /rewardGrants:\s*rewardGrantState\.rewardGrants/);
 });
 
-test("色テーマ・ペット・毎日のお世話は達成人数に応じてサーバー側で制限する", () => {
+test("色テーマ・写真背景・背景調整は達成人数に応じてサーバー側で制限する", () => {
   assert.match(functionsSource, /exports\.saveReferralPersonalization = onCall/);
   assert.match(functionsSource, /account\.milestones\?\.m4\?\.unlockedAt/);
   assert.match(functionsSource, /account\.milestones\?\.m6\?\.unlockedAt/);
   assert.match(functionsSource, /account\.milestones\?\.m8\?\.unlockedAt/);
-  assert.match(functionsSource, /ペットの種類と名前は確定済みです/);
+  assert.match(functionsSource, /写真背景はまだ解放されていません/);
+  assert.match(functionsSource, /背景の詳細調整を利用できません/);
 });
 
-test("全画面同期と紹介画面のペット設定UIが接続されている", () => {
+test("全画面同期と紹介画面の写真背景UIが接続されている", () => {
   assert.match(commonSource, /void initializeReferralPersonalization\(\)/);
   assert.match(commonSource, /data\.caremateTheme|dataset\.caremateTheme/);
-  assert.match(commonSource, /renderCareMatePet/);
-  assert.match(referralHtml, /id="referralPetCard"/);
+  assert.match(commonSource, /applyCareMatePhotoBackground/);
+  assert.match(commonSource, /data\.carematePhotoBackground|dataset\.carematePhotoBackground/);
+  assert.match(referralHtml, /id="referralBackgroundCard"/);
+  assert.match(referralHtml, /id="referralBackgroundFile"/);
   assert.match(referralSource, /saveReferralPersonalization/);
+  assert.match(referralSource, /api\.cloudinary\.com\/v1_1\/vpctonjf\/image\/upload/);
   assert.match(styleSource, /data-caremate-theme="pink"/);
-  assert.match(styleSource, /\.caremate-referral-pet/);
+  assert.match(styleSource, /data-caremate-photo-background/);
 });
 
-test("ペットは画面内をランダムに移動し表情を切り替える", () => {
-  assert.match(commonSource, /startCareMatePetMotion/);
-  assert.match(commonSource, /Math\.random\(\).*maxX|Math\.random\(\) \* Math\.max\(1, limit\.maxX/);
-  assert.match(commonSource, /dataset\.expression/);
-  assert.match(commonSource, /prefers-reduced-motion/);
-  assert.match(commonSource, /pointerdown/);
-  assert.match(commonSource, /careMatePetPosition/);
-  assert.match(commonSource, /location\.assign\("pet_room\.html"\)/);
+test("ペット機能を表示せず6人・8人特典を背景機能へ置き換える", () => {
+  assert.doesNotMatch(referralSource, /saveReferralPet|openPetRoom|applyPetSprite/);
+  assert.doesNotMatch(referralHtml, /CareMateペット|ペットの部屋/);
+  assert.doesNotMatch(serviceWorkerSource, /pet_room\.html|images\/pets\//);
+  assert.match(referralHtml, /背景カスタマイズ＋/);
+  assert.match(referralSource, /action: "background_effects"/);
 });
 
 test("2510044の特典管理からホーム招待枠だけをオンオフできる", () => {
@@ -59,29 +59,12 @@ test("2510044の特典管理からホーム招待枠だけをオンオフでき�
   assert.match(appSource, /homeReferralCard\.hidden = !homeVisible/);
 });
 
-test("ペットの部屋で表示切替と8人特典の毎日のお世話を管理する", () => {
-  assert.match(petRoomHtml, /id="petVisibilityToggle"/);
-  assert.match(petRoomHtml, /id="petCareActions"/);
-  assert.match(petRoomSource, /action: "pet_visibility"/);
-  assert.match(petRoomSource, /action: "pet_interaction"/);
-  assert.match(petRoomSource, /entitlements\?\.petCare/);
-  assert.match(functionsSource, /action === "pet_visibility"/);
-  assert.match(functionsSource, /action === "pet_interaction"/);
-});
-
-test("3体の透過スプライトで行動と表情の固定IDを保持する", () => {
-  assert.match(petConfigSource, /CAREMATE_PET_ASSETS_READY = true/);
-  assert.match(petConfigSource, /images\/pets\/cat\.webp/);
-  assert.match(petConfigSource, /images\/pets\/dog\.webp/);
-  assert.match(petConfigSource, /images\/pets\/dog-emotions\.webp/);
-  assert.match(petConfigSource, /images\/pets\/rabbit\.webp/);
-  assert.match(petConfigSource, /applyPetSprite/);
-  for (const action of ["rampage", "walk", "run", "stop", "sleep", "jump", "stretch", "eat", "play", "wave"]) {
-    assert.match(petConfigSource, new RegExp(`id: "${action}"`));
-  }
-  for (const expression of ["smile", "angry", "cry", "sad", "hurt", "neutral", "surprised", "sleepy", "embarrassed", "worried", "excited", "affection"]) {
-    assert.match(petConfigSource, new RegExp(`id: "${expression}"`));
-  }
+test("Cloudinary以外の背景URLをサーバー側で拒否し、詳細設定値を制限する", () => {
+  assert.match(functionsSource, /validReferralBackgroundUrl/);
+  assert.match(functionsSource, /res\.cloudinary\.com/);
+  assert.match(functionsSource, /\/vpctonjf\/image\/upload\//);
+  assert.match(functionsSource, /blur < 0/);
+  assert.match(functionsSource, /brightness < 40/);
 });
 
 test("2510044だけが達成特典を理由付きで削除・復元できる", () => {
