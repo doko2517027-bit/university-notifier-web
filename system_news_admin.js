@@ -103,19 +103,42 @@ const systemNewsRecipientMode = document.getElementById(
 const systemNewsRecipientSelect = document.getElementById(
   "systemNewsRecipientSelect",
 );
+const systemNewsGradeTarget = document.getElementById("systemNewsGradeTarget");
+const systemNewsGradeSelect = document.getElementById("systemNewsGradeSelect");
+const systemNewsIndividualTarget = document.getElementById(
+  "systemNewsIndividualTarget",
+);
+
+function updateRecipientControls() {
+  const mode = systemNewsRecipientMode?.value || "all";
+  if (systemNewsGradeTarget) systemNewsGradeTarget.hidden = mode !== "grade";
+  if (systemNewsIndividualTarget) {
+    systemNewsIndividualTarget.hidden = !["only", "exclude"].includes(mode);
+  }
+}
 
 async function loadNewsRecipients() {
   if (!systemNewsRecipientSelect) return;
-  const snapshot = await getDocs(collection(db, "publicUsers"));
-  const users = snapshot.docs
-    .map((item) => ({ id: item.id, ...item.data() }))
+  const [userSnapshot, publicSnapshot] = await Promise.all([
+    getDocs(collection(db, "users")),
+    getDocs(collection(db, "publicUsers")),
+  ]);
+  const publicUsers = new Map(
+    publicSnapshot.docs.map((item) => [item.id, item.data() || {}]),
+  );
+  const users = userSnapshot.docs
+    .map((item) => ({
+      id: item.id,
+      ...item.data(),
+      publicProfile: publicUsers.get(item.id) || {},
+    }))
     .filter((item) => /^\d{7}$/.test(item.id))
     .sort((a, b) => a.id.localeCompare(b.id));
   systemNewsRecipientSelect.innerHTML =
     users
       .map(
         (user) =>
-          `<option value="${user.id}">${user.id}　${String(user.name || "氏名未設定")}</option>`,
+          `<option value="${user.id}">${user.id}　${escapeHtml(String(user.publicProfile.name || user.name || "氏名未設定"))}（${escapeHtml(String(user.grade || "学年未設定"))}）</option>`,
       )
       .join("") || "<option disabled>登録済み学生がいません</option>";
 }
@@ -305,6 +328,8 @@ setupEvents();
 
 setupRichNewsEditors();
 
+updateRecipientControls();
+
 updatePostForm();
 
 startSystemNewsListener();
@@ -407,6 +432,7 @@ function setupEvents() {
       ? `${files.length}件を添付：${files.map((file) => file.name).join("、")}`
       : "";
   });
+  systemNewsRecipientMode?.addEventListener("change", updateRecipientControls);
 
   if (postSystemNews) {
     postSystemNews.onclick = postNews;
@@ -528,9 +554,24 @@ async function postNews() {
       ),
     ),
   ];
-  const recipientMode = systemNewsRecipientMode?.value || "only";
+  const recipientMode = systemNewsRecipientMode?.value || "all";
+  const targetGrades = [
+    ...new Set(
+      [...(systemNewsGradeSelect?.selectedOptions || [])].map(
+        (option) => option.value,
+      ),
+    ),
+  ];
   if (recipients.some((value) => !/^\d{7}$/.test(value))) {
     alert("学籍番号は7桁の数字で入力してください。");
+    return;
+  }
+  if (recipientMode === "grade" && targetGrades.length === 0) {
+    alert("表示・通知する学年を選んでください。");
+    return;
+  }
+  if (recipientMode === "only" && recipients.length === 0) {
+    alert("表示・通知する学生を選んでください。");
     return;
   }
 
@@ -538,7 +579,9 @@ async function postNews() {
 
   postSystemNews.textContent = "投稿中...";
 
-  const sourceCollection = recipients.length ? "targetedSystemNews" : "systemNews";
+  const sourceCollection = recipientMode === "all"
+    ? "systemNews"
+    : "targetedSystemNews";
   const newsRef = doc(collection(db, sourceCollection));
   try {
     const attachments = [];
@@ -567,7 +610,7 @@ async function postNews() {
                 */
 
         notifyTarget: shouldNotify
-          ? recipients.length
+          ? sourceCollection === "targetedSystemNews"
             ? "selectedUsers"
             : "allUsers"
           : "none",
@@ -575,8 +618,10 @@ async function postNews() {
         notificationRequested: shouldNotify,
 
         notificationSentAt: shouldNotify ? null : serverTimestamp(),
+        audienceMode: recipientMode,
         targetStudentNumbers: recipientMode === "only" ? recipients : [],
         excludedStudentNumbers: recipientMode === "exclude" ? recipients : [],
+        targetGrades: recipientMode === "grade" ? targetGrades : [],
       });
 
     if (systemNewsTitle) {
@@ -697,10 +742,16 @@ function createSystemNewsHtml(news) {
     ? news.excludedStudentNumbers
     : [];
 
+  const targetGrades = Array.isArray(news.targetGrades)
+    ? news.targetGrades
+    : [];
+
   const recipientText =
     news.sourceCollection !== "targetedSystemNews"
       ? "全員"
-      : selectedRecipients.length
+      : targetGrades.length
+        ? `学年：${targetGrades.map((grade) => `${grade}年`).join("、")}`
+        : selectedRecipients.length
         ? `指定：${selectedRecipients.join("、")}`
         : excludedRecipients.length
           ? `除外：${excludedRecipients.join("、")}`

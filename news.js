@@ -7,6 +7,7 @@ import {
   loadUserName,
   loadMyRanking,
   setupAdminTab,
+  syncTargetedSystemNewsInbox,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
@@ -698,6 +699,8 @@ async function loadSystemNews() {
 
     return;
   }
+
+  await syncTargetedSystemNewsInbox();
 
   const q = query(collection(db, "systemNews"), orderBy("createdAt", "desc"));
 

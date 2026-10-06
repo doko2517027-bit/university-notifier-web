@@ -56,6 +56,11 @@ const deviceSessionStore = createDeviceSessionStore(db, FieldValue);
 const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
 const {
+  targetedSystemNewsMatchesStudent,
+  targetedSystemNewsCopy,
+  targetedSystemNewsContentSignature,
+} = require("./system_news_audience.js");
+const {
   REFERRAL_MAX_INVITES,
   REFERRAL_CODE_TTL_DAYS,
   REFERRAL_PROOF_TTL_MINUTES,
@@ -4448,6 +4453,55 @@ exports.notifySystemNewsUpdated = onDocumentUpdated(
   },
 );
 
+async function syncTargetedSystemNewsForStudent(studentNumber, user = null) {
+  const userData = user || (await db.collection("users").doc(studentNumber).get()).data() || {};
+  const [newsSnapshot, inboxSnapshot] = await Promise.all([
+    db.collection("targetedSystemNews").get(),
+    db.collection("users").doc(studentNumber).collection("targetedSystemNews").get(),
+  ]);
+  const existingIds = new Set(inboxSnapshot.docs.map((item) => item.id));
+  const matchedIds = new Set();
+  const writes = [];
+
+  newsSnapshot.docs.forEach((newsDocument) => {
+    const news = newsDocument.data() || {};
+    if (!targetedSystemNewsMatchesStudent(news, studentNumber, userData)) return;
+    matchedIds.add(newsDocument.id);
+    if (!existingIds.has(newsDocument.id)) {
+      writes.push(
+        db.collection("users").doc(studentNumber)
+          .collection("targetedSystemNews").doc(newsDocument.id)
+          .set(targetedSystemNewsCopy(news, newsDocument.id)),
+      );
+    }
+  });
+
+  inboxSnapshot.docs.forEach((inboxDocument) => {
+    if (!matchedIds.has(inboxDocument.id)) writes.push(inboxDocument.ref.delete());
+  });
+  await Promise.all(writes);
+  return { addedCount: writes.length, visibleCount: matchedIds.size };
+}
+
+// 登録直後や過去に一時的な配信失敗があった学生も、自分宛のお知らせを復元できる。
+exports.syncTargetedSystemNewsInbox = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    return syncTargetedSystemNewsForStudent(studentNumber);
+  },
+);
+
+// 投稿後に登録した学生でも、学年・除外条件に一致すれば受信箱へ追加する。
+exports.backfillTargetedSystemNewsForNewUser = onDocumentCreated(
+  { document: "users/{studentNumber}", region: "asia-northeast1" },
+  async (event) => {
+    const studentNumber = String(event.params.studentNumber || "");
+    if (!/^\d{7}$/.test(studentNumber) || !event.data) return;
+    await syncTargetedSystemNewsForStudent(studentNumber, event.data.data() || {});
+  },
+);
+
 // 指定学生向けCareMateお知らせは、対象学生の専用受信箱へだけ複製して通知する。
 exports.deliverTargetedSystemNews = onDocumentCreated(
   {
@@ -4459,25 +4513,14 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
     const snapshot = event.data;
     if (!snapshot) return;
     const news = snapshot.data() || {};
-    let recipients = [
-      ...new Set(
-        (Array.isArray(news.targetStudentNumbers)
-          ? news.targetStudentNumbers
-          : []
-        ).map(String),
+    const users = await db.collection("users").get();
+    const recipients = users.docs.filter((userDocument) =>
+      targetedSystemNewsMatchesStudent(
+        news,
+        userDocument.id,
+        userDocument.data() || {},
       ),
-    ];
-    if (!recipients.length) {
-      const excluded = new Set(
-        (Array.isArray(news.excludedStudentNumbers)
-          ? news.excludedStudentNumbers
-          : []
-        ).map(String),
-      );
-      recipients = (await db.collection("users").get()).docs
-        .map((user) => user.id)
-        .filter((userId) => !excluded.has(userId));
-    }
+    );
     webpush.setVapidDetails(
       "mailto:kidokohei.shonaniryo2517027@gmail.com",
       WEB_PUSH_PUBLIC_KEY.value(),
@@ -4490,23 +4533,15 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
       .slice(0, 140);
     const results = [];
     await Promise.all(
-      recipients.map(async (userId) => {
+      recipients.map(async (userDocument) => {
+        const userId = userDocument.id;
         await db
           .collection("users")
           .doc(userId)
           .collection("targetedSystemNews")
           .doc(event.params.newsId)
-          .set({
-            title,
-            body: String(news.body || ""),
-            attachments: Array.isArray(news.attachments) ? news.attachments : [],
-            author: String(news.author || ""),
-            createdAt: new Date(),
-            important: news.important === true,
-            sourceNewsId: event.params.newsId,
-          });
-        const user =
-          (await db.collection("users").doc(userId).get()).data() || {};
+          .set(targetedSystemNewsCopy(news, event.params.newsId));
+        const user = userDocument.data() || {};
         if (
           news.notificationRequested !== false &&
           user.notificationSettings?.systemNews !== false
@@ -4531,20 +4566,46 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
   },
 );
 
+// 本文や対象条件を編集した時も学生側のコピーを同じ内容・対象へ同期する。
+exports.syncUpdatedTargetedSystemNews = onDocumentUpdated(
+  { document: "targetedSystemNews/{newsId}", region: "asia-northeast1" },
+  async (event) => {
+    const before = event.data?.before.data() || {};
+    const after = event.data?.after.data() || {};
+    if (
+      targetedSystemNewsContentSignature(before) ===
+      targetedSystemNewsContentSignature(after)
+    ) return;
+
+    const users = await db.collection("users").get();
+    await Promise.all(users.docs.map(async (userDocument) => {
+      const destination = userDocument.ref
+        .collection("targetedSystemNews")
+        .doc(event.params.newsId);
+      if (
+        targetedSystemNewsMatchesStudent(
+          after,
+          userDocument.id,
+          userDocument.data() || {},
+        )
+      ) {
+        await destination.set(
+          targetedSystemNewsCopy(after, event.params.newsId),
+          { merge: true },
+        );
+      } else {
+        await destination.delete();
+      }
+    }));
+  },
+);
+
 // 指定先お知らせを削除した時は、学生ごとの受信箱からも表示を消す。
 exports.removeTargetedSystemNewsCopies = onDocumentDeleted(
   { document: "targetedSystemNews/{newsId}", region: "asia-northeast1" },
   async (event) => {
-    const news = event.data?.data() || {};
-    let recipients = Array.isArray(news.targetStudentNumbers)
-      ? news.targetStudentNumbers.map(String) : [];
-    if (!recipients.length) {
-      const excluded = new Set((Array.isArray(news.excludedStudentNumbers)
-        ? news.excludedStudentNumbers : []).map(String));
-      recipients = (await db.collection("users").get()).docs
-        .map((user) => user.id).filter((id) => !excluded.has(id));
-    }
-    await Promise.all(recipients.map((id) => db.collection("users").doc(id)
+    const users = await db.collection("users").get();
+    await Promise.all(users.docs.map((userDocument) => userDocument.ref
       .collection("targetedSystemNews").doc(event.params.newsId).delete()));
   },
 );

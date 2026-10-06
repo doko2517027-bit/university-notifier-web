@@ -163,9 +163,22 @@
 
         <label for="systemNewsRecipientMode"><b>表示・通知する学生</b></label>
         <select id="systemNewsRecipientMode">
+          <option value="all">全学生に送る</option>
+          <option value="grade">学年で送る（後から登録した学生にも表示）</option>
           <option value="only">選んだ学生だけに送る</option>
           <option value="exclude">選んだ学生には送らない</option>
         </select>
+        <div id="systemNewsGradeTarget" hidden>
+          <label for="systemNewsGradeSelect"><b>対象学年</b></label>
+          <select id="systemNewsGradeSelect" multiple size="4">
+            <option value="1">1年生</option>
+            <option value="2">2年生</option>
+            <option value="3">3年生</option>
+            <option value="4">4年生</option>
+          </select>
+          <small>対象学年を複数選択できます。投稿後に新規登録した学生にも表示されます。</small>
+        </div>
+        <div id="systemNewsIndividualTarget" hidden>
         <select
           id="systemNewsRecipientSelect"
           multiple
@@ -175,6 +188,7 @@
         <small
           >登録済み学生を複数選択できます。⌘/Ctrlを押しながら選択してください。</small
         >
+        </div>
         <br />
 
         <label class="setting-row">
@@ -426,6 +440,6 @@
       </a>
     </nav>
 
-    <script type="module" src="system_news_admin.js?v=20261002-3"></script>
+    <script type="module" src="system_news_admin.js?v=20261006-1"></script>
   </body>
 </html>

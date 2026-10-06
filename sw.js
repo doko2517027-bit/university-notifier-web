@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v82";
+const STATIC_CACHE = "caremate-static-v83";
 
-const RUNTIME_CACHE = "caremate-runtime-v82";
+const RUNTIME_CACHE = "caremate-runtime-v83";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -85,7 +85,7 @@ const CORE_ASSETS = [
 
   "news_attachments.mjs",
 
-  "news.js?v=20261002-3",
+  "news.js?v=20261006-1",
 
   "news_rich_text.mjs?v=20261002-1",
 

@@ -1968,6 +1968,34 @@ export async function updateAssignmentNavBadge() {
   }
 }
 
+let targetedSystemNewsSyncPromise = null;
+
+export async function syncTargetedSystemNewsInbox() {
+  if (!studentNumber) return false;
+  const storageKey = `careMateTargetedNewsSync:${studentNumber}`;
+  const lastSyncedAt = Number(sessionStorage.getItem(storageKey) || 0);
+  if (Date.now() - lastSyncedAt < 10 * 60 * 1000) return true;
+  if (targetedSystemNewsSyncPromise) return targetedSystemNewsSyncPromise;
+
+  targetedSystemNewsSyncPromise = httpsCallable(
+    functions,
+    "syncTargetedSystemNewsInbox",
+  )({})
+    .then(() => {
+      sessionStorage.setItem(storageKey, String(Date.now()));
+      return true;
+    })
+    .catch((error) => {
+      // 個別お知らせの回復に失敗しても、ページ本体や既存のお知らせは表示する。
+      console.warn("個別お知らせを同期できませんでした:", error);
+      return false;
+    })
+    .finally(() => {
+      targetedSystemNewsSyncPromise = null;
+    });
+  return targetedSystemNewsSyncPromise;
+}
+
 export async function updateNewsNavBadge() {
   const badge = document.getElementById("newsNavBadge");
 
@@ -1976,6 +2004,7 @@ export async function updateNewsNavBadge() {
   }
 
   try {
+    await syncTargetedSystemNewsInbox();
     const department = localStorage.getItem("department") || "";
 
     const major = localStorage.getItem("major") || "";
@@ -2003,7 +2032,13 @@ export async function updateNewsNavBadge() {
     /*
         4種類を全部同時取得
         */
-    const [readSnapshot, universitySnapshot, courseSnapshot, systemSnapshot] =
+    const [
+      readSnapshot,
+      universitySnapshot,
+      courseSnapshot,
+      systemSnapshot,
+      targetedSystemSnapshot,
+    ] =
       await Promise.all([
         getDocs(collection(db, "users", studentNumber, "readNews")),
 
@@ -2012,6 +2047,8 @@ export async function updateNewsNavBadge() {
         getDocs(collection(db, "courseNews", studentNumber, "news")),
 
         getDocs(collection(db, "systemNews")),
+
+        getDocs(collection(db, "users", studentNumber, "targetedSystemNews")),
       ]);
 
     const readNewsIds = new Set(readSnapshot.docs.map((readDoc) => readDoc.id));
@@ -2035,6 +2072,12 @@ export async function updateNewsNavBadge() {
     });
 
     systemSnapshot.forEach((newsDoc) => {
+      if (!readNewsIds.has(`system_${newsDoc.id}`)) {
+        systemUnreadCount++;
+      }
+    });
+
+    targetedSystemSnapshot.forEach((newsDoc) => {
       if (!readNewsIds.has(`system_${newsDoc.id}`)) {
         systemUnreadCount++;
       }
