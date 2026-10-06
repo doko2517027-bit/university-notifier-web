@@ -24,7 +24,7 @@ import {
   limit,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import { isLeaveActive } from "./academic_lifecycle.mjs";
+import { courseRegistrationAccess } from "./course_registration_access.mjs";
 
 /* ========================================
    HTML要素
@@ -506,22 +506,13 @@ async function loadRegistrationData() {
 
     userData = userSnapshot.data() || {};
 
-    if (!previewMode && (isLeaveActive(userData) || ["graduated", "withdrawn"].includes(userData.academicStatus))) {
-      renderUnavailable(
-        isLeaveActive(userData)
-          ? "休学中は履修登録できません。ホーム画面の「復学」から再開してください。"
-          : "現在の学籍ステータスでは履修登録できません。",
-        isLeaveActive(userData) ? "休学中です" : "履修登録できません",
-      );
-      return;
-    }
+    const access = courseRegistrationAccess(userData, { previewMode });
 
-    if (!previewMode && userData.manabaVerified !== true) {
+    if (!access.allowed) {
       renderUnavailable(
-        "履修登録はmanabaログイン確認が完了している学生のみ利用できます。",
-        "manabaログイン確認が必要です",
+        access.message,
+        access.title,
       );
-
       return;
     }
 
