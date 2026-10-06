@@ -1,5 +1,6 @@
 import { auth, db, studentNumber } from "./common.js";
 import { asDate, buildTodayAutomaticItems, findNextLecture, hasTimeElapsed, manualTodoIsDimmed, todayKey } from "./home_today_model.mjs";
+import { parenthesizedClassGroup } from "./class_group_label.mjs";
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot,
   query, serverTimestamp, setDoc, updateDoc, where,
@@ -54,7 +55,7 @@ function render() {
     const start = nextLecture.startsAt;
     const dayText = start.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
     const prefix = nextLecture.classSelectionRequired ? "次の講義候補（クラス未選択）" : "次の講義";
-    nextLectureLabel.textContent = `${prefix}：${dayText} ${nextLecture.startTime}${nextLecture.endTime ? `–${nextLecture.endTime}` : ""}　${nextLecture.subject}${nextLecture.classGroup ? `（${nextLecture.classGroup}クラス）` : ""}`;
+    nextLectureLabel.textContent = `${prefix}：${dayText} ${nextLecture.startTime}${nextLecture.endTime ? `–${nextLecture.endTime}` : ""}　${nextLecture.subject}${parenthesizedClassGroup(nextLecture.classGroup)}`;
   } else {
     nextLectureLabel.textContent = lectureDays.length ? "次の講義予定はありません" : "次の講義を確認中...";
   }

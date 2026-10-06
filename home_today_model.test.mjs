@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildTodayAutomaticItems, findNextLecture, manualTodoIsDimmed } from "./home_today_model.mjs";
+import { formatClassGroupLabel, normalizeScheduleClassData, parenthesizedClassGroup } from "./class_group_label.mjs";
 
 const now = new Date("2026-09-29T14:00:00+09:00");
 
@@ -50,4 +51,24 @@ test("同じ課題の履歴に提出済み情報があれば重複せず反映�
   });
   assert.equal(items.length, 1);
   assert.equal(items[0].submitted, true);
+});
+
+test("クラス表示は保存形式にかかわらずクラスを1回だけ付ける", () => {
+  assert.equal(formatClassGroupLabel("A"), "Aクラス");
+  assert.equal(formatClassGroupLabel("Aクラス"), "Aクラス");
+  assert.equal(formatClassGroupLabel("Aクラスクラス"), "Aクラス");
+  assert.equal(parenthesizedClassGroup("Bクラス"), "（Bクラス）");
+});
+
+test("科目名末尾のクラス表記を表示用データとして保持する", () => {
+  assert.deepEqual(
+    normalizeScheduleClassData({ subject: "社会福祉論（Aクラス）" }),
+    { subject: "社会福祉論", classGroup: "Aクラス" },
+  );
+  const [item] = buildTodayAutomaticItems({
+    now,
+    lectures: [{ subject: "社会福祉論", period: "3", classGroup: "Aクラス" }],
+  });
+  assert.match(item.detail, /Aクラス/);
+  assert.doesNotMatch(item.detail, /クラスクラス/);
 });

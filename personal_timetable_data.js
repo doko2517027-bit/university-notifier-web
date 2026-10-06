@@ -6,6 +6,7 @@ import {
   getDocs,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { PERIOD_TIMES } from "./attendance_policy.js";
+import { normalizeScheduleClassData } from "./class_group_label.mjs";
 
 export function normalizeCourseName(value) {
   const normalized = String(value || "")
@@ -13,7 +14,7 @@ export function normalizeCourseName(value) {
     .toLowerCase()
     .replace(/[（(]含?日本国憲法[)）]/g, "")
     .replace(/[（(]対面[)）]/g, "")
-    .replace(/[（(][ab]クラス[)）]/g, "")
+    .replace(/[（(][a-z](?:\s*[,、・/／&＆〜～-]\s*[a-z])*\s*クラス[)）]/g, "")
     .replace(/[（(](精神|母子)[)）]/g, "")
     .replace(/[\s　・･]/g, "")
     .replace(/[()（）「」『』]/g, "");
@@ -218,12 +219,13 @@ export async function loadPersonalTimetableData({
     for (const [itemIndex, item] of Array.isArray(day.schedules)
       ? day.schedules.entries()
       : []) {
-      const itemGrade = String(item.grade || "")
+      const normalizedItem = normalizeScheduleClassData(item);
+      const itemGrade = String(normalizedItem.grade || "")
         .normalize("NFKC")
         .replace("年", "")
         .trim();
 
-      const commonEvent = isCommonScheduleEvent(item);
+      const commonEvent = isCommonScheduleEvent(normalizedItem);
 
       // 科目外予定もPDFに記載された対象学年だけへ表示する。
       // 履修登録の有無は問わないが、他学年の予定は混ぜない。
@@ -231,30 +233,30 @@ export async function loadPersonalTimetableData({
         continue;
       }
 
-      const course = findEnrolledCourseForScheduleItem(item, aliasToCourse);
+      const course = findEnrolledCourseForScheduleItem(normalizedItem, aliasToCourse);
 
       if (!course && !(includeCommonEvents && commonEvent)) {
         continue;
       }
 
       const statedPeriod = Number(
-        String(item.period || "").normalize("NFKC").match(/\d+/)?.[0] || 0,
+        String(normalizedItem.period || "").normalize("NFKC").match(/\d+/)?.[0] || 0,
       );
       const period = statedPeriod || Number(
         Object.entries(PERIOD_TIMES).find(
-          ([, times]) => times.startTime === String(item.startTime || "").trim(),
+          ([, times]) => times.startTime === String(normalizedItem.startTime || "").trim(),
         )?.[0] || 0,
       );
       const scheduleItemKey =
         course?.id ||
-        item.id ||
-        item.subjectId ||
-        item.subjectKey ||
-        item.subject ||
+        normalizedItem.id ||
+        normalizedItem.subjectId ||
+        normalizedItem.subjectKey ||
+        normalizedItem.subject ||
         `schedule-${itemIndex + 1}`;
 
       entries.push({
-        entryId: `${scheduleId}_${day.date || day.title || "day"}_${item.period || "0"}_${scheduleItemKey}_${item.classGroup || itemIndex}`,
+        entryId: `${scheduleId}_${day.date || day.title || "day"}_${normalizedItem.period || "0"}_${scheduleItemKey}_${normalizedItem.classGroup || itemIndex}`,
 
         sourceScheduleDocumentId: scheduleId,
 
@@ -266,33 +268,33 @@ export async function loadPersonalTimetableData({
 
         period,
 
-        startTime: item.startTime || PERIOD_TIMES[period]?.startTime || "",
+        startTime: normalizedItem.startTime || PERIOD_TIMES[period]?.startTime || "",
 
-        endTime: item.endTime || PERIOD_TIMES[period]?.endTime || "",
+        endTime: normalizedItem.endTime || PERIOD_TIMES[period]?.endTime || "",
 
-        subjectId: course?.subjectId || course?.id || item.subjectId || item.id || "",
+        subjectId: course?.subjectId || course?.id || normalizedItem.subjectId || normalizedItem.id || "",
 
         subjectKey:
           course?.subjectKey ||
           course?.name ||
           course?.id ||
-          item.subjectKey ||
-          item.subject ||
+          normalizedItem.subjectKey ||
+          normalizedItem.subject ||
           "",
 
-        subject: course?.name || item.subject || "科目名なし",
+        subject: course?.name || normalizedItem.subject || "科目名なし",
 
-        scheduleSubject: item.subject || "",
+        scheduleSubject: normalizedItem.subject || "",
 
-        classGroup: item.classGroup || "",
+        classGroup: normalizedItem.classGroup || "",
 
-        teacher: item.teacher || "",
+        teacher: normalizedItem.teacher || "",
 
-        building: item.building || "",
+        building: normalizedItem.building || "",
 
-        room: item.room || "",
+        room: normalizedItem.room || "",
 
-        isPractical: course?.isPractical === true || item.isPractical === true,
+        isPractical: course?.isPractical === true || normalizedItem.isPractical === true,
 
         isRetake:
           course?.isRetake === true || course?.creditStatus === "not_earned",

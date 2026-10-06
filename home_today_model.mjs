@@ -1,5 +1,6 @@
 import { dateKey, matchesSharedAudience, parsemanabaDeadline } from "./calendar_model.mjs";
 import { PERIOD_TIMES } from "./attendance_policy.js";
+import { formatClassGroupLabel } from "./class_group_label.mjs";
 
 export function asDate(value) {
   const date = value?.toDate?.() || (value ? new Date(value) : null);
@@ -80,7 +81,7 @@ export function buildTodayAutomaticItems({ assignments = [], archivedAssignments
     const { startTime, endTime } = lectureTimes(lecture);
     const period = String(lecture.period || "").trim();
     const periodText = period ? (period.includes("限") ? period : `${period}限`) : "";
-    items.push({ kind: "lecture", title, detail: [periodText, startTime && endTime ? `${startTime}–${endTime}` : startTime, lecture.classSelectionRequired ? "クラス未選択" : lecture.classGroup ? `${lecture.classGroup}クラス` : ""].filter(Boolean).join("・"), endAt: /^\d{1,2}:\d{2}$/.test(endTime) ? `${day}T${endTime}:00` : null, sortAt: startTime ? `${day}T${startTime}:00` : null });
+    items.push({ kind: "lecture", title, detail: [periodText, startTime && endTime ? `${startTime}–${endTime}` : startTime, lecture.classSelectionRequired ? "クラス未選択" : formatClassGroupLabel(lecture.classGroup)].filter(Boolean).join("・"), endAt: /^\d{1,2}:\d{2}$/.test(endTime) ? `${day}T${endTime}:00` : null, sortAt: startTime ? `${day}T${startTime}:00` : null });
   }
   return items.sort((left, right) => (asDate(left.sortAt)?.getTime() || 0) - (asDate(right.sortAt)?.getTime() || 0));
 }

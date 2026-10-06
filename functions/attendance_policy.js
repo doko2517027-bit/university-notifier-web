@@ -32,7 +32,7 @@ function normalizeCourseName(value) {
     .toLowerCase()
     .replace(/[（(]含?日本国憲法[)）]/g, "")
     .replace(/[（(]対面[)）]/g, "")
-    .replace(/[（(][ab]クラス[)）]/g, "")
+    .replace(/[（(][a-z](?:\s*[,、・/／&＆〜～-]\s*[a-z])*\s*クラス[)）]/g, "")
     .replace(/[\s　・･()（）「」『』]/g, "");
 }
 

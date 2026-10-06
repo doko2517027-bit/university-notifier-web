@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   normalizeGrade,
+  normalizeCourseName,
   attendanceNotificationType,
   canRetryAttendanceDispatch,
   effectiveClassSelections,
@@ -12,6 +13,14 @@ test("公式時間割の全角学年と学生の半角学年を同じ学年と�
   assert.equal(normalizeGrade("２年"), normalizeGrade("2年"));
   assert.equal(normalizeGrade("２年"), "2");
   assert.notEqual(normalizeGrade("４年"), normalizeGrade("2年"));
+});
+
+test("単一・複数クラス表記を科目照合から除外して表示対象を失わない", () => {
+  const expected = normalizeCourseName("社会福祉論");
+  assert.equal(normalizeCourseName("社会福祉論（Aクラス）"), expected);
+  assert.equal(normalizeCourseName("社会福祉論（Bクラス）"), expected);
+  assert.equal(normalizeCourseName("社会福祉論（A,Bクラス）"), expected);
+  assert.equal(normalizeCourseName("社会福祉論（A・Bクラス）"), expected);
 });
 
 test("クラス選択の更新前データは今日以降だけ再選択し、過去を残す", () => {

@@ -26,7 +26,7 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   isCommonScheduleEvent,
-} from "./personal_timetable_data.js?v=20260929-3";
+} from "./personal_timetable_data.js?v=20260929-4";
 
 import {
   setupClassSelection,
@@ -35,7 +35,8 @@ import {
   applyClassSelections,
   effectiveClassSelections,
 } from "./class_selection.js?v=20260929-4";
-import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-2";
+import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-3";
+import { formatClassGroupLabel, normalizeScheduleClassData } from "./class_group_label.mjs";
 
 import {
   doc,
@@ -1631,7 +1632,7 @@ async function loadTodaySchedule(userData = null) {
                 isCommonScheduleEvent(item),
             )
             .map((item) => ({
-              ...item,
+              ...normalizeScheduleClassData(item),
               date: day.date || "",
             }))
         : [],
@@ -1647,7 +1648,7 @@ async function loadTodaySchedule(userData = null) {
           (item) =>
             isEnrolledScheduleItem(item, enrolledAliases) ||
             isCommonScheduleEvent(item),
-        ),
+        ).map(normalizeScheduleClassData),
       },
       {
         date: "",
@@ -1657,7 +1658,7 @@ async function loadTodaySchedule(userData = null) {
           (item) =>
             isEnrolledScheduleItem(item, enrolledAliases) ||
             isCommonScheduleEvent(item),
-        ),
+        ).map(normalizeScheduleClassData),
       },
     ];
   }
@@ -2168,7 +2169,7 @@ function buildScheduleHtml(schedules, grade) {
                                 : item.classGroup
                                 ? `
                                         <span class="lesson-class-group">
-                                            ${item.classGroup}
+                                            ${formatClassGroupLabel(item.classGroup)}
                                         </span>
                                     `
                                 : ""
