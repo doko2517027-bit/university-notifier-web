@@ -37,6 +37,7 @@ import {
 } from "./class_selection.js?v=20260929-4";
 import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-3";
 import { formatClassGroupLabel, normalizeScheduleClassData } from "./class_group_label.mjs";
+import { resolveCourseLink } from "./course_link_resolver.mjs";
 
 import {
   doc,
@@ -2232,7 +2233,7 @@ async function openCourse(subject) {
   console.log("時間割の科目:", subject);
   console.log("Firestore:", courses);
 
-  const url = courses[subject];
+  const url = resolveCourseLink(courses, subject);
 
   if (!url) {
     alert("この授業のmanabaリンクはありません。");
