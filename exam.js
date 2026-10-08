@@ -1449,6 +1449,7 @@ function renderSubjectList() {
   const selectedGroup = groupedItems.find((group) => group.id === selectedGroupId);
   const selectedItems = selectedGroup?.items || [];
   elements.catalogHeading.textContent = selectedGroup?.name || getGroupName(selectedGroupId);
+  elements.totalSubjectCount.textContent = `${selectedItems.length}科目`;
   elements.visibleSubjectCount.textContent = `${selectedItems.length}科目を表示`;
   elements.subjectUnitList.innerHTML = selectedGroup
     ? createGroupHtml(selectedGroup.id, selectedItems, keyword !== "")
