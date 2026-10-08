@@ -179,15 +179,17 @@
           <small>対象学年を複数選択できます。投稿後に新規登録した学生にも表示されます。</small>
         </div>
         <div id="systemNewsIndividualTarget" hidden>
-        <select
-          id="systemNewsRecipientSelect"
-          multiple
-          size="8"
-          aria-label="登録済み学生を複数選択"
-        ></select>
-        <small
-          >登録済み学生を複数選択できます。⌘/Ctrlを押しながら選択してください。</small
-        >
+          <div class="system-news-recipient-heading">
+            <b>学生を選択</b>
+            <span id="systemNewsRecipientCount" class="system-news-recipient-count">0人選択</span>
+          </div>
+          <div
+            id="systemNewsRecipientChecklist"
+            class="system-news-recipient-checklist"
+            role="group"
+            aria-label="登録済み学生を選択"
+          ></div>
+          <small>学生ごとのチェックボックスで複数選択できます。</small>
         </div>
         <br />
 
@@ -346,6 +348,47 @@
           <input id="editSystemNewsImportant" type="checkbox" />
         </label>
 
+        <div class="system-news-edit-audience">
+          <label for="editSystemNewsRecipientMode"><b>表示する学生</b></label>
+          <select id="editSystemNewsRecipientMode">
+            <option value="all">全学生に表示</option>
+            <option value="grade">学年で絞り込む</option>
+            <option value="only">選んだ学生だけに表示</option>
+            <option value="exclude">選んだ学生には表示しない</option>
+          </select>
+
+          <div id="editSystemNewsGradeTarget" hidden>
+            <label for="editSystemNewsGradeSelect"><b>対象学年</b></label>
+            <select id="editSystemNewsGradeSelect" multiple size="4">
+              <option value="1">1年生</option>
+              <option value="2">2年生</option>
+              <option value="3">3年生</option>
+              <option value="4">4年生</option>
+            </select>
+          </div>
+
+          <div id="editSystemNewsIndividualTarget" hidden>
+            <div class="system-news-recipient-heading">
+              <b>学生を選択</b>
+              <span id="editSystemNewsRecipientCount" class="system-news-recipient-count">0人選択</span>
+            </div>
+            <div
+              id="editSystemNewsRecipientChecklist"
+              class="system-news-recipient-checklist"
+              role="group"
+              aria-label="編集後の表示対象学生を選択"
+            ></div>
+          </div>
+        </div>
+
+        <label class="setting-row">
+          <span>
+            <b>🔔 編集内容を通知する</b><br />
+            <small>チェックを外すと、表示内容だけ更新して通知は送りません。</small>
+          </span>
+          <input id="editSystemNewsNotification" type="checkbox" />
+        </label>
+
         <div class="admin-modal-actions">
           <button id="cancelSystemNewsEdit" type="button" class="btn">
             キャンセル
@@ -440,6 +483,6 @@
       </a>
     </nav>
 
-    <script type="module" src="system_news_admin.js?v=20261008-1"></script>
+    <script type="module" src="system_news_admin.js?v=20261008-2"></script>
   </body>
 </html>

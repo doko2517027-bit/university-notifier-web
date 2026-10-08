@@ -101,14 +101,43 @@ const systemNewsImportant = document.getElementById("systemNewsImportant");
 const systemNewsRecipientMode = document.getElementById(
   "systemNewsRecipientMode",
 );
-const systemNewsRecipientSelect = document.getElementById(
-  "systemNewsRecipientSelect",
+const systemNewsRecipientChecklist = document.getElementById(
+  "systemNewsRecipientChecklist",
 );
+const systemNewsRecipientCount = document.getElementById("systemNewsRecipientCount");
 const systemNewsGradeTarget = document.getElementById("systemNewsGradeTarget");
 const systemNewsGradeSelect = document.getElementById("systemNewsGradeSelect");
 const systemNewsIndividualTarget = document.getElementById(
   "systemNewsIndividualTarget",
 );
+
+let newsRecipientUsers = [];
+
+function selectedStudentNumbers(container) {
+  return [...(container?.querySelectorAll('input[data-student-number]:checked') || [])]
+    .map((input) => String(input.dataset.studentNumber || ""))
+    .filter((value) => /^\d{7}$/.test(value));
+}
+
+function updateRecipientCount(container, counter) {
+  if (counter) counter.textContent = `${selectedStudentNumbers(container).length}人選択`;
+}
+
+function renderRecipientChecklist(container, counter, users, selected = []) {
+  if (!container) return;
+  const selectedSet = new Set(selected);
+  container.innerHTML = users.length
+    ? users.map((user) => {
+        const name = escapeHtml(String(user.publicProfile?.name || user.name || "氏名未設定"));
+        const grade = escapeHtml(formatAcademicGrade(user.grade));
+        return `<label class="system-news-recipient-option">
+          <input type="checkbox" data-student-number="${user.id}" ${selectedSet.has(user.id) ? "checked" : ""} />
+          <span><strong>${user.id}　${name}</strong><small>${grade}</small></span>
+        </label>`;
+      }).join("")
+    : '<div class="system-news-recipient-empty">登録済み学生がいません</div>';
+  updateRecipientCount(container, counter);
+}
 
 function updateRecipientControls() {
   const mode = systemNewsRecipientMode?.value || "all";
@@ -119,7 +148,7 @@ function updateRecipientControls() {
 }
 
 async function loadNewsRecipients() {
-  if (!systemNewsRecipientSelect) return;
+  if (!systemNewsRecipientChecklist) return;
   const [userSnapshot, publicSnapshot] = await Promise.all([
     getDocs(collection(db, "users")),
     getDocs(collection(db, "publicUsers")),
@@ -127,7 +156,7 @@ async function loadNewsRecipients() {
   const publicUsers = new Map(
     publicSnapshot.docs.map((item) => [item.id, item.data() || {}]),
   );
-  const users = userSnapshot.docs
+  newsRecipientUsers = userSnapshot.docs
     .map((item) => ({
       id: item.id,
       ...item.data(),
@@ -135,13 +164,11 @@ async function loadNewsRecipients() {
     }))
     .filter((item) => /^\d{7}$/.test(item.id))
     .sort((a, b) => a.id.localeCompare(b.id));
-  systemNewsRecipientSelect.innerHTML =
-    users
-      .map(
-        (user) =>
-          `<option value="${user.id}">${user.id}　${escapeHtml(String(user.publicProfile.name || user.name || "氏名未設定"))}（${escapeHtml(formatAcademicGrade(user.grade))}）</option>`,
-      )
-      .join("") || "<option disabled>登録済み学生がいません</option>";
+  renderRecipientChecklist(
+    systemNewsRecipientChecklist,
+    systemNewsRecipientCount,
+    newsRecipientUsers,
+  );
 }
 
 const postSystemNews = document.getElementById("postSystemNews");
@@ -174,6 +201,21 @@ const editSystemNewsPreviewBody = document.getElementById("editSystemNewsPreview
 const editSystemNewsImportant = document.getElementById(
   "editSystemNewsImportant",
 );
+const editSystemNewsRecipientMode = document.getElementById("editSystemNewsRecipientMode");
+const editSystemNewsGradeTarget = document.getElementById("editSystemNewsGradeTarget");
+const editSystemNewsGradeSelect = document.getElementById("editSystemNewsGradeSelect");
+const editSystemNewsIndividualTarget = document.getElementById("editSystemNewsIndividualTarget");
+const editSystemNewsRecipientChecklist = document.getElementById("editSystemNewsRecipientChecklist");
+const editSystemNewsRecipientCount = document.getElementById("editSystemNewsRecipientCount");
+const editSystemNewsNotification = document.getElementById("editSystemNewsNotification");
+
+function updateEditRecipientControls() {
+  const mode = editSystemNewsRecipientMode?.value || "all";
+  if (editSystemNewsGradeTarget) editSystemNewsGradeTarget.hidden = mode !== "grade";
+  if (editSystemNewsIndividualTarget) {
+    editSystemNewsIndividualTarget.hidden = !["only", "exclude"].includes(mode);
+  }
+}
 
 const cancelSystemNewsEdit = document.getElementById("cancelSystemNewsEdit");
 
@@ -321,7 +363,7 @@ await initializePage([
   updateNewsNavBadge(),
 ]);
 
-loadNewsRecipients().catch((error) =>
+await loadNewsRecipients().catch((error) =>
   console.error("お知らせ対象学生取得エラー:", error),
 );
 
@@ -434,6 +476,13 @@ function setupEvents() {
       : "";
   });
   systemNewsRecipientMode?.addEventListener("change", updateRecipientControls);
+  systemNewsRecipientChecklist?.addEventListener("change", () => {
+    updateRecipientCount(systemNewsRecipientChecklist, systemNewsRecipientCount);
+  });
+  editSystemNewsRecipientMode?.addEventListener("change", updateEditRecipientControls);
+  editSystemNewsRecipientChecklist?.addEventListener("change", () => {
+    updateRecipientCount(editSystemNewsRecipientChecklist, editSystemNewsRecipientCount);
+  });
 
   if (postSystemNews) {
     postSystemNews.onclick = postNews;
@@ -548,13 +597,7 @@ async function postNews() {
 
   const shouldNotify = sendSystemNewsNotification?.checked !== false;
 
-  const recipients = [
-    ...new Set(
-      [...(systemNewsRecipientSelect?.selectedOptions || [])].map(
-        (option) => option.value,
-      ),
-    ),
-  ];
+  const recipients = [...new Set(selectedStudentNumbers(systemNewsRecipientChecklist))];
   const recipientMode = systemNewsRecipientMode?.value || "all";
   const targetGrades = [
     ...new Set(
@@ -650,6 +693,10 @@ async function postNews() {
     if (sendSystemNewsNotification) {
       sendSystemNewsNotification.checked = true;
     }
+    systemNewsRecipientChecklist
+      ?.querySelectorAll('input[data-student-number]')
+      .forEach((input) => { input.checked = false; });
+    updateRecipientCount(systemNewsRecipientChecklist, systemNewsRecipientCount);
 
     updatePostForm();
 
@@ -929,6 +976,33 @@ function openEditModal(newsId, sourceCollection = "systemNews") {
   if (editSystemNewsImportant) {
     editSystemNewsImportant.checked = news.important === true;
   }
+  const audienceMode = sourceCollection === "systemNews"
+    ? "all"
+    : String(news.audienceMode || (
+        Array.isArray(news.targetGrades) && news.targetGrades.length
+          ? "grade"
+          : Array.isArray(news.targetStudentNumbers) && news.targetStudentNumbers.length
+            ? "only"
+            : "exclude"
+      ));
+  if (editSystemNewsRecipientMode) editSystemNewsRecipientMode.value = audienceMode;
+  if (editSystemNewsGradeSelect) {
+    const selectedGrades = new Set((news.targetGrades || []).map(String));
+    [...editSystemNewsGradeSelect.options].forEach((option) => {
+      option.selected = selectedGrades.has(option.value);
+    });
+  }
+  const selectedStudents = audienceMode === "exclude"
+    ? news.excludedStudentNumbers || []
+    : news.targetStudentNumbers || [];
+  renderRecipientChecklist(
+    editSystemNewsRecipientChecklist,
+    editSystemNewsRecipientCount,
+    newsRecipientUsers,
+    selectedStudents,
+  );
+  if (editSystemNewsNotification) editSystemNewsNotification.checked = false;
+  updateEditRecipientControls();
   updateRichNewsPreview(
     editSystemNewsBodyEditor,
     editSystemNewsBody,
@@ -962,6 +1036,27 @@ async function saveEditedNews() {
     return;
   }
 
+  const recipientMode = editSystemNewsRecipientMode?.value || "all";
+  const recipients = [...new Set(selectedStudentNumbers(editSystemNewsRecipientChecklist))];
+  const targetGrades = [...new Set(
+    [...(editSystemNewsGradeSelect?.selectedOptions || [])].map((option) => option.value),
+  )];
+  if (recipientMode === "grade" && targetGrades.length === 0) {
+    alert("表示する学年を選んでください。");
+    return;
+  }
+  if (recipientMode === "only" && recipients.length === 0) {
+    alert("表示する学生を選んでください。");
+    return;
+  }
+  const shouldNotify = editSystemNewsNotification?.checked === true;
+  const destinationCollection = recipientMode === "all"
+    ? "systemNews"
+    : "targetedSystemNews";
+  const currentNews = systemNewsItems.find(
+    (item) => item.id === newsId && (item.sourceCollection || "systemNews") === sourceCollection,
+  );
+
   if (saveSystemNewsEdit) {
     saveSystemNewsEdit.disabled = true;
 
@@ -969,18 +1064,37 @@ async function saveEditedNews() {
   }
 
   try {
-    await updateDoc(doc(db, sourceCollection, newsId), {
+    const editNotificationRequestedAt = shouldNotify ? serverTimestamp() : null;
+    const updatedNews = {
+      ...(currentNews || {}),
       title,
       body,
       bodyHtml,
-
       important: editSystemNewsImportant?.checked === true,
       format: { richText: true, version: 1 },
-
       updatedAt: serverTimestamp(),
-
       updatedBy: studentNumber || "",
-    });
+      audienceMode: recipientMode,
+      targetStudentNumbers: recipientMode === "only" ? recipients : [],
+      excludedStudentNumbers: recipientMode === "exclude" ? recipients : [],
+      targetGrades: recipientMode === "grade" ? targetGrades : [],
+      notifyTarget: shouldNotify
+        ? destinationCollection === "systemNews" ? "allUsers" : "selectedUsers"
+        : "none",
+      notificationRequested: shouldNotify,
+      notificationSentAt: shouldNotify ? null : currentNews?.notificationSentAt || null,
+      notificationResults: shouldNotify ? [] : currentNews?.notificationResults || [],
+      editNotificationRequestedAt,
+    };
+    delete updatedNews.id;
+    delete updatedNews.sourceCollection;
+
+    if (destinationCollection === sourceCollection) {
+      await updateDoc(doc(db, sourceCollection, newsId), updatedNews);
+    } else {
+      await setDoc(doc(db, destinationCollection, newsId), updatedNews);
+      await deleteDoc(doc(db, sourceCollection, newsId));
+    }
 
     closeModal(editSystemNewsModal);
 

@@ -57,6 +57,7 @@ const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
 const {
   targetedSystemNewsMatchesStudent,
+  targetedSystemNewsPredatesRegistration,
   targetedSystemNewsCopy,
   targetedSystemNewsContentSignature,
 } = require("./system_news_audience.js");
@@ -4465,7 +4466,10 @@ async function syncTargetedSystemNewsForStudent(studentNumber, user = null) {
 
   newsSnapshot.docs.forEach((newsDocument) => {
     const news = newsDocument.data() || {};
-    if (!targetedSystemNewsMatchesStudent(news, studentNumber, userData)) return;
+    if (
+      !targetedSystemNewsMatchesStudent(news, studentNumber, userData) &&
+      !targetedSystemNewsPredatesRegistration(news, userData)
+    ) return;
     matchedIds.add(newsDocument.id);
     if (!existingIds.has(newsDocument.id)) {
       writes.push(
@@ -4568,35 +4572,81 @@ exports.deliverTargetedSystemNews = onDocumentCreated(
 
 // 本文や対象条件を編集した時も学生側のコピーを同じ内容・対象へ同期する。
 exports.syncUpdatedTargetedSystemNews = onDocumentUpdated(
-  { document: "targetedSystemNews/{newsId}", region: "asia-northeast1" },
+  {
+    document: "targetedSystemNews/{newsId}",
+    region: "asia-northeast1",
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
+  },
   async (event) => {
     const before = event.data?.before.data() || {};
     const after = event.data?.after.data() || {};
-    if (
+    const contentUnchanged =
       targetedSystemNewsContentSignature(before) ===
-      targetedSystemNewsContentSignature(after)
-    ) return;
+      targetedSystemNewsContentSignature(after);
+    const editNotificationRequested =
+      timestampMillis(after.editNotificationRequestedAt) > 0 &&
+      timestampMillis(after.editNotificationRequestedAt) !==
+        timestampMillis(before.editNotificationRequestedAt) &&
+      after.notificationRequested !== false;
+    if (contentUnchanged && !editNotificationRequested) return;
 
     const users = await db.collection("users").get();
+    const recipients = [];
     await Promise.all(users.docs.map(async (userDocument) => {
       const destination = userDocument.ref
         .collection("targetedSystemNews")
         .doc(event.params.newsId);
+      const userData = userDocument.data() || {};
       if (
         targetedSystemNewsMatchesStudent(
           after,
           userDocument.id,
-          userDocument.data() || {},
-        )
+          userData,
+        ) || targetedSystemNewsPredatesRegistration(after, userData)
       ) {
         await destination.set(
           targetedSystemNewsCopy(after, event.params.newsId),
           { merge: true },
         );
+        if (targetedSystemNewsMatchesStudent(after, userDocument.id, userData)) {
+          recipients.push(userDocument);
+        }
       } else {
         await destination.delete();
       }
     }));
+
+    if (editNotificationRequested) {
+      webpush.setVapidDetails(
+        "mailto:kidokohei.shonaniryo2517027@gmail.com",
+        WEB_PUSH_PUBLIC_KEY.value(),
+        WEB_PUSH_PRIVATE_KEY.value(),
+      );
+      const title = String(after.title || "CareMateからのお知らせ").trim();
+      const body = String(after.body || "").replace(/\s+/g, " ").trim().slice(0, 140);
+      const results = [];
+      for (const userDocument of recipients) {
+        const userData = userDocument.data() || {};
+        if (userData.notificationSettings?.systemNews === false) {
+          results.push({ studentNumber: userDocument.id, result: "skipped" });
+          continue;
+        }
+        results.push({
+          studentNumber: userDocument.id,
+          results: await sendToUserDevices(userDocument.id, {
+            title: `💙 更新：${title}`,
+            body: body || "CareMateのお知らせが更新されました。",
+            url: `${SITE_URL}/news.html?systemNews=${encodeURIComponent(event.params.newsId)}`,
+            tag: `targeted-system-news-update-${event.params.newsId}`,
+          }),
+        });
+      }
+      await event.data.after.ref.update({
+        lastEditNotificationSentAt: new Date(),
+        lastEditNotificationResults: results,
+        notificationSource: "firebase",
+      });
+    }
   },
 );
 

@@ -32,3 +32,24 @@ test("個別お知らせの装飾本文と編集内容も学生用受信箱へ�
   assert.match(functionsJs, /targetedSystemNewsCopy/);
   assert.match(functionsJs, /syncUpdatedTargetedSystemNews/);
 });
+
+test("投稿先の学生選択はチェックボックスと選択人数で表示する", () => {
+  assert.match(adminHtml, /id="systemNewsRecipientChecklist"/);
+  assert.match(adminHtml, /id="systemNewsRecipientCount"/);
+  assert.match(adminJs, /input\[data-student-number\]:checked/);
+  assert.doesNotMatch(adminHtml, /id="systemNewsRecipientSelect"/);
+});
+
+test("編集画面から対象学生と通知有無を変更できる", () => {
+  assert.match(adminHtml, /id="editSystemNewsRecipientMode"/);
+  assert.match(adminHtml, /id="editSystemNewsRecipientChecklist"/);
+  assert.match(adminHtml, /id="editSystemNewsNotification"/);
+  assert.match(adminJs, /destinationCollection === sourceCollection/);
+  assert.match(adminJs, /editNotificationRequestedAt/);
+  assert.match(functionsJs, /targeted-system-news-update-/);
+});
+
+test("新規登録前からあるCareMateお知らせを初回受信箱へ同期する", () => {
+  assert.match(functionsJs, /targetedSystemNewsPredatesRegistration/);
+  assert.match(functionsJs, /syncTargetedSystemNewsForStudent/);
+});

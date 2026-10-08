@@ -12,6 +12,17 @@ function normalizedList(values, normalizer = (value) => String(value || "").trim
   return [...new Set((Array.isArray(values) ? values : []).map(normalizer).filter(Boolean))];
 }
 
+function timestampMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  if (typeof value === "object" && Number.isFinite(value._seconds)) {
+    return value._seconds * 1000;
+  }
+  const parsed = value instanceof Date ? value.getTime() : Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function targetedSystemNewsMatchesStudent(news = {}, studentNumber, user = {}) {
   const normalizedStudentNumber = normalizeStudentNumber(studentNumber);
   if (!normalizedStudentNumber) return false;
@@ -35,6 +46,15 @@ function targetedSystemNewsMatchesStudent(news = {}, studentNumber, user = {}) {
   }
 
   return !excludedStudentNumbers.has(normalizedStudentNumber);
+}
+
+// 登録前から存在していたCareMateのお知らせは、新規登録者の初回受信箱にも表示する。
+function targetedSystemNewsPredatesRegistration(news = {}, user = {}) {
+  const newsCreatedAt = timestampMillis(news.createdAt);
+  const registeredAt = timestampMillis(
+    user.studentPageVerifiedAt || user.registeredAt || user.createdAt,
+  );
+  return newsCreatedAt > 0 && registeredAt > 0 && newsCreatedAt <= registeredAt;
 }
 
 function targetedSystemNewsCopy(news = {}, newsId = "") {
@@ -71,6 +91,7 @@ function targetedSystemNewsContentSignature(news = {}) {
 module.exports = {
   normalizeGrade,
   targetedSystemNewsMatchesStudent,
+  targetedSystemNewsPredatesRegistration,
   targetedSystemNewsCopy,
   targetedSystemNewsContentSignature,
 };

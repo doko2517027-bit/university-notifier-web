@@ -4247,6 +4247,115 @@ input[type="checkbox"] {
     text-align: right;
 }
 
+.system-news-recipient-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 8px;
+}
+
+.system-news-recipient-count {
+    display: inline-flex;
+    min-width: 78px;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.system-news-recipient-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    margin-bottom: 7px;
+    padding: 10px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary) 3%, var(--bg));
+}
+
+.system-news-recipient-option {
+    display: flex;
+    min-width: 0;
+    min-height: 50px;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.system-news-recipient-option:has(input:checked) {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.system-news-recipient-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+.system-news-recipient-option span,
+.system-news-recipient-option strong,
+.system-news-recipient-option small {
+    display: block;
+    min-width: 0;
+}
+
+.system-news-recipient-option strong {
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.system-news-recipient-option small {
+    margin-top: 2px;
+    color: var(--subtext);
+    font-size: 11px;
+}
+
+.system-news-recipient-empty {
+    grid-column: 1 / -1;
+    padding: 20px;
+    color: var(--subtext);
+    text-align: center;
+}
+
+.system-news-edit-audience {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary) 4%, var(--card));
+}
+
+.system-news-edit-audience > label {
+    display: block;
+    margin-bottom: 7px;
+}
+
+.system-news-edit-audience select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 #postSystemNews,
 .system-news-edit-modal #saveSystemNewsEdit {
     display: inline-flex;
@@ -4432,9 +4541,16 @@ input[type="checkbox"] {
 ======================================== */
 
 .system-news-edit-modal {
-    width: min(560px, 100%);
+    width: min(720px, 100%);
     max-height: calc(100vh - 40px);
     overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+    .system-news-recipient-checklist {
+        grid-template-columns: 1fr;
+        max-height: 260px;
+    }
 }
 
 .system-news-edit-modal > label {
