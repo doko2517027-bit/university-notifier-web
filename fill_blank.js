@@ -21,6 +21,12 @@ import {
   setupStudyTools,
   refreshTotalPoints,
 } from "./study_tools.js";
+import {
+  startStudyTimer,
+  stopExamStudyTimer,
+  markQuestionShown,
+  recordQuestionAttempt,
+} from "./study_tracking.js?v=20261009-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -33,13 +39,15 @@ let visibleFillBlank = [];
 let currentFillIndex = 0;
 let fillCompleted = false;
 let subjectName = "科目";
+let unitName = "単元";
 let sessionPoints = 0;
 let fillSession = null;
 let sourceFillBlank = [];
 
 setupTheme(themeButton);
 
-document.getElementById("backButton").onclick = () => {
+document.getElementById("backButton").onclick = async () => {
+  await stopExamStudyTimer("left-exam-page");
   history.back();
 };
 
@@ -55,8 +63,8 @@ async function loadQuestions() {
     return;
   }
 
-  const snap = await getDoc(
-    doc(
+  const [snap, subjectSnap, unitSnap] = await Promise.all([
+    getDoc(doc(
       db,
       "examSubjects",
       subjectId,
@@ -64,15 +72,17 @@ async function loadQuestions() {
       unitId,
       "publishedQuestions",
       "published",
-    ),
-  );
-  const subjectSnap = await getDoc(doc(db, "examSubjects", subjectId));
+    )),
+    getDoc(doc(db, "examSubjects", subjectId)),
+    getDoc(doc(db, "examSubjects", subjectId, "units", unitId)),
+  ]);
   if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
     questions.textContent = "この問題は公開されていません。";
     return;
   }
   subjectName =
     subjectSnap.data()?.name || subjectSnap.data()?.subjectName || subjectId;
+  unitName = unitSnap.data()?.name || unitSnap.data()?.unitName || unitId;
 
   if (!snap.exists()) {
     questions.innerHTML = "AI問題がありません。";
@@ -93,10 +103,11 @@ async function loadQuestions() {
         q.answers.some((answer) => String(answer).trim() !== "")) ||
         String(q.answer || "").trim() !== ""),
   );
+  const reviewIds = new Set(String(params.get("reviewIds") || "").split(",").filter(Boolean));
   sourceFillBlank = fillBlank.map((question, index) => ({
     ...question,
     _sessionId: String(question.id ?? `fill-${index}`),
-  }));
+  })).filter((question) => !reviewIds.size || reviewIds.has(question._sessionId));
 
   if (!sourceFillBlank.length) {
     questions.textContent = "AI問題がありません。";
@@ -112,6 +123,7 @@ async function loadQuestions() {
   );
   applyFillSession();
   renderFillQuestion();
+  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
 
   sessionStorage.setItem("quizPlaying", "true");
 }
@@ -187,6 +199,7 @@ function renderQuestionImage(question) {
 }
 
 function renderFillQuestion() {
+  markQuestionShown();
   const q = visibleFillBlank[currentFillIndex];
   const answers =
     q.answers && q.answers.length > 0 ? q.answers : [q.answer || ""];
@@ -273,6 +286,7 @@ document.addEventListener("click", async (e) => {
     } else {
       fillCompleted = true;
       sessionStorage.removeItem("quizPlaying");
+      await stopExamStudyTimer("exam-completed");
       await saveTestProgress(
         "fillBlank",
         subjectId,
@@ -336,6 +350,19 @@ document.addEventListener("click", async (e) => {
   const allCorrect =
     correctAnswers.length === userAnswers.length &&
     correctAnswers.every((answer) => userAnswers.includes(answer));
+  const activeQuestion = visibleFillBlank[currentFillIndex];
+  await recordQuestionAttempt({
+    type: "fillBlank",
+    subjectId,
+    subjectName,
+    unitId,
+    unitName,
+    questionId: String(activeQuestion._sessionId),
+    question: activeQuestion.question,
+    correctAnswer: correctAnswers,
+    selectedAnswer: userAnswers,
+    correct: allCorrect,
+  });
 
   card.dataset.finished = "true";
   card

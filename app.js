@@ -209,6 +209,7 @@ const themeButton = document.getElementById("themeButton");
 const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
+const studyAnalyticsCard = document.getElementById("studyAnalyticsCard");
 const pushNotificationSetupCard = document.getElementById("pushNotificationSetupCard");
 const pushNotificationGuideModal = document.getElementById("pushNotificationGuideModal");
 const closePushNotificationGuide = document.getElementById("closePushNotificationGuide");
@@ -220,6 +221,10 @@ const pushNotificationGuideStatus = document.getElementById("pushNotificationGui
 let courses = {};
 
 let currentHomeUser = null;
+
+studyAnalyticsCard?.addEventListener("click", () => {
+  location.href = "study_analytics.html";
+});
 let homeClassSelectionDate = "";
 
 let lectureSchedules = [];

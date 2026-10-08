@@ -151,6 +151,26 @@ service cloud.firestore {
 
       }
 
+      /* 自己学習・学習分析。本人以外の学生や未認証アクセスを拒否する。 */
+      match /studySessions/{sessionId} {
+        allow read, create, update, delete: if isUserOwner();
+      }
+
+      /* 問題の解答履歴は追記専用。通常の学習時間編集から採点結果を変更させない。 */
+      match /questionAttempts/{attemptId} {
+        allow read, create: if isUserOwner();
+        allow update, delete: if false;
+      }
+
+      /* 複数端末で同時に学習時間を二重計上しないための現在状態。 */
+      match /studyState/{stateId} {
+        allow read, create, update, delete: if isUserOwner();
+      }
+
+      match /studyGoals/{goalId} {
+        allow read, create, update, delete: if isUserOwner();
+      }
+
 
       /* 科目別ポイント */
 

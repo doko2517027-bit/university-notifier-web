@@ -17,6 +17,12 @@ import {
   setupStudyTools,
   refreshTotalPoints,
 } from "./study_tools.js";
+import {
+  startStudyTimer,
+  stopExamStudyTimer,
+  markQuestionShown,
+  recordQuestionAttempt,
+} from "./study_tracking.js?v=20261009-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -26,6 +32,7 @@ const subjectId = params.get("subjectId");
 const unitId = params.get("unitId");
 let visibleDailyQuestion = null;
 let subjectName = "科目";
+let unitName = "単元";
 let dailyQuestionSeed = 0;
 let forceLeavePage = false;
 
@@ -33,11 +40,12 @@ setupTheme(themeButton);
 
 await initializePage([loadProfileImage(topProfileImage), loadDailyQuestion()]);
 
-document.getElementById("backButton").onclick = () => {
+document.getElementById("backButton").onclick = async () => {
   forceLeavePage = true;
 
   sessionStorage.removeItem("quizPlaying");
 
+  await stopExamStudyTimer("left-exam-page");
   location.href = "exam.html";
 };
 
@@ -91,8 +99,8 @@ async function loadDailyQuestion() {
     return;
   }
 
-  const snap = await getDoc(
-    doc(
+  const [snap, subjectSnap, unitSnap] = await Promise.all([
+    getDoc(doc(
       db,
       "examSubjects",
       subjectId,
@@ -100,15 +108,17 @@ async function loadDailyQuestion() {
       unitId,
       "publishedQuestions",
       "published",
-    ),
-  );
-  const subjectSnap = await getDoc(doc(db, "examSubjects", subjectId));
+    )),
+    getDoc(doc(db, "examSubjects", subjectId)),
+    getDoc(doc(db, "examSubjects", subjectId, "units", unitId)),
+  ]);
   if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
     questionArea.textContent = "この問題は公開されていません。";
     return;
   }
   subjectName =
     subjectSnap.data()?.name || subjectSnap.data()?.subjectName || subjectId;
+  unitName = unitSnap.data()?.name || unitSnap.data()?.unitName || unitId;
 
   if (!snap.exists()) {
     questionArea.innerHTML = "今日の1問はまだありません。";
@@ -179,6 +189,8 @@ async function loadDailyQuestion() {
     `;
 
   setupStudyTools(questionArea);
+  markQuestionShown();
+  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
 
   sessionStorage.setItem("quizPlaying", "true");
 }
@@ -218,6 +230,19 @@ document.addEventListener("click", async (e) => {
   const result = document.getElementById("result");
   const panel = card.querySelector(".test-result-panel");
   const isCorrect = selected === correct;
+  await recordQuestionAttempt({
+    type: "daily",
+    subjectId,
+    subjectName,
+    unitId,
+    unitName,
+    questionId: String(visibleDailyQuestion.id ?? dailyQuestionSeed),
+    question: visibleDailyQuestion.question,
+    choices: visibleDailyQuestion.choices,
+    correctAnswer: correct,
+    selectedAnswer: selected,
+    correct: isCorrect,
+  });
 
   card.dataset.finished = "true";
   card.querySelectorAll(".test-choice").forEach((button, index) => {
@@ -258,6 +283,7 @@ document.addEventListener("click", async (e) => {
     result.textContent = "不正解";
     sessionStorage.removeItem("quizPlaying");
   }
+  await stopExamStudyTimer("exam-completed");
 });
 
 window.addEventListener("beforeunload", (event) => {

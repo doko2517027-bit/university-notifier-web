@@ -19,6 +19,12 @@ import {
   setupStudyTools,
   refreshTotalPoints,
 } from "./study_tools.js";
+import {
+  startStudyTimer,
+  stopExamStudyTimer,
+  markQuestionShown,
+  recordQuestionAttempt,
+} from "./study_tracking.js?v=20261009-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -30,12 +36,16 @@ let visibleQuiz = [];
 let currentIndex = 0;
 let completed = false;
 let subjectName = "科目";
+let unitName = "単元";
 let sessionPoints = 0;
 let quizSession = null;
 let sourceQuiz = [];
 
 setupTheme(themeButton);
-document.getElementById("backButton").onclick = () => history.back();
+document.getElementById("backButton").onclick = async () => {
+  await stopExamStudyTimer("left-exam-page");
+  history.back();
+};
 document.getElementById("profileButton").onclick = () =>
   (location.href = "profile.html");
 await initializePage([loadProfileImage(topProfileImage), loadQuiz()]);
@@ -45,7 +55,7 @@ async function loadQuiz() {
     quizArea.textContent = "科目または単元が指定されていません。";
     return;
   }
-  const [snap, subjectSnap] = await Promise.all([
+  const [snap, subjectSnap, unitSnap] = await Promise.all([
     getDoc(
       doc(
         db,
@@ -58,6 +68,7 @@ async function loadQuiz() {
       ),
     ),
     getDoc(doc(db, "examSubjects", subjectId)),
+    getDoc(doc(db, "examSubjects", subjectId, "units", unitId)),
   ]);
   if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
     quizArea.textContent = "この問題は公開されていません。";
@@ -65,10 +76,12 @@ async function loadQuiz() {
   }
   subjectName =
     subjectSnap.data()?.name || subjectSnap.data()?.subjectName || subjectId;
+  unitName = unitSnap.data()?.name || unitSnap.data()?.unitName || unitId;
   if (!snap.exists()) {
     quizArea.textContent = "四択問題はまだありません。";
     return;
   }
+  const reviewIds = new Set(String(params.get("reviewIds") || "").split(",").filter(Boolean));
   sourceQuiz = (snap.data().quiz || [])
     .filter(
     (q) =>
@@ -82,7 +95,8 @@ async function loadQuiz() {
     .map((question, index) => ({
       ...question,
       _sessionId: String(question.id ?? `quiz-${index}`),
-    }));
+    }))
+    .filter((question) => !reviewIds.size || reviewIds.has(question._sessionId));
   if (!sourceQuiz.length) {
     quizArea.textContent = "四択問題はまだありません。";
     return;
@@ -100,6 +114,7 @@ async function loadQuiz() {
   );
   applyQuizSession();
   renderQuestion();
+  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
 }
 
 function applyQuizSession() {
@@ -160,6 +175,7 @@ function renderQuestionImage(question) {
 }
 
 function renderQuestion() {
+  markQuestionShown();
   const q = visibleQuiz[currentIndex];
   const choiceOrder = quizSession?.choiceOrders?.[q._sessionId] || q.choices.map((_, index) => index);
   const correctAnswers =
@@ -252,6 +268,7 @@ document.addEventListener("click", async (event) => {
     } else {
       completed = true;
       sessionStorage.removeItem("quizPlaying");
+      await stopExamStudyTimer("exam-completed");
       await saveTestProgress(
         "quiz",
         subjectId,
@@ -312,6 +329,19 @@ document.addEventListener("click", async (event) => {
   const isCorrect =
     selectedAnswers.length === correctAnswers.length &&
     correctAnswers.every((answer) => selectedAnswers.includes(answer));
+  await recordQuestionAttempt({
+    type: "quiz",
+    subjectId,
+    subjectName,
+    unitId,
+    unitName,
+    questionId: String(visibleQuiz[currentIndex]._sessionId),
+    question: visibleQuiz[currentIndex].question,
+    choices: visibleQuiz[currentIndex].choices,
+    correctAnswer: correctAnswers,
+    selectedAnswer: selectedAnswers,
+    correct: isCorrect,
+  });
   card.querySelectorAll(".test-choice").forEach((button) => {
     button.disabled = true;
     const choiceIndex = Number(button.dataset.index);

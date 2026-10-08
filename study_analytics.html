@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>自己学習・学習分析 | CareMate</title>
+    <link rel="stylesheet" href="style.css?v=20261009-2" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
+  </head>
+  <body class="page-loading study-analytics-body">
+    <div class="top-buttons">
+      <button id="backButton" class="circle-button" type="button" aria-label="ホームへ戻る">←</button>
+      <h2>📊 学習分析</h2>
+      <div class="top-right">
+        <button id="themeButton" class="circle-button" type="button" aria-label="テーマを変更">🌙</button>
+        <button id="profileButton" class="circle-button" type="button" aria-label="プロフィール"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button>
+      </div>
+    </div>
+
+    <main class="study-analytics-page">
+      <section class="study-hero">
+        <div><span class="study-kicker">SELF STUDY</span><h1>自己学習・学習分析</h1><p>勉強時間と問題演習を、次の学習につながる形で見える化します。</p></div>
+        <div class="study-hero-today"><small>今日</small><strong id="heroTodayTime">0分</strong><span id="heroTodayQuestions">0問</span></div>
+      </section>
+
+      <section class="study-summary-grid" aria-label="学習状況の概要">
+        <article><span>今日の勉強</span><strong id="summaryToday">0分</strong></article>
+        <article><span>今週の勉強</span><strong id="summaryWeek">0分</strong></article>
+        <article><span>今月の勉強</span><strong id="summaryMonth">0分</strong></article>
+        <article><span>累計勉強</span><strong id="summaryTotal">0分</strong></article>
+        <article><span>累計解答</span><strong id="summaryQuestions">0問</strong></article>
+        <article><span>全体正答率</span><strong id="summaryAccuracy">データなし</strong></article>
+        <article><span>連続学習</span><strong id="summaryStreak">0日</strong></article>
+        <article><span>今週の目標</span><strong id="summaryGoal">未設定</strong></article>
+      </section>
+
+      <nav class="study-subtabs" aria-label="学習分析メニュー">
+        <button class="is-active" data-study-tab="home">学習ホーム</button>
+        <button data-study-tab="time">勉強時間</button>
+        <button data-study-tab="questions">問題分析</button>
+        <button data-study-tab="report">学習レポート</button>
+      </nav>
+
+      <section id="studyPanelHome" class="study-panel is-active" data-study-panel="home">
+        <div class="study-two-column">
+          <article id="timer" class="card setting-card study-timer-card">
+            <div class="study-card-heading"><div><small>STUDY TIMER</small><h2>勉強時間を記録</h2></div><span id="timerStateBadge">停止中</span></div>
+            <div id="studyTimerClock" class="study-timer-clock">00:00:00</div>
+            <label>学習科目<select id="studySubjectSelect"><option value="">その他</option></select></label>
+            <label>学習内容（任意）<input id="studyContentInput" maxlength="300" placeholder="例：統合失調症の復習" /></label>
+            <p id="studyTimerMessage" class="study-form-message" role="status"></p>
+            <div class="study-timer-actions">
+              <button id="startStudyTimer" class="btn btn-primary" type="button">開始</button>
+              <button id="pauseStudyTimer" class="btn" type="button" disabled>一時停止</button>
+              <button id="resumeStudyTimer" class="btn" type="button" disabled>再開</button>
+              <button id="finishStudyTimer" class="btn study-danger-button" type="button" disabled>終了・保存</button>
+            </div>
+            <p class="study-help">画面移動中は継続し、バックグラウンド・アプリ終了・10分間操作なしで自動停止します。</p>
+          </article>
+
+          <article class="card setting-card">
+            <div class="study-card-heading"><div><small>REVIEW</small><h2>今日の復習</h2></div><strong id="todayReviewCount">0問</strong></div>
+            <p id="todayReviewMessage">解答履歴を読み込んでいます。</p>
+            <button id="startTodayReview" class="btn btn-primary" type="button" disabled>今日の復習問題を解く</button>
+            <div class="study-goal-overview"><span>今週の学習時間</span><div><i id="homeGoalBar"></i></div><b id="homeGoalText">目標未設定</b></div>
+          </article>
+        </div>
+
+        <article class="card setting-card">
+          <div class="study-card-heading"><div><small>SUBJECT BALANCE</small><h2>科目別の学習バランス</h2></div></div>
+          <div id="homeSubjectBalance" class="study-subject-bars"><p class="study-empty">学習記録がまだありません。</p></div>
+        </article>
+      </section>
+
+      <section id="studyPanelTime" class="study-panel" data-study-panel="time" hidden>
+        <article class="card setting-card">
+          <div class="study-card-heading"><div><small>TIME TREND</small><h2>学習時間の推移</h2></div><select id="studyRange"><option value="today">今日</option><option value="7d" selected>過去7日</option><option value="30d">過去30日</option><option value="month">今月</option><option value="3m">過去3か月</option><option value="1y">過去1年</option><option value="all">全期間</option></select></div>
+          <div id="studyTimeChart" class="study-bar-chart" aria-label="学習時間グラフ"></div>
+          <p id="studyDayDetail" class="study-chart-detail">棒をタップすると、その日の詳細を表示します。</p>
+        </article>
+        <div class="study-two-column">
+          <article class="card setting-card"><div class="study-card-heading"><div><small>CALENDAR</small><h2>学習カレンダー</h2></div></div><div id="studyHeatmap" class="study-heatmap"></div><p id="studyCalendarDetail" class="study-chart-detail"></p></article>
+          <article class="card setting-card"><div class="study-card-heading"><div><small>BY SUBJECT</small><h2>科目別学習時間</h2></div></div><div id="subjectTimeList" class="study-subject-bars"></div></article>
+        </div>
+        <article class="card setting-card">
+          <div class="study-card-heading"><div><small>HISTORY</small><h2>学習記録</h2></div><button id="exportStudyCsv" class="btn" type="button">CSV出力</button></div>
+          <div id="studyHistoryList" class="study-history-list"></div>
+        </article>
+      </section>
+
+      <section id="studyPanelQuestions" class="study-panel" data-study-panel="questions" hidden>
+        <div id="questionMetricGrid" class="study-metric-grid"></div>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>ACCURACY TREND</small><h2>正答率の推移</h2></div><select id="accuracyPeriod"><option value="day">日別</option><option value="week">週別</option><option value="month">月別</option></select></div><div id="accuracyTrendChart" class="study-line-chart"></div></article>
+        <div class="study-two-column">
+          <article class="card setting-card"><div class="study-card-heading"><div><small>BY SUBJECT</small><h2>科目別成績</h2></div><select id="subjectScoreSort"><option value="low">正答率が低い順</option><option value="high">正答率が高い順</option></select></div><div id="subjectScoreList" class="study-analysis-table"></div></article>
+          <article class="card setting-card"><div class="study-card-heading"><div><small>WEAK AREAS</small><h2>苦手分野ランキング</h2></div></div><div id="weakAreaList" class="study-ranking-list"></div><button id="startWeakReview" class="btn btn-primary" type="button" disabled>苦手問題を復習する</button></article>
+        </div>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>UNIT DETAIL</small><h2>単元別成績</h2></div></div><div id="unitScoreList" class="study-analysis-table"></div></article>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>QUESTION HISTORY</small><h2>問題ごとの履歴</h2></div><select id="problemFilter"><option value="all">すべて</option><option value="wrong">間違えた問題</option><option value="twice">2回以上間違えた</option><option value="never">まだ正解していない</option><option value="lastWrong">前回間違えた</option><option value="improved">現在は正解できる</option><option value="slow">時間がかかった</option></select></div><div id="problemHistoryList" class="study-problem-list"></div></article>
+      </section>
+
+      <section id="studyPanelReport" class="study-panel" data-study-panel="report" hidden>
+        <div class="study-two-column">
+          <article class="card setting-card"><div class="study-card-heading"><div><small>WEEKLY REPORT</small><h2>週間学習レポート</h2></div></div><div id="weeklyReport"></div></article>
+          <article class="card setting-card"><div class="study-card-heading"><div><small>MONTHLY REPORT</small><h2>月間学習レポート</h2></div></div><div id="monthlyReport"></div></article>
+        </div>
+        <article class="card setting-card">
+          <div class="study-card-heading"><div><small>GOALS</small><h2>学習目標</h2></div></div>
+          <form id="studyGoalsForm" class="study-goals-form">
+            <label>1日の目標時間（分）<input id="goalDailyMinutes" type="number" min="0" max="1440" /></label>
+            <label>1週間の目標時間（分）<input id="goalWeeklyMinutes" type="number" min="0" max="10080" /></label>
+            <label>1日の目標問題数<input id="goalDailyQuestions" type="number" min="0" max="1000" /></label>
+            <label>1週間の目標問題数<input id="goalWeeklyQuestions" type="number" min="0" max="7000" /></label>
+            <label>目標正答率（%）<input id="goalAccuracy" type="number" min="0" max="100" step="0.1" /></label>
+            <button class="btn btn-primary" type="submit">目標を保存</button>
+          </form>
+          <p id="studyGoalsMessage" class="study-form-message" role="status"></p>
+        </article>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>INSIGHT</small><h2>学習傾向</h2></div></div><div id="studyInsights" class="study-insight-grid"></div></article>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a>
+      <a href="requests.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">💡</span></span><span>便利</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
+      <a id="adminTab" href="admin.html" style="display:none"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
+    </nav>
+    <script type="module" src="study_analytics.js?v=20261009-1"></script>
+  </body>
+</html>

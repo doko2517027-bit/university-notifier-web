@@ -11,6 +11,12 @@ import {
   setupScrubber,
 } from "./test_session.js";
 import { studySearchHtml, setupStudyTools } from "./study_tools.js";
+import {
+  startStudyTimer,
+  stopExamStudyTimer,
+  markQuestionShown,
+  recordQuestionAttempt,
+} from "./study_tracking.js?v=20261009-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -21,11 +27,15 @@ const unitId = params.get("unitId");
 let questions = [];
 let currentIndex = 0;
 let subjectName = "科目";
+let unitName = "単元";
 let qaSession = null;
 let sourceQuestions = [];
 
 setupTheme(themeButton);
-document.getElementById("backButton").onclick = () => history.back();
+document.getElementById("backButton").onclick = async () => {
+  await stopExamStudyTimer("left-exam-page");
+  history.back();
+};
 document.getElementById("profileButton").onclick = () =>
   (location.href = "profile.html");
 await initializePage([loadProfileImage(topProfileImage), loadQuestions()]);
@@ -35,7 +45,7 @@ async function loadQuestions() {
     qaArea.textContent = "科目または単元が指定されていません。";
     return;
   }
-  const [questionSnap, subjectSnap] = await Promise.all([
+  const [questionSnap, subjectSnap, unitSnap] = await Promise.all([
     getDoc(
       doc(
         db,
@@ -48,12 +58,14 @@ async function loadQuestions() {
       ),
     ),
     getDoc(doc(db, "examSubjects", subjectId)),
+    getDoc(doc(db, "examSubjects", subjectId, "units", unitId)),
   ]);
   if (!subjectSnap.exists() || (subjectSnap.data().mode || "exam") !== "exam") {
     qaArea.textContent = "この問題は公開されていません。";
     return;
   }
   subjectName = subjectSnap.data()?.name || subjectId;
+  unitName = unitSnap.data()?.name || unitSnap.data()?.unitName || unitId;
   sourceQuestions = (questionSnap.data()?.qa || [])
     .filter(
     (item) =>
@@ -82,6 +94,7 @@ async function loadQuestions() {
   questions = qaSession.questionOrder.map((id) => byId.get(id)).filter(Boolean);
   currentIndex = qaSession.currentIndex;
   renderQuestion();
+  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
 }
 
 function escapeHtml(value) {
@@ -94,6 +107,7 @@ function escapeHtml(value) {
 }
 
 function renderQuestion() {
+  markQuestionShown();
   const item = questions[currentIndex];
   qaArea.innerHTML = `
         <div class="test-progress"><span style="width:${((currentIndex + 1) / questions.length) * 100}%"></span></div>
@@ -128,6 +142,19 @@ function renderQuestion() {
 
 qaArea.addEventListener("click", async (event) => {
   if (event.target.closest(".qa-show-answer")) {
+    const item = questions[currentIndex];
+    await recordQuestionAttempt({
+      type: "qa",
+      subjectId,
+      subjectName,
+      unitId,
+      unitName,
+      questionId: String(item._sessionId),
+      question: item.question,
+      correctAnswer: item.answer,
+      selectedAnswer: "答えを表示",
+      correct: null,
+    });
     qaArea.querySelector(".qa-answer").hidden = false;
     event.target.closest(".qa-show-answer").hidden = true;
     return;
