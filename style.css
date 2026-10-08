@@ -21275,6 +21275,154 @@ course-tagが付いたspanには適用しない。
 .student-enrollment-candidate strong { overflow-wrap: anywhere; font-size: 13px; line-height: 1.45; }
 .student-enrollment-candidate small { margin-top: 3px; color: var(--subtext); font-size: 11px; }
 .student-enrollment-register-button { width: 100%; margin: 0; }
+
+/* ============================================================
+   テスト対策 2026-10: 年度・期間を先に選ぶ読みやすい画面
+============================================================ */
+.exam-period-browser {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 22px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--primary) 8%, var(--card)), var(--card) 68%);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .07);
+}
+.exam-period-browser-heading { margin-bottom: 15px; }
+.exam-period-browser-heading h2 { margin-bottom: 4px; font-size: 20px; }
+.exam-period-browser-heading p { margin: 0; color: var(--subtext); font-size: 13px; line-height: 1.6; }
+.exam-period-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.exam-period-tab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 82px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.exam-period-tab:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); box-shadow: 0 10px 22px rgba(15, 23, 42, .09); }
+.exam-period-tab.is-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--card)); box-shadow: 0 10px 25px color-mix(in srgb, var(--primary) 14%, transparent); }
+.exam-period-tab-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; background: color-mix(in srgb, var(--primary) 11%, var(--card)); font-size: 20px; }
+.exam-period-tab-main { display: grid; min-width: 0; gap: 4px; }
+.exam-period-tab-main strong { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.exam-period-tab-main small { color: var(--subtext); font-size: 11px; line-height: 1.4; }
+.exam-period-tab-progress { display: grid; justify-items: end; gap: 5px; }
+.exam-period-tab-progress b { color: var(--primary); font-size: 12px; }
+.exam-period-tab-progress > span { display: block; width: 42px; height: 5px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--primary) 12%, var(--border)); }
+.exam-period-tab-progress i { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.exam-period-empty { grid-column: 1 / -1; padding: 17px; border: 1px dashed var(--border); border-radius: 14px; color: var(--subtext); font-size: 13px; text-align: center; }
+.exam-selected-period-summary { display: flex; align-items: center; gap: 12px; padding: 16px 17px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
+.exam-selected-period-summary .exam-group-heading strong { font-size: 17px; }
+.exam-selected-period-summary .exam-group-heading small { font-size: 12px; }
+.exam-dashboard-body .exam-subject-section { scroll-margin-top: 84px; }
+.exam-dashboard-body .exam-group-content { padding: 14px; }
+.exam-dashboard-body .exam-subject-title-row > strong { font-size: 16px; }
+.exam-dashboard-body .exam-subject-meta { font-size: 11px; }
+.exam-dashboard-body .exam-subject-progress-row > b { font-size: 12px; }
+.exam-dashboard-body .exam-unit-title-row h3 { font-size: 14px; }
+.exam-dashboard-body .exam-unit-title-area p { font-size: 11px; }
+.exam-dashboard-body .exam-format-title-row > strong { font-size: 13px; }
+.exam-dashboard-body .exam-format-description,
+.exam-dashboard-body .exam-format-question-count { font-size: 10px; }
+.exam-dashboard-body .exam-format-status { font-size: 9px; }
+
+/* テスト管理: 設定と編集を分け、選択した区分だけを広く扱う */
+body.exam-admin-body { width: min(100%, 1320px); max-width: 1320px; }
+.exam-admin-layout { grid-template-columns: 1fr; }
+.exam-admin-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.exam-admin-catalog { padding: 24px; }
+.exam-admin-period-browser { margin: 17px 0 16px; padding: 16px; border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)); border-radius: 17px; background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
+.exam-admin-period-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 12px; }
+.exam-admin-period-heading h3 { margin: 0; color: var(--text); font-size: 18px; }
+.exam-admin-period-heading > p { margin: 0; color: var(--subtext); font-size: 12px; text-align: right; }
+.exam-admin-category-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.exam-admin-category-tab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3px 9px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.exam-admin-category-tab > span { grid-row: 1 / 3; font-size: 19px; }
+.exam-admin-category-tab b { min-width: 0; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.exam-admin-category-tab small { color: var(--subtext); font-size: 11px; }
+.exam-admin-category-tab:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.exam-admin-category-tab.is-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--card)); box-shadow: 0 7px 18px color-mix(in srgb, var(--primary) 12%, transparent); }
+.exam-admin-group { scroll-margin-top: 82px; }
+.exam-admin-group > summary { padding: 16px 48px 16px 18px; font-size: 16px; }
+.exam-admin-group-content { padding: 12px; gap: 12px; }
+.exam-admin-subject-card,
+.exam-admin-unit-list > .setting-card { border-radius: 15px; }
+.exam-admin-subject-header { min-height: 70px; padding: 12px 15px; }
+.exam-admin-subject-icon { flex-basis: 38px; font-size: 21px; }
+.exam-admin-subject-label strong { font-size: 16px; }
+.exam-admin-subject-label small { font-size: 12px; }
+.exam-admin-subject-content { padding: 12px 15px 15px; }
+.exam-admin-detail { padding: 13px; border-radius: 13px; }
+.exam-admin-detail > summary { font-size: 13px; }
+.exam-admin-unit-heading { font-size: 14px; }
+.exam-admin-unit-header { min-height: 64px; padding: 11px 13px; }
+.exam-admin-unit-label strong { font-size: 14px; }
+.exam-admin-unit-label small { font-size: 12px; }
+.exam-admin-unit-actions .btn { min-height: 41px; font-size: 13px; }
+
+@media (min-width: 901px) {
+  .exam-admin-group-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exam-admin-subject-card.is-open { grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+  .exam-period-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exam-admin-category-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 650px) {
+  .exam-period-browser { margin-top: 17px; padding: 15px; border-radius: 18px; }
+  .exam-period-browser-heading h2 { font-size: 18px; }
+  .exam-period-browser-heading p { font-size: 12px; }
+  .exam-period-tabs { display: flex; gap: 9px; margin-inline: -2px; padding: 2px 2px 8px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .exam-period-tab { flex: 0 0 min(82vw, 310px); min-height: 78px; scroll-snap-align: start; }
+  .exam-selected-period-summary { padding: 14px; }
+  .exam-dashboard-body .exam-group-content { grid-template-columns: 1fr; padding: 10px; }
+  .exam-dashboard-body .exam-subject-toggle { padding: 14px; }
+  .exam-dashboard-body .exam-subject-icon { width: 40px; height: 40px; flex-basis: 40px; }
+  .exam-dashboard-body .exam-format-grid { grid-template-columns: 1fr; }
+  .exam-dashboard-body .exam-format-card { min-height: 76px; }
+  .exam-admin-sidebar { grid-template-columns: 1fr; }
+  .exam-admin-catalog { padding: 14px; border-radius: 16px; }
+  .exam-admin-period-heading { display: block; }
+  .exam-admin-period-heading > p { margin-top: 5px; text-align: left; }
+  .exam-admin-category-nav { display: flex; gap: 8px; margin-inline: -2px; padding: 2px 2px 8px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .exam-admin-category-tab { flex: 0 0 170px; scroll-snap-align: start; }
+  .exam-admin-add-subject { grid-template-columns: 1fr; }
+  .exam-admin-add-subject input { grid-column: auto; }
+  .exam-admin-add-subject .btn { width: 100%; }
+  .exam-admin-group-content { grid-template-columns: 1fr; padding: 8px; }
+  .exam-admin-subject-header { min-height: 66px; padding: 11px; }
+  .exam-admin-subject-label strong { font-size: 15px; }
+  .exam-admin-subject-content { padding: 10px; }
+  .exam-admin-subject-tools,
+  .exam-admin-unit-list { grid-template-columns: 1fr; }
+}
 .student-feature-solved { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
 .student-feature-solved summary { cursor: pointer; color: var(--primary); font-weight: 800; }
 .student-feature-solved > div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }

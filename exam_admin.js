@@ -25,6 +25,8 @@ const topProfileImage = document.getElementById("topProfileImage");
 const examMode = "exam";
 let categories = [];
 let currentSubjects = [];
+const adminCategoryStorageKey = "caremateExamAdminSelectedCategory_exam";
+let activeAdminGroupId = localStorage.getItem(adminCategoryStorageKey) || "";
 const openAdminGroupIds = new Set();
 const openAdminSubjectIds = new Set();
 
@@ -58,6 +60,7 @@ const addCategory = document.getElementById("addCategory");
 const categoryList = document.getElementById("categoryList");
 const newSubjectCategory = document.getElementById("newSubjectCategory");
 const catalogSearch = document.getElementById("examAdminSearch");
+const categoryNavigation = document.getElementById("examAdminCategoryNav");
 
 await initializePage([
   loadProfileImage(topProfileImage),
@@ -130,7 +133,58 @@ function renderCategories() {
   categoryList.innerHTML = items.length
     ? items.map((item) => `<div class="exam-admin-category-row" data-category-id="${escapeHtml(item.id)}"><input class="category-edit-name" type="text" maxlength="80" value="${escapeHtml(item.name)}" aria-label="区分名"><span>${currentSubjects.filter((subject) => subject.groupId === item.id).length}科目</span><button class="btn btn-secondary save-category" type="button">保存</button><button class="btn btn-danger delete-category" type="button">削除</button></div>`).join("")
     : "<p>区分はまだありません。まず区分を追加してください。</p>";
+  renderAdminCategoryNavigation();
 }
+
+function adminCategoryNavigationItems() {
+  const registeredCategories = modeCategories();
+  const categoryIds = new Set(registeredCategories.map((item) => item.id));
+  const counts = new Map(registeredCategories.map((item) => [item.id, 0]));
+  let unclassifiedCount = 0;
+  currentSubjects.forEach((subject) => {
+    const id = String(subject.groupId || "");
+    if (categoryIds.has(id)) counts.set(id, (counts.get(id) || 0) + 1);
+    else unclassifiedCount += 1;
+  });
+  const items = registeredCategories.map((item) => ({
+    ...item,
+    count: counts.get(item.id) || 0,
+  }));
+  if (unclassifiedCount) {
+    items.push({ id: "unclassified", name: "未分類", count: unclassifiedCount });
+  }
+  return items;
+}
+
+function ensureActiveAdminGroup(items) {
+  if (activeAdminGroupId === "all" || items.some((item) => item.id === activeAdminGroupId)) return;
+  activeAdminGroupId = items[0]?.id || "all";
+  localStorage.setItem(adminCategoryStorageKey, activeAdminGroupId);
+}
+
+function renderAdminCategoryNavigation() {
+  if (!categoryNavigation) return;
+  const items = adminCategoryNavigationItems();
+  ensureActiveAdminGroup(items);
+  const buttons = [
+    { id: "all", name: "全区分", count: currentSubjects.length },
+    ...items,
+  ];
+  categoryNavigation.innerHTML = buttons.map((item) => {
+    const active = activeAdminGroupId === item.id;
+    return `<button type="button" class="exam-admin-category-tab ${active ? "is-active" : ""}" data-admin-category-id="${escapeHtml(item.id)}" role="tab" aria-selected="${active}"><span>${item.id === "all" ? "▦" : "🗂️"}</span><b>${escapeHtml(item.name)}</b><small>${item.count}科目</small></button>`;
+  }).join("");
+}
+
+categoryNavigation?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-admin-category-id]");
+  if (!button) return;
+  activeAdminGroupId = button.dataset.adminCategoryId || "all";
+  localStorage.setItem(adminCategoryStorageKey, activeAdminGroupId);
+  renderAdminCategoryNavigation();
+  updateSubjectSearch();
+  subjectList.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 async function saveCategories(nextCategories) {
   await setDoc(doc(db, "system", "exam"), {
@@ -148,7 +202,10 @@ addCategory.onclick = async () => {
   if (!name) return alert("区分名を入力してください。");
   if (modeCategories().some((item) => item.name === name)) return alert("同じ名前の区分があります。");
   try {
-    await saveCategories([...categories, { id: crypto.randomUUID(), name, mode: examMode }]);
+    const id = crypto.randomUUID();
+    activeAdminGroupId = id;
+    localStorage.setItem(adminCategoryStorageKey, activeAdminGroupId);
+    await saveCategories([...categories, { id, name, mode: examMode }]);
     categoryName.value = "";
   } catch (error) {
     console.error("区分追加失敗:", error);
@@ -237,6 +294,8 @@ addSubject.onclick = async () => {
 
   subjectName.value = "";
 
+  activeAdminGroupId = groupId || "unclassified";
+  localStorage.setItem(adminCategoryStorageKey, activeAdminGroupId);
   openAdminGroupIds.add(groupId || "unclassified");
 
   await loadSubjects();
@@ -302,7 +361,7 @@ async function loadSubjects() {
     const section = document.createElement("details");
     section.className = "exam-admin-group";
     section.dataset.groupId = category.id;
-    section.open = openAdminGroupIds.has(section.dataset.groupId);
+    section.open = activeAdminGroupId === category.id || openAdminGroupIds.has(section.dataset.groupId);
     section.addEventListener("toggle", () => {
       if (section.open) openAdminGroupIds.add(section.dataset.groupId);
       else openAdminGroupIds.delete(section.dataset.groupId);
@@ -489,16 +548,21 @@ function updateSubjectSearch() {
       card.hidden = !matches;
       if (matches) groupCount++;
     });
-    group.hidden = groupCount === 0;
+    const categoryMatches = Boolean(query) || activeAdminGroupId === "all" || group.dataset.groupId === activeAdminGroupId;
+    group.hidden = groupCount === 0 || !categoryMatches;
     group.querySelector("summary").textContent = `${group.dataset.groupName}　${query ? groupCount : group.dataset.totalCount}科目`;
     if (query && groupCount) group.open = true;
-    else if (!query) group.open = openAdminGroupIds.has(group.dataset.groupId);
-    visibleCount += groupCount;
+    else if (!query) group.open = activeAdminGroupId === group.dataset.groupId || (activeAdminGroupId === "all" && openAdminGroupIds.has(group.dataset.groupId));
+    if (categoryMatches) visibleCount += groupCount;
   });
   document.getElementById("examAdminResultCount").textContent = query
     ? `${visibleCount}件見つかりました`
-    : `${currentSubjects.length}科目を表示`;
-  document.getElementById("examAdminNoResults").hidden = !query || visibleCount > 0;
+    : `${visibleCount}科目を表示`;
+  const noResults = document.getElementById("examAdminNoResults");
+  noResults.textContent = query
+    ? "一致する科目・単元がありません。検索語を変えてください。"
+    : "この区分には科目がありません。上の入力欄から追加できます。";
+  noResults.hidden = visibleCount > 0;
 }
 
 catalogSearch.addEventListener("input", updateSubjectSearch);
@@ -582,7 +646,9 @@ document.addEventListener("click", async (e) => {
         name, groupId: card.querySelector(".edit-subject-category").value,
         updatedAt: new Date(), updatedBy: studentNumber,
       }, { merge: true });
-      openAdminGroupIds.add(card.querySelector(".edit-subject-category").value || "unclassified");
+      activeAdminGroupId = card.querySelector(".edit-subject-category").value || "unclassified";
+      localStorage.setItem(adminCategoryStorageKey, activeAdminGroupId);
+      openAdminGroupIds.add(activeAdminGroupId);
       await loadSubjects();
     } catch (error) { console.error("科目更新失敗:", error); alert("科目を更新できませんでした。"); }
     return;

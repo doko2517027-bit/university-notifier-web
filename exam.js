@@ -103,6 +103,10 @@ const elements = {
 
   totalSubjectCount: document.getElementById("totalSubjectCount"),
 
+  periodTabs: document.getElementById("examPeriodTabs"),
+
+  catalogHeading: document.getElementById("examCatalogHeading"),
+
   subjectUnitList: document.getElementById("subjectUnitList"),
 
   helpModal: document.getElementById("examHelpModal"),
@@ -134,6 +138,8 @@ const todayCompactKey = todayKey.replaceAll("-", "");
 
 const openSubjectsStorageKey = `caremateExamOpenSubjects_exam_${studentNumber || "guest"}`;
 
+const selectedPeriodStorageKey = `caremateExamSelectedPeriod_exam_${studentNumber || "guest"}`;
+
 /* ========================================
    状態
 ======================================== */
@@ -153,6 +159,8 @@ let currentStatusFilter = "all";
 let openSubjectIds = loadOpenSubjectIds();
 
 let continueTarget = null;
+
+let selectedGroupId = localStorage.getItem(selectedPeriodStorageKey) || "";
 
 /* ========================================
    初期設定
@@ -226,6 +234,18 @@ function setupEvents() {
     "click",
     toggleAllVisibleSubjects,
   );
+
+  elements.periodTabs?.addEventListener("click", (event) => {
+    const periodButton = event.target.closest("[data-exam-period-id]");
+    if (!periodButton) return;
+    selectedGroupId = periodButton.dataset.examPeriodId || "";
+    localStorage.setItem(selectedPeriodStorageKey, selectedGroupId);
+    openGroupIds.clear();
+    openGroupIds.add(selectedGroupId);
+    renderPeriodNavigation();
+    renderSubjectList();
+    elements.catalogHeading?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   elements.subjectUnitList?.addEventListener("click", (event) => {
     const groupToggle = event.target.closest(".exam-group-toggle");
@@ -1065,7 +1085,41 @@ function updateDashboard() {
 
   updateFilterCounts();
 
+  renderPeriodNavigation();
+
   renderSubjectList();
+}
+
+function availableSubjectGroups(items = subjects) {
+  return groupCatalogItems(items, modeCategories, (item) => item.groupId);
+}
+
+function ensureSelectedGroup(groups) {
+  if (groups.some((group) => group.id === selectedGroupId)) return;
+  selectedGroupId = groups[0]?.id || "";
+  if (selectedGroupId) localStorage.setItem(selectedPeriodStorageKey, selectedGroupId);
+}
+
+function renderPeriodNavigation() {
+  if (!elements.periodTabs) return;
+  const groups = availableSubjectGroups();
+  ensureSelectedGroup(groups);
+  if (!groups.length) {
+    elements.periodTabs.innerHTML = '<div class="exam-period-empty">年度・期間はまだ登録されていません。</div>';
+    return;
+  }
+  elements.periodTabs.innerHTML = groups.map((group) => {
+    const completed = group.items.filter((subject) => subject.status === "completed").length;
+    const totalFormats = group.items.reduce((sum, subject) => sum + subject.totalFormats, 0);
+    const completedFormats = group.items.reduce((sum, subject) => sum + subject.completedFormats, 0);
+    const percent = totalFormats ? Math.round((completedFormats / totalFormats) * 100) : 0;
+    const active = group.id === selectedGroupId;
+    return `<button type="button" class="exam-period-tab ${active ? "is-active" : ""}" data-exam-period-id="${escapeAttribute(group.id)}" role="tab" aria-selected="${active}">
+      <span class="exam-period-tab-icon" aria-hidden="true">${active ? "📖" : "📚"}</span>
+      <span class="exam-period-tab-main"><strong>${escapeHtml(group.name)}</strong><small>${group.items.length}科目・${completed}科目達成</small></span>
+      <span class="exam-period-tab-progress"><b>${percent}%</b><span><i style="width:${percent}%"></i></span></span>
+    </button>`;
+  }).join("");
 }
 
 /* ========================================
@@ -1391,11 +1445,16 @@ function renderSubjectList() {
   const groupedItems = groupCatalogItems(
     filteredSubjects, modeCategories, (item) => item.subject.groupId,
   );
-  elements.subjectUnitList.innerHTML = groupedItems
-    .map((group) => createGroupHtml(group.id, group.items, keyword !== ""))
-    .join("");
-
-  updateToggleAllButton(filteredSubjects.map((item) => item.subject.id));
+  ensureSelectedGroup(availableSubjectGroups());
+  const selectedGroup = groupedItems.find((group) => group.id === selectedGroupId);
+  const selectedItems = selectedGroup?.items || [];
+  elements.catalogHeading.textContent = selectedGroup?.name || getGroupName(selectedGroupId);
+  elements.visibleSubjectCount.textContent = `${selectedItems.length}科目を表示`;
+  elements.subjectUnitList.innerHTML = selectedGroup
+    ? createGroupHtml(selectedGroup.id, selectedItems, keyword !== "")
+    : `<div class="exam-empty-state"><div>🔍</div><h2>この期間に一致する科目がありません</h2><p>検索する言葉や学習状況を変更してください。</p><button id="resetExamFiltersButton" type="button" class="btn btn-primary">絞り込みを解除</button></div>`;
+  document.getElementById("resetExamFiltersButton")?.addEventListener("click", resetFilters);
+  updateToggleAllButton(selectedItems.map((item) => item.subject.id));
 }
 
 function getGroupName(id) {
@@ -1403,15 +1462,13 @@ function getGroupName(id) {
 }
 
 function createGroupHtml(id, items, searchActive) {
-  const isOpen = searchActive || openGroupIds.has(id);
   const label = id === "unclassified" ? "未分類" : getGroupName(id);
-  return `<section class="exam-group-card ${isOpen ? "is-open" : ""}">
-    <button type="button" class="exam-group-toggle" data-group-id="${escapeAttribute(id)}" aria-expanded="${isOpen}">
-      <span class="exam-group-icon">🗂️</span>
-      <span class="exam-group-heading"><strong>${escapeHtml(label)}</strong><small>${items.length}科目・タップして表示</small></span>
-      <span class="exam-group-arrow">${isOpen ? "▲" : "▼"}</span>
-    </button>
-    <div class="exam-group-content" ${isOpen ? "" : "hidden"}>
+  return `<section class="exam-group-card is-open" data-group-id="${escapeAttribute(id)}">
+    <div class="exam-selected-period-summary">
+      <span class="exam-group-icon">📚</span>
+      <span class="exam-group-heading"><strong>${escapeHtml(label)}</strong><small>${items.length}科目から学習する科目を選んでください</small></span>
+    </div>
+    <div class="exam-group-content">
       ${items.map((item) => createSubjectHtml(item.subject, item.units, searchActive)).join("")}
     </div>
   </section>`;
@@ -1809,20 +1866,10 @@ function toggleAllVisibleSubjects() {
     .map((card) => card.dataset.subjectId)
     .filter(Boolean);
 
-  const visibleGroupIds = Array.from(
-    elements.subjectUnitList.querySelectorAll(".exam-group-toggle"),
-  ).map((button) => button.dataset.groupId);
-
-  if (visibleGroupIds.length === 0) {
+  if (visibleSubjectIds.length === 0) {
     return;
   }
-
-  const allOpen = visibleGroupIds.every((id) => openGroupIds.has(id));
-
-  visibleGroupIds.forEach((id) => {
-    if (allOpen) openGroupIds.delete(id);
-    else openGroupIds.add(id);
-  });
+  const allOpen = visibleSubjectIds.every((id) => openSubjectIds.has(id));
 
   visibleSubjectIds.forEach((subjectId) => {
     if (allOpen) {
@@ -1848,8 +1895,7 @@ function updateToggleAllButton(visibleSubjectIds) {
 
   elements.toggleAllSubjectsButton.disabled = false;
 
-  const allOpen = Array.from(elements.subjectUnitList.querySelectorAll(".exam-group-toggle"))
-    .every((button) => openGroupIds.has(button.dataset.groupId));
+  const allOpen = visibleSubjectIds.every((subjectId) => openSubjectIds.has(subjectId));
 
   elements.toggleAllSubjectsButton.textContent = allOpen
     ? "すべて閉じる"

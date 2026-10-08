@@ -10,7 +10,7 @@
 
     <title>テスト対策 | CareMate</title>
 
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261008-3" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -324,6 +324,17 @@
         </div>
       </section>
 
+      <section class="exam-period-browser" aria-labelledby="examPeriodBrowserTitle">
+        <div class="exam-section-heading exam-period-browser-heading">
+          <div>
+            <span class="exam-section-label">STEP 1</span>
+            <h2 id="examPeriodBrowserTitle">年度・期間を選ぶ</h2>
+            <p>見たい年度や学期を選ぶと、その中の科目だけを表示します。</p>
+          </div>
+        </div>
+        <div id="examPeriodTabs" class="exam-period-tabs" role="tablist" aria-label="年度・期間"></div>
+      </section>
+
       <!-- ========================================
          科目一覧
     ======================================== -->
@@ -331,9 +342,9 @@
       <section class="exam-subject-section">
         <div class="exam-section-heading">
           <div>
-            <span class="exam-section-label"> 科目別 </span>
+            <span class="exam-section-label"> STEP 2 </span>
 
-            <h2 id="examCatalogHeading">学習する区分</h2>
+            <h2 id="examCatalogHeading">科目を選ぶ</h2>
           </div>
 
           <span id="totalSubjectCount" class="exam-subject-total"> 0科目 </span>
@@ -500,6 +511,6 @@
       </a>
     </nav>
 
-    <script type="module" src="exam.js?v=20261001-1"></script>
+    <script type="module" src="exam.js?v=20261008-3"></script>
   </body>
 </html>
