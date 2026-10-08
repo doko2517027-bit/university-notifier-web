@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>自己学習・学習分析 | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20261009-2" />
+    <link rel="stylesheet" href="style.css?v=20261009-3" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
   </head>
@@ -96,7 +96,12 @@
           <article class="card setting-card"><div class="study-card-heading"><div><small>BY SUBJECT</small><h2>科目別成績</h2></div><select id="subjectScoreSort"><option value="low">正答率が低い順</option><option value="high">正答率が高い順</option></select></div><div id="subjectScoreList" class="study-analysis-table"></div></article>
           <article class="card setting-card"><div class="study-card-heading"><div><small>WEAK AREAS</small><h2>苦手分野ランキング</h2></div></div><div id="weakAreaList" class="study-ranking-list"></div><button id="startWeakReview" class="btn btn-primary" type="button" disabled>苦手問題を復習する</button></article>
         </div>
+        <div class="study-two-column">
+          <article class="card setting-card"><div class="study-card-heading"><div><small>SPEED × ACCURACY</small><h2>解答タイプ分析</h2></div></div><div id="answerTypeAnalysis" class="study-answer-types"></div></article>
+          <article class="card setting-card"><div class="study-card-heading"><div><small>SKILL RADAR</small><h2>科目習熟レーダー</h2></div></div><div id="subjectRadarChart" class="study-radar-chart"></div></article>
+        </div>
         <article class="card setting-card"><div class="study-card-heading"><div><small>UNIT DETAIL</small><h2>単元別成績</h2></div></div><div id="unitScoreList" class="study-analysis-table"></div></article>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>NOT STARTED</small><h2>未学習の単元</h2></div></div><div id="unstudiedUnitList" class="study-chip-list"></div></article>
         <article class="card setting-card"><div class="study-card-heading"><div><small>QUESTION HISTORY</small><h2>問題ごとの履歴</h2></div><select id="problemFilter"><option value="all">すべて</option><option value="wrong">間違えた問題</option><option value="twice">2回以上間違えた</option><option value="never">まだ正解していない</option><option value="lastWrong">前回間違えた</option><option value="improved">現在は正解できる</option><option value="slow">時間がかかった</option></select></div><div id="problemHistoryList" class="study-problem-list"></div></article>
       </section>
 
@@ -117,6 +122,7 @@
           </form>
           <p id="studyGoalsMessage" class="study-form-message" role="status"></p>
         </article>
+        <article class="card setting-card"><div class="study-card-heading"><div><small>GOAL PROGRESS</small><h2>目標達成状況</h2></div></div><div id="allGoalProgress" class="study-goal-progress-list"></div></article>
         <article class="card setting-card"><div class="study-card-heading"><div><small>INSIGHT</small><h2>学習傾向</h2></div></div><div id="studyInsights" class="study-insight-grid"></div></article>
       </section>
     </main>
@@ -129,6 +135,6 @@
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
       <a id="adminTab" href="admin.html" style="display:none"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="study_analytics.js?v=20261009-1"></script>
+    <script type="module" src="study_analytics.js?v=20261009-2"></script>
   </body>
 </html>

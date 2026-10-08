@@ -51,7 +51,8 @@ const els = Object.fromEntries([
   "subjectTimeList", "exportStudyCsv", "studyHistoryList", "questionMetricGrid", "accuracyPeriod", "accuracyTrendChart",
   "subjectScoreSort", "subjectScoreList", "weakAreaList", "startWeakReview", "unitScoreList", "problemFilter",
   "problemHistoryList", "weeklyReport", "monthlyReport", "studyGoalsForm", "goalDailyMinutes", "goalWeeklyMinutes",
-  "goalDailyQuestions", "goalWeeklyQuestions", "goalAccuracy", "studyGoalsMessage", "studyInsights",
+  "goalDailyQuestions", "goalWeeklyQuestions", "goalAccuracy", "studyGoalsMessage", "studyInsights", "answerTypeAnalysis",
+  "subjectRadarChart", "unstudiedUnitList", "allGoalProgress",
 ].map((id) => [id, byId(id)]));
 
 let sessions = [];
@@ -59,6 +60,7 @@ let attempts = [];
 let goals = {};
 let subjects = [];
 let catalogQuestionCount = 0;
+let catalogUnits = [];
 let timerTicker = null;
 
 setupTheme(byId("themeButton"));
@@ -91,6 +93,15 @@ async function loadStudyData() {
   if (!subjects.length) subjects = subjectSnapshot.docs.map((item) => ({ id: item.id, name: names.get(item.id) }));
   try {
     const published = await getDocs(collectionGroup(db, "publishedQuestions"));
+    catalogUnits = published.docs.map((item) => {
+      const unitRef = item.ref.parent.parent;
+      const subjectRef = unitRef?.parent?.parent;
+      return {
+        unitId: unitRef?.id || "",
+        subjectId: subjectRef?.id || "",
+        subjectName: names.get(subjectRef?.id) || subjectRef?.id || "科目",
+      };
+    }).filter((item) => item.unitId);
     catalogQuestionCount = published.docs.reduce((sum, item) => {
       const data = item.data() || {};
       return sum + (data.quiz?.length || 0) + (data.fill_blank?.length || 0) + (data.qa?.length || 0);
@@ -198,6 +209,7 @@ function renderAll() {
   const weeklyGoalSeconds = Number(goals.weeklyMinutes || 0) * 60;
   const goalRate = weeklyGoalSeconds ? Math.min(100, summary.weekSeconds / weeklyGoalSeconds * 100) : null;
   els.summaryGoal.textContent = goalRate == null ? "未設定" : `${Math.round(goalRate)}%`;
+  els.summaryGoal.closest("article")?.classList.toggle("study-goal-achieved", goalRate >= 100);
   els.homeGoalText.textContent = goalRate == null ? "目標未設定" : `${formatDuration(summary.weekSeconds)} / ${formatDuration(weeklyGoalSeconds)}`;
   els.homeGoalBar.style.width = `${goalRate || 0}%`;
   renderSubjectBars(els.homeSubjectBalance, aggregateBySubject(sessions, attempts));
@@ -324,14 +336,81 @@ function renderQuestionAnalysis() {
   els.questionMetricGrid.innerHTML = metrics.map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join("");
   let subjectRows = aggregateBySubject([], attempts).filter((item) => item.attempts);
   subjectRows.sort((a, b) => els.subjectScoreSort.value === "high" ? (b.accuracy || 0) - (a.accuracy || 0) : (a.accuracy || 0) - (b.accuracy || 0));
-  els.subjectScoreList.innerHTML = analysisTable(subjectRows);
+  els.subjectScoreList.innerHTML = subjectScoreTable(subjectRows);
   const unitRows = aggregateAttempts(attempts, "unitId").sort((a, b) => (a.accuracy || 0) - (b.accuracy || 0));
   els.unitScoreList.innerHTML = analysisTable(unitRows);
+  renderAnswerTypes(problems);
+  renderSubjectRadar(subjectRows);
+  const studiedUnits = new Set(attempts.map((item) => String(item.unitId || "")).filter(Boolean));
+  const unstudied = catalogUnits.filter((item, index, all) =>
+    !studiedUnits.has(item.unitId) &&
+    all.findIndex((other) => other.subjectId === item.subjectId && other.unitId === item.unitId) === index,
+  );
+  els.unstudiedUnitList.innerHTML = unstudied.length
+    ? unstudied.slice(0, 40).map((item) => `<span>${escapeHtml(item.subjectName)}・${escapeHtml(item.unitId)}</span>`).join("")
+    : '<p class="study-empty">公開中の単元はすべて学習済みです。</p>';
   const weak = weakAreaRanking(unitRows);
   els.weakAreaList.innerHTML = weak.length ? weak.slice(0, 8).map((item, index) => `<div><b>${index + 1}</b><span>${escapeHtml(item.name)}</span><strong>${item.dataSufficient ? `${Math.round(item.accuracy)}%` : "データ不足"}</strong><small>${item.attempts}問・不正解${item.incorrect}回</small></div>`).join("") : '<p class="study-empty">解答履歴がまだありません。</p>';
   els.startWeakReview.disabled = !filteredProblems("wrong").length;
   renderAccuracyTrend();
   renderProblemHistory();
+}
+
+function subjectScoreTable(rows) {
+  if (!rows.length) return '<p class="study-empty">解答履歴がまだありません。</p>';
+  return `<div class="study-table-row study-subject-score-row is-heading"><span>科目</span><span>解答</span><span>正答率</span><span>初回</span><span>変化</span></div>` + rows.map((item) => {
+    const history = attempts.filter((attempt) => String(attempt.subjectId || attempt.subjectName) === String(item.id));
+    const grouped = problemStats(history);
+    const first = grouped.map((problem) => problem.attempts[0]).filter(Boolean);
+    const firstAccuracy = first.length ? first.filter((attempt) => attempt.correct === true).length / first.length * 100 : null;
+    const half = Math.max(1, Math.floor(history.length / 2));
+    const accuracy = (values) => values.length ? values.filter((attempt) => attempt.correct === true).length / values.length * 100 : null;
+    const previous = accuracy(history.slice(0, half));
+    const recent = accuracy(history.slice(half));
+    const change = previous != null && recent != null ? recent - previous : null;
+    return `<div class="study-table-row study-subject-score-row"><b>${escapeHtml(item.name)}</b><span>${item.attempts}問</span><strong data-score="${item.accuracy < 60 ? "low" : item.accuracy < 80 ? "middle" : "high"}">${Math.round(item.accuracy)}%</strong><span>${firstAccuracy == null ? "—" : `${Math.round(firstAccuracy)}%`}</span><span data-change="${change == null ? "none" : change >= 0 ? "up" : "down"}">${change == null ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}pt`}</span></div>`;
+  }).join("");
+}
+
+function renderAnswerTypes(problems) {
+  const sufficient = problems.filter((item) => item.attempts.length >= 5 && Number(item.averageResponseSeconds) > 0);
+  if (!sufficient.length) {
+    els.answerTypeAnalysis.innerHTML = '<p class="study-empty">同じ問題を5回以上解くと、速さと正答率を組み合わせて分類します。</p>';
+    return;
+  }
+  const times = sufficient.map((item) => item.averageResponseSeconds).sort((a, b) => a - b);
+  const median = times[Math.floor(times.length / 2)];
+  const groups = { strong: [], careful: [], warning: [], weak: [] };
+  sufficient.forEach((item) => {
+    const accurate = item.accuracy >= 75;
+    const fast = item.averageResponseSeconds <= median;
+    groups[accurate ? (fast ? "strong" : "careful") : (fast ? "warning" : "weak")].push(item);
+  });
+  const labels = {
+    strong: ["得意", "正解率が高く、解答も速い"],
+    careful: ["慎重", "正解率は高いが、時間をかけている"],
+    warning: ["要注意", "解答は速いが、不正解が多い"],
+    weak: ["苦手", "不正解が多く、時間もかかる"],
+  };
+  els.answerTypeAnalysis.innerHTML = Object.entries(groups).map(([key, rows]) => `<div data-answer-type="${key}"><b>${labels[key][0]}</b><strong>${rows.length}問</strong><small>${labels[key][1]}</small>${rows.slice(0, 3).map((item) => `<span>${escapeHtml(item.question)}</span>`).join("")}</div>`).join("");
+}
+
+function renderSubjectRadar(rows) {
+  const values = rows.filter((item) => item.attempts >= 3).sort((a, b) => b.attempts - a.attempts).slice(0, 8);
+  if (values.length < 3) {
+    els.subjectRadarChart.innerHTML = '<p class="study-empty">3科目以上で各3問以上解答すると表示します。</p>';
+    return;
+  }
+  const cx = 150, cy = 145, radius = 105;
+  const point = (index, scale = 1) => {
+    const angle = -Math.PI / 2 + index / values.length * Math.PI * 2;
+    return [cx + Math.cos(angle) * radius * scale, cy + Math.sin(angle) * radius * scale];
+  };
+  const rings = [0.25, .5, .75, 1].map((scale) => `<polygon points="${values.map((_, index) => point(index, scale).join(",")).join(" ")}"></polygon>`).join("");
+  const axes = values.map((_, index) => { const [x, y] = point(index); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"></line>`; }).join("");
+  const score = values.map((item, index) => point(index, Math.max(.04, (item.accuracy || 0) / 100)).join(",")).join(" ");
+  const labels = values.map((item, index) => { const [x, y] = point(index, 1.18); return `<text x="${x}" y="${y}">${escapeHtml(item.name.slice(0, 8))}</text>`; }).join("");
+  els.subjectRadarChart.innerHTML = `<svg viewBox="0 0 300 290" role="img" aria-label="科目ごとの正答率レーダー">${rings}${axes}<polygon class="study-radar-score" points="${score}"></polygon>${labels}</svg>`;
 }
 
 function analysisTable(rows) {
@@ -374,7 +453,7 @@ function filteredProblems(filter = els.problemFilter.value) {
 function renderProblemHistory() {
   const rows = filteredProblems();
   els.problemHistoryList.innerHTML = rows.length ? rows.slice(0, 100).map((item) => `
-    <details><summary><span>${escapeHtml(item.question)}</span><b data-result="${item.last?.correct ? "correct" : "wrong"}">${item.last?.correct ? "前回正解" : "前回不正解"}</b></summary><div><p><strong>${escapeHtml(item.subjectName || "科目")}／${escapeHtml(item.unitName || item.unitId || "単元")}</strong></p><p>解答 ${item.attempts.length}回・正解 ${item.correct}回・不正解 ${item.incorrect}回・連続正解 ${item.consecutiveCorrect}回</p><p>平均解答時間 ${item.averageResponseSeconds?.toFixed(1) || "—"}秒・正答率 ${item.accuracy?.toFixed(1) || "0"}%</p><p>自分の回答：${escapeHtml(formatAnswer(item.last?.selectedAnswer))}</p><p>正解：${escapeHtml(formatAnswer(item.last?.correctAnswer))}</p></div></details>
+    <details><summary><span>${escapeHtml(item.question)}</span><b data-result="${item.last?.correct ? "correct" : "wrong"}">${item.last?.correct ? "前回正解" : "前回不正解"}</b></summary><div><p><strong>${escapeHtml(item.subjectName || "科目")}／${escapeHtml(item.unitName || item.unitId || "単元")}</strong></p>${item.last?.choices?.length ? `<ol>${item.last.choices.map((choice) => `<li>${escapeHtml(choice)}</li>`).join("")}</ol>` : ""}<p>解答 ${item.attempts.length}回・正解 ${item.correct}回・不正解 ${item.incorrect}回・連続正解 ${item.consecutiveCorrect}回</p><p>平均解答時間 ${item.averageResponseSeconds?.toFixed(1) || "—"}秒・正答率 ${item.accuracy?.toFixed(1) || "0"}%</p><p>自分の回答：${escapeHtml(formatAnswer(item.last?.selectedAnswer))}</p><p>正解：${escapeHtml(formatAnswer(item.last?.correctAnswer))}</p><p>最終解答：${new Date(toMillis(item.last?.answeredAt)).toLocaleString("ja-JP")}</p></div></details>
   `).join("") : '<p class="study-empty">該当する問題はありません。</p>';
 }
 
@@ -406,7 +485,15 @@ function renderReports() {
   const previousWeekSeconds = sessions.filter((item) => { const time = toMillis(item.endedAt || item.startedAt); return time >= lastWeekStart && time < thisWeekStart; }).reduce((sum, item) => sum + Number(item.durationSeconds || 0), 0);
   const difference = report.summary.weekSeconds - previousWeekSeconds;
   els.weeklyReport.innerHTML = reportHtml(report, `先週との差：${difference >= 0 ? "+" : "−"}${formatDuration(Math.abs(difference))}`);
-  els.monthlyReport.innerHTML = reportHtml(report, `今月の学習：${formatDuration(report.summary.monthSeconds)}`);
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+  const previousMonthSeconds = sessions.filter((item) => {
+    const time = toMillis(item.endedAt || item.startedAt);
+    return time >= previousMonthStart && time < currentMonthStart;
+  }).reduce((sum, item) => sum + Number(item.durationSeconds || 0), 0);
+  const monthDifference = report.summary.monthSeconds - previousMonthSeconds;
+  els.monthlyReport.innerHTML = reportHtml(report, `前月との差：${monthDifference >= 0 ? "+" : "−"}${formatDuration(Math.abs(monthDifference))}`);
   const subjectRows = aggregateBySubject(sessions, attempts);
   const weekday = Array.from({ length: 7 }, () => 0);
   const hours = Array.from({ length: 24 }, () => 0);
@@ -414,10 +501,28 @@ function renderReports() {
   const topWeekday = weekday.some(Boolean) ? ["日", "月", "火", "水", "木", "金", "土"][weekday.indexOf(Math.max(...weekday))] + "曜日" : "データなし";
   const topHour = hours.some(Boolean) ? `${hours.indexOf(Math.max(...hours))}時台` : "データなし";
   const activeDays = Math.max(1, report.summary.days.size);
+  const highStudyLowAccuracy = subjectRows.filter((item) => item.seconds > 0 && item.attempts >= 5).sort((a, b) => b.seconds - a.seconds).find((item) => item.accuracy < 70);
   els.studyInsights.innerHTML = [
     ["最も勉強する曜日", topWeekday], ["最も勉強する時間帯", topHour], ["1日平均", formatDuration(report.summary.totalSeconds / activeDays)],
     ["現在の連続学習", `${report.summary.currentStreak}日`], ["最長連続学習", `${report.summary.longestStreak}日`], ["学習科目数", `${subjectRows.filter((item) => item.seconds).length}科目`],
+    ["学習バランス", highStudyLowAccuracy ? `${highStudyLowAccuracy.name}は時間を確保できていますが復習候補です` : subjectRows.length ? "大きな偏りはまだ検出されていません" : "データなし"],
+    ["時間と正答率", report.summary.accuracy == null ? "データ不足" : "比較表示であり、学習効果を断定しません"],
   ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
+  renderGoalProgress(report.summary);
+}
+
+function renderGoalProgress(summary) {
+  const values = [
+    ["今日の学習時間", summary.todaySeconds, Number(goals.dailyMinutes || 0) * 60, formatDuration],
+    ["今週の学習時間", summary.weekSeconds, Number(goals.weeklyMinutes || 0) * 60, formatDuration],
+    ["今日の解答数", summary.todayQuestions, Number(goals.dailyQuestions || 0), (value) => `${Math.round(value)}問`],
+    ["今週の解答数", attempts.filter((item) => toMillis(item.answeredAt) >= studyWindowStart("7d")).length, Number(goals.weeklyQuestions || 0), (value) => `${Math.round(value)}問`],
+    ["正答率", summary.accuracy || 0, Number(goals.targetAccuracy || 0), (value) => `${Number(value).toFixed(1)}%`],
+  ];
+  els.allGoalProgress.innerHTML = values.map(([label, current, target, formatter]) => {
+    const rate = target > 0 ? Math.min(100, current / target * 100) : 0;
+    return `<div class="study-goal-progress ${rate >= 100 ? "is-achieved" : ""}"><div><b>${label}</b><span>${target > 0 ? `${formatter(current)} / ${formatter(target)}` : "未設定"}</span></div><div><i style="width:${rate}%"></i></div><small>${target > 0 ? `${Math.round(rate)}%` : "目標を設定してください"}</small></div>`;
+  }).join("");
 }
 
 function reportHtml(report, comparison) {
