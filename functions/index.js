@@ -1657,6 +1657,107 @@ function normalizeAdminEnrollmentStatus(value) {
     : "enrolled";
 }
 
+function normalizeAdminGradeNumber(value) {
+  const matched = String(value || "").match(/[1-4]/);
+  return matched ? Number(matched[0]) : 0;
+}
+
+function normalizeAdminSemesterValue(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["first", "前期", "1", "spring"].includes(normalized)) return "前期";
+  if (["second", "後期", "2", "fall", "autumn"].includes(normalized)) return "後期";
+  if (["full", "通期", "year", "year_round"].includes(normalized)) return "通期";
+  return String(value || "").trim();
+}
+
+function normalizeAdminDepartmentMajor(departmentValue, majorValue) {
+  let department = String(departmentValue || "").trim();
+  let major = String(majorValue || "").trim();
+  if (["理学療法学専攻", "作業療法学専攻"].includes(department)) {
+    major = department;
+    department = "リハビリテーション学科";
+  }
+  return { department, major };
+}
+
+function adminEnrollmentCandidates(subjectDocuments, userData, configData, curriculumDocuments) {
+  const student = normalizeAdminDepartmentMajor(userData.department, userData.major);
+  const grade = normalizeAdminGradeNumber(userData.grade);
+  const admissionYear = Number(
+    userData.admissionYear || userData.enrollmentYear || userData.entranceYear || 0,
+  );
+  const storedCurriculumId = String(userData.curriculumId || "").trim();
+  const curricula = curriculumDocuments.map((item) => ({ id: item.id, ...(item.data() || {}) }));
+  const matchedCurriculum = storedCurriculumId
+    ? curricula.find((item) => item.id === storedCurriculumId && item.published === true)
+    : curricula
+      .filter((item) => {
+        const target = normalizeAdminDepartmentMajor(item.department, item.major);
+        return item.published === true &&
+          target.department === student.department &&
+          target.major === student.major &&
+          (!admissionYear || !Number(item.admissionYearFrom) || admissionYear >= Number(item.admissionYearFrom)) &&
+          (!admissionYear || !Number(item.admissionYearTo) || admissionYear <= Number(item.admissionYearTo));
+      })
+      .sort((left, right) => Number(right.admissionYearFrom || 0) - Number(left.admissionYearFrom || 0))[0];
+  const curriculumId = matchedCurriculum?.id || storedCurriculumId;
+  const semester = normalizeAdminSemesterValue(configData?.semester);
+  const academicYear = Number(configData?.academicYear || new Date().getFullYear());
+
+  const candidates = subjectDocuments
+    .map((item) => {
+      const data = item.data() || {};
+      const subject = normalizeAdminDepartmentMajor(data.department, data.major);
+      const curriculumIds = Array.isArray(data.curriculumIds)
+        ? data.curriculumIds.map(String)
+        : data.curriculumId ? [String(data.curriculumId)] : [];
+      const requirementType = String(
+        data.requirementType || (data.required === true ? "required" : "elective"),
+      );
+      return {
+        id: item.id,
+        name: String(data.name || data.subjectKey || item.id).trim(),
+        subjectKey: String(data.subjectKey || data.name || item.id).trim(),
+        department: subject.department,
+        major: subject.major,
+        curriculumIds,
+        grade: normalizeAdminGradeNumber(data.grade),
+        semester: normalizeAdminSemesterValue(data.semester),
+        requirementType,
+        required: requirementType === "required",
+        category: String(data.category || data.subjectCategory || ""),
+        subcategory: String(data.subcategory || data.subCategory || ""),
+        requirementTags: Array.isArray(data.requirementTags)
+          ? data.requirementTags.map(String).filter(Boolean)
+          : String(data.requirementTags || data.requirementTag || "")
+            .split(/[、,]/).map((value) => value.trim()).filter(Boolean),
+        credits: Number(data.credits || 0),
+        lectureCount: Number(data.lectureCount || 0),
+        isPractical: data.isPractical === true,
+        attendanceNotificationDefaultEnabled:
+          data.attendanceNotificationDefaultEnabled !== false,
+        attendanceReminderMinutes: Number(data.attendanceReminderMinutes ?? 10),
+        active: data.active !== false,
+      };
+    })
+    .filter((subject) => {
+      if (!subject.active || !grade || subject.grade !== grade) return false;
+      const curriculumMatches = subject.curriculumIds.length
+        ? Boolean(curriculumId && subject.curriculumIds.includes(curriculumId))
+        : subject.department === student.department && subject.major === student.major;
+      if (!curriculumMatches) return false;
+      return !semester || subject.semester === semester || subject.semester === "通期";
+    })
+    .sort((left, right) =>
+      Number(right.required) - Number(left.required) ||
+      left.name.localeCompare(right.name, "ja"));
+
+  return {
+    candidates,
+    context: { curriculumId, semester, academicYear, grade },
+  };
+}
+
 function normalizeAdminAttendanceStatus(data) {
   const candidates = [
     data?.status,
@@ -1685,7 +1786,7 @@ exports.getStudentFeatureAdmin = onCall(
       throw new HttpsError("invalid-argument", "対象学生が正しくありません。");
     }
     const userRef = db.collection("users").doc(target);
-    const [user, enrollment, attendance, progress, solved, referral, referralHistory, referralAdjustments] = await Promise.all([
+    const [user, enrollment, attendance, progress, solved, referral, referralHistory, referralAdjustments, subjects, courseConfig, curricula] = await Promise.all([
       userRef.get(),
       userRef.collection("enrolledSubjects").get(),
       userRef.collection("attendanceRecords").get(),
@@ -1694,6 +1795,9 @@ exports.getStudentFeatureAdmin = onCall(
       referralAccountRef(target).get(),
       db.collection("referralHistory").where("invitedStudentNumber", "==", target).get(),
       db.collection("referralManualAdjustments").where("studentNumber", "==", target).get(),
+      db.collection("subjects").get(),
+      db.collection("system").doc("courseRegistration").get(),
+      db.collection("curricula").get(),
     ]);
     if (!user.exists) {
       throw new HttpsError("not-found", "対象学生が見つかりません。");
@@ -1714,6 +1818,12 @@ exports.getStudentFeatureAdmin = onCall(
         };
       })
       .sort((left, right) => left.name.localeCompare(right.name, "ja"));
+    const enrollmentOptions = adminEnrollmentCandidates(
+      subjects.docs,
+      user.data() || {},
+      courseConfig.data() || {},
+      curricula.docs,
+    );
     const attendanceRecords = attendance.docs
       .map((item) => {
         const data = item.data() || {};
@@ -1813,6 +1923,8 @@ exports.getStudentFeatureAdmin = onCall(
     );
     return {
       enrollments,
+      availableEnrollmentSubjects: enrollmentOptions.candidates,
+      enrollmentContext: enrollmentOptions.context,
       attendanceRecords,
       testProgress,
       solvedQuestions,
@@ -1852,12 +1964,90 @@ exports.updateStudentFeatureAdmin = onCall(
     const target = String(request.data?.studentNumber || "").trim();
     const feature = String(request.data?.feature || "");
     const documentId = String(request.data?.documentId || "").trim();
-    if (!/^\d{7}$/.test(target) || !documentId || documentId.includes("/")) {
+    if (!/^\d{7}$/.test(target)) {
       throw new HttpsError("invalid-argument", "更新対象が正しくありません。");
     }
     const userRef = db.collection("users").doc(target);
-    if (!(await userRef.get()).exists) {
+    const userSnapshot = await userRef.get();
+    if (!userSnapshot.exists) {
       throw new HttpsError("not-found", "対象学生が見つかりません。");
+    }
+    if (feature === "enrollmentInitial") {
+      const subjectIds = [...new Set(
+        (Array.isArray(request.data?.subjectIds) ? request.data.subjectIds : [])
+          .map((value) => String(value || "").trim())
+          .filter((value) => value && !value.includes("/")),
+      )];
+      if (!subjectIds.length || subjectIds.length > 80) {
+        throw new HttpsError("invalid-argument", "登録する履修科目を選んでください。");
+      }
+      const [subjects, courseConfig, curricula, existingEnrollments] = await Promise.all([
+        db.collection("subjects").get(),
+        db.collection("system").doc("courseRegistration").get(),
+        db.collection("curricula").get(),
+        userRef.collection("enrolledSubjects").get(),
+      ]);
+      const options = adminEnrollmentCandidates(
+        subjects.docs,
+        userSnapshot.data() || {},
+        courseConfig.data() || {},
+        curricula.docs,
+      );
+      const candidateMap = new Map(options.candidates.map((item) => [item.id, item]));
+      if (subjectIds.some((id) => !candidateMap.has(id))) {
+        throw new HttpsError("permission-denied", "この学生の履修対象外の科目が含まれています。");
+      }
+      const now = new Date();
+      const batch = db.batch();
+      subjectIds.forEach((subjectId) => {
+        const subject = candidateMap.get(subjectId);
+        batch.set(userRef.collection("enrolledSubjects").doc(subjectId), {
+          subjectId,
+          name: subject.name,
+          subjectKey: subject.subjectKey,
+          curriculumId: options.context.curriculumId || "",
+          department: subject.department,
+          major: subject.major,
+          grade: subject.grade,
+          semester: subject.semester,
+          registeredSemester: options.context.semester || subject.semester,
+          academicYear: options.context.academicYear,
+          requirementType: subject.requirementType,
+          required: subject.required,
+          category: subject.category,
+          subcategory: subject.subcategory,
+          requirementTags: subject.requirementTags,
+          credits: subject.credits,
+          lectureCount: subject.lectureCount,
+          isPractical: subject.isPractical,
+          attendanceNotificationEnabled:
+            subject.attendanceNotificationDefaultEnabled,
+          attendanceReminderMinutes: subject.attendanceReminderMinutes,
+          status: "enrolled",
+          registeredAt: now,
+          updatedAt: now,
+          adminInitialRegistration: true,
+          adminEditedAt: now,
+          adminEditedBy: updatedBy,
+        }, { merge: true });
+      });
+      const previousIds = existingEnrollments.docs.map((item) => item.id);
+      batch.set(userRef.collection("enrollmentHistory").doc(), {
+        academicYear: options.context.academicYear,
+        semester: options.context.semester,
+        curriculumId: options.context.curriculumId || "",
+        previousSelectedSubjectIds: previousIds,
+        selectedSubjectIds: [...new Set([...previousIds, ...subjectIds])],
+        selectedCourseCount: new Set([...previousIds, ...subjectIds]).size,
+        source: "admin-initial-registration",
+        savedAt: now,
+        savedBy: updatedBy,
+      });
+      await batch.commit();
+      return { updated: true, registeredCount: subjectIds.length };
+    }
+    if (!documentId || documentId.includes("/")) {
+      throw new HttpsError("invalid-argument", "更新対象が正しくありません。");
     }
     if (feature === "enrollment") {
       const status = String(request.data?.status || "");

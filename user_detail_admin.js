@@ -498,6 +498,9 @@ function renderStudentFeatures() {
   const enrollments = Array.isArray(studentFeatureData?.enrollments)
     ? studentFeatureData.enrollments.filter((item) => item && typeof item === "object")
     : [];
+  const availableEnrollmentSubjects = Array.isArray(studentFeatureData?.availableEnrollmentSubjects)
+    ? studentFeatureData.availableEnrollmentSubjects.filter((item) => item && typeof item === "object")
+    : [];
   const attendance = Array.isArray(studentFeatureData?.attendanceRecords)
     ? studentFeatureData.attendanceRecords.filter((item) => item && typeof item === "object")
     : [];
@@ -512,6 +515,10 @@ function renderStudentFeatures() {
   const referralHistories = Array.isArray(referral.histories) ? referral.histories : [];
   const referralAdjustments = Array.isArray(referral.adjustments) ? referral.adjustments : [];
   const activeEnrollments = enrollments.filter((item) => item.status === "enrolled");
+  const activeEnrollmentIds = new Set(activeEnrollments.map((item) => String(item.id || "")));
+  const enrollmentCandidates = availableEnrollmentSubjects.filter(
+    (item) => !activeEnrollmentIds.has(String(item.id || "")),
+  );
   studentFeatureSummary.innerHTML = `
     <div><small>履修</small><b>${activeEnrollments.length}科目</b></div>
     <div><small>出席記録</small><b>${attendance.length}件</b></div>
@@ -519,13 +526,36 @@ function renderStudentFeatures() {
     <div><small>紹介</small><b>${Number(referral.invitedCount || 0)} / 10人</b></div>`;
 
   try {
-    studentEnrollmentPanel.innerHTML = enrollments.length
-    ? `<p class="student-feature-help">履修中 ${activeEnrollments.length}科目 / 登録履歴 ${enrollments.length}件。履修から外した科目も確認できます。</p><div class="student-feature-list">${enrollments.map((item) => `
+    const context = studentFeatureData?.enrollmentContext || {};
+    const initialRegistrationEditor = `
+      <section class="student-enrollment-initial-editor">
+        <div class="student-enrollment-initial-heading">
+          <div><h3>${activeEnrollments.length ? "履修科目を追加" : "履修科目を初期登録"}</h3><p>${context.academicYear ? `${escapeAuditHtml(context.academicYear)}年度` : "対象年度"}・${escapeAuditHtml(semesterLabel(context.semester) || "対象学期")}の科目から選択できます。学生本人は登録後も従来どおり変更できます。</p></div>
+          <span>${enrollmentCandidates.length}科目</span>
+        </div>
+        ${enrollmentCandidates.length ? `
+          <div class="student-enrollment-initial-actions">
+            <button type="button" class="btn" data-select-required-enrollment>必修をすべて選択</button>
+            <b data-enrollment-selection-count>0科目選択</b>
+          </div>
+          <div class="student-enrollment-candidate-list">
+            ${enrollmentCandidates.map((item) => `
+              <label class="student-enrollment-candidate">
+                <input type="checkbox" data-initial-enrollment-subject value="${escapeAuditHtml(item.id)}" data-required="${item.required === true ? "true" : "false"}" />
+                <span><strong>${escapeAuditHtml(item.name)}</strong><small>${escapeAuditHtml([semesterLabel(item.semester), item.credits ? `${item.credits}単位` : "", item.required ? "必修" : "選択"].filter(Boolean).join("・"))}</small></span>
+              </label>`).join("")}
+          </div>
+          <button type="button" class="btn btn-primary student-enrollment-register-button" data-register-initial-enrollments disabled>選択した科目を登録</button>
+        ` : `<div class="student-feature-empty">現在の学年・学期で追加できる科目はありません。</div>`}
+      </section>`;
+    const currentEnrollmentList = enrollments.length
+    ? `<p class="student-feature-help">履修中 ${activeEnrollments.length}科目 / 登録履歴 ${enrollments.length}件。登録済み科目は個別に変更できます。</p><div class="student-feature-list">${enrollments.map((item) => `
       <article class="student-feature-row" data-feature-row="enrollment" data-document-id="${escapeAuditHtml(item.id)}">
         <div><b>${escapeAuditHtml(item.name)}</b><small>${escapeAuditHtml([item.academicYear ? `${item.academicYear}年度` : "", semesterLabel(item.semester), item.credits ? `${item.credits}単位` : "", item.required ? "必修" : ""].filter(Boolean).join("・"))}</small></div>
         <div class="student-feature-edit"><select aria-label="履修状態"><option value="enrolled" ${item.status === "enrolled" ? "selected" : ""}>履修中</option><option value="not_enrolled" ${item.status === "not_enrolled" ? "selected" : ""}>履修から外す</option></select><button type="button" class="btn" data-save-feature>保存</button></div>
       </article>`).join("")}</div>`
-      : '<div class="student-feature-empty">現在の履修登録はありません。</div>';
+      : '<div class="student-feature-empty">現在の履修登録はありません。上の科目一覧から初期登録してください。</div>';
+    studentEnrollmentPanel.innerHTML = initialRegistrationEditor + currentEnrollmentList;
   } catch (error) {
     console.error("履修明細の描画エラー:", error);
     studentEnrollmentPanel.innerHTML = '<div class="student-feature-empty">履修明細を表示できませんでした。自動更新で再取得します。</div>';
@@ -670,6 +700,41 @@ async function saveStudentFeature(button) {
     alert("変更を保存できませんでした。");
     button.disabled = false;
     button.textContent = "保存";
+  }
+}
+
+function updateInitialEnrollmentSelection() {
+  const checkboxes = [...studentEnrollmentPanel.querySelectorAll(
+    "input[data-initial-enrollment-subject]",
+  )];
+  const selectedCount = checkboxes.filter((input) => input.checked).length;
+  const counter = studentEnrollmentPanel.querySelector("[data-enrollment-selection-count]");
+  const registerButton = studentEnrollmentPanel.querySelector("[data-register-initial-enrollments]");
+  if (counter) counter.textContent = `${selectedCount}科目選択`;
+  if (registerButton) registerButton.disabled = selectedCount === 0;
+}
+
+async function registerInitialEnrollments(button) {
+  const subjectIds = [...studentEnrollmentPanel.querySelectorAll(
+    "input[data-initial-enrollment-subject]:checked",
+  )].map((input) => input.value).filter(Boolean);
+  if (!subjectIds.length) return;
+  if (!confirm(`${subjectIds.length}科目をこの学生の履修科目として登録しますか？`)) return;
+  button.disabled = true;
+  button.textContent = "登録中...";
+  try {
+    const response = await httpsCallable(functions, "updateStudentFeatureAdmin")({
+      studentNumber: targetStudentNumber,
+      feature: "enrollmentInitial",
+      subjectIds,
+    });
+    showToast(`${Number(response.data?.registeredCount || subjectIds.length)}科目を登録しました`);
+    await loadStudentFeatures();
+  } catch (error) {
+    console.error("履修科目初期登録エラー:", error);
+    alert(error?.message?.replace(/^FirebaseError:\s*/, "") || "履修科目を登録できませんでした。");
+    button.disabled = false;
+    button.textContent = "選択した科目を登録";
   }
 }
 
@@ -1122,8 +1187,26 @@ function setupEvents() {
         setStudentFeatureTab(tabButton.dataset.featureTab);
         return;
       }
+      const selectRequiredButton = event.target.closest("[data-select-required-enrollment]");
+      if (selectRequiredButton) {
+        studentEnrollmentPanel.querySelectorAll(
+          'input[data-initial-enrollment-subject][data-required="true"]',
+        ).forEach((input) => { input.checked = true; });
+        updateInitialEnrollmentSelection();
+        return;
+      }
+      const initialEnrollmentButton = event.target.closest("[data-register-initial-enrollments]");
+      if (initialEnrollmentButton) {
+        await registerInitialEnrollments(initialEnrollmentButton);
+        return;
+      }
       const saveButton = event.target.closest("[data-save-feature]");
       if (saveButton) await saveStudentFeature(saveButton);
+    });
+    studentFeatureAdmin.addEventListener("change", (event) => {
+      if (event.target.matches("input[data-initial-enrollment-subject]")) {
+        updateInitialEnrollmentSelection();
+      }
     });
   }
 

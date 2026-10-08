@@ -21211,6 +21211,70 @@ course-tagが付いたspanには適用しない。
 .student-feature-exam-edit input[type="number"] { width: 84px; }
 .student-feature-exam-edit .student-feature-check { display: flex; align-items: center; color: var(--text); font-size: 12px; white-space: nowrap; }
 .student-feature-help { margin: 0 0 10px; color: var(--subtext); font-size: 12px; line-height: 1.6; }
+.student-enrollment-initial-editor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+.student-enrollment-initial-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.student-enrollment-initial-heading h3 { margin: 0 0 5px; font-size: 16px; }
+.student-enrollment-initial-heading p { margin: 0; color: var(--subtext); font-size: 12px; line-height: 1.6; }
+.student-enrollment-initial-heading > span {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-enrollment-initial-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.student-enrollment-initial-actions .btn { width: auto; min-height: 38px; margin: 0; padding: 7px 11px; }
+.student-enrollment-initial-actions b { color: var(--primary); font-size: 12px; }
+.student-enrollment-candidate-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  max-height: 360px;
+  padding: 3px;
+  overflow-y: auto;
+}
+.student-enrollment-candidate {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--card);
+  cursor: pointer;
+}
+.student-enrollment-candidate:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+.student-enrollment-candidate input { width: 19px; height: 19px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); }
+.student-enrollment-candidate span,
+.student-enrollment-candidate strong,
+.student-enrollment-candidate small { display: block; min-width: 0; }
+.student-enrollment-candidate strong { overflow-wrap: anywhere; font-size: 13px; line-height: 1.45; }
+.student-enrollment-candidate small { margin-top: 3px; color: var(--subtext); font-size: 11px; }
+.student-enrollment-register-button { width: 100%; margin: 0; }
 .student-feature-solved { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
 .student-feature-solved summary { cursor: pointer; color: var(--primary); font-weight: 800; }
 .student-feature-solved > div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
@@ -21228,6 +21292,10 @@ course-tagが付いたspanには適用しない。
   .student-feature-edit select,
   .student-feature-edit .btn { width: 100%; }
   .student-feature-exam-edit input[type="number"] { width: 100%; box-sizing: border-box; }
+  .student-enrollment-initial-heading,
+  .student-enrollment-initial-actions { align-items: stretch; flex-direction: column; }
+  .student-enrollment-initial-actions .btn { width: 100%; }
+  .student-enrollment-candidate-list { grid-template-columns: 1fr; max-height: 420px; }
 }
 @media (max-width: 420px) {
   .referral-admin-toolbar { grid-template-columns: 1fr; }

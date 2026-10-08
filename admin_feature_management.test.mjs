@@ -53,3 +53,22 @@ test("機能別明細は一つの描画失敗で他の機能まで空になら�
   assert.match(detailJs, /テスト明細の描画エラー/);
   assert.match(detailJs, /紹介明細の描画エラー/);
 });
+
+test("履修登録が0件でも管理者が対象科目を初期登録できる", () => {
+  assert.match(functionsSource, /availableEnrollmentSubjects/);
+  assert.match(functionsSource, /feature === "enrollmentInitial"/);
+  assert.match(functionsSource, /adminEnrollmentCandidates/);
+  assert.match(functionsSource, /admin-initial-registration/);
+  assert.match(detailJs, /履修科目を初期登録/);
+  assert.match(detailJs, /data-initial-enrollment-subject/);
+  assert.match(detailJs, /data-register-initial-enrollments/);
+  assert.match(detailJs, /feature: "enrollmentInitial"/);
+});
+
+test("管理者の初期登録後も学生側と同じenrolledSubjectsへ保存する", () => {
+  const start = functionsSource.indexOf('feature === "enrollmentInitial"');
+  const section = functionsSource.slice(start, start + 4200);
+  assert.match(section, /collection\("enrolledSubjects"\)/);
+  assert.match(section, /status: "enrolled"/);
+  assert.match(section, /enrollmentHistory/);
+});
