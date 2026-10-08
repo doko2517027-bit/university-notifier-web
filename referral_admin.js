@@ -10,6 +10,7 @@ import {
 } from "./common.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { formatAcademicGrade } from "./grade_display.mjs";
 
 const $ = (id) => document.getElementById(id);
 let students = [];
@@ -218,7 +219,7 @@ function renderStudent(item) {
   return `
     <details class="referral-admin-student ${reached ? "is-reached" : ""}">
       <summary>
-        <div class="referral-admin-student-title"><strong>${escapeHtml(item.studentNumber)}${item.name ? ` / ${escapeHtml(item.name)}` : ""}</strong><small>${escapeHtml([item.department, item.grade ? `${item.grade}年` : ""].filter(Boolean).join("・") || "所属未設定")}</small></div>
+        <div class="referral-admin-student-title"><strong>${escapeHtml(item.studentNumber)}${item.name ? ` / ${escapeHtml(item.name)}` : ""}</strong><small>${escapeHtml([item.department, item.grade ? formatAcademicGrade(item.grade, "") : ""].filter(Boolean).join("・") || "所属未設定")}</small></div>
         <div class="referral-admin-student-progress"><b>${count} / 10人</b><span>${reached ? "🎉 10人達成" : item.activeCode ? "コード発行中" : count ? "進行中" : "未開始"}</span></div>
       </summary>
       <div class="referral-admin-student-body">

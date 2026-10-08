@@ -34,6 +34,7 @@ import {
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
+import { formatAcademicGrade } from "./grade_display.mjs";
 
 import {
   getPrimaryPresenceDevice,
@@ -353,7 +354,7 @@ function renderUserInformation() {
 
   setText(
     gradeValue,
-    targetUserData.grade ? `${targetUserData.grade}` : "未設定",
+    formatAcademicGrade(targetUserData.grade, "未設定"),
   );
 
   setText(

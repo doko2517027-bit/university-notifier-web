@@ -22,6 +22,10 @@ import {
 } from "./admin_scope.js";
 
 import { isPrimaryDeviceAuditViewer } from "./device_audit_access.mjs";
+import {
+  formatAcademicGrade,
+  normalizeAcademicGrade,
+} from "./grade_display.mjs";
 
 import {
   getPrimaryPresenceDevice,
@@ -568,7 +572,7 @@ function getFilteredUsers() {
       !selectedDepartment || userDepartment === selectedDepartment;
 
     const matchesGrade =
-      !selectedGrade || String(user.grade || "") === selectedGrade;
+      !selectedGrade || normalizeAcademicGrade(user.grade) === selectedGrade;
 
     const matchesStatus = !selectedStatus || statusKey === selectedStatus;
 
@@ -633,7 +637,7 @@ function createUserHtml(user) {
 
   const department = getUserDepartment(user);
 
-  const grade = user.grade ? `${user.grade}` : "学年未設定";
+  const grade = formatAcademicGrade(user.grade);
 
   const deviceSummaryHtml = createDeviceSummaryHtml(user);
 

@@ -1,3 +1,8 @@
+import {
+  formatAcademicGrade,
+  normalizeAcademicGrade,
+} from "./grade_display.mjs";
+
 const STORAGE_KEY = "careMateAdminScope";
 
 export function getAdminScope() {
@@ -7,7 +12,7 @@ export function getAdminScope() {
     return {
       department: String(stored.department || ""),
       major: String(stored.major || ""),
-      grade: String(stored.grade || ""),
+      grade: normalizeAcademicGrade(stored.grade),
     };
   } catch {
     return {
@@ -22,7 +27,7 @@ export function saveAdminScope(scope) {
   const normalized = {
     department: String(scope?.department || ""),
     major: String(scope?.major || ""),
-    grade: String(scope?.grade || ""),
+    grade: normalizeAcademicGrade(scope?.grade),
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
@@ -34,7 +39,7 @@ export function scopeLabel(scope = getAdminScope()) {
   const parts = [
     scope.department,
     scope.major,
-    scope.grade ? `${scope.grade}年` : "",
+    scope.grade ? formatAcademicGrade(scope.grade, "") : "",
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" / ") : "全学科・全学年";
@@ -77,9 +82,7 @@ export function readAdminScopeFromUrl() {
 export function matchesAdminScope(user, scope = getAdminScope()) {
   const department = String(user?.department || "").trim();
   const major = String(user?.major || "").trim();
-  const grade = String(user?.grade || "")
-    .replace("年", "")
-    .trim();
+  const grade = normalizeAcademicGrade(user?.grade);
 
   const matchesDepartment =
     !scope.department ||
@@ -90,6 +93,6 @@ export function matchesAdminScope(user, scope = getAdminScope()) {
   return (
     matchesDepartment &&
     (!scope.major || major === scope.major) &&
-    (!scope.grade || grade === scope.grade)
+    (!scope.grade || grade === normalizeAcademicGrade(scope.grade))
   );
 }

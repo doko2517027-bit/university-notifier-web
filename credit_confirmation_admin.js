@@ -13,6 +13,7 @@ import {
   scopeLabel,
   withAdminScope,
 } from "./admin_scope.js";
+import { formatAcademicGrade } from "./grade_display.mjs";
 import {
   collection,
   doc,
@@ -100,7 +101,7 @@ async function load() {
           ).length;
           const name =
             user.name || user.userName || user.displayName || "氏名未設定";
-          return `<article class="attendance-review-card"><b>${escapeHtml(name)}</b><p>${escapeHtml(user.id)} ／ ${escapeHtml(String(user.grade || "未設定"))}年<br>回答：${answered ? `済み（再履修 ${retakes}科目）` : "未回答"}</p><div class="report-actions"><a class="btn" href="${withAdminScope(`credit_confirmation_edit.html?student=${encodeURIComponent(user.id)}&academicYear=${academicYear}&semester=${encodeURIComponent(semester)}`)}">単位取得結果を編集</a></div></article>`;
+          return `<article class="attendance-review-card"><b>${escapeHtml(name)}</b><p>${escapeHtml(user.id)} ／ ${escapeHtml(formatAcademicGrade(user.grade, "未設定"))}<br>回答：${answered ? `済み（再履修 ${retakes}科目）` : "未回答"}</p><div class="report-actions"><a class="btn" href="${withAdminScope(`credit_confirmation_edit.html?student=${encodeURIComponent(user.id)}&academicYear=${academicYear}&semester=${encodeURIComponent(semester)}`)}">単位取得結果を編集</a></div></article>`;
         })
         .join("") || "<p>対象学生はいません。</p>";
   } catch (error) {

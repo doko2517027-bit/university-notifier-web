@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v84";
+const STATIC_CACHE = "caremate-static-v85";
 
-const RUNTIME_CACHE = "caremate-runtime-v84";
+const RUNTIME_CACHE = "caremate-runtime-v85";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -75,11 +75,13 @@ const CORE_ASSETS = [
 
   "referral_admin.html",
 
-  "referral_admin.js?v=20261002-2",
+  "referral_admin.js?v=20261008-1",
 
   "users_admin.html",
 
-  "users_admin.js?v=20261001-9",
+  "users_admin.js?v=20261008-1",
+
+  "grade_display.mjs",
 
   "push_subscription.js",
 

@@ -26,6 +26,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { cloudinaryNewsAttachmentUrl, validNewsAttachments } from "./news_attachments.mjs";
+import { formatAcademicGrade } from "./grade_display.mjs";
 import {
   applyRichNewsCommand,
   getRichNewsEditorHtml,
@@ -138,7 +139,7 @@ async function loadNewsRecipients() {
     users
       .map(
         (user) =>
-          `<option value="${user.id}">${user.id}　${escapeHtml(String(user.publicProfile.name || user.name || "氏名未設定"))}（${escapeHtml(String(user.grade || "学年未設定"))}）</option>`,
+          `<option value="${user.id}">${user.id}　${escapeHtml(String(user.publicProfile.name || user.name || "氏名未設定"))}（${escapeHtml(formatAcademicGrade(user.grade))}）</option>`,
       )
       .join("") || "<option disabled>登録済み学生がいません</option>";
 }
@@ -750,7 +751,7 @@ function createSystemNewsHtml(news) {
     news.sourceCollection !== "targetedSystemNews"
       ? "全員"
       : targetGrades.length
-        ? `学年：${targetGrades.map((grade) => `${grade}年`).join("、")}`
+        ? `学年：${targetGrades.map((grade) => formatAcademicGrade(grade, "")).join("、")}`
         : selectedRecipients.length
         ? `指定：${selectedRecipients.join("、")}`
         : excludedRecipients.length

@@ -13,6 +13,7 @@ import {
   scopeLabel,
   withAdminScope,
 } from "./admin_scope.js";
+import { formatAcademicGrade } from "./grade_display.mjs";
 import {
   collection,
   doc,
@@ -113,7 +114,7 @@ async function loadTransition() {
             user.name || user.userName || user.displayName || "氏名未設定";
           return `<article class="attendance-review-card" data-student="${escapeHtml(user.id)}" data-year="${targetYear}">
         <b>${escapeHtml(name)}</b>
-        <p>${escapeHtml(user.id)} ／ ${escapeHtml(String(user.grade || "未設定"))}<br>本人の最終回答：${answered ? escapeHtml(responseLabel(response.action)) : "未回答"}</p>
+        <p>${escapeHtml(user.id)} ／ ${escapeHtml(formatAcademicGrade(user.grade, "未設定"))}<br>本人の最終回答：${answered ? escapeHtml(responseLabel(response.action)) : "未回答"}</p>
         ${answered && response.overrideReason ? `<p>修正理由：${escapeHtml(response.overrideReason)}</p>` : ""}
       </article>`;
         })

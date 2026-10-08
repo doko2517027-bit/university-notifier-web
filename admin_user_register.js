@@ -21,6 +21,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { formatAcademicGrade } from "./grade_display.mjs";
 import { initialGradeForStudent } from "./academic_lifecycle.mjs";
 
 /* ========================================
@@ -381,7 +382,7 @@ async function registerStudent() {
 
       major: selectedMajor,
 
-      grade: selectedGrade,
+      grade: formatAcademicGrade(selectedGrade, ""),
 
       admissionYear: 2000 + Number(numberValue.substring(0, 2)),
 
