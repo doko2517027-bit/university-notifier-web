@@ -15,8 +15,12 @@ test("ホームはPush未登録者だけに案内カードと設定案内を表�
   assert.match(indexHtml, /Push通知を登録してください/);
   assert.match(indexHtml, /id="pushNotificationGuideModal"/);
   assert.match(indexHtml, /id="openPushNotificationSettings"/);
+  assert.match(indexHtml, /id="sendMyPushTestNotification"/);
+  assert.match(indexHtml, /id="confirmPushNotificationWorking"/);
   assert.match(appJs, /pushNotificationSetupCard\.hidden = status\.registered/);
   assert.match(appJs, /settings\.html#pushNotifications/);
+  assert.match(appJs, /sendMyPushTestNotification/);
+  assert.match(appJs, /confirmPushNotificationWorking/);
 });
 
 test("Push登録済み判定は権限だけでなく現在端末・新旧の保存先を照合する", () => {
@@ -24,6 +28,7 @@ test("Push登録済み判定は権限だけでなく現在端末・新旧の保�
   assert.match(pushJs, /collection\(db, "users", userId, "pushSubscriptions"\)/);
   assert.match(pushJs, /resolvedUserData\?\.pushSubscription/);
   assert.match(pushJs, /currentSubscription \|\| accountRegistered/);
+  assert.match(pushJs, /pushSelfReportedWorking === true/);
 });
 
 test("権限済みなのに購読保存が欠けた端末は自動修復する", () => {

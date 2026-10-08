@@ -3124,6 +3124,67 @@ async function sendToUserDevices(
   return results;
 }
 
+// Push権限は許可済みなのにホームで未登録判定になる端末向けの本人確認。
+// 学籍番号はクライアント入力を使わず、認証トークンから確定する。
+exports.confirmPushNotificationWorking = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    await db.collection("users").doc(studentNumber).set(
+      {
+        pushSelfReportedWorking: true,
+        pushSelfReportedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return { ok: true };
+  },
+);
+
+// 押した本人のCareMateアカウントにだけ送る。短時間の連打もサーバー側で抑止する。
+exports.sendMyPushTestNotification = onCall(
+  {
+    region: "asia-northeast1",
+    cors: [SITE_ORIGIN],
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
+  },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const userRef = db.collection("users").doc(studentNumber);
+    const now = Date.now();
+    await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(userRef);
+      const previous = snapshot.data()?.lastSelfPushTestAt?.toDate?.()?.getTime?.() || 0;
+      if (now - previous < 30_000) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "テスト通知は30秒ほど待ってから再度お試しください。",
+        );
+      }
+      transaction.set(userRef, {
+        lastSelfPushTestAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    });
+
+    webpush.setVapidDetails(
+      "mailto:caremate.app.notice@gmail.com",
+      WEB_PUSH_PUBLIC_KEY.value(),
+      WEB_PUSH_PRIVATE_KEY.value(),
+    );
+    const results = await sendToUserDevices(studentNumber, {
+      title: "CareMate テスト通知",
+      body: "正常にPush通知を受信できています。",
+      icon: `${SITE_URL}/icon-192.png`,
+      badge: `${SITE_URL}/icon-192.png`,
+      url: `${SITE_URL}/index.html`,
+      type: "push-test",
+      studentNumber,
+    });
+    const sentCount = results.filter((item) => item.result === "sent").length;
+    return { ok: sentCount > 0, sentCount, targetCount: results.length };
+  },
+);
+
 // 端末を開いていない学生のホーム画面アイコンは正確に判定できないため、
 // 旧判定APIは安全のため無効化する。
 exports.notifyStudentsNeedingAppReinstall = onCall(

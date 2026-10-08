@@ -309,8 +309,10 @@ setupEvents();
 async function loadTargetUser() {
   try {
     const userRef = doc(db, "users", targetStudentNumber);
-
-    const snapshot = await getDoc(userRef);
+    const [snapshot, pushSubscriptionsSnapshot] = await Promise.all([
+      getDoc(userRef),
+      getDocs(collection(db, "users", targetStudentNumber, "pushSubscriptions")),
+    ]);
 
     if (!snapshot.exists()) {
       alert("指定された学生は存在しません。");
@@ -320,7 +322,10 @@ async function loadTargetUser() {
       return;
     }
 
-    targetUserData = snapshot.data();
+    targetUserData = {
+      ...snapshot.data(),
+      hasDevicePushSubscription: !pushSubscriptionsSnapshot.empty,
+    };
 
     renderUserInformation();
   } catch (error) {
@@ -413,7 +418,12 @@ function renderUserInformation() {
 
   updateExternalAuthButtonAvailability();
 
-  const pushConfigured = Boolean(targetUserData.subscription);
+  const pushConfigured = Boolean(
+    targetUserData.subscription ||
+    targetUserData.pushSubscription ||
+    targetUserData.hasDevicePushSubscription ||
+    targetUserData.pushSelfReportedWorking,
+  );
 
   setText(pushConfiguredValue, pushConfigured ? "✅ 登録済み" : "⚠️ 未登録");
 

@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20261008-1" />
+    <link rel="modulepreload" href="app.js?v=20261009-1" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20261008-1" />
+    <link rel="stylesheet" href="style.css?v=20261009-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -293,6 +293,12 @@
         <h2 id="pushNotificationGuideTitle">Push通知の登録が必要です</h2>
         <p>通知を登録していないと、授業の打刻、課題の締切、時間割変更、大学メールなどの大切なお知らせが届きません。</p>
         <p class="home-push-guide-note">設定画面の「通知を有効にする」を押し、端末に表示される確認でも「許可」を選んでください。</p>
+        <p class="home-push-guide-note">すでに通知が届いている場合は、下のテスト通知で確認したあと「正常に通知が届いています」を押してください。</p>
+        <p id="pushNotificationGuideStatus" class="home-push-guide-status" role="status" aria-live="polite"></p>
+        <div class="home-push-guide-check-actions">
+          <button id="sendMyPushTestNotification" type="button" class="btn">テスト通知を送る</button>
+          <button id="confirmPushNotificationWorking" type="button" class="btn btn-primary">正常に通知が届いています</button>
+        </div>
         <div class="admin-modal-actions">
           <button id="closePushNotificationGuide" type="button" class="btn">閉じる</button>
           <button id="openPushNotificationSettings" type="button" class="btn btn-primary">設定へ</button>
@@ -556,6 +562,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261008-1"></script>
+    <script type="module" src="app.js?v=20261009-1"></script>
   </body>
 </html>

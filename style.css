@@ -1802,6 +1802,31 @@ body.page-busy::after{
     background: color-mix(in srgb, var(--primary) 8%, var(--card));
 }
 
+.home-push-guide-status {
+    min-height: 1.55em;
+    margin: 10px 0 0;
+    color: var(--subtext);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center !important;
+}
+
+.home-push-guide-status[data-state="success"] { color: #14805e; }
+.home-push-guide-status[data-state="error"] { color: #c0392b; }
+
+.home-push-guide-check-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.home-push-guide-check-actions .btn {
+    min-height: 46px;
+    white-space: normal;
+    line-height: 1.35;
+}
+
 .settings-push-status {
     margin: 0 0 13px;
     padding: 11px 13px;
@@ -1826,6 +1851,7 @@ body.page-busy::after{
     }
     .home-push-setup-arrow { display: none; }
     .home-push-setup-icon { width: 42px; height: 42px; font-size: 22px; }
+    .home-push-guide-check-actions { grid-template-columns: 1fr; }
 }
 
 .course-registration-banner{

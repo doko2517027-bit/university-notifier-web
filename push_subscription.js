@@ -356,6 +356,8 @@ export async function getCareMatePushRegistrationStatus(
   let accountRegistered = validStoredPushSubscription(
     resolvedUserData?.pushSubscription,
   );
+  accountRegistered = accountRegistered ||
+    resolvedUserData?.pushSelfReportedWorking === true;
   try {
     const subscriptions = await getDocs(
       collection(db, "users", userId, "pushSubscriptions"),

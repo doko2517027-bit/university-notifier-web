@@ -38,7 +38,7 @@ import {
 import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-3";
 import { formatClassGroupLabel, normalizeScheduleClassData } from "./class_group_label.mjs";
 import { resolveCourseLink } from "./course_link_resolver.mjs";
-import { getCareMatePushRegistrationStatus } from "./push_subscription.js?v=20261008-1";
+import { getCareMatePushRegistrationStatus } from "./push_subscription.js?v=20261009-1";
 
 import {
   doc,
@@ -213,6 +213,9 @@ const pushNotificationSetupCard = document.getElementById("pushNotificationSetup
 const pushNotificationGuideModal = document.getElementById("pushNotificationGuideModal");
 const closePushNotificationGuide = document.getElementById("closePushNotificationGuide");
 const openPushNotificationSettings = document.getElementById("openPushNotificationSettings");
+const sendMyPushTestNotificationButton = document.getElementById("sendMyPushTestNotification");
+const confirmPushNotificationWorkingButton = document.getElementById("confirmPushNotificationWorking");
+const pushNotificationGuideStatus = document.getElementById("pushNotificationGuideStatus");
 
 let courses = {};
 
@@ -257,6 +260,54 @@ pushNotificationSetupCard?.addEventListener("click", () => {
 closePushNotificationGuide?.addEventListener("click", closeHomePushGuide);
 openPushNotificationSettings?.addEventListener("click", () => {
   location.href = "settings.html#pushNotifications";
+});
+sendMyPushTestNotificationButton?.addEventListener("click", async () => {
+  const originalLabel = sendMyPushTestNotificationButton.textContent;
+  sendMyPushTestNotificationButton.disabled = true;
+  sendMyPushTestNotificationButton.textContent = "送信中…";
+  if (pushNotificationGuideStatus) {
+    pushNotificationGuideStatus.textContent = "本人の登録端末へテスト通知を送っています。";
+    pushNotificationGuideStatus.dataset.state = "loading";
+  }
+  try {
+    const response = await httpsCallable(functions, "sendMyPushTestNotification")({});
+    const sentCount = Number(response.data?.sentCount || 0);
+    if (pushNotificationGuideStatus) {
+      pushNotificationGuideStatus.textContent = sentCount > 0
+        ? "テスト通知を送信しました。端末に届いたことを確認してください。"
+        : "送信先が見つかりませんでした。先に設定画面で通知を有効にしてください。";
+      pushNotificationGuideStatus.dataset.state = sentCount > 0 ? "success" : "error";
+    }
+  } catch (error) {
+    console.warn("テスト通知を送信できませんでした:", error);
+    if (pushNotificationGuideStatus) {
+      pushNotificationGuideStatus.textContent = error?.message || "テスト通知を送信できませんでした。";
+      pushNotificationGuideStatus.dataset.state = "error";
+    }
+  } finally {
+    sendMyPushTestNotificationButton.disabled = false;
+    sendMyPushTestNotificationButton.textContent = originalLabel;
+  }
+});
+confirmPushNotificationWorkingButton?.addEventListener("click", async () => {
+  const originalLabel = confirmPushNotificationWorkingButton.textContent;
+  confirmPushNotificationWorkingButton.disabled = true;
+  confirmPushNotificationWorkingButton.textContent = "登録中…";
+  try {
+    await httpsCallable(functions, "confirmPushNotificationWorking")({});
+    if (currentHomeUser) currentHomeUser.pushSelfReportedWorking = true;
+    window.dispatchEvent(new CustomEvent("caremate:push-registration-changed", {
+      detail: { registered: true, source: "self-report" },
+    }));
+  } catch (error) {
+    console.warn("Push通知の本人確認を保存できませんでした:", error);
+    if (pushNotificationGuideStatus) {
+      pushNotificationGuideStatus.textContent = error?.message || "登録状態を保存できませんでした。";
+      pushNotificationGuideStatus.dataset.state = "error";
+    }
+    confirmPushNotificationWorkingButton.disabled = false;
+    confirmPushNotificationWorkingButton.textContent = originalLabel;
+  }
 });
 pushNotificationGuideModal?.addEventListener("click", (event) => {
   if (event.target === pushNotificationGuideModal) closeHomePushGuide();
