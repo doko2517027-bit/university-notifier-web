@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20261006-1" />
+    <link rel="modulepreload" href="app.js?v=20261008-1" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261008-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -272,6 +272,33 @@
     </div>
 
     <div id="authSetupCards"></div>
+
+    <button
+      id="pushNotificationSetupCard"
+      class="card setting-card home-push-setup-card"
+      type="button"
+      hidden
+    >
+      <span class="home-push-setup-icon" aria-hidden="true">🔕</span>
+      <span>
+        <b>Push通知を登録してください</b>
+        <small>登録しないと、打刻・課題・時間割変更・大学メールなどの通知が届きません。</small>
+      </span>
+      <span class="home-push-setup-arrow" aria-hidden="true">›</span>
+    </button>
+
+    <div id="pushNotificationGuideModal" class="admin-modal-overlay" hidden>
+      <section class="admin-modal home-push-guide-modal" role="dialog" aria-modal="true" aria-labelledby="pushNotificationGuideTitle">
+        <div class="home-push-guide-icon" aria-hidden="true">🔔</div>
+        <h2 id="pushNotificationGuideTitle">Push通知の登録が必要です</h2>
+        <p>通知を登録していないと、授業の打刻、課題の締切、時間割変更、大学メールなどの大切なお知らせが届きません。</p>
+        <p class="home-push-guide-note">設定画面の「通知を有効にする」を押し、端末に表示される確認でも「許可」を選んでください。</p>
+        <div class="admin-modal-actions">
+          <button id="closePushNotificationGuide" type="button" class="btn">閉じる</button>
+          <button id="openPushNotificationSettings" type="button" class="btn btn-primary">設定へ</button>
+        </div>
+      </section>
+    </div>
 
     <header class="header">
       <div class="logo">🎓</div>
@@ -529,6 +556,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261006-1"></script>
+    <script type="module" src="app.js?v=20261008-1"></script>
   </body>
 </html>

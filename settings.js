@@ -35,7 +35,11 @@ import {
 import { signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
-import { registerDevicePushSubscription } from "./push_subscription.js";
+import {
+  getCareMatePushRegistrationStatus,
+  registerDevicePushSubscription,
+  requestPushPermissionWithEducation,
+} from "./push_subscription.js?v=20261008-1";
 
 const root = document.documentElement;
 
@@ -57,6 +61,7 @@ const notifyReminder = document.getElementById("notifyReminder");
 const notifyCourseNews = document.getElementById("notifyCourseNews");
 const notifySystemNews = document.getElementById("notifySystemNews");
 const enablePushButton = document.getElementById("enablePushButton");
+const pushRegistrationStatus = document.getElementById("pushRegistrationStatus");
 
 const topProfileImage = document.getElementById("topProfileImage");
 const themeButton = document.getElementById("themeButton");
@@ -432,8 +437,46 @@ document.getElementById("profileButton").onclick = () => {
   location.href = "profile.html";
 };
 
-enablePushButton.onclick = async () => {
-  await registerDevicePushSubscription(db, studentNumber, "settings", "sw.js");
+async function refreshPushRegistrationStatus() {
+  if (!studentNumber || !pushRegistrationStatus) return;
+  try {
+    const status = await getCareMatePushRegistrationStatus(db, studentNumber, {
+      repair: true,
+    });
+    pushRegistrationStatus.dataset.registered = status.registered ? "true" : "false";
+    if (status.currentDeviceRegistered) {
+      pushRegistrationStatus.textContent = "✅ この端末のPush通知は登録済みです。";
+      enablePushButton.textContent = "🔔 通知を再登録する";
+    } else if (status.registered) {
+      pushRegistrationStatus.textContent = "✅ アカウントにはPush通知を受け取る端末が登録されています。";
+      enablePushButton.textContent = "🔔 この端末にも通知を登録する";
+    } else {
+      pushRegistrationStatus.textContent = "⚠️ Push通知はまだ登録されていません。";
+      enablePushButton.textContent = "🔔 通知を有効にする";
+    }
+  } catch (error) {
+    console.warn("Push通知登録状態の表示に失敗しました:", error);
+    pushRegistrationStatus.textContent = "通知の登録状態を確認できませんでした。";
+  }
+}
 
-  alert("通知を再登録しました。");
+void refreshPushRegistrationStatus();
+window.addEventListener("caremate:push-registration-changed", () => {
+  void refreshPushRegistrationStatus();
+});
+
+enablePushButton.onclick = async () => {
+  enablePushButton.disabled = true;
+  try {
+    const permission = await requestPushPermissionWithEducation({ force: true });
+    if (permission !== "granted") return;
+    await registerDevicePushSubscription(db, studentNumber, "settings", "sw.js");
+    alert("この端末のPush通知を登録しました。");
+  } catch (error) {
+    console.error("Push通知登録エラー:", error);
+    alert("通知を登録できませんでした。端末の通知設定と通信状態を確認してください。");
+  } finally {
+    enablePushButton.disabled = false;
+    await refreshPushRegistrationStatus();
+  }
 };

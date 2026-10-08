@@ -38,6 +38,7 @@ import {
 import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-3";
 import { formatClassGroupLabel, normalizeScheduleClassData } from "./class_group_label.mjs";
 import { resolveCourseLink } from "./course_link_resolver.mjs";
+import { getCareMatePushRegistrationStatus } from "./push_subscription.js?v=20261008-1";
 
 import {
   doc,
@@ -208,6 +209,10 @@ const themeButton = document.getElementById("themeButton");
 const activeMailButton = document.getElementById("activeMailButton");
 const activeMailBadge = document.getElementById("activeMailBadge");
 const authSetupCards = document.getElementById("authSetupCards");
+const pushNotificationSetupCard = document.getElementById("pushNotificationSetupCard");
+const pushNotificationGuideModal = document.getElementById("pushNotificationGuideModal");
+const closePushNotificationGuide = document.getElementById("closePushNotificationGuide");
+const openPushNotificationSettings = document.getElementById("openPushNotificationSettings");
 
 let courses = {};
 
@@ -222,6 +227,44 @@ let lectureCalendarMonthIndex = 0;
 
 let examSchedules = [];
 let examScheduleIndex = 0;
+
+async function updateHomePushRegistrationCard(user = currentHomeUser) {
+  if (!pushNotificationSetupCard || !studentNumber || !user) return;
+  try {
+    const status = await getCareMatePushRegistrationStatus(db, studentNumber, {
+      userData: user,
+      repair: true,
+    });
+    pushNotificationSetupCard.hidden = status.registered;
+  } catch (error) {
+    // 判定失敗だけで、登録済みの学生に未登録表示を出さない。
+    console.warn("Push通知登録状態を確認できませんでした:", error);
+    pushNotificationSetupCard.hidden = true;
+  }
+}
+
+function closeHomePushGuide() {
+  if (pushNotificationGuideModal) pushNotificationGuideModal.hidden = true;
+  document.body.classList.remove("admin-modal-open");
+}
+
+pushNotificationSetupCard?.addEventListener("click", () => {
+  if (!pushNotificationGuideModal) return;
+  pushNotificationGuideModal.hidden = false;
+  document.body.classList.add("admin-modal-open");
+  openPushNotificationSettings?.focus();
+});
+closePushNotificationGuide?.addEventListener("click", closeHomePushGuide);
+openPushNotificationSettings?.addEventListener("click", () => {
+  location.href = "settings.html#pushNotifications";
+});
+pushNotificationGuideModal?.addEventListener("click", (event) => {
+  if (event.target === pushNotificationGuideModal) closeHomePushGuide();
+});
+window.addEventListener("caremate:push-registration-changed", () => {
+  if (pushNotificationSetupCard) pushNotificationSetupCard.hidden = true;
+  closeHomePushGuide();
+});
 
 let creditConfirmationCourses = new Map();
 
@@ -415,6 +458,7 @@ async function startApp() {
     applymanabaFeatureVisibility(user);
 
     renderAuthSetupCards(user);
+    void updateHomePushRegistrationCard(user);
 
     /*
         必須情報が確認できた時点で

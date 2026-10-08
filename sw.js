@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v86";
+const STATIC_CACHE = "caremate-static-v87";
 
-const RUNTIME_CACHE = "caremate-runtime-v86";
+const RUNTIME_CACHE = "caremate-runtime-v87";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -33,17 +33,17 @@ const CORE_ASSETS = [
 
   "offline.html",
 
-  "style.css?v=20261002-5",
+  "style.css?v=20261008-1",
 
   "loading_indicator.js?v=20260929-7",
 
-  "app.js?v=20261006-1",
+  "app.js?v=20261008-1",
 
   "course_link_resolver.mjs",
 
   "settings.html",
 
-  "settings.js?v=20261001-4",
+  "settings.js?v=20261008-1",
 
   "academic_lifecycle.mjs",
 
@@ -83,7 +83,7 @@ const CORE_ASSETS = [
 
   "grade_display.mjs",
 
-  "push_subscription.js",
+  "push_subscription.js?v=20261008-1",
 
   "device_touch_controller.mjs",
 

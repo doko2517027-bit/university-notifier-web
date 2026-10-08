@@ -1735,6 +1735,99 @@ body.page-busy::after{
 
 }
 
+.home-push-setup-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    width: calc(100% - 32px);
+    min-height: 86px;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 13px;
+    margin: 12px 16px;
+    padding: 15px 17px;
+    border: 1px solid color-mix(in srgb, #f59e0b 48%, var(--border));
+    border-radius: 18px;
+    background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 12%, var(--card)), var(--card));
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.home-push-setup-card[hidden] { display: none !important; }
+.home-push-setup-card:hover { border-color: #f59e0b; }
+.home-push-setup-card:active { transform: scale(.99); }
+
+.home-push-setup-icon,
+.home-push-guide-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border-radius: 14px;
+    background: color-mix(in srgb, #f59e0b 18%, var(--card));
+    font-size: 24px;
+}
+
+.home-push-setup-card b,
+.home-push-setup-card small {
+    display: block;
+}
+
+.home-push-setup-card b {
+    margin-bottom: 4px;
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.home-push-setup-card small {
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.home-push-setup-arrow {
+    color: #b66d00;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.home-push-guide-modal { text-align: center; }
+.home-push-guide-modal h2 { color: var(--text); }
+.home-push-guide-modal > p { color: var(--subtext); line-height: 1.75; text-align: left; }
+.home-push-guide-icon { margin: 0 auto 14px; width: 62px; height: 62px; font-size: 31px; }
+.home-push-guide-note {
+    padding: 12px 14px;
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+
+.settings-push-status {
+    margin: 0 0 13px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: color-mix(in srgb, #f59e0b 11%, var(--card));
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.55;
+}
+
+.settings-push-status[data-registered="true"] {
+    background: color-mix(in srgb, #16a085 12%, var(--card));
+}
+
+#pushNotifications { scroll-margin-top: 18px; }
+
+@media (max-width: 480px) {
+    .home-push-setup-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 14px;
+    }
+    .home-push-setup-arrow { display: none; }
+    .home-push-setup-icon { width: 42px; height: 42px; font-size: 22px; }
+}
+
 .course-registration-banner{
     width:100%;
     margin:0 0 14px;

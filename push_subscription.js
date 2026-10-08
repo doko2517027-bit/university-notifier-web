@@ -1,5 +1,8 @@
 import {
+  collection,
   doc,
+  getDoc,
+  getDocs,
   setDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -280,7 +283,96 @@ export async function savePushSubscription(
     { merge: true },
   );
 
+  if (source !== "home-status-refresh") {
+    window.dispatchEvent(new CustomEvent("caremate:push-registration-changed", {
+      detail: { registered: true, deviceId },
+    }));
+  }
+
   return { subscription, deviceId };
+}
+
+function validStoredPushSubscription(value = {}) {
+  return Boolean(
+    String(value.endpoint || "").startsWith("https://") &&
+    value.keys?.p256dh &&
+    value.keys?.auth,
+  );
+}
+
+/**
+ * ブラウザ権限だけで未登録と決めず、現在端末とアカウントの保存済み購読を照合する。
+ * 権限済みの端末で保存が欠けている場合は、その場で安全に再登録する。
+ */
+export async function getCareMatePushRegistrationStatus(
+  db,
+  userId,
+  { userData = null, repair = true } = {},
+) {
+  const supported =
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window;
+  const permission = "Notification" in window
+    ? Notification.permission
+    : "unsupported";
+
+  let currentSubscription = null;
+  if (supported) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration(
+        "/university-notifier-web/",
+      ) || await navigator.serviceWorker.getRegistration();
+      currentSubscription = await registration?.pushManager?.getSubscription() || null;
+    } catch (error) {
+      console.warn("現在端末のPush購読を確認できませんでした:", error);
+    }
+  }
+
+  if (permission === "granted" && repair && !currentSubscription) {
+    try {
+      const result = await registerDevicePushSubscription(db, userId, "home-status-repair");
+      currentSubscription = result.subscription;
+    } catch (error) {
+      console.warn("Push通知先を自動修復できませんでした:", error);
+    }
+  } else if (permission === "granted" && repair && currentSubscription) {
+    try {
+      await savePushSubscription(db, userId, currentSubscription, "home-status-refresh");
+    } catch (error) {
+      console.warn("Push通知先の保存状態を更新できませんでした:", error);
+    }
+  }
+
+  let resolvedUserData = userData;
+  if (!resolvedUserData) {
+    try {
+      const userSnapshot = await getDoc(doc(db, "users", userId));
+      resolvedUserData = userSnapshot.data() || {};
+    } catch (error) {
+      console.warn("旧形式のPush通知先を確認できませんでした:", error);
+    }
+  }
+  let accountRegistered = validStoredPushSubscription(
+    resolvedUserData?.pushSubscription,
+  );
+  try {
+    const subscriptions = await getDocs(
+      collection(db, "users", userId, "pushSubscriptions"),
+    );
+    accountRegistered = accountRegistered || subscriptions.docs.some((item) =>
+      validStoredPushSubscription(item.data() || {}));
+  } catch (error) {
+    // 読み取り失敗時に、権限済みの学生を未登録と誤表示しない。
+    console.warn("保存済みPush通知先を確認できませんでした:", error);
+  }
+
+  return {
+    supported,
+    permission,
+    currentDeviceRegistered: Boolean(currentSubscription),
+    registered: Boolean(currentSubscription || accountRegistered),
+  };
 }
 
 export async function registerDevicePushSubscription(
