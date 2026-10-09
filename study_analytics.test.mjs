@@ -78,18 +78,24 @@ test("CSVは自主学習とテスト対策を区別して出力する", () => {
   assert.match(csv, /精神看護学/);
 });
 
-test("便利タブ、共通タイマー、既存問題画面、本人限定ルールが接続されている", async () => {
-  const [home, common, quiz, fill, daily, rules, page] = await Promise.all([
+test("ホーム導線、共通タイマー、既存問題画面、本人限定ルールが接続されている", async () => {
+  const [home, requests, common, tracking, quiz, fill, daily, rules, page, styles] = await Promise.all([
     readFile(new URL("./index.html", import.meta.url), "utf8"),
+    readFile(new URL("./requests.html", import.meta.url), "utf8"),
     readFile(new URL("./common.js", import.meta.url), "utf8"),
+    readFile(new URL("./study_tracking.js", import.meta.url), "utf8"),
     readFile(new URL("./quiz.js", import.meta.url), "utf8"),
     readFile(new URL("./fill_blank.js", import.meta.url), "utf8"),
     readFile(new URL("./daily_question.js", import.meta.url), "utf8"),
     readFile(new URL("./firestore.rules", import.meta.url), "utf8"),
     readFile(new URL("./study_analytics.html", import.meta.url), "utf8"),
+    readFile(new URL("./style.css", import.meta.url), "utf8"),
   ]);
   assert.match(home, /自己学習・学習分析/);
+  assert.doesNotMatch(requests, /study_analytics\.html/);
   assert.match(common, /initializeGlobalStudyTracking/);
+  assert.match(tracking, /\["running", "paused"\]\.includes\(state\.status\)/);
+  assert.match(tracking, /state\?\.source === "exam" && state\.route !== currentPage/);
   assert.match(quiz, /recordQuestionAttempt/);
   assert.match(fill, /recordQuestionAttempt/);
   assert.match(daily, /recordQuestionAttempt/);
@@ -97,4 +103,6 @@ test("便利タブ、共通タイマー、既存問題画面、本人限定ル�
   assert.match(rules, /allow read, create, update, delete: if isUserOwner\(\)/);
   assert.match(page, /data-study-tab="questions"/);
   assert.match(page, /id="exportStudyCsv"/);
+  assert.match(styles, /\.study-analytics-body \{ padding-bottom: 104px; overflow-x: hidden; \}/);
+  assert.match(styles, /\.study-subtabs \{ top: 61px; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });

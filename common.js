@@ -61,7 +61,7 @@ import {
 } from "./device_touch_controller.mjs";
 
 import { describePresenceDevice } from "./presence_device_label.mjs";
-import { initializeGlobalStudyTracking } from "./study_tracking.js?v=20261009-1";
+import { initializeGlobalStudyTracking } from "./study_tracking.js?v=20261009-2";
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
   authDomain: "universitynotifier-67517.firebaseapp.com",

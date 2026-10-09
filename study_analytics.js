@@ -25,7 +25,7 @@ import {
   getStudyTimerState,
   updateManualStudySession,
   deleteManualStudySession,
-} from "./study_tracking.js?v=20261009-1";
+} from "./study_tracking.js?v=20261009-2";
 import {
   formatDuration,
   localDateKey,

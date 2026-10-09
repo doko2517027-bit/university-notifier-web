@@ -24,7 +24,7 @@ import {
   stopExamStudyTimer,
   markQuestionShown,
   recordQuestionAttempt,
-} from "./study_tracking.js?v=20261009-1";
+} from "./study_tracking.js?v=20261009-2";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");

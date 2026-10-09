@@ -260,7 +260,7 @@ export async function deleteManualStudySession(sessionId) {
 function renderFloatingTimer() {
   let button = document.getElementById("careMateStudyFloatingTimer");
   const state = readState();
-  if (!state || state.status !== "running") {
+  if (!state || !["running", "paused"].includes(state.status)) {
     button?.remove();
     return;
   }
@@ -272,7 +272,10 @@ function renderFloatingTimer() {
     button.addEventListener("click", () => { location.href = "study_analytics.html#timer"; });
     document.body.appendChild(button);
   }
-  button.textContent = `📚 学習中 ${formatClock(elapsedSeconds(state))}`;
+  const isPaused = state.status === "paused";
+  button.dataset.state = state.status;
+  button.dataset.source = state.source;
+  button.textContent = `${isPaused ? "⏸ 一時停止中" : "📚 学習中"} ${formatClock(elapsedSeconds(state))}`;
 }
 
 async function flushPending() {
