@@ -408,6 +408,23 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    /* ボンアド テスト版。本人の読み取りだけを許可し、更新はCloud Functionsに限定する。 */
+    match /boneAdventure/{studentId} {
+      function isBoneAdventureTester() {
+        return request.auth != null &&
+          request.auth.uid == 'caremate-' + studentId &&
+          request.auth.token.studentNumber == studentId &&
+          studentId == '2510044';
+      }
+      allow read: if isBoneAdventureTester();
+      allow create, update, delete: if false;
+
+      match /{document=**} {
+        allow read: if isBoneAdventureTester();
+        allow create, update, delete: if false;
+      }
+    }
+
 
     /* ========================================
        公開ユーザー情報

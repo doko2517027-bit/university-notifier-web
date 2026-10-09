@@ -45,6 +45,8 @@ const {
   isPrimaryDeviceAuditAdminIdentity,
 } = require("./device_sessions");
 
+const { createBoneAdventureService } = require("./bone_adventure");
+
 initializeApp();
 
 const db = getFirestore();
@@ -342,6 +344,58 @@ function requireAuthenticatedCareMateStudent(request) {
 
   return studentNumber;
 }
+
+const boneAdventureService = createBoneAdventureService({
+  db,
+  FieldValue,
+  HttpsError,
+  requireStudent: requireAuthenticatedCareMateStudent,
+});
+
+exports.getBoneAdventureState = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.getDashboard(request),
+);
+
+exports.drawBoneAdventureGacha = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.drawGacha(request),
+);
+
+exports.resolveBoneAdventureDuplicate = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.resolveDuplicate(request),
+);
+
+exports.saveBoneAdventureLoadout = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.saveLoadout(request),
+);
+
+exports.allocateBoneAdventureStats = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.allocateStats(request),
+);
+
+exports.respecBoneAdventureStats = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.respecStats(request),
+);
+
+exports.saveBoneAdventureRun = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => boneAdventureService.saveRun(request),
+);
+
+exports.initializeBoneAdventurePointMirror = onDocumentCreated(
+  { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
+  (event) => boneAdventureService.syncLearningPoints(event.params.studentNumber),
+);
+
+exports.syncBoneAdventureLearningPoints = onDocumentUpdated(
+  { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
+  (event) => boneAdventureService.syncLearningPoints(event.params.studentNumber),
+);
 
 exports.changeCareMatePassword = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },

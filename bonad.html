@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <title>ボンアド | CareMate</title>
+    <meta name="theme-color" content="#102f36" />
+    <link rel="stylesheet" href="style.css?v=20261009-5" />
+    <link rel="stylesheet" href="bonad.css?v=20261009-1" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("studentNumber") !== "2510044") location.replace("requests.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="bonad-body page-loading">
+    <main class="bonad-shell">
+      <section id="bonadAccessGate" class="bonad-access-gate" aria-live="polite">
+        <img src="images/bonad-skull.svg" alt="" />
+        <strong>ボンアドを準備中…</strong>
+        <span>本人認証とゲームデータを確認しています</span>
+      </section>
+
+      <section id="bonadTitle" class="bonad-title-screen" hidden>
+        <div class="bonad-title-glow"></div>
+        <div class="bonad-title-mark"><img src="images/bonad-skull.svg" alt="" /></div>
+        <p class="bonad-overline">BONE ADVENTURE · TEST BUILD</p>
+        <h1>ボンアド</h1>
+        <p class="bonad-title-sub">学んで、育てて、骨の勇者と走り出そう。</p>
+        <div class="bonad-title-skeleton" aria-hidden="true">☠</div>
+        <button id="bonadStart" class="bonad-primary-button" type="button">始める</button>
+        <small>2510044限定テスト版 · セーブデータは自動保存</small>
+      </section>
+
+      <section id="bonadApp" class="bonad-app" hidden>
+        <header class="bonad-header">
+          <button id="bonadBackTitle" class="bonad-icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
+          <div><span>CARE MATE LAB</span><h1>ボンアド</h1></div>
+          <div class="bonad-header-points"><small>ガチャポイント</small><strong id="bonadPoints">0</strong></div>
+        </header>
+
+        <section class="bonad-player-strip" aria-label="キャラクターの状態">
+          <div class="bonad-level-orb"><span>Lv.</span><b id="bonadLevel">1</b></div>
+          <div class="bonad-xp-wrap"><div><span id="bonadXpText">0 / 100 XP</span><span id="bonadStatPoint">能力pt 0</span></div><div class="bonad-xp-track"><i id="bonadXpBar"></i></div></div>
+        </section>
+
+        <nav class="bonad-menu" aria-label="ボンアドメニュー">
+          <button class="is-active" data-bonad-view="room"><span>🦴</span><b>キャラルーム</b></button>
+          <button data-bonad-view="gacha"><span>🧪</span><b>ガチャ</b></button>
+          <button data-bonad-view="training"><span>📈</span><b>育成</b></button>
+          <button data-bonad-view="equipment"><span>🫀</span><b>装備</b></button>
+          <button data-bonad-view="stages"><span>🌲</span><b>ステージ</b></button>
+          <button data-bonad-view="endless"><span>∞</span><b>エンドレス</b></button>
+        </nav>
+
+        <section class="bonad-panel is-active" data-bonad-panel="room">
+          <div class="bonad-room-layout">
+            <div class="bonad-room-stage">
+              <div id="bonad3dStatus" class="bonad-canvas-status">3Dモデルを読み込み中…</div>
+              <canvas id="bonad3dCanvas" aria-label="回転・拡大できる3D骸骨"></canvas>
+              <div class="bonad-room-hint"><span>↔ ドラッグで回転</span><span>⇳ ピンチ・ホイールで拡大</span></div>
+              <button id="bonadInternalToggle" class="bonad-chip-button" type="button">内部を観察</button>
+            </div>
+            <aside id="bonadOrganPanel" class="bonad-organ-panel">
+              <span class="bonad-section-label">BODY GUIDE</span>
+              <h2 id="bonadOrganName">骨格</h2>
+              <p id="bonadOrganDescription">骨格は身体を支え、臓器を保護します。装着した臓器をタップすると簡易情報を確認できます。</p>
+              <dl><div><dt>ゲーム能力</dt><dd id="bonadOrganAbility">基本キャラクター</dd></div></dl>
+              <button id="bonadOrganDetail" class="bonad-secondary-button" type="button" disabled>詳しく見る</button>
+              <small>学習情報はテスト版サンプルです。授業資料・公的資料も確認してください。</small>
+            </aside>
+          </div>
+        </section>
+
+        <section class="bonad-panel" data-bonad-panel="gacha" hidden>
+          <div class="bonad-lab-hero">
+            <div class="bonad-lab-machine" aria-hidden="true"><i></i><span>MEDICAL SCAN</span></div>
+            <div><span class="bonad-section-label">MEDICAL LAB GACHA</span><h2>人体パーツを研究・獲得</h2><p>SR以上を中心に、装着できる人体パーツが登場します。</p></div>
+          </div>
+          <div class="bonad-gacha-actions">
+            <button data-gacha-count="1"><b>単発</b><span>10pt</span></button>
+            <button data-gacha-count="5"><b>5連</b><span>50pt</span></button>
+            <button data-gacha-count="10" class="featured"><b>10連</b><span>100pt</span></button>
+          </div>
+          <details class="bonad-rates"><summary>排出率・アイテム一覧</summary><div id="bonadRateList"></div></details>
+          <h3>所持アイテム</h3>
+          <div id="bonadInventory" class="bonad-inventory-grid"></div>
+        </section>
+
+        <section class="bonad-panel" data-bonad-panel="training" hidden>
+          <div class="bonad-section-heading"><div><span class="bonad-section-label">CHARACTER GROWTH</span><h2>キャラクター育成</h2></div><span id="bonadTrainingAvailable" class="bonad-pill">残り 0pt</span></div>
+          <div id="bonadStats" class="bonad-stat-list"></div>
+          <div class="bonad-inline-actions"><button id="bonadSaveStats" class="bonad-primary-button" type="button">振り分けを確定</button><button id="bonadRespec" class="bonad-secondary-button" type="button">300ptで振り直す</button></div>
+          <p class="bonad-note">＋・−は確定前だけ自由に変更できます。振り直しは自由配分分のみを戻します。</p>
+        </section>
+
+        <section class="bonad-panel" data-bonad-panel="equipment" hidden>
+          <div class="bonad-section-heading"><div><span class="bonad-section-label">LOADOUT</span><h2>ゲーム用装備</h2></div><span id="bonadSlots" class="bonad-pill">0 / 2枠</span></div>
+          <p class="bonad-note">見た目用の装着と、ゲーム能力の装備は別々に保存されます。</p>
+          <div id="bonadEquipmentList" class="bonad-equipment-list"></div>
+          <button id="bonadSaveEquipment" class="bonad-primary-button" type="button">装備を保存</button>
+        </section>
+
+        <section class="bonad-panel" data-bonad-panel="stages" hidden>
+          <div class="bonad-section-heading"><div><span class="bonad-section-label">WORLD MAP</span><h2>ステージ選択</h2></div><span id="bonadUnlockedStage" class="bonad-pill">Stage 1</span></div>
+          <div id="bonadStageList" class="bonad-stage-grid"></div>
+        </section>
+
+        <section class="bonad-panel" data-bonad-panel="endless" hidden>
+          <div class="bonad-endless-card"><span class="bonad-section-label">ENDLESS MODE</span><h2>どこまで走れる？</h2><p>進むほど菌・ウイルスと障害物が増加します。経験値の獲得量には上限があります。</p><div class="bonad-best"><span>自己ベスト距離 <b id="bonadBestDistance">0m</b></span><span>最高スコア <b id="bonadBestScore">0</b></span></div><button id="bonadStartEndless" class="bonad-primary-button" type="button">エンドレス開始</button></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="bonadGachaOverlay" class="bonad-overlay" hidden>
+      <section class="bonad-result-dialog" role="dialog" aria-modal="true" aria-labelledby="bonadResultTitle">
+        <div id="bonadGachaAnimation" class="bonad-gacha-animation"><div class="bonad-scan-ring"></div><span>ANALYZING</span></div>
+        <h2 id="bonadResultTitle">獲得結果</h2>
+        <div id="bonadGachaResults" class="bonad-result-grid"></div>
+        <button id="bonadCloseGacha" class="bonad-primary-button" type="button">確認</button>
+      </section>
+    </div>
+
+    <div id="bonadOrganOverlay" class="bonad-overlay" hidden>
+      <section class="bonad-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="bonadDetailTitle">
+        <button id="bonadCloseOrgan" class="bonad-dialog-close" type="button" aria-label="閉じる">×</button>
+        <span class="bonad-section-label">ANATOMY NOTE · SAMPLE</span><h2 id="bonadDetailTitle">臓器詳細</h2><div id="bonadOrganDetailBody"></div>
+      </section>
+    </div>
+
+    <div id="bonadGameOverlay" class="bonad-game-overlay" hidden>
+      <section class="bonad-game-shell" role="dialog" aria-modal="true" aria-label="ボンアド アクションゲーム">
+        <header><button id="bonadQuitGame" type="button">終了</button><strong id="bonadGameTitle">Stage 1</strong><div><span id="bonadGameDistance">0m</span><span id="bonadGameScore">0</span></div></header>
+        <canvas id="bonadGameCanvas" aria-label="横スクロールアクションゲーム"></canvas>
+        <div class="bonad-game-controls"><button id="bonadSlideButton" type="button">⬇<span>スライド</span></button><button id="bonadAbilityButton" type="button">✦<span>能力</span></button><button id="bonadJumpButton" type="button">⬆<span>ジャンプ</span></button></div>
+        <div id="bonadGameMessage" class="bonad-game-message" hidden></div>
+      </section>
+    </div>
+
+    <p id="bonadToast" class="bonad-toast" role="status" hidden></p>
+
+    <nav class="bottom-nav bonad-bottom-nav">
+      <a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="calendar.html" class="calendar-nav-link"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a>
+      <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a>
+      <a href="bonad.html" class="active bonad-nav-link"><span class="nav-icon-wrap"><img class="bonad-nav-icon" src="images/bonad-skull.svg" alt="" /></span><span>ボンアド</span></a>
+      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
+      <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
+    </nav>
+
+    <script type="module" src="bonad.js?v=20261009-1"></script>
+  </body>
+</html>

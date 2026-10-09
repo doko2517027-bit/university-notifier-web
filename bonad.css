@@ -1,0 +1,117 @@
+.bonad-body { width: 100%; max-width: none; min-height: 100dvh; margin: 0; padding: 0 0 98px; overflow-x: hidden; background: radial-gradient(circle at 50% -10%, rgba(57, 174, 153, .18), transparent 36%), var(--bg); color: var(--text); }
+.bonad-body *, .bonad-body *::before, .bonad-body *::after { box-sizing: border-box; }
+.bonad-shell { width: min(1180px, 100%); margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) clamp(12px, 3vw, 28px) 30px; }
+.bonad-shell button { font-family: inherit; }
+.bonad-access-gate { display: grid; min-height: 70dvh; place-items: center; align-content: center; gap: 12px; text-align: center; }
+.bonad-access-gate img { width: 74px; animation: bonadFloat 1.8s ease-in-out infinite; }
+.bonad-access-gate span { color: var(--subtext); font-size: .82rem; }
+
+.bonad-title-screen { position: relative; display: grid; min-height: calc(100dvh - 140px); place-items: center; align-content: center; overflow: hidden; padding: 42px 22px; border: 1px solid color-mix(in srgb, #63d2bf 30%, var(--border)); border-radius: 32px; background: linear-gradient(150deg, #0c2730 0%, #153f43 52%, #0f262e 100%); color: #fff; text-align: center; box-shadow: 0 28px 70px rgba(5, 30, 33, .25); }
+.bonad-title-screen[hidden], .bonad-app[hidden], .bonad-overlay[hidden], .bonad-game-overlay[hidden] { display: none !important; }
+.bonad-title-glow { position: absolute; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(104, 245, 215, .25), transparent 67%); animation: bonadPulse 3s ease-in-out infinite; }
+.bonad-title-mark { z-index: 1; display: grid; width: 92px; height: 92px; place-items: center; border: 1px solid rgba(255,255,255,.22); border-radius: 29px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 30px rgba(124,255,226,.1); }
+.bonad-title-mark img { width: 67px; }
+.bonad-overline, .bonad-section-label { color: #49bda8; font-size: .68rem; font-weight: 900; letter-spacing: .15em; }
+.bonad-title-screen .bonad-overline { z-index: 1; margin: 18px 0 0; color: #8cebd8; }
+.bonad-title-screen h1 { z-index: 1; margin: 5px 0 0; font-size: clamp(3rem, 12vw, 6rem); line-height: 1; letter-spacing: -.06em; text-shadow: 0 8px 35px rgba(89, 233, 203, .2); }
+.bonad-title-sub { z-index: 1; margin: 13px 0 0; color: #c7e2df; font-weight: 700; }
+.bonad-title-skeleton { z-index: 1; margin: 19px 0 12px; color: rgba(255,255,255,.9); font-size: clamp(6rem, 24vw, 11rem); line-height: .85; filter: drop-shadow(0 16px 22px rgba(0,0,0,.25)); animation: bonadIdle 2.3s ease-in-out infinite; }
+.bonad-title-screen > small { z-index: 1; margin-top: 14px; color: #91b8b3; font-size: .7rem; }
+@keyframes bonadFloat { 50% { transform: translateY(-6px); } }
+@keyframes bonadIdle { 50% { transform: translateY(-4px) rotate(1deg); } }
+@keyframes bonadPulse { 50% { transform: scale(1.08); opacity: .75; } }
+
+.bonad-primary-button, .bonad-secondary-button { min-height: 45px; padding: 0 20px; border-radius: 14px; font-weight: 850; cursor: pointer; }
+.bonad-primary-button { z-index: 1; border: 0; background: linear-gradient(135deg, #21a88f, #43c9b1); color: #fff; box-shadow: 0 10px 24px rgba(30, 169, 143, .25); }
+.bonad-secondary-button { border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border)); background: var(--card); color: var(--primary); }
+.bonad-primary-button:disabled, .bonad-secondary-button:disabled { opacity: .48; cursor: not-allowed; }
+.bonad-title-screen .bonad-primary-button { min-width: 210px; min-height: 55px; font-size: 1rem; }
+
+.bonad-app { min-width: 0; }
+.bonad-header { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-bottom: 12px; padding: 13px 16px; border: 1px solid var(--border); border-radius: 19px; background: color-mix(in srgb, var(--card) 94%, transparent); box-shadow: 0 9px 28px rgba(13, 62, 58, .08); }
+.bonad-header > div:nth-child(2) { min-width: 0; }
+.bonad-header span { color: var(--primary); font-size: .62rem; font-weight: 900; letter-spacing: .11em; }
+.bonad-header h1 { margin: 1px 0 0; font-size: 1.25rem; }
+.bonad-icon-button { width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 13px; background: var(--card); color: var(--text); font-size: 1.8rem; cursor: pointer; }
+.bonad-header-points { min-width: 104px; padding: 7px 11px; border-radius: 13px; background: color-mix(in srgb, #efbb3f 13%, var(--card)); text-align: right; }
+.bonad-header-points small, .bonad-header-points strong { display: block; }
+.bonad-header-points small { color: var(--subtext); font-size: .62rem; }
+.bonad-header-points strong { color: #b17300; font-size: 1.05rem; }
+.bonad-player-strip { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 13px; align-items: center; padding: 10px 14px; border-radius: 17px; background: linear-gradient(110deg, #133d42, #1e5853); color: #fff; }
+.bonad-level-orb { display: grid; width: 50px; height: 50px; place-items: center; align-content: center; border: 2px solid rgba(255,255,255,.24); border-radius: 50%; background: rgba(255,255,255,.07); }
+.bonad-level-orb span { font-size: .55rem; }.bonad-level-orb b { font-size: 1.1rem; line-height: 1; }
+.bonad-xp-wrap { min-width: 0; }.bonad-xp-wrap > div:first-child { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: #cde8e3; font-size: .7rem; font-weight: 750; }
+.bonad-xp-track { height: 7px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.13); }.bonad-xp-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #55e1c6, #f2cf62); transition: width .3s ease; }
+
+.bonad-menu { position: sticky; z-index: 30; top: 7px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin: 13px 0; padding: 5px; border: 1px solid var(--border); border-radius: 17px; background: color-mix(in srgb, var(--card) 94%, transparent); box-shadow: 0 9px 28px rgba(13, 48, 45, .1); backdrop-filter: blur(14px); }
+.bonad-menu button { display: grid; min-width: 0; min-height: 50px; place-items: center; gap: 2px; padding: 5px 3px; border: 0; border-radius: 12px; background: transparent; color: var(--subtext); cursor: pointer; }
+.bonad-menu button span { font-size: 1.15rem; }.bonad-menu button b { max-width: 100%; overflow: hidden; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.bonad-menu button.is-active { background: #1b8f7d; color: #fff; box-shadow: 0 7px 17px rgba(27, 143, 125, .22); }
+.bonad-panel { min-width: 0; padding: clamp(14px, 2.8vw, 24px); overflow: hidden; border: 1px solid var(--border); border-radius: 23px; background: var(--card); box-shadow: 0 14px 38px rgba(15, 50, 46, .07); }
+.bonad-panel[hidden] { display: none !important; }
+.bonad-panel h2, .bonad-panel h3 { color: var(--text); }
+
+.bonad-room-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, .65fr); gap: 16px; }
+.bonad-room-stage { position: relative; min-height: 590px; overflow: hidden; border-radius: 20px; background: radial-gradient(circle at 50% 37%, rgba(96, 214, 192, .23), transparent 36%), linear-gradient(#dcece8 0 70%, #c5d8d3 70% 72%, #9cb8b0 72%); touch-action: none; }
+.dark .bonad-room-stage { background: radial-gradient(circle at 50% 37%, rgba(96,214,192,.17), transparent 36%), linear-gradient(#17353a 0 70%, #27494a 70% 72%, #132f32 72%); }
+#bonad3dCanvas { display: block; width: 100%; height: 590px; touch-action: none; cursor: grab; }
+#bonad3dCanvas:active { cursor: grabbing; }
+.bonad-canvas-status { position: absolute; z-index: 2; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--card) 76%, transparent); color: var(--subtext); font-weight: 800; }
+.bonad-room-hint { position: absolute; right: 10px; bottom: 10px; left: 10px; display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; pointer-events: none; }
+.bonad-room-hint span, .bonad-chip-button { padding: 6px 9px; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; background: rgba(12,44,45,.66); color: #fff; font-size: .68rem; font-weight: 750; backdrop-filter: blur(8px); }
+.bonad-chip-button { position: absolute; z-index: 3; top: 10px; right: 10px; cursor: pointer; }
+.bonad-organ-panel { align-self: start; min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 20px; background: color-mix(in srgb, var(--primary) 4%, var(--card)); }
+.bonad-organ-panel h2 { margin: 5px 0 10px; }.bonad-organ-panel p { color: var(--subtext); line-height: 1.7; }.bonad-organ-panel dl div { padding: 11px; border-radius: 12px; background: var(--bg); }.bonad-organ-panel dt { color: var(--subtext); font-size: .68rem; font-weight: 800; }.bonad-organ-panel dd { margin: 4px 0 0; font-weight: 800; }.bonad-organ-panel .bonad-secondary-button { width: 100%; margin: 13px 0; }.bonad-organ-panel > small { display: block; color: var(--subtext); line-height: 1.5; }
+
+.bonad-lab-hero { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 20px; align-items: center; padding: 20px; border-radius: 20px; background: linear-gradient(135deg, #102e38, #194d4a); color: #fff; }
+.bonad-lab-hero h2 { margin: 5px 0 7px; color: #fff; }.bonad-lab-hero p { margin: 0; color: #b9d8d3; }
+.bonad-lab-machine { position: relative; display: grid; height: 140px; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.17); border-radius: 18px; background: rgba(255,255,255,.05); }.bonad-lab-machine i { width: 79px; height: 79px; border: 9px double #66ddc9; border-radius: 50%; box-shadow: 0 0 28px #37c7af; animation: bonadSpin 4s linear infinite; }.bonad-lab-machine span { position: absolute; bottom: 10px; color: #9ee7db; font-size: .6rem; font-weight: 900; letter-spacing: .13em; }
+@keyframes bonadSpin { to { transform: rotate(360deg); } }
+.bonad-gacha-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }.bonad-gacha-actions button { min-height: 76px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg); color: var(--text); cursor: pointer; }.bonad-gacha-actions button b, .bonad-gacha-actions button span { display: block; }.bonad-gacha-actions button b { font-size: 1rem; }.bonad-gacha-actions button span { margin-top: 4px; color: #b47a09; font-weight: 800; }.bonad-gacha-actions button.featured { border-color: #e1b44e; background: linear-gradient(145deg, color-mix(in srgb, #f5c95e 16%, var(--card)), var(--card)); }
+.bonad-rates { margin-bottom: 19px; padding: 11px 14px; border: 1px solid var(--border); border-radius: 14px; }.bonad-rates summary { font-weight: 800; cursor: pointer; }.bonad-rate-row { display: grid; grid-template-columns: 48px 58px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: .78rem; }.bonad-rate-row:first-child { margin-top: 8px; }.bonad-rate-row b { color: var(--primary); }
+.bonad-inventory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }.bonad-item-card { min-width: 0; padding: 13px; border: 1px solid var(--border); border-top: 4px solid var(--rarity-color, #9aaca8); border-radius: 15px; background: var(--bg); }.bonad-item-card header { display: flex; justify-content: space-between; gap: 7px; }.bonad-item-card h4 { margin: 5px 0; overflow-wrap: anywhere; }.bonad-item-card p { margin: 0; color: var(--subtext); font-size: .75rem; line-height: 1.45; }.bonad-item-card footer { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }.bonad-item-card button { flex: 1; min-width: 84px; padding: 7px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: var(--text); cursor: pointer; font-size: .7rem; font-weight: 750; }
+
+.bonad-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }.bonad-section-heading h2 { margin: 4px 0 0; }.bonad-pill { flex: 0 0 auto; padding: 7px 10px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 11%, var(--card)); color: var(--primary); font-size: .75rem; font-weight: 850; }
+.bonad-stat-list { display: grid; gap: 9px; }.bonad-stat-row { display: grid; grid-template-columns: minmax(0, 1fr) 42px 38px 42px; gap: 8px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }.bonad-stat-row small { display: block; margin-top: 2px; color: var(--subtext); }.bonad-stat-row output { text-align: center; font-weight: 900; }.bonad-stat-row button { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); cursor: pointer; font-size: 1.1rem; }.bonad-inline-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }.bonad-inline-actions button { flex: 1; min-width: 160px; }.bonad-note { color: var(--subtext); font-size: .78rem; line-height: 1.6; }
+.bonad-equipment-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 15px 0; }.bonad-equip-row { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px; border: 1px solid var(--border); border-radius: 13px; background: var(--bg); }.bonad-equip-row input { flex: 0 0 auto; width: 20px; height: 20px; }.bonad-equip-row span { min-width: 0; }.bonad-equip-row b, .bonad-equip-row small { display: block; overflow-wrap: anywhere; }.bonad-equip-row small { color: var(--subtext); }
+.bonad-stage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }.bonad-stage-card { position: relative; min-height: 220px; overflow: hidden; padding: 18px; border: 0; border-radius: 19px; background: var(--stage-bg); color: #fff; text-align: left; cursor: pointer; box-shadow: inset 0 -90px 70px rgba(0,0,0,.38); }.bonad-stage-card[disabled] { filter: grayscale(.65); cursor: not-allowed; }.bonad-stage-card span { font-size: .68rem; font-weight: 900; letter-spacing: .1em; }.bonad-stage-card h3 { position: absolute; bottom: 33px; margin: 0; color: #fff; font-size: 1.35rem; }.bonad-stage-card small { position: absolute; bottom: 16px; color: rgba(255,255,255,.8); }
+.bonad-endless-card { padding: clamp(20px, 5vw, 50px); border-radius: 23px; background: radial-gradient(circle at 80% 20%, rgba(80,235,205,.25), transparent 30%), linear-gradient(145deg, #102b34, #213e50); color: #fff; text-align: center; }.bonad-endless-card h2 { margin: 7px 0; color: #fff; font-size: clamp(1.8rem, 6vw, 3.2rem); }.bonad-endless-card p { color: #c6d8df; }.bonad-best { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 20px 0; }.bonad-best span { padding: 10px 13px; border-radius: 12px; background: rgba(255,255,255,.09); }.bonad-best b { margin-left: 6px; color: #67e2cb; }
+
+.bonad-overlay, .bonad-game-overlay { position: fixed; z-index: 4000; inset: 0; display: flex; align-items: center; justify-content: center; padding: 15px; background: rgba(5, 18, 24, .76); backdrop-filter: blur(8px); }
+.bonad-result-dialog, .bonad-detail-dialog { position: relative; width: min(720px, 100%); max-height: 90dvh; overflow: auto; padding: 24px; border-radius: 23px; background: var(--card); color: var(--text); box-shadow: 0 24px 80px rgba(0,0,0,.35); }.bonad-result-dialog { text-align: center; }.bonad-result-dialog .bonad-primary-button { width: min(260px, 100%); margin-top: 15px; }
+.bonad-gacha-animation { display: grid; height: 150px; place-items: center; align-content: center; gap: 8px; overflow: hidden; border-radius: 16px; background: radial-gradient(circle, rgba(83, 239, 209, .26), transparent 42%), #102d36; color: #77eed8; font-size: .65rem; font-weight: 900; letter-spacing: .2em; }.bonad-scan-ring { width: 74px; height: 74px; border: 6px double #65e1cc; border-radius: 50%; box-shadow: 0 0 35px #30bea8; animation: bonadSpin 1.4s linear infinite; }.bonad-gacha-animation.is-lr { background: radial-gradient(circle, rgba(255,218,84,.5), transparent 45%), #392b0d; color: #ffe27a; }.bonad-gacha-animation.is-lr .bonad-scan-ring { border-color: #ffe373; box-shadow: 0 0 45px #ffc928; }
+.bonad-result-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; }.bonad-result-card { min-width: 0; padding: 11px 5px; border: 1px solid var(--border); border-top: 4px solid var(--rarity-color); border-radius: 12px; background: var(--bg); }.bonad-result-card strong, .bonad-result-card small { display: block; overflow-wrap: anywhere; }.bonad-result-card small { margin-top: 4px; color: var(--subtext); }
+.bonad-dialog-close { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; color: var(--text); font-size: 1.8rem; cursor: pointer; }.bonad-detail-dialog h2 { margin: 6px 28px 15px 0; }.bonad-detail-section { padding: 13px; border: 1px solid var(--border); border-radius: 13px; background: var(--bg); }.bonad-detail-section + .bonad-detail-section { margin-top: 9px; }.bonad-detail-section h3 { margin: 0 0 5px; }.bonad-detail-section p { margin: 0; color: var(--subtext); line-height: 1.6; }
+
+.bonad-game-overlay { padding: 0; background: #0c2028; }.bonad-game-shell { display: grid; width: 100%; height: 100dvh; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; background: #a9e5eb; }.bonad-game-shell header { display: grid; grid-template-columns: 78px minmax(0,1fr) auto; align-items: center; gap: 8px; min-height: 53px; padding: max(7px, env(safe-area-inset-top)) 12px 7px; background: #102f38; color: #fff; }.bonad-game-shell header button { min-height: 36px; border: 1px solid rgba(255,255,255,.2); border-radius: 9px; background: rgba(255,255,255,.09); color: #fff; }.bonad-game-shell header strong { overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }.bonad-game-shell header div { display: flex; gap: 9px; font-size: .75rem; font-weight: 800; }.bonad-game-shell canvas { display: block; width: 100%; height: 100%; min-height: 0; touch-action: none; }.bonad-game-controls { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 8px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); background: #102f38; }.bonad-game-controls button { min-height: 58px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.09); color: #fff; font-size: 1.2rem; font-weight: 900; }.bonad-game-controls button span { display: block; font-size: .62rem; }.bonad-game-controls #bonadJumpButton { background: #1ca58e; }.bonad-game-message { position: absolute; inset: 50% auto auto 50%; width: min(360px, calc(100% - 28px)); padding: 22px; transform: translate(-50%,-50%); border-radius: 20px; background: rgba(9, 33, 38, .94); color: #fff; text-align: center; box-shadow: 0 18px 70px rgba(0,0,0,.4); }.bonad-game-message button { min-height: 43px; margin: 5px; padding: 0 16px; border: 0; border-radius: 11px; background: #29ad96; color: #fff; font-weight: 850; }
+.bonad-toast { position: fixed; z-index: 5000; right: 16px; bottom: 104px; left: 16px; width: fit-content; max-width: min(440px, calc(100% - 32px)); margin: auto; padding: 11px 16px; border-radius: 999px; background: #123a3c; color: #fff; font-size: .8rem; font-weight: 800; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.25); }.bonad-toast[hidden] { display: none; }
+.bonad-nav-icon { display: block; width: 25px; height: 25px; margin: auto; }.bonad-bottom-nav a { min-width: 0; }
+
+@media (max-width: 760px) {
+  .bonad-shell { padding-inline: 9px; }
+  .bonad-header { grid-template-columns: 40px minmax(0,1fr) auto; padding: 10px; }.bonad-header-points { min-width: 88px; padding: 6px 8px; }
+  .bonad-menu { grid-template-columns: repeat(3, minmax(0,1fr)); }.bonad-menu button { min-height: 43px; grid-template-columns: auto minmax(0,1fr); justify-content: center; }.bonad-menu button span { font-size: .95rem; }.bonad-menu button b { font-size: .65rem; }
+  .bonad-panel { padding: 12px; border-radius: 18px; }
+  .bonad-room-layout { grid-template-columns: 1fr; }.bonad-room-stage { min-height: 480px; }#bonad3dCanvas { height: 480px; }.bonad-organ-panel { padding: 15px; }
+  .bonad-lab-hero { grid-template-columns: 110px minmax(0,1fr); gap: 12px; padding: 13px; }.bonad-lab-machine { height: 106px; }.bonad-lab-machine i { width: 58px; height: 58px; }.bonad-lab-hero h2 { font-size: 1.05rem; }.bonad-lab-hero p { font-size: .74rem; }
+  .bonad-inventory-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }.bonad-equipment-list { grid-template-columns: 1fr; }.bonad-stage-grid { grid-template-columns: 1fr; }.bonad-stage-card { min-height: 145px; }
+  .bonad-result-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }.bonad-result-dialog, .bonad-detail-dialog { padding: 18px 13px; }
+  .bonad-bottom-nav a { font-size: 9px; }
+}
+
+@media (max-width: 400px) {
+  .bonad-title-screen { min-height: calc(100dvh - 125px); border-radius: 22px; }.bonad-title-screen h1 { font-size: 3.2rem; }.bonad-title-skeleton { font-size: 7rem; }
+  .bonad-header span { letter-spacing: .06em; }.bonad-header-points small { display: none; }
+  .bonad-gacha-actions { gap: 6px; }.bonad-gacha-actions button { min-height: 66px; }
+  .bonad-stat-row { grid-template-columns: minmax(0,1fr) 36px 34px 36px; gap: 5px; padding: 9px; }.bonad-stat-row button { width: 34px; height: 34px; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .bonad-body { padding-bottom: 72px; }.bonad-shell { padding-top: 6px; }.bonad-title-screen { min-height: calc(100dvh - 85px); grid-template-columns: auto minmax(250px, 1fr); grid-template-rows: repeat(6, auto); column-gap: 24px; }.bonad-title-mark, .bonad-title-skeleton { grid-row: 1 / 7; }.bonad-title-skeleton { margin: 0; font-size: 7rem; }.bonad-title-mark { display: none; }
+  .bonad-header { margin-bottom: 6px; }.bonad-player-strip { padding-block: 6px; }.bonad-menu { position: static; grid-template-columns: repeat(6, minmax(0,1fr)); margin: 7px 0; }.bonad-menu button { min-height: 37px; grid-template-columns: auto minmax(0,1fr); }
+  .bonad-room-layout { grid-template-columns: minmax(0,1.5fr) minmax(230px,.7fr); }.bonad-room-stage, #bonad3dCanvas { min-height: 330px; height: 330px; }.bonad-organ-panel { max-height: 330px; overflow: auto; }
+  .bonad-game-shell { grid-template-columns: minmax(0,1fr) 92px; grid-template-rows: auto minmax(0,1fr); }.bonad-game-shell header { grid-column: 1 / -1; }.bonad-game-shell canvas { grid-column: 1; grid-row: 2; }.bonad-game-controls { grid-column: 2; grid-row: 2; grid-template-columns: 1fr; padding: 7px; }.bonad-game-controls button { min-height: 0; }
+}
+
+@media (min-width: 900px) { .bonad-bottom-nav { max-width: 900px; } }
+@media (prefers-reduced-motion: reduce) { .bonad-body * { scroll-behavior: auto !important; }.bonad-title-skeleton, .bonad-title-glow, .bonad-lab-machine i, .bonad-scan-ring { animation-duration: .001ms !important; animation-iteration-count: 1 !important; } }

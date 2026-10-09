@@ -112,6 +112,11 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber = localStorage.getItem("studentNumber");
+export const BONE_ADVENTURE_TEST_STUDENT_NUMBERS = Object.freeze(["2510044"]);
+
+export function isBoneAdventureTestStudent(value = studentNumber) {
+  return BONE_ADVENTURE_TEST_STUDENT_NUMBERS.includes(String(value || ""));
+}
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
 const DEVICE_ID_COOKIE_KEY = "careMateDeviceId";
@@ -1444,6 +1449,7 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
+  ensureBoneAdventureNavTab();
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1474,10 +1480,23 @@ function ensureCalendarNavTab() {
   }
 }
 
+function ensureBoneAdventureNavTab() {
+  if (!isBoneAdventureTestStudent()) return;
+  for (const link of document.querySelectorAll('.bottom-nav a[href="requests.html"]')) {
+    link.href = "bonad.html";
+    link.classList.add("bonad-nav-link");
+    link.innerHTML = '<span class="nav-icon-wrap"><img class="bonad-nav-icon" src="images/bonad-skull.svg" alt="" width="25" height="25" /></span><span>ボンアド</span>';
+  }
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", ensureCalendarNavTab, { once: true });
+  document.addEventListener("DOMContentLoaded", () => {
+    ensureCalendarNavTab();
+    ensureBoneAdventureNavTab();
+  }, { once: true });
 } else {
   ensureCalendarNavTab();
+  ensureBoneAdventureNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {
@@ -2118,6 +2137,7 @@ const presencePageNames = {
   "calendar.html": "カレンダー",
   "news.html": "お知らせ",
   "requests.html": "機能リクエスト",
+  "bonad.html": "ボンアド",
   "profile.html": "プロフィール",
   "settings.html": "設定画面",
   "assignment.html": "課題画面",
