@@ -103,6 +103,9 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
   assert.match(rules, /allow read, create, update, delete: if isUserOwner\(\)/);
   assert.match(page, /data-study-tab="questions"/);
   assert.match(page, /id="exportStudyCsv"/);
+  assert.match(page, /class="study-secondary-summary"/);
+  assert.match(page, /data-summary-tone="today"/);
   assert.match(styles, /\.study-analytics-body \{ padding-bottom: 104px; overflow-x: hidden; \}/);
   assert.match(styles, /\.study-subtabs \{ top: 61px; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.study-table-row\.is-heading \{ display: none; \}/);
 });

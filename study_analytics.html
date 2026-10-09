@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>自己学習・学習分析 | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20261009-4" />
+    <link rel="stylesheet" href="style.css?v=20261009-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
   </head>
@@ -20,26 +20,33 @@
 
     <main class="study-analytics-page">
       <section class="study-hero">
-        <div><span class="study-kicker">SELF STUDY</span><h1>自己学習・学習分析</h1><p>勉強時間と問題演習を、次の学習につながる形で見える化します。</p></div>
-        <div class="study-hero-today"><small>今日</small><strong id="heroTodayTime">0分</strong><span id="heroTodayQuestions">0問</span></div>
+        <div class="study-hero-copy"><span class="study-kicker">SELF STUDY</span><h1>自己学習・学習分析</h1><p>勉強時間・成績・次に復習する内容を、ひとつの画面で確認できます。</p></div>
+        <div class="study-hero-today" aria-label="今日の学習状況">
+          <span class="study-hero-icon" aria-hidden="true">📚</span>
+          <div><small>今日の学習</small><strong id="heroTodayTime">0分</strong></div>
+          <div><small>解いた問題</small><strong id="heroTodayQuestions">0問</strong></div>
+        </div>
       </section>
 
-      <section class="study-summary-grid" aria-label="学習状況の概要">
-        <article><span>今日の勉強</span><strong id="summaryToday">0分</strong></article>
-        <article><span>今週の勉強</span><strong id="summaryWeek">0分</strong></article>
-        <article><span>今月の勉強</span><strong id="summaryMonth">0分</strong></article>
-        <article><span>累計勉強</span><strong id="summaryTotal">0分</strong></article>
+      <section class="study-summary-grid" aria-label="特に重要な学習状況">
+        <article data-summary-tone="today"><span class="study-summary-icon" aria-hidden="true">⏱️</span><div><span>今日の勉強</span><strong id="summaryToday">0分</strong></div></article>
+        <article data-summary-tone="week"><span class="study-summary-icon" aria-hidden="true">📅</span><div><span>今週の勉強</span><strong id="summaryWeek">0分</strong></div></article>
+        <article data-summary-tone="accuracy"><span class="study-summary-icon" aria-hidden="true">🎯</span><div><span>全体正答率</span><strong id="summaryAccuracy">データなし</strong></div></article>
+        <article data-summary-tone="streak"><span class="study-summary-icon" aria-hidden="true">🔥</span><div><span>連続学習</span><strong id="summaryStreak">0日</strong></div></article>
+      </section>
+
+      <section class="study-secondary-summary" aria-label="その他の学習状況">
+        <article><span>今月</span><strong id="summaryMonth">0分</strong></article>
+        <article><span>累計時間</span><strong id="summaryTotal">0分</strong></article>
         <article><span>累計解答</span><strong id="summaryQuestions">0問</strong></article>
-        <article><span>全体正答率</span><strong id="summaryAccuracy">データなし</strong></article>
-        <article><span>連続学習</span><strong id="summaryStreak">0日</strong></article>
         <article><span>今週の目標</span><strong id="summaryGoal">未設定</strong></article>
       </section>
 
       <nav class="study-subtabs" aria-label="学習分析メニュー">
-        <button class="is-active" data-study-tab="home">学習ホーム</button>
-        <button data-study-tab="time">勉強時間</button>
-        <button data-study-tab="questions">問題分析</button>
-        <button data-study-tab="report">学習レポート</button>
+        <button class="is-active" data-study-tab="home"><span aria-hidden="true">🏠</span><b>学習ホーム</b></button>
+        <button data-study-tab="time"><span aria-hidden="true">⏱️</span><b>勉強時間</b></button>
+        <button data-study-tab="questions"><span aria-hidden="true">📊</span><b>問題分析</b></button>
+        <button data-study-tab="report"><span aria-hidden="true">📝</span><b>レポート</b></button>
       </nav>
 
       <section id="studyPanelHome" class="study-panel is-active" data-study-panel="home">
@@ -135,6 +142,6 @@
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
       <a id="adminTab" href="admin.html" style="display:none"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="study_analytics.js?v=20261009-3"></script>
+    <script type="module" src="study_analytics.js?v=20261009-4"></script>
   </body>
 </html>

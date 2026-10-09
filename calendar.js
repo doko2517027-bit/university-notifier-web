@@ -210,12 +210,7 @@ function renderMonth() {
   }).join("");
   $("calendarGrid").querySelectorAll("[data-date]").forEach((button) => {
     button.onclick = () => {
-      selectedDate = button.dataset.date;
-      const selected = new Date(`${selectedDate}T00:00:00`);
-      if (selected.getMonth() !== visibleMonth.getMonth() || selected.getFullYear() !== visibleMonth.getFullYear()) {
-        visibleMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
-      }
-      render();
+      openDayPopup(button.dataset.date);
     };
   });
 }
@@ -235,7 +230,7 @@ function renderWeek(dates) {
       </div></div>`;
   }).join("");
   $("calendarWeekView").querySelectorAll(".calendar-week-date").forEach((button) => {
-    button.onclick = () => { selectedDate = button.dataset.date; render(); };
+    button.onclick = () => openDayPopup(button.dataset.date);
   });
   $("calendarWeekView").querySelectorAll(".calendar-week-event").forEach((button) => {
     button.onclick = () => {
@@ -263,6 +258,20 @@ function renderDay() {
   $("calendarDayEvents").querySelectorAll("[data-id]").forEach((button) => {
     button.onclick = () => openDetail(events.find((event) => event.id === button.dataset.id && event.kind === button.dataset.kind && event.date === selectedDate));
   });
+}
+
+function openDayPopup(date = selectedDate) {
+  selectedDate = date;
+  const selected = new Date(`${selectedDate}T00:00:00`);
+  if (selected.getMonth() !== visibleMonth.getMonth() || selected.getFullYear() !== visibleMonth.getFullYear()) {
+    visibleMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  }
+  render();
+  $("calendarDayOverlay").hidden = false;
+}
+
+function closeDayPopup() {
+  $("calendarDayOverlay").hidden = true;
 }
 
 function reminderCheckboxes(selected = []) {
@@ -333,10 +342,12 @@ document.querySelectorAll(".calendar-filters button").forEach((button) => {
   button.onclick = () => { filter = button.dataset.filter; render(); };
 });
 $("calendarDetailClose").onclick = closeDetail;
+$("calendarDayClose").onclick = closeDayPopup;
 $("calendarEditorClose").onclick = closeEditor;
+$("calendarDayOverlay").onclick = (event) => { if (event.target.id === "calendarDayOverlay") closeDayPopup(); };
 $("calendarDetailOverlay").onclick = (event) => { if (event.target.id === "calendarDetailOverlay") closeDetail(); };
 $("calendarEditorOverlay").onclick = (event) => { if (event.target.id === "calendarEditorOverlay") closeEditor(); };
-document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeDetail(); closeEditor(); } });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeDayPopup(); closeDetail(); closeEditor(); } });
 $("calendarDetailOpen").onclick = () => {
   if (!activeEvent) return;
   location.href = activeEvent.kind === "assignment" ? (activeEvent.url || "assignments.html") : "personal_timetable.html";

@@ -368,7 +368,7 @@ function subjectScoreTable(rows) {
     const previous = accuracy(history.slice(0, half));
     const recent = accuracy(history.slice(half));
     const change = previous != null && recent != null ? recent - previous : null;
-    return `<div class="study-table-row study-subject-score-row"><b>${escapeHtml(item.name)}</b><span>${item.attempts}問</span><strong data-score="${item.accuracy < 60 ? "low" : item.accuracy < 80 ? "middle" : "high"}">${Math.round(item.accuracy)}%</strong><span>${firstAccuracy == null ? "—" : `${Math.round(firstAccuracy)}%`}</span><span data-change="${change == null ? "none" : change >= 0 ? "up" : "down"}">${change == null ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}pt`}</span></div>`;
+    return `<div class="study-table-row study-subject-score-row"><b>${escapeHtml(item.name)}</b><span data-label="解答">${item.attempts}問</span><strong data-label="正答率" data-score="${item.accuracy < 60 ? "low" : item.accuracy < 80 ? "middle" : "high"}">${Math.round(item.accuracy)}%</strong><span data-label="初回">${firstAccuracy == null ? "—" : `${Math.round(firstAccuracy)}%`}</span><span data-label="前回比" data-change="${change == null ? "none" : change >= 0 ? "up" : "down"}">${change == null ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}pt`}</span></div>`;
   }).join("");
 }
 
@@ -415,7 +415,7 @@ function renderSubjectRadar(rows) {
 
 function analysisTable(rows) {
   if (!rows.length) return '<p class="study-empty">解答履歴がまだありません。</p>';
-  return `<div class="study-table-row is-heading"><span>科目・単元</span><span>解答</span><span>正答率</span><span>平均</span></div>` + rows.map((item) => `<div class="study-table-row"><b>${escapeHtml(item.name)}</b><span>${item.attempts}問</span><strong data-score="${item.accuracy == null ? "none" : item.accuracy < 60 ? "low" : item.accuracy < 80 ? "middle" : "high"}">${item.accuracy == null ? "—" : `${Math.round(item.accuracy)}%`}</strong><span>${item.averageResponseSeconds == null ? "—" : `${item.averageResponseSeconds.toFixed(1)}秒`}</span></div>`).join("");
+  return `<div class="study-table-row is-heading"><span>科目・単元</span><span>解答</span><span>正答率</span><span>平均</span></div>` + rows.map((item) => `<div class="study-table-row"><b>${escapeHtml(item.name)}</b><span data-label="解答">${item.attempts}問</span><strong data-label="正答率" data-score="${item.accuracy == null ? "none" : item.accuracy < 60 ? "low" : item.accuracy < 80 ? "middle" : "high"}">${item.accuracy == null ? "—" : `${Math.round(item.accuracy)}%`}</strong><span data-label="平均時間">${item.averageResponseSeconds == null ? "—" : `${item.averageResponseSeconds.toFixed(1)}秒`}</span></div>`).join("");
 }
 
 function renderAccuracyTrend() {

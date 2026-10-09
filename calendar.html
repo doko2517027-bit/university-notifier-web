@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>カレンダー | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261009-5" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -47,9 +47,16 @@
         <div id="calendarDayView" class="calendar-day-view" hidden aria-label="日間カレンダー"></div>
         <p id="calendarHolidayNote" class="calendar-holiday-note" hidden>祝日は内閣府公表済みの2026・2027年分を表示しています。</p>
       </section>
-      <section class="card calendar-agenda" aria-live="polite"><div class="calendar-agenda-heading"><h2 id="calendarSelectedTitle"></h2><button id="calendarAddOnDay" class="btn" type="button">＋ この日に予定</button></div><div id="calendarDayEvents"></div></section>
       <p id="calendarMessage" class="calendar-message" role="status"></p>
     </main>
+
+    <div id="calendarDayOverlay" class="calendar-overlay" hidden>
+      <section class="calendar-dialog calendar-day-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarSelectedTitle">
+        <button id="calendarDayClose" class="calendar-close" type="button" aria-label="閉じる">×</button>
+        <div class="calendar-agenda-heading"><div><span class="calendar-day-dialog-kicker">DAY SCHEDULE</span><h2 id="calendarSelectedTitle"></h2></div><button id="calendarAddOnDay" class="btn btn-primary" type="button">＋ 予定を追加</button></div>
+        <div id="calendarDayEvents" aria-live="polite"></div>
+      </section>
+    </div>
 
     <div id="calendarDetailOverlay" class="calendar-overlay" hidden>
       <section class="calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
@@ -90,6 +97,6 @@
       <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span><span id="newsNavBadge" class="nav-notification-badge" hidden>0</span></span><span>お知らせ</span></a>
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
     </nav>
-    <script type="module" src="calendar.js?v=20260929-4"></script>
+    <script type="module" src="calendar.js?v=20261009-1"></script>
   </body>
 </html>
