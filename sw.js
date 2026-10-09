@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v96";
+const STATIC_CACHE = "caremate-static-v97";
 
-const RUNTIME_CACHE = "caremate-runtime-v96";
+const RUNTIME_CACHE = "caremate-runtime-v97";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -131,9 +131,9 @@ const CORE_ASSETS = [
 
   "bonad.html",
 
-  "bonad.css?v=20261009-1",
+  "bonad.css?v=20261009-2",
 
-  "bonad.js?v=20261009-1",
+  "bonad.js?v=20261009-2",
 
   "bone_adventure_3d.js?v=20261009-1",
 

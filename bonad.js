@@ -52,6 +52,12 @@ let tempRemaining = 0;
 let toastTimer = 0;
 let revealGachaNow = null;
 let mutationBusy = false;
+let inventoryPage = 0;
+let equipmentPage = 0;
+let equipmentDraft = new Set();
+
+const INVENTORY_PAGE_SIZE = 4;
+const EQUIPMENT_PAGE_SIZE = 4;
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -73,6 +79,7 @@ async function loadDashboard() {
   dashboard = response.data;
   tempStats = { ...dashboard.state.allocatedStats };
   tempRemaining = dashboard.state.unspentStatPoints;
+  equipmentDraft = new Set(dashboard.state.abilityEquipped || []);
   renderAll();
   return dashboard;
 }
@@ -89,6 +96,7 @@ function renderAll() {
   $("bonadUnlockedStage").textContent = `Stage ${state.unlockedStage}`;
   $("bonadBestDistance").textContent = `${state.endlessBestDistance}m`;
   $("bonadBestScore").textContent = state.endlessBestScore.toLocaleString("ja-JP");
+  $("bonadInventoryCount").textContent = `${dashboard.inventory.length}種類`;
   renderRates();
   renderInventory();
   renderStats();
@@ -107,14 +115,18 @@ function renderRates() {
 function renderInventory() {
   if (!dashboard.inventory.length) {
     $("bonadInventory").innerHTML = '<p class="bonad-note">まだアイテムがありません。ガチャで最初のパーツを獲得しましょう。</p>';
+    renderPager("bonadInventoryPager", 0, 0, INVENTORY_PAGE_SIZE, "所持品");
     return;
   }
   const visualIds = new Set(Object.values(dashboard.state.visualEquipped || {}));
-  $("bonadInventory").innerHTML = dashboard.inventory.map((item) => {
+  inventoryPage = Math.min(inventoryPage, Math.max(0, Math.ceil(dashboard.inventory.length / INVENTORY_PAGE_SIZE) - 1));
+  const start = inventoryPage * INVENTORY_PAGE_SIZE;
+  $("bonadInventory").innerHTML = dashboard.inventory.slice(start, start + INVENTORY_PAGE_SIZE).map((item) => {
     const duplicate = Number(item.quantity || 0) > 1;
     const visual = ["organ", "decoration"].includes(item.kind);
     return `<article class="bonad-item-card" style="--rarity-color:${RARITY_COLORS[item.rarity]}"><header><b>${item.rarity}</b><span>×${item.quantity}</span></header><h4>${escapeHtml(item.name)}</h4><p>${escapeHtml(item.ability)}</p><small>強化 +${Number(item.enhancementLevel || 0)}</small><footer>${visual ? `<button data-visual-item="${item.id}">${visualIds.has(item.id) ? "見た目から外す" : "見た目に装着"}</button>` : ""}${duplicate && Number(item.enhancementLevel || 0) < dashboard.maxEnhancement ? `<button data-enhance-item="${item.id}">重複で強化</button>` : ""}${duplicate ? `<button data-exchange-item="${item.id}">${dashboard.exchangePoints[item.rarity]}ptへ交換</button>` : ""}</footer></article>`;
   }).join("");
+  renderPager("bonadInventoryPager", inventoryPage, dashboard.inventory.length, INVENTORY_PAGE_SIZE, "所持品");
 }
 
 function renderStats() {
@@ -123,9 +135,19 @@ function renderStats() {
 }
 
 function renderEquipment() {
-  const equipped = new Set(dashboard.state.abilityEquipped || []);
   const eligible = dashboard.inventory.filter((item) => ["ability", "organ", "material"].includes(item.kind));
-  $("bonadEquipmentList").innerHTML = eligible.length ? eligible.map((item) => `<label class="bonad-equip-row"><input type="checkbox" value="${item.id}" ${equipped.has(item.id) ? "checked" : ""}/><span><b>${escapeHtml(item.name)} +${Number(item.enhancementLevel || 0)}</b><small>${escapeHtml(item.ability)}</small></span></label>`).join("") : '<p class="bonad-note">装備できるアイテムをまだ所持していません。</p>';
+  equipmentPage = Math.min(equipmentPage, Math.max(0, Math.ceil(eligible.length / EQUIPMENT_PAGE_SIZE) - 1));
+  const start = equipmentPage * EQUIPMENT_PAGE_SIZE;
+  $("bonadEquipmentList").innerHTML = eligible.length ? eligible.slice(start, start + EQUIPMENT_PAGE_SIZE).map((item) => `<label class="bonad-equip-row"><input type="checkbox" value="${item.id}" ${equipmentDraft.has(item.id) ? "checked" : ""}/><span><b>${escapeHtml(item.name)} +${Number(item.enhancementLevel || 0)}</b><small>${escapeHtml(item.ability)}</small></span></label>`).join("") : '<p class="bonad-note">装備できるアイテムをまだ所持していません。</p>';
+  renderPager("bonadEquipmentPager", equipmentPage, eligible.length, EQUIPMENT_PAGE_SIZE, "装備候補");
+}
+
+function renderPager(targetId, page, total, pageSize, label) {
+  const target = $(targetId);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  target.innerHTML = total > pageSize
+    ? `<button type="button" data-page-target="${targetId}" data-page-delta="-1" ${page <= 0 ? "disabled" : ""} aria-label="前へ">‹</button><span>${label} ${page + 1} / ${pageCount}</span><button type="button" data-page-target="${targetId}" data-page-delta="1" ${page >= pageCount - 1 ? "disabled" : ""} aria-label="次へ">›</button>`
+    : `<span>${label} ${total}件</span>`;
 }
 
 function renderStages() {
@@ -165,11 +187,15 @@ function openOrganDetail() {
   $("bonadOrganOverlay").hidden = false;
 }
 
+function goHub() {
+  $("bonadHub").hidden = false;
+  document.querySelectorAll("[data-bonad-panel]").forEach((panel) => { panel.hidden = true; panel.classList.remove("is-active"); });
+}
+
 function setView(name) {
-  document.querySelectorAll("[data-bonad-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.bonadView === name));
+  $("bonadHub").hidden = true;
   document.querySelectorAll("[data-bonad-panel]").forEach((panel) => { panel.hidden = panel.dataset.bonadPanel !== name; panel.classList.toggle("is-active", panel.dataset.bonadPanel === name); });
   if (name === "room") void initializeViewer();
-  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function runGacha(count) {
@@ -255,7 +281,7 @@ async function respecStats() {
 }
 
 async function saveEquipment() {
-  const checked = [...document.querySelectorAll('#bonadEquipmentList input[type="checkbox"]:checked')].map((input) => input.value);
+  const checked = [...equipmentDraft];
   if (checked.length > dashboard.state.equipmentSlots) { showToast(`装備は${dashboard.state.equipmentSlots}個までです。`); return; }
   try { await api.loadout({ visualItemIds: Object.values(dashboard.state.visualEquipped || {}), abilityItemIds: checked }); await loadDashboard(); showToast("ゲーム用装備を保存しました。"); } catch (error) { showToast(errorMessage(error)); }
 }
@@ -298,12 +324,16 @@ function closeGame() {
 }
 
 function setupEvents() {
-  $("bonadStart").onclick = () => { $("bonadTitle").hidden = true; $("bonadApp").hidden = false; setView("room"); };
+  $("bonadStart").onclick = () => { $("bonadTitle").hidden = true; $("bonadApp").hidden = false; goHub(); };
   $("bonadBackTitle").onclick = () => { $("bonadApp").hidden = true; $("bonadTitle").hidden = false; };
   document.querySelectorAll("[data-bonad-view]").forEach((button) => { button.onclick = () => setView(button.dataset.bonadView); });
+  document.querySelectorAll("[data-bonad-home]").forEach((button) => { button.onclick = goHub; });
+  $("bonadRatesButton").onclick = () => { $("bonadRatesOverlay").hidden = false; };
+  $("bonadCloseRates").onclick = () => { $("bonadRatesOverlay").hidden = true; };
+  $("bonadRatesOverlay").onclick = (event) => { if (event.target.id === "bonadRatesOverlay") $("bonadRatesOverlay").hidden = true; };
   document.querySelectorAll("[data-gacha-count]").forEach((button) => { button.onclick = () => runGacha(Number(button.dataset.gachaCount)); });
   $("bonadCloseGacha").onclick = () => { if (revealGachaNow && $("bonadCloseGacha").textContent.includes("スキップ")) { revealGachaNow(); return; } $("bonadGachaOverlay").hidden = true; };
-  $("bonadInternalToggle").onclick = () => { const internal = viewer?.toggleInternal(); $("bonadInternalToggle").textContent = internal ? "内部を観察中" : "外観を表示中"; };
+  $("bonadInternalToggle").onclick = () => { const internal = viewer?.toggleInternal(); $("bonadInternalToggle").textContent = internal ? "外観を見る" : "内部を見る"; };
   $("bonadOrganDetail").onclick = openOrganDetail;
   $("bonadCloseOrgan").onclick = () => { $("bonadOrganOverlay").hidden = true; };
   $("bonadOrganOverlay").onclick = (event) => { if (event.target.id === "bonadOrganOverlay") $("bonadOrganOverlay").hidden = true; };
@@ -313,10 +343,29 @@ function setupEvents() {
     if (button.dataset.enhanceItem) void resolveDuplicate(button.dataset.enhanceItem, "enhance");
     if (button.dataset.exchangeItem) void resolveDuplicate(button.dataset.exchangeItem, "exchange");
   };
+  document.querySelectorAll(".bonad-pager").forEach((pager) => {
+    pager.onclick = (event) => {
+      const button = event.target.closest("[data-page-delta]");
+      if (!button || button.disabled) return;
+      const delta = Number(button.dataset.pageDelta);
+      if (button.dataset.pageTarget === "bonadInventoryPager") { inventoryPage += delta; renderInventory(); }
+      if (button.dataset.pageTarget === "bonadEquipmentPager") { equipmentPage += delta; renderEquipment(); }
+    };
+  });
   $("bonadStats").onclick = (event) => {
     const plus = event.target.dataset.statPlus; const minus = event.target.dataset.statMinus;
     if (plus && tempRemaining > 0) { tempStats[plus] += 1; tempRemaining -= 1; renderStats(); }
     if (minus && tempStats[minus] > dashboard.state.allocatedStats[minus]) { tempStats[minus] -= 1; tempRemaining += 1; renderStats(); }
+  };
+  $("bonadEquipmentList").onchange = (event) => {
+    const input = event.target.closest('input[type="checkbox"]');
+    if (!input) return;
+    if (input.checked) equipmentDraft.add(input.value); else equipmentDraft.delete(input.value);
+    if (equipmentDraft.size > dashboard.state.equipmentSlots) {
+      equipmentDraft.delete(input.value);
+      input.checked = false;
+      showToast(`装備は${dashboard.state.equipmentSlots}個までです。`);
+    }
   };
   $("bonadSaveStats").onclick = saveStats;
   $("bonadRespec").onclick = respecStats;
@@ -329,7 +378,7 @@ function setupEvents() {
   $("bonadGameCanvas").addEventListener("pointerdown", () => runner?.jump());
   $("bonadQuitGame").onclick = closeGame;
   $("bonadGameMessage").onclick = (event) => { if (event.target.closest("[data-game-close]")) closeGame(); if (event.target.closest("[data-game-retry]")) { const mode = runner.mode; const stage = runner.stage; void startGame({ mode, stage }); } };
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape") { $("bonadOrganOverlay").hidden = true; if (!$("bonadGameOverlay").hidden) closeGame(); } });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") { $("bonadOrganOverlay").hidden = true; $("bonadRatesOverlay").hidden = true; if (!$("bonadGameOverlay").hidden) closeGame(); else if (!$("bonadApp").hidden) goHub(); } });
 }
 
 function escapeHtml(value) {

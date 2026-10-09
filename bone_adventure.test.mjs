@@ -71,3 +71,21 @@ test("スマホ縦横とPCで横にはみ出さず専用レイアウトへ切り
   assert.match(css, /\.bonad-game-shell \{ grid-template-columns:/);
   assert.doesNotMatch(css, /var\(--background\)/);
 });
+
+test("起動確認は利用者に見せず、読み込み完了まで全画面で覆う", async () => {
+  const [page, css] = await Promise.all([read("./bonad.html"), read("./bonad.css")]);
+  assert.match(page, /ゲームを起動中…/);
+  assert.doesNotMatch(page, /本人認証とゲームデータを確認しています/);
+  assert.match(css, /\.bonad-access-gate \{ position: fixed; z-index: 10000; inset: 0;/);
+});
+
+test("スクロールなしのアイコンメニューとページ送りで各機能を開く", async () => {
+  const [page, client, css] = await Promise.all([read("./bonad.html"), read("./bonad.js"), read("./bonad.css")]);
+  assert.match(page, /id="bonadHub"/);
+  assert.match(page, /class="bonad-launch-grid"/);
+  assert.match(client, /function goHub\(\)/);
+  assert.match(client, /renderPager\("bonadInventoryPager"/);
+  assert.match(client, /renderPager\("bonadEquipmentPager"/);
+  assert.match(css, /\.bonad-body[^}]+overflow: hidden/);
+  assert.doesNotMatch(css, /overflow:\s*auto/);
+});
