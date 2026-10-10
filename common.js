@@ -112,15 +112,10 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber = localStorage.getItem("studentNumber");
-export const AMAMON_TEST_STUDENT_NUMBERS = Object.freeze(["2510044"]);
-export const BONE_ADVENTURE_TEST_STUDENT_NUMBERS = AMAMON_TEST_STUDENT_NUMBERS;
+export const MEDIGUARD_TEST_STUDENT_NUMBERS = Object.freeze(["2510044"]);
 
-export function isAmamonTestStudent(value = studentNumber) {
-  return AMAMON_TEST_STUDENT_NUMBERS.includes(String(value || ""));
-}
-
-export function isBoneAdventureTestStudent(value = studentNumber) {
-  return isAmamonTestStudent(value);
+export function isMediguardTestStudent(value = studentNumber) {
+  return MEDIGUARD_TEST_STUDENT_NUMBERS.includes(String(value || ""));
 }
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
@@ -1454,7 +1449,7 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
-  ensureAmamonNavTab();
+  ensureMediguardNavTab();
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1485,23 +1480,23 @@ function ensureCalendarNavTab() {
   }
 }
 
-function ensureAmamonNavTab() {
-  if (!isAmamonTestStudent()) return;
+function ensureMediguardNavTab() {
+  if (!isMediguardTestStudent()) return;
   for (const link of document.querySelectorAll('.bottom-nav a[href="requests.html"]')) {
-    link.href = "amamon.html";
-    link.classList.add("amamon-nav-link");
-    link.innerHTML = '<span class="nav-icon-wrap"><img class="amamon-nav-icon" src="images/amamon-tab.svg" alt="" width="25" height="25" /></span><span>あまもん</span>';
+    link.href = "mediguard.html";
+    link.classList.add("mediguard-nav-link");
+    link.innerHTML = '<span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" width="25" height="25" /></span><span>メディガード</span>';
   }
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     ensureCalendarNavTab();
-    ensureAmamonNavTab();
+    ensureMediguardNavTab();
   }, { once: true });
 } else {
   ensureCalendarNavTab();
-  ensureAmamonNavTab();
+  ensureMediguardNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {
@@ -2142,8 +2137,7 @@ const presencePageNames = {
   "calendar.html": "カレンダー",
   "news.html": "お知らせ",
   "requests.html": "機能リクエスト",
-  "bonad.html": "ボンアド",
-  "amamon.html": "あまもん",
+  "mediguard.html": "メディガード",
   "profile.html": "プロフィール",
   "settings.html": "設定画面",
   "assignment.html": "課題画面",

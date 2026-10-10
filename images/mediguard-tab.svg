@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="メディガード">
+  <path fill="#eaf9f5" stroke="#167b76" stroke-width="4" d="M32 4 55 13v16c0 15-9 25-23 31C18 54 9 44 9 29V13z"/>
+  <circle cx="32" cy="31" r="15" fill="#1ca99c"/>
+  <path fill="#fff" d="M28 19h8v8h8v8h-8v8h-8v-8h-8v-8h8z"/>
+</svg>

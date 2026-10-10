@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+    <meta name="theme-color" content="#153d43" />
+    <title>メディガード！ | CareMate</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="mediguard.css?v=20261011-1" />
+    <link rel="icon" href="images/icon-192.png" />
+  </head>
+  <body class="mediguard-body page-loading">
+    <section id="gameGate" class="game-gate" aria-live="polite">
+      <div class="gate-shield"><span>＋</span></div>
+      <strong>防衛システムを起動中…</strong>
+      <small>キャラクターと戦闘記録を安全に読み込んでいます</small>
+    </section>
+
+    <main id="gameShell" class="game-shell" hidden>
+      <section id="titleScreen" class="title-screen">
+        <div class="title-grid" aria-hidden="true"></div>
+        <div class="title-badge">CareMate × BODY DEFENSE</div>
+        <div class="title-character character-sprite sprite-0"></div>
+        <h1><span>MEDI</span>GUARD!</h1>
+        <p>メディガード！<b>― からだ防衛隊 ―</b></p>
+        <button id="startButton" class="hero-button" type="button">防衛をはじめる</button>
+        <small>2510044限定テスト版</small>
+      </section>
+
+      <section id="gameApp" class="game-app" hidden>
+        <header class="game-header">
+          <button id="homeButton" class="icon-button" type="button" aria-label="ゲームホームへ">⌂</button>
+          <div><small>BODY DEFENSE UNIT</small><strong id="screenTitle">メディガード！</strong></div>
+          <div class="point-pill"><span>GP</span><b id="gachaPoints">0</b></div>
+        </header>
+
+        <section id="homeView" class="game-view home-view">
+          <div class="organ-monitor" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="home-info"><span>出撃ユニット</span><strong id="selectedName">セルマル</strong><b>Lv.<i id="selectedLevel">1</i></b></div>
+          <button id="selectedCharacter" class="selected-character" type="button" aria-label="キャラクターを変更"><span class="character-sprite sprite-0"></span><i>変更</i></button>
+          <div class="home-skill"><span id="selectedPassive">射程が10%長い</span><span id="selectedSkill">浄化リング</span></div>
+          <button id="sortieButton" class="sortie-button" type="button"><span>殺 菌</span><small>ランダムな臓器へ出撃</small></button>
+          <div class="home-menu">
+            <button data-view="characters"><span>🧬</span><b>キャラクター</b><small>選択・強化</small></button>
+            <button data-view="gacha"><span>◈</span><b>ガチャ</b><small>30ptから</small></button>
+            <button data-view="records"><span>▥</span><b>記録</b><small>戦績・初回報酬</small></button>
+            <button data-view="help"><span>?</span><b>遊び方</b><small>操作・薬剤表現</small></button>
+            <button class="soon" disabled><span>⌁</span><b>協力プレイ</b><small>次段階で実装</small></button>
+            <button class="soon" disabled><span>♜</span><b>限界突破</b><small>Lv.50から</small></button>
+          </div>
+        </section>
+
+        <section id="charactersView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>UNIT LIST</small><h2>キャラクター</h2></div><button data-view="home">もどる</button></div>
+          <p class="view-note">同じ種類でも個体ごとにレベルを保存します。★で交換・合成から保護できます。</p>
+          <div id="characterList" class="character-list"></div>
+        </section>
+
+        <section id="gachaView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>RECRUIT SCAN</small><h2>キャラガチャ</h2></div><button data-view="home">もどる</button></div>
+          <div class="scanner"><div class="scan-ring"></div><span class="character-sprite sprite-9"></span><strong>GUARDIAN SCAN</strong><small>キャラクターだけが登場</small></div>
+          <div class="gacha-actions"><button data-draw="1"><b>1回</b><span>30 GP</span></button><button class="ten" data-draw="10"><b>10連</b><span>300 GP</span></button></div>
+          <button id="ratesButton" class="text-button" type="button">排出率・全キャラクターを見る</button>
+        </section>
+
+        <section id="recordsView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>DEFENSE LOG</small><h2>防衛記録</h2></div><button data-view="home">もどる</button></div>
+          <div id="recordGrid" class="record-grid"></div>
+          <h3 class="section-title">臓器別・初回クリア</h3><div id="mapRecords" class="map-records"></div>
+          <h3 class="section-title">最近の出撃</h3><div id="runHistory" class="run-history"></div>
+        </section>
+
+        <section id="helpView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>FIELD MANUAL</small><h2>遊び方</h2></div><button data-view="home">もどる</button></div>
+          <div class="manual-grid">
+            <article><b>1</b><span><strong>移動</strong>スマホは左スティック、PCはWASD／矢印キー。</span></article>
+            <article><b>2</b><span><strong>薬剤攻撃</strong>攻撃をタップ。長押しして離すと強力なチャージ弾。</span></article>
+            <article><b>3</b><span><strong>固有スキル</strong>右側のSKILLを使用。再使用まで待ち時間があります。</span></article>
+            <article><b>4</b><span><strong>残機</strong>基本は3回被弾で死亡、3回目の死亡で敗北。復活直後は無敵。</span></article>
+          </div>
+          <p class="medical-note">薬剤名や病原体は学習のきっかけとなるゲーム表現です。実際の診断・治療・薬剤選択を再現するものではありません。</p>
+        </section>
+      </section>
+    </main>
+
+    <div id="loadingScreen" class="loading-screen" hidden>
+      <div class="loading-organ"><i></i><span>＋</span></div><small>DEPLOYING TO</small><h2 id="loadingMap">肺胞エリア</h2><p id="loadingPathogen">病原体を解析中…</p><div class="loading-bar"><i></i></div>
+    </div>
+
+    <section id="battleScreen" class="battle-screen" hidden>
+      <canvas id="battleCanvas"></canvas>
+      <header class="battle-hud">
+        <div><small id="battleMapName">肺胞</small><b>WAVE <i id="waveText">1 / 3</i></b></div>
+        <div class="battle-time"><small>TIME</small><b id="timeText">100</b></div>
+        <div class="life-box"><span id="lifeText">●●●</span><small id="hitText">HIT 0 / 3</small></div>
+      </header>
+      <div id="infectionBox" class="infection-box" hidden><span>感染</span><i><b id="infectionBar"></b></i><em id="infectionText">0%</em></div>
+      <div id="waveBanner" class="wave-banner">WAVE 1</div>
+      <div id="battleMessage" class="battle-message">敵の出現地点に注意！</div>
+      <div id="joystick" class="joystick"><i id="joystickKnob"></i></div>
+      <button id="attackButton" class="battle-action attack" type="button"><span>ATTACK</span><i id="chargeRing"></i></button>
+      <button id="skillButton" class="battle-action skill" type="button"><span>SKILL</span><i id="skillCooldown"></i></button>
+      <button id="exitBattle" class="exit-battle" type="button">退出</button>
+      <div id="respawnPanel" class="respawn-panel" hidden><strong>RECOVERING</strong><span id="respawnText">5</span></div>
+    </section>
+
+    <div id="resultScreen" class="result-screen" hidden><section><small id="resultLabel">MISSION COMPLETE</small><h2 id="resultTitle">防衛成功</h2><div id="resultBody"></div><div><button id="retryButton" class="primary">もう一度出撃</button><button id="resultHome">ホームへ</button></div></section></div>
+    <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
+    <p id="toast" class="game-toast" hidden></p>
+
+    <nav class="bottom-nav game-bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="mediguard.html" class="active"><span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" /></span><span>メディガード</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav>
+    <script type="module" src="mediguard.js?v=20261011-1"></script>
+  </body>
+</html>

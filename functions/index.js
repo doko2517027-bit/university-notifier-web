@@ -45,8 +45,7 @@ const {
   isPrimaryDeviceAuditAdminIdentity,
 } = require("./device_sessions");
 
-const { createBoneAdventureService } = require("./bone_adventure");
-const { createAmamonService } = require("./amamon");
+const { createMediguardService } = require("./mediguard");
 
 initializeApp();
 
@@ -346,22 +345,13 @@ function requireAuthenticatedCareMateStudent(request) {
   return studentNumber;
 }
 
-const boneAdventureService = createBoneAdventureService({
-  db,
-  FieldValue,
-  HttpsError,
-  requireStudent: requireAuthenticatedCareMateStudent,
-});
-
-const amamonService = createAmamonService({
+const mediguardService = createMediguardService({
   db,
   HttpsError,
   requireStudent: requireAuthenticatedCareMateStudent,
 });
 
-// テスト版は軽量CPUと小さな同時実行上限に固定し、既存Functionsの
-// 地域CPU枠や無料運用へ不要な負荷を掛けない。
-const AMAMON_FUNCTION_OPTIONS = Object.freeze({
+const MEDIGUARD_FUNCTION_OPTIONS = Object.freeze({
   region: "asia-northeast1",
   cors: [SITE_ORIGIN],
   cpu: "gcf_gen1",
@@ -369,147 +359,9 @@ const AMAMON_FUNCTION_OPTIONS = Object.freeze({
   maxInstances: 3,
 });
 
-exports.getAmamonState = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.getDashboard(request),
-);
-
-exports.createAmamonCompanion = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.createCompanion(request),
-);
-
-exports.drawAmamonGacha = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.drawGacha(request),
-);
-
-exports.resolveAmamonDuplicate = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.resolveDuplicate(request),
-);
-
-exports.saveAmamonEquipment = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.saveEquipment(request),
-);
-
-exports.allocateAmamonSkills = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.allocateSkills(request),
-);
-
-exports.respecAmamonSkills = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.respecSkills(request),
-);
-
-exports.useAmamonPermanentItem = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.usePermanentItem(request),
-);
-
-exports.startAmamonCpuBattle = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.startCpuBattle(request),
-);
-
-exports.submitAmamonCpuAction = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.submitCpuAction(request),
-);
-
-exports.listAmamonOpponents = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.listOpponents(request),
-);
-
-exports.sendAmamonPvpInvite = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.sendPvpInvite(request),
-);
-
-exports.respondAmamonPvpInvite = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.respondPvpInvite(request),
-);
-
-exports.getAmamonPvpBattle = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.getPvpBattle(request),
-);
-
-exports.submitAmamonPvpAction = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.submitPvpAction(request),
-);
-
-exports.forfeitAmamonPvp = onCall(
-  AMAMON_FUNCTION_OPTIONS,
-  (request) => amamonService.forfeitPvp(request),
-);
-
-exports.getBoneAdventureState = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.getDashboard(request),
-);
-
-exports.drawBoneAdventureGacha = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.drawGacha(request),
-);
-
-exports.resolveBoneAdventureDuplicate = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.resolveDuplicate(request),
-);
-
-exports.saveBoneAdventureLoadout = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.saveLoadout(request),
-);
-
-exports.allocateBoneAdventureStats = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.allocateStats(request),
-);
-
-exports.respecBoneAdventureStats = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.respecStats(request),
-);
-
-exports.saveBoneAdventureRun = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
-  (request) => boneAdventureService.saveRun(request),
-);
-
-exports.initializeBoneAdventurePointMirror = onDocumentCreated(
-  {
-    document: "totalRanking/{studentNumber}",
-    region: "asia-northeast1",
-    cpu: "gcf_gen1",
-    concurrency: 1,
-    maxInstances: 3,
-  },
-  (event) => Promise.all([
-    boneAdventureService.syncLearningPoints(event.params.studentNumber),
-    amamonService.syncLearningPoints(event.params.studentNumber),
-  ]),
-);
-
-exports.syncBoneAdventureLearningPoints = onDocumentUpdated(
-  {
-    document: "totalRanking/{studentNumber}",
-    region: "asia-northeast1",
-    cpu: "gcf_gen1",
-    concurrency: 1,
-    maxInstances: 3,
-  },
-  (event) => Promise.all([
-    boneAdventureService.syncLearningPoints(event.params.studentNumber),
-    amamonService.syncLearningPoints(event.params.studentNumber),
-  ]),
+exports.mediguardGame = onCall(
+  MEDIGUARD_FUNCTION_OPTIONS,
+  (request) => mediguardService.dispatch(request),
 );
 
 exports.changeCareMatePassword = onCall(

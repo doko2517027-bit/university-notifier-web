@@ -408,54 +408,21 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    /* ボンアド テスト版。本人の読み取りだけを許可し、更新はCloud Functionsに限定する。 */
-    match /boneAdventure/{studentId} {
-      function isBoneAdventureTester() {
+    /* メディガード限定テスト。更新はすべてCloud Functionsに限定する。 */
+    match /mediguardPlayers/{studentId} {
+      function isMediguardTester() {
         return request.auth != null &&
           request.auth.uid == 'caremate-' + studentId &&
           request.auth.token.studentNumber == studentId &&
           studentId == '2510044';
       }
-      allow read: if isBoneAdventureTester();
+      allow read: if isMediguardTester();
       allow create, update, delete: if false;
 
       match /{document=**} {
-        allow read: if isBoneAdventureTester();
+        allow read: if isMediguardTester();
         allow create, update, delete: if false;
       }
-    }
-
-    /* あまもん テスト版。本人の読み取りだけを許可し、更新はCloud Functionsに限定する。 */
-    match /armorMonsters/{studentId} {
-      function isAmamonTester() {
-        return request.auth != null &&
-          request.auth.uid == 'caremate-' + studentId &&
-          request.auth.token.studentNumber == studentId &&
-          studentId == '2510044';
-      }
-      allow read: if isAmamonTester();
-      allow create, update, delete: if false;
-
-      match /{document=**} {
-        allow read: if isAmamonTester();
-        allow create, update, delete: if false;
-      }
-    }
-
-    match /armorMonsterPvpInvites/{inviteId} {
-      allow read: if request.auth != null &&
-        request.auth.uid == 'caremate-2510044' &&
-        request.auth.token.studentNumber == '2510044' &&
-        resource.data.participants.hasAny(['2510044']);
-      allow create, update, delete: if false;
-    }
-
-    match /armorMonsterPvpBattles/{battleId} {
-      allow read: if request.auth != null &&
-        request.auth.uid == 'caremate-2510044' &&
-        request.auth.token.studentNumber == '2510044' &&
-        resource.data.participants.hasAny(['2510044']);
-      allow create, update, delete: if false;
     }
 
 

@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v99";
+const STATIC_CACHE = "caremate-static-v100";
 
-const RUNTIME_CACHE = "caremate-runtime-v99";
+const RUNTIME_CACHE = "caremate-runtime-v100";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -129,33 +129,17 @@ const CORE_ASSETS = [
 
   "study_tracking.js?v=20261009-2",
 
-  "bonad.html",
+  "mediguard.html",
 
-  "bonad.css?v=20261009-2",
+  "mediguard.css?v=20261011-1",
 
-  "bonad.js?v=20261009-2",
+  "mediguard.js?v=20261011-1",
 
-  "bone_adventure_3d.js?v=20261009-1",
+  "images/mediguard-tab.svg",
 
-  "bone_adventure_game.js?v=20261009-1",
+  "images/mediguard-characters.png",
 
-  "images/bonad-skull.svg",
-
-  "amamon.html",
-
-  "amamon.css?v=20261010-4",
-
-  "amamon.js?v=20261010-2",
-
-  "images/amamon-tab.svg",
-
-  "images/amamon-companion-sprites.png",
-
-  "images/amamon-enemy-effects.png",
-
-  "images/amamon-evolutions.png",
-
-  "images/amamon-evolutions-back.png",
+  "images/mediguard-pathogens.png",
 
   "quiz.html",
 
