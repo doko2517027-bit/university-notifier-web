@@ -1,4 +1,4 @@
-import { auth, functions, studentNumber, initializePage, setupAdminTab, isMediguardTestStudent } from "./common.js";
+import { auth, functions, studentNumber, initializePage, setupAdminTab, isMediguardTestStudent } from "./common.js?v=20261011-2";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const $ = (id) => document.getElementById(id);
