@@ -260,12 +260,17 @@ function bindEvents() {
   $("battleCanvas").addEventListener("pointerdown", (event) => { if (!battle?.running) return; const rect = $("battleCanvas").getBoundingClientRect(); const x = event.clientX - rect.left - rect.width / 2; const y = event.clientY - rect.top - rect.height / 2; const length = Math.hypot(x, y); if (length > 5) battle.player.direction = { x: x / length, y: y / length }; fire(1); });
   document.addEventListener("visibilitychange", () => { if (document.hidden && battle?.running) lastFrame = performance.now(); });
 }
-async function init() {
+async function boot() {
+  if (!isMediguardTestStudent(studentNumber)) { location.replace("requests.html"); return; }
   try {
-    await initializePage(); setupAdminTab();
-    if (typeof auth.authStateReady === "function") await auth.authStateReady();
-    if (auth.currentUser?.uid !== `caremate-${studentNumber}` || !isMediguardTestStudent(studentNumber)) { location.replace("requests.html"); return; }
+    await auth.authStateReady();
+    if (auth.currentUser?.uid !== `caremate-${studentNumber}`) { location.replace("login.html"); return; }
     bindEvents(); await refresh(); $("gameShell").hidden = false; document.body.classList.remove("page-loading"); $("gameGate").hidden = true;
-  } catch (error) { console.error(error); $("gameGate").querySelector("strong").textContent = "読み込みに失敗しました"; $("gameGate").querySelector("small").textContent = errorText(error, "再読み込みしてください。"); }
+  } catch (error) {
+    console.error(error);
+    if (["functions/permission-denied", "functions/unauthenticated"].includes(error?.code)) { location.replace("login.html"); return; }
+    $("gameGate").querySelector("strong").textContent = "読み込みに失敗しました";
+    $("gameGate").querySelector("small").textContent = errorText(error, "再読み込みしてください。");
+  }
 }
-void init();
+void initializePage([boot(), setupAdminTab()]);
