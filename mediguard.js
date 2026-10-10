@@ -263,7 +263,8 @@ function bindEvents() {
 async function init() {
   try {
     await initializePage(); setupAdminTab();
-    if (!auth.currentUser || !isMediguardTestStudent(studentNumber)) { location.replace("requests.html"); return; }
+    if (typeof auth.authStateReady === "function") await auth.authStateReady();
+    if (auth.currentUser?.uid !== `caremate-${studentNumber}` || !isMediguardTestStudent(studentNumber)) { location.replace("requests.html"); return; }
     bindEvents(); await refresh(); $("gameShell").hidden = false; document.body.classList.remove("page-loading"); $("gameGate").hidden = true;
   } catch (error) { console.error(error); $("gameGate").querySelector("strong").textContent = "読み込みに失敗しました"; $("gameGate").querySelector("small").textContent = errorText(error, "再読み込みしてください。"); }
 }
