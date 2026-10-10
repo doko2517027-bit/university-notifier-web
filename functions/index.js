@@ -359,83 +359,93 @@ const amamonService = createAmamonService({
   requireStudent: requireAuthenticatedCareMateStudent,
 });
 
+// テスト版は軽量CPUと小さな同時実行上限に固定し、既存Functionsの
+// 地域CPU枠や無料運用へ不要な負荷を掛けない。
+const AMAMON_FUNCTION_OPTIONS = Object.freeze({
+  region: "asia-northeast1",
+  cors: [SITE_ORIGIN],
+  cpu: "gcf_gen1",
+  concurrency: 1,
+  maxInstances: 3,
+});
+
 exports.getAmamonState = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.getDashboard(request),
 );
 
 exports.createAmamonCompanion = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.createCompanion(request),
 );
 
 exports.drawAmamonGacha = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.drawGacha(request),
 );
 
 exports.resolveAmamonDuplicate = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.resolveDuplicate(request),
 );
 
 exports.saveAmamonEquipment = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.saveEquipment(request),
 );
 
 exports.allocateAmamonSkills = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.allocateSkills(request),
 );
 
 exports.respecAmamonSkills = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.respecSkills(request),
 );
 
 exports.useAmamonPermanentItem = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.usePermanentItem(request),
 );
 
 exports.startAmamonCpuBattle = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.startCpuBattle(request),
 );
 
 exports.submitAmamonCpuAction = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.submitCpuAction(request),
 );
 
 exports.listAmamonOpponents = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.listOpponents(request),
 );
 
 exports.sendAmamonPvpInvite = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.sendPvpInvite(request),
 );
 
 exports.respondAmamonPvpInvite = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.respondPvpInvite(request),
 );
 
 exports.getAmamonPvpBattle = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.getPvpBattle(request),
 );
 
 exports.submitAmamonPvpAction = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.submitPvpAction(request),
 );
 
 exports.forfeitAmamonPvp = onCall(
-  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  AMAMON_FUNCTION_OPTIONS,
   (request) => amamonService.forfeitPvp(request),
 );
 
@@ -475,7 +485,13 @@ exports.saveBoneAdventureRun = onCall(
 );
 
 exports.initializeBoneAdventurePointMirror = onDocumentCreated(
-  { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
+  {
+    document: "totalRanking/{studentNumber}",
+    region: "asia-northeast1",
+    cpu: "gcf_gen1",
+    concurrency: 1,
+    maxInstances: 3,
+  },
   (event) => Promise.all([
     boneAdventureService.syncLearningPoints(event.params.studentNumber),
     amamonService.syncLearningPoints(event.params.studentNumber),
@@ -483,7 +499,13 @@ exports.initializeBoneAdventurePointMirror = onDocumentCreated(
 );
 
 exports.syncBoneAdventureLearningPoints = onDocumentUpdated(
-  { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
+  {
+    document: "totalRanking/{studentNumber}",
+    region: "asia-northeast1",
+    cpu: "gcf_gen1",
+    concurrency: 1,
+    maxInstances: 3,
+  },
   (event) => Promise.all([
     boneAdventureService.syncLearningPoints(event.params.studentNumber),
     amamonService.syncLearningPoints(event.params.studentNumber),
