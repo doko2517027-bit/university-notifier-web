@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v97";
+const STATIC_CACHE = "caremate-static-v99";
 
-const RUNTIME_CACHE = "caremate-runtime-v97";
+const RUNTIME_CACHE = "caremate-runtime-v99";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -140,6 +140,22 @@ const CORE_ASSETS = [
   "bone_adventure_game.js?v=20261009-1",
 
   "images/bonad-skull.svg",
+
+  "amamon.html",
+
+  "amamon.css?v=20261010-4",
+
+  "amamon.js?v=20261010-2",
+
+  "images/amamon-tab.svg",
+
+  "images/amamon-companion-sprites.png",
+
+  "images/amamon-enemy-effects.png",
+
+  "images/amamon-evolutions.png",
+
+  "images/amamon-evolutions-back.png",
 
   "quiz.html",
 

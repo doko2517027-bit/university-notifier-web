@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <title>あまもん | CareMate</title>
+    <meta name="theme-color" content="#183d4b" />
+    <link rel="stylesheet" href="style.css?v=20261009-5" />
+    <link rel="stylesheet" href="amamon.css?v=20261010-4" />
+    <script defer src="loading_indicator.js?v=20260929-7"></script>
+    <script>
+      if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
+      if (localStorage.getItem("studentNumber") !== "2510044") location.replace("requests.html");
+      if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body class="amamon-body page-loading">
+    <section id="amamonGate" class="amamon-gate" aria-live="polite">
+      <div class="amamon-gate-mark"><img src="images/amamon-tab.svg" alt="" /><i></i></div>
+      <strong>あまもんを起動中…</strong><span>安全にゲームデータを読み込んでいます</span>
+    </section>
+
+    <main id="amamonShell" class="amamon-shell" hidden>
+      <section id="amamonTitle" class="amamon-title">
+        <div class="amamon-stars" aria-hidden="true"></div>
+        <div class="amamon-title-creature sprite companion-front"></div>
+        <p>CARE MATE GAME PROJECT</p>
+        <h1><span>アーマー</span>モンスター</h1>
+        <b>— あまもん —</b>
+        <button id="amamonStart" class="amamon-big-button" type="button">はじめる</button>
+        <small>2510044限定テスト版 · 進行状況は自動保存</small>
+      </section>
+
+      <section id="amamonApp" class="amamon-app" hidden>
+        <header class="amamon-header">
+          <button id="amamonHomeButton" type="button" aria-label="ホームへ">⌂</button>
+          <div><small>ARMOR MONSTER</small><strong id="amamonScreenTitle">あまもん</strong></div>
+          <div class="amamon-wallet"><span><i>G</i><b id="amamonGold">0</b></span><span><i>pt</i><b id="amamonPoints">0</b></span></div>
+        </header>
+
+        <section id="amamonHome" class="amamon-view amamon-home-view">
+          <div class="amamon-home-status">
+            <div><small>PARTNER</small><strong id="amamonName">アマル</strong></div>
+            <b>Lv.<span id="amamonLevel">1</span></b>
+          </div>
+          <div class="amamon-home-stage">
+            <div id="amamonHomeSprite" class="sprite companion-front"></div>
+            <div id="amamonVisualEquipment" class="amamon-visual-equipment" aria-label="装備中のアイテム"></div>
+            <div class="amamon-home-shadow"></div>
+            <span id="amamonGrowthLabel">幼体</span>
+          </div>
+          <div class="amamon-bars">
+            <div><span>HP</span><i><b id="amamonHpBar"></b></i><strong id="amamonHpText">0</strong></div>
+            <div><span>MP</span><i><b id="amamonMpBar"></b></i><strong id="amamonMpText">0</strong></div>
+            <div><span>EXP</span><i><b id="amamonXpBar"></b></i><strong id="amamonXpText">0</strong></div>
+          </div>
+          <div class="amamon-icon-menu" aria-label="ゲームメニュー">
+            <button data-view="battle" type="button"><span>⚔️</span><b>バトル</b></button>
+            <button data-view="training" type="button"><span>✨</span><b>育成</b></button>
+            <button data-view="gacha" type="button"><span>🎰</span><b>ガチャ</b></button>
+            <button data-view="equipment" type="button"><span>🛡️</span><b>装備</b></button>
+            <button data-view="items" type="button"><span>🧪</span><b>どうぐ</b></button>
+            <button data-view="records" type="button"><span>📜</span><b>記録</b></button>
+          </div>
+        </section>
+
+        <section id="amamonBattleSelect" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>BATTLE</small><h2>バトル</h2></div><button data-view="home">もどる</button></div>
+          <div class="amamon-segment"><button class="active" data-battle-tab="cpu">CPU戦</button><button data-battle-tab="pvp">学生対戦</button></div>
+          <div id="amamonCpuEnemies" class="amamon-enemy-grid"></div>
+          <div id="amamonPvpArea" class="amamon-pvp-area" hidden>
+            <div class="amamon-empty"><span>🤝</span><h3>友達と対戦</h3><p>テスト対象に追加された友達へ招待を送れます。</p></div>
+            <button id="amamonRefreshPvp" class="amamon-wide-primary" type="button">招待・対戦相手を更新</button>
+            <div id="amamonOpponentList" class="amamon-list"></div>
+            <div id="amamonInviteList" class="amamon-list"></div>
+          </div>
+        </section>
+
+        <section id="amamonTraining" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>SKILL BOARD</small><h2>育成</h2></div><button data-view="home">もどる</button></div>
+          <div class="amamon-summary"><span>振り分け可能</span><b><i id="amamonSkillPoints">0</i> pt</b></div>
+          <div id="amamonSkillBoard" class="amamon-skill-board"></div>
+          <div class="amamon-action-row"><button id="amamonSaveSkills" class="primary">配分を確定</button><button id="amamonRespecSkills">300ptで振り直す</button></div>
+        </section>
+
+        <section id="amamonGacha" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>ARMOR FORGE</small><h2>ガチャ</h2></div><button data-view="home">もどる</button></div>
+          <div class="amamon-gacha-machine"><div class="sprite companion-magic"></div><span>ARMOR SCAN</span><p>武器・防具・強化アイテムが出現</p></div>
+          <div class="amamon-gacha-actions"><button data-draw="1"><b>1回</b><span>10pt</span></button><button class="ten" data-draw="10"><b>10連</b><span>100pt</span></button></div>
+          <button id="amamonRates" class="amamon-text-button">排出率とアイテム一覧</button>
+        </section>
+
+        <section id="amamonEquipment" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>EQUIPMENT</small><h2>装備</h2></div><button data-view="home">もどる</button></div>
+          <div class="amamon-equip-layout"><div class="amamon-equip-avatar"><div id="amamonEquipmentSprite" class="sprite companion-front"></div><strong id="amamonEquipmentStats"></strong></div><div id="amamonEquipmentSlots" class="amamon-equipment-slots"></div></div>
+          <div id="amamonEquipmentCandidates" class="amamon-list compact"></div>
+          <button id="amamonSaveEquipment" class="amamon-wide-primary">装備を保存</button>
+        </section>
+
+        <section id="amamonItems" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>ITEM BOX</small><h2>どうぐ</h2></div><button data-view="home">もどる</button></div>
+          <div id="amamonInventory" class="amamon-item-grid"></div>
+        </section>
+
+        <section id="amamonRecords" class="amamon-view amamon-panel-view" hidden>
+          <div class="amamon-view-heading"><div><small>PLAYER RECORD</small><h2>記録</h2></div><button data-view="home">もどる</button></div>
+          <div id="amamonRecordCards" class="amamon-record-grid"></div>
+          <div class="amamon-history"><h3>最近のバトル</h3><div id="amamonBattleHistory"></div></div>
+          <div class="amamon-history"><h3>最近のガチャ</h3><div id="amamonGachaHistory"></div></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="amamonCreate" class="amamon-overlay" hidden><section class="amamon-dialog create"><div class="sprite companion-front"></div><small>YOUR ONLY PARTNER</small><h2>相棒に名前をつけよう</h2><p>この一体をずっと育てます。名前は12文字までです。</p><input id="amamonNameInput" maxlength="12" value="アマル" /><button id="amamonCreateButton" class="amamon-wide-primary">この名前で始める</button></section></div>
+    <div id="amamonDialog" class="amamon-overlay" hidden><section class="amamon-dialog"><button id="amamonDialogClose" class="amamon-close">×</button><h2 id="amamonDialogTitle"></h2><div id="amamonDialogBody"></div></section></div>
+
+    <div id="amamonCombat" class="amamon-combat" hidden>
+      <section class="amamon-battle-scene">
+        <header><div class="amamon-battle-card enemy"><strong id="enemyName">敵</strong><span>Lv.<b id="enemyLevel">1</b></span><i><b id="enemyHpBar"></b></i><small id="enemyHpText">HP</small></div><button id="amamonQuitBattle">にげる</button></header>
+        <div id="amamonEnemySprite" class="sprite enemy-sprite enemy-0"></div>
+        <div id="amamonEffect" class="amamon-effect"></div>
+        <div class="amamon-arena-ground"></div>
+        <div id="amamonPlayerSprite" class="sprite companion-back"></div>
+        <div class="amamon-battle-card player"><strong id="playerName">アマル</strong><span>Lv.<b id="playerLevel">1</b></span><i><b id="playerHpBar"></b></i><small id="playerHpText">HP</small><i class="mp"><b id="playerMpBar"></b></i><small id="playerMpText">MP</small></div>
+        <div id="amamonBattleLog" class="amamon-battle-log">相手があらわれた！</div>
+      </section>
+      <section class="amamon-command-area">
+        <div id="amamonCommandRoot" class="amamon-command-grid">
+          <button data-command="attack">⚔️<b>こうげき</b></button><button data-command="skill">💥<b>とくぎ</b></button><button data-command="spell">✨<b>じゅもん</b></button><button data-command="item">🧪<b>どうぐ</b></button><button data-command="guard">🛡️<b>ぼうぎょ</b></button><button data-command="equipment">🎒<b>そうび</b></button>
+        </div>
+        <div id="amamonCommandSub" class="amamon-command-sub" hidden><div id="amamonCommandItems"></div><footer><button id="amamonCommandPrev">‹</button><span id="amamonCommandPage">1 / 1</span><button id="amamonCommandNext">›</button><button id="amamonCommandBack">もどる</button></footer></div>
+      </section>
+      <div id="amamonBattleResult" class="amamon-battle-result" hidden></div>
+    </div>
+
+    <p id="amamonToast" class="amamon-toast" hidden></p>
+    <nav class="bottom-nav amamon-bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="amamon.html" class="active"><span class="nav-icon-wrap"><img class="amamon-nav-icon" src="images/amamon-tab.svg" alt="" /></span><span>あまもん</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav>
+    <script type="module" src="amamon.js?v=20261010-2"></script>
+  </body>
+</html>

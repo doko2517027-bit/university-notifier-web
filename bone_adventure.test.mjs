@@ -4,12 +4,12 @@ import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
-test("2510044だけリクエストタブをボンアドへ差し替える", async () => {
+test("2510044だけリクエストタブをあまもんへ差し替える", async () => {
   const common = await read("./common.js");
-  assert.match(common, /BONE_ADVENTURE_TEST_STUDENT_NUMBERS = Object\.freeze\(\["2510044"\]\)/);
+  assert.match(common, /AMAMON_TEST_STUDENT_NUMBERS = Object\.freeze\(\["2510044"\]\)/);
   assert.match(common, /a\[href="requests\.html"\]/);
-  assert.match(common, /link\.href = "bonad\.html"/);
-  assert.match(common, /if \(!isBoneAdventureTestStudent\(\)\) return/);
+  assert.match(common, /link\.href = "amamon\.html"/);
+  assert.match(common, /if \(!isAmamonTestStudent\(\)\) return/);
 });
 
 test("URL直打ちは本人認証とCloud Functionsの両方で拒否する", async () => {

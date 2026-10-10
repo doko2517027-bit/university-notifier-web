@@ -46,6 +46,7 @@ const {
 } = require("./device_sessions");
 
 const { createBoneAdventureService } = require("./bone_adventure");
+const { createAmamonService } = require("./amamon");
 
 initializeApp();
 
@@ -352,6 +353,92 @@ const boneAdventureService = createBoneAdventureService({
   requireStudent: requireAuthenticatedCareMateStudent,
 });
 
+const amamonService = createAmamonService({
+  db,
+  HttpsError,
+  requireStudent: requireAuthenticatedCareMateStudent,
+});
+
+exports.getAmamonState = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.getDashboard(request),
+);
+
+exports.createAmamonCompanion = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.createCompanion(request),
+);
+
+exports.drawAmamonGacha = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.drawGacha(request),
+);
+
+exports.resolveAmamonDuplicate = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.resolveDuplicate(request),
+);
+
+exports.saveAmamonEquipment = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.saveEquipment(request),
+);
+
+exports.allocateAmamonSkills = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.allocateSkills(request),
+);
+
+exports.respecAmamonSkills = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.respecSkills(request),
+);
+
+exports.useAmamonPermanentItem = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.usePermanentItem(request),
+);
+
+exports.startAmamonCpuBattle = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.startCpuBattle(request),
+);
+
+exports.submitAmamonCpuAction = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.submitCpuAction(request),
+);
+
+exports.listAmamonOpponents = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.listOpponents(request),
+);
+
+exports.sendAmamonPvpInvite = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.sendPvpInvite(request),
+);
+
+exports.respondAmamonPvpInvite = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.respondPvpInvite(request),
+);
+
+exports.getAmamonPvpBattle = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.getPvpBattle(request),
+);
+
+exports.submitAmamonPvpAction = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.submitPvpAction(request),
+);
+
+exports.forfeitAmamonPvp = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  (request) => amamonService.forfeitPvp(request),
+);
+
 exports.getBoneAdventureState = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   (request) => boneAdventureService.getDashboard(request),
@@ -389,12 +476,18 @@ exports.saveBoneAdventureRun = onCall(
 
 exports.initializeBoneAdventurePointMirror = onDocumentCreated(
   { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
-  (event) => boneAdventureService.syncLearningPoints(event.params.studentNumber),
+  (event) => Promise.all([
+    boneAdventureService.syncLearningPoints(event.params.studentNumber),
+    amamonService.syncLearningPoints(event.params.studentNumber),
+  ]),
 );
 
 exports.syncBoneAdventureLearningPoints = onDocumentUpdated(
   { document: "totalRanking/{studentNumber}", region: "asia-northeast1" },
-  (event) => boneAdventureService.syncLearningPoints(event.params.studentNumber),
+  (event) => Promise.all([
+    boneAdventureService.syncLearningPoints(event.params.studentNumber),
+    amamonService.syncLearningPoints(event.params.studentNumber),
+  ]),
 );
 
 exports.changeCareMatePassword = onCall(

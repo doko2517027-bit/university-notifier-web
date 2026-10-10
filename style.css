@@ -27,6 +27,13 @@ body.class-selection-required {
     overflow: hidden;
 }
 
+.amamon-nav-icon {
+    display: block;
+    width: 25px;
+    height: 25px;
+    margin: auto;
+}
+
 /* ==================================================
    管理画面の配色統一（配置・操作は変更しない）
 ================================================== */
