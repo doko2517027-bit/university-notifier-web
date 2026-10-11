@@ -80,6 +80,14 @@ test("メディガ内だけ文字選択・長押しコピー・画像ドラッ�
   assert.match(css, /\.mediguard-body img,\.mediguard-body canvas\{[^}]*-webkit-user-drag:none/);
 });
 
+test("ホームでは小さな効果説明を表示せず戦闘能力だけ維持する", async () => {
+  const [page, client] = await Promise.all([read("./mediguard.html"), read("./mediguard.js")]);
+  assert.doesNotMatch(page, /id="selectedPassive"/);
+  assert.doesNotMatch(page, /id="selectedSkill"/);
+  assert.match(client, /function charStats\(/);
+  assert.match(client, /function useSkill\(/);
+});
+
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
   assert.match(page, /id="gameExitButton"/);

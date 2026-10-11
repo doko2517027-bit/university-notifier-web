@@ -45,7 +45,6 @@ function render() {
   const character = selectedCharacter(); if (!character) return;
   $("gachaPoints").textContent = format(dashboard.player.gachaPoints);
   $("selectedName").textContent = character.name; $("selectedLevel").textContent = character.level;
-  $("selectedPassive").textContent = character.passive; $("selectedSkill").textContent = character.skill.split("：")[0];
   $("selectedCharacter").querySelector("span").className = spriteClass(character.sprite);
   renderCharacters(); renderRecords();
 }

@@ -140,3 +140,8 @@
 @media(orientation:landscape) and (max-height:430px){
   .home-menu button{min-height:41px;padding:4px 6px}.home-menu button>span{font-size:16px}.home-skill b{font-size:7px}.sortie-button{padding:6px}.sortie-button i{width:28px;height:28px;font-size:17px}.sortie-button small{font-size:7px}
 }
+
+/* Home keeps character abilities active without showing tiny effect summaries. */
+.home-view{grid-template-rows:auto minmax(120px,1fr) auto auto}
+@media(max-width:680px){.home-view{grid-template-rows:auto minmax(95px,1fr) auto auto}}
+@media(max-height:680px){.home-view{grid-template-rows:auto minmax(70px,1fr) auto auto}}
