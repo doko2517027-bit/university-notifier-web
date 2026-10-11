@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261011-8" />
+    <link rel="stylesheet" href="mediguard.css?v=20261011-9" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -57,8 +57,9 @@
 
         <section id="gachaView" class="game-view panel-view" hidden>
           <div class="view-heading"><div><small>RECRUIT SCAN</small><h2>キャラガチャ</h2></div><button data-view="home">もどる</button></div>
+          <div id="gachaBannerList" class="gacha-banner-list" aria-label="ガチャの種類"></div>
           <div class="scanner"><div class="scan-ring"></div><span class="character-sprite sprite-9"></span><strong>GUARDIAN SCAN</strong><small>キャラクターだけが登場</small></div>
-          <div class="gacha-actions"><button data-draw="1"><b>1回</b><span>30 GP</span></button><button class="ten" data-draw="10"><b>10連</b><span>300 GP</span></button></div>
+          <div class="gacha-actions"><button data-draw="1"><b>1回</b><span id="singleGachaCost">30 GP</span></button><button class="ten" data-draw="10"><b>10連</b><span id="tenGachaCost">300 GP</span></button></div>
           <button id="ratesButton" class="text-button" type="button">排出率・全キャラクターを見る</button>
         </section>
 
@@ -108,6 +109,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261011-10"></script>
+    <script type="module" src="mediguard.js?v=20261011-11"></script>
   </body>
 </html>

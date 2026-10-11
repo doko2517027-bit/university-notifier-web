@@ -1,9 +1,12 @@
 const crypto = require("node:crypto");
 const {
   SCHEMA_VERSION, INITIAL_LEVEL_CAP, GACHA_COSTS, RARITY_WEIGHTS, EXCHANGE_POINTS,
-  MAPS, CHARACTERS, isMediguardTester, gachaCost, rarityFromRoll, charactersForRarity,
+  MAPS, CHARACTERS, isMediguardTester,
   applyExperience, runReward, isPlausibleRun,
 } = require("./mediguard_policy");
+const {
+  loadMediguardConfig, isBannerAvailable, rarityFromWeights,
+} = require("./mediguard_config");
 
 function createMediguardService({ db, HttpsError, requireStudent }) {
   const playerRef = (id) => db.collection("mediguardPlayers").doc(id);
@@ -26,14 +29,16 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
     if (!/^[a-zA-Z0-9_-]{8,96}$/.test(id)) throw new HttpsError("invalid-argument", "キャラクターIDを確認してください。");
     return id;
   }
-  function catalog(id) { return CHARACTERS.find((item) => item.id === id); }
-  function publicCharacter(doc) {
+  function catalog(id, characters = CHARACTERS) { return characters.find((item) => item.id === id); }
+  function publicCharacter(doc, characters = CHARACTERS) {
     const data = doc.data ? doc.data() : doc;
-    const base = catalog(data.characterId) || CHARACTERS[0];
+    const base = catalog(data.characterId, characters) || characters[0] || CHARACTERS[0];
     return {
       instanceId: doc.id || data.instanceId, characterId: base.id, name: base.name,
       rarity: base.rarity, sprite: base.sprite, attack: base.attack, speed: base.speed,
       range: base.range, charge: base.charge, passive: base.passive, skill: base.skill,
+      passiveType: base.passiveType, passiveValue: base.passiveValue,
+      skillType: base.skillType, skillValue: base.skillValue,
       cooldown: base.cooldown, level: Math.max(1, Number(data.level || 1)), xp: Math.max(0, Number(data.xp || 0)),
       levelCap: Math.max(INITIAL_LEVEL_CAP, Number(data.levelCap || INITIAL_LEVEL_CAP)),
       dupeLevel: Math.max(0, Number(data.dupeLevel || 0)), favorite: data.favorite === true,
@@ -71,21 +76,35 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
   }
   async function dashboard(request) {
     const studentNumber = requireTester(request); await ensurePlayer(studentNumber);
-    const [player, characters, history] = await Promise.all([
+    const [player, characters, history, config] = await Promise.all([
       playerRef(studentNumber).get(), playerRef(studentNumber).collection("characters").orderBy("acquiredAt", "asc").get(),
       playerRef(studentNumber).collection("runs").where("status", "==", "finished").limit(15).get(),
+      loadMediguardConfig(db),
     ]);
     const { createdAt: _createdAt, updatedAt: _updatedAt, ...publicPlayer } = player.data() || {};
+    const activeBanners = config.banners.filter((banner) => isBannerAvailable(banner));
     return {
       player: publicPlayer,
-      characters: characters.docs.map(publicCharacter), catalog: CHARACTERS, maps: MAPS,
-      rates: RARITY_WEIGHTS, costs: GACHA_COSTS, exchangePoints: EXCHANGE_POINTS,
+      characters: characters.docs.map((item) => publicCharacter(item, config.characters)), catalog: config.characters.filter((item) => item.enabled), maps: MAPS,
+      rates: activeBanners.find((item) => item.id === config.settings.activeBannerId)?.rates || activeBanners[0]?.rates || RARITY_WEIGHTS,
+      costs: GACHA_COSTS, exchangePoints: EXCHANGE_POINTS,
+      banners: activeBanners,
+      activeBannerId: activeBanners.some((item) => item.id === config.settings.activeBannerId) ? config.settings.activeBannerId : activeBanners[0]?.id || "",
+      gameEnabled: config.settings.gameEnabled,
+      gameNotice: config.settings.notice,
       history: history.docs.map((doc) => ({ id: doc.id, ...doc.data(), startedAt: doc.data()?.startedAt?.toMillis?.() || 0 })).sort((a, b) => b.startedAt - a.startedAt),
     };
   }
   async function draw(request) {
-    const studentNumber = requireTester(request); const count = Number(request.data?.count); const cost = gachaCost(count);
-    if (!cost) throw new HttpsError("invalid-argument", "ガチャ回数を確認してください。");
+    const studentNumber = requireTester(request); const count = Number(request.data?.count);
+    if (![1, 10].includes(count)) throw new HttpsError("invalid-argument", "ガチャ回数を確認してください。");
+    const config = await loadMediguardConfig(db);
+    if (!config.settings.gameEnabled) throw new HttpsError("failed-precondition", "現在メディガはメンテナンス中です。");
+    const available = config.banners.filter((item) => isBannerAvailable(item));
+    const bannerId = String(request.data?.bannerId || config.settings.activeBannerId || "");
+    const banner = available.find((item) => item.id === bannerId) || available[0];
+    if (!banner) throw new HttpsError("failed-precondition", "現在引けるガチャがありません。");
+    const cost = count === 1 ? banner.singleCost : banner.tenCost;
     const requestId = operationId(request.data?.requestId); await ensurePlayer(studentNumber);
     return db.runTransaction(async (transaction) => {
       const opRef = operationRef(studentNumber, requestId); const stateRef = playerRef(studentNumber);
@@ -95,7 +114,9 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
       if (points < cost) throw new HttpsError("failed-precondition", "ガチャポイントが不足しています。");
       const results = [];
       for (let index = 0; index < count; index += 1) {
-        const rarity = rarityFromRoll(crypto.randomInt(0, 1000)); const pool = charactersForRarity(rarity);
+        const rarity = rarityFromWeights(crypto.randomInt(0, 1000), banner.rates);
+        const pool = config.characters.filter((item) => item.enabled && item.rarity === rarity && banner.characterIds.includes(item.id));
+        if (!pool.length) throw new HttpsError("failed-precondition", "ガチャ設定に不足があります。管理者へ連絡してください。");
         const item = pool[crypto.randomInt(0, pool.length)]; const instanceId = crypto.randomUUID().replaceAll("-", "");
         transaction.create(characterRef(studentNumber, instanceId), {
           characterId: item.id, level: 1, xp: 0, levelCap: INITIAL_LEVEL_CAP,
@@ -103,7 +124,7 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
         });
         results.push({ instanceId, characterId: item.id, name: item.name, rarity: item.rarity, sprite: item.sprite, passive: item.passive, skill: item.skill });
       }
-      const result = { results, remainingPoints: points - cost };
+      const result = { results, remainingPoints: points - cost, bannerId: banner.id, bannerName: banner.name };
       transaction.update(stateRef, { gachaPoints: result.remainingPoints, updatedAt: new Date() });
       transaction.create(opRef, { type: "gacha", result, createdAt: new Date() });
       return result;
@@ -129,13 +150,14 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
     const requestId = operationId(request.data?.requestId);
     if (!["keep", "strengthen", "exchange"].includes(mode)) throw new HttpsError("invalid-argument", "処理方法を確認してください。");
     if (mode === "keep") return { kept: true };
+    const config = await loadMediguardConfig(db);
     return db.runTransaction(async (transaction) => {
       const opRef = operationRef(studentNumber, requestId); const sourceRef = characterRef(studentNumber, sourceId);
       const refs = [transaction.get(opRef), transaction.get(sourceRef), transaction.get(playerRef(studentNumber))];
       if (mode === "strengthen") refs.push(transaction.get(characterRef(studentNumber, targetId)));
       const [op, source, player, target] = await Promise.all(refs); if (op.exists) return op.data().result;
       if (!source.exists || source.data()?.favorite === true || player.data()?.selectedCharacterId === sourceId) throw new HttpsError("failed-precondition", "使用できない個体です。お気に入りや出撃設定を確認してください。");
-      const item = catalog(source.data()?.characterId); if (!item) throw new HttpsError("not-found", "キャラクター情報が見つかりません。");
+      const item = catalog(source.data()?.characterId, config.characters); if (!item) throw new HttpsError("not-found", "キャラクター情報が見つかりません。");
       let result;
       if (mode === "strengthen") {
         if (!target?.exists || target.id === sourceId || target.data()?.characterId !== source.data()?.characterId) throw new HttpsError("invalid-argument", "同じ種類の別個体を選んでください。");
@@ -150,13 +172,15 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
   }
   async function startRun(request) {
     const studentNumber = requireTester(request); const requestId = operationId(request.data?.requestId); await ensurePlayer(studentNumber);
+    const config = await loadMediguardConfig(db);
+    if (!config.settings.gameEnabled) throw new HttpsError("failed-precondition", "現在メディガはメンテナンス中です。");
     return db.runTransaction(async (transaction) => {
       const stateRef = playerRef(studentNumber); const opRef = operationRef(studentNumber, requestId);
       const [state, op] = await Promise.all([transaction.get(stateRef), transaction.get(opRef)]); if (op.exists) return op.data().result;
       const selected = String(state.data()?.selectedCharacterId || ""); const character = await transaction.get(characterRef(studentNumber, selected));
       if (!character.exists) throw new HttpsError("failed-precondition", "出撃キャラクターを選択してください。");
       const map = MAPS[crypto.randomInt(0, MAPS.length)]; const runId = crypto.randomUUID().replaceAll("-", "");
-      const result = { runId, map, character: publicCharacter({ id: selected, data: () => character.data() }), seed: crypto.randomInt(1, 2 ** 30), waves: 3, timeLimitSeconds: 100 };
+      const result = { runId, map, character: publicCharacter({ id: selected, data: () => character.data() }, config.characters), seed: crypto.randomInt(1, 2 ** 30), waves: 3, timeLimitSeconds: 100 };
       transaction.create(runRef(studentNumber, runId), { runId, mapId: map.id, characterInstanceId: selected, seed: result.seed, status: "active", startedAt: new Date(), createdAtMs: Date.now() });
       transaction.create(opRef, { type: "start_run", result, createdAt: new Date() }); return result;
     });
@@ -164,6 +188,7 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
   async function finishRun(request) {
     const studentNumber = requireTester(request); const runId = operationId(request.data?.runId); const summary = request.data?.summary || {};
     const requestId = operationId(request.data?.requestId);
+    const config = await loadMediguardConfig(db);
     return db.runTransaction(async (transaction) => {
       const run = await transaction.get(runRef(studentNumber, runId)); if (!run.exists) throw new HttpsError("not-found", "戦闘記録が見つかりません。");
       if (run.data()?.status === "finished") return run.data().result;
@@ -176,7 +201,7 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
       const firstClears = Array.isArray(state.data()?.firstClears) ? state.data().firstClears : [];
       const firstClear = !firstClears.includes(map.id); const reward = runReward(summary, map, firstClear);
       const advanced = applyExperience({ ...character.data(), levelCap: Number(character.data()?.levelCap || INITIAL_LEVEL_CAP) }, reward.xp);
-      const result = { reward, firstClear: reward.won && firstClear, map, character: publicCharacter({ id: character.id, data: () => advanced.character }) };
+      const result = { reward, firstClear: reward.won && firstClear, map, character: publicCharacter({ id: character.id, data: () => advanced.character }, config.characters) };
       transaction.update(character.ref, { level: advanced.character.level, xp: advanced.character.xp, updatedAt: new Date() });
       transaction.update(stateRef, {
         gachaPoints: Number(state.data()?.gachaPoints || 0) + reward.gachaPoints,

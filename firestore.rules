@@ -425,6 +425,20 @@ service cloud.firestore {
       }
     }
 
+    /* メディガの運用設定はCloud Functionsだけが読み書きする。 */
+    match /mediguardGameConfig/{document=**} {
+      allow read, write: if false;
+    }
+    match /mediguardGachaBanners/{document=**} {
+      allow read, write: if false;
+    }
+    match /mediguardCharacterConfigs/{document=**} {
+      allow read, write: if false;
+    }
+    match /mediguardAdminAudit/{document=**} {
+      allow read, write: if false;
+    }
+
 
     /* ========================================
        公開ユーザー情報

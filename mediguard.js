@@ -16,6 +16,7 @@ let battle = null;
 let frameId = 0;
 let lastFrame = 0;
 let keyState = new Set();
+let selectedBannerId = "";
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
   const image = new Image();
@@ -46,7 +47,21 @@ function render() {
   $("gachaPoints").textContent = format(dashboard.player.gachaPoints);
   $("selectedName").textContent = character.name; $("selectedLevel").textContent = character.level;
   $("selectedCharacter").querySelector("span").className = spriteClass(character.sprite);
-  renderCharacters(); renderRecords();
+  renderCharacters(); renderRecords(); renderGachaBanners();
+}
+function selectedBanner() {
+  return dashboard?.banners?.find((item) => item.id === selectedBannerId)
+    || dashboard?.banners?.find((item) => item.id === dashboard.activeBannerId)
+    || dashboard?.banners?.[0];
+}
+function renderGachaBanners() {
+  const banners = dashboard?.banners || [];
+  if (!banners.some((item) => item.id === selectedBannerId)) selectedBannerId = dashboard?.activeBannerId || banners[0]?.id || "";
+  const current = selectedBanner();
+  $("gachaBannerList").innerHTML = banners.length ? banners.map((item) => `<button type="button" data-banner="${escapeHtml(item.id)}" class="${item.id === current?.id ? "active" : ""}" style="--banner-accent:${item.accent}"><span>${item.limited ? "期間限定" : "常設"}</span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.subtitle || "キャラクタースキャン")}</small></button>`).join("") : '<p class="medical-note">現在引けるガチャはありません。</p>';
+  $("singleGachaCost").textContent = `${format(current?.singleCost || 30)} GP`;
+  $("tenGachaCost").textContent = `${format(current?.tenCost || 300)} GP`;
+  document.querySelectorAll("[data-draw]").forEach((button) => { button.disabled = !current; });
 }
 function showView(name) {
   const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView" };
@@ -74,12 +89,16 @@ function renderRecords() {
 function openDialog(title, html) { $("dialogTitle").textContent = title; $("dialogBody").innerHTML = html; $("dialog").hidden = false; }
 function showRates() {
   const labels = { N: "ノーマル", R: "レア", SR: "SR", SSR: "SSR", UR: "UR", LR: "LR" };
-  openDialog("排出率・キャラクター", `<div class="rate-list">${Object.entries(dashboard.rates).map(([rarity, value]) => `<div class="rate-row"><b style="color:${RARITY_COLORS[rarity]}">${labels[rarity]}</b><span>${(value / 10).toFixed(1)}%</span><span>${dashboard.catalog.filter((item) => item.rarity === rarity).map((item) => escapeHtml(item.name)).join("、")}</span></div>`).join("")}</div><p class="medical-note">抽選結果はサーバー側で確定・保存します。ガチャポイントだけを消費し、累計学習ポイントは減りません。</p>`);
+  const banner = selectedBanner();
+  if (!banner) return showToast("現在引けるガチャはありません。");
+  openDialog(`${banner.name}の排出率`, `<div class="rate-list">${Object.entries(banner.rates).map(([rarity, value]) => `<div class="rate-row"><b style="color:${RARITY_COLORS[rarity]}">${labels[rarity]}</b><span>${(value / 10).toFixed(1)}%</span><span>${dashboard.catalog.filter((item) => banner.characterIds.includes(item.id) && item.rarity === rarity).map((item) => escapeHtml(item.name)).join("、")}</span></div>`).join("")}</div><p class="medical-note">抽選結果はサーバー側で確定・保存します。ガチャポイントだけを消費し、累計学習ポイントは減りません。</p>`);
 }
 async function drawGacha(count) {
   if (busy) return; setBusy(true);
   try {
-    const result = await api("draw", { count, requestId: requestId() }); await refresh();
+    const banner = selectedBanner();
+    if (!banner) throw new Error("現在引けるガチャはありません。");
+    const result = await api("draw", { count, bannerId: banner.id, requestId: requestId() }); await refresh();
     $("dialogTitle").textContent = "スキャン結果";
     $("dialogBody").innerHTML = `<div class="gacha-result">${result.results.map((item) => {
       const targets = dashboard.characters.filter((entry) => entry.characterId === item.characterId && entry.instanceId !== item.instanceId);
@@ -98,7 +117,7 @@ async function resolveDuplicate(sourceInstanceId, mode, targetInstanceId = "") {
 
 const WORLD = { width: 1800, height: 1200 };
 function newBattle(run) {
-  const maxHits = run.character.characterId === "guard_bear" ? 4 : 3;
+  const maxHits = 3 + (run.character.passiveType === "extraHit" ? Math.max(1, Math.round(run.character.passiveValue || 1)) : 0);
   return {
     run, running: true, startedAt: performance.now(), elapsed: 0, lastTick: performance.now(), countdown: 3000,
     wave: 0, wavePending: true, waveDelay: 500, enemies: [], projectiles: [], holes: [], effects: [], enemyShots: [],
@@ -108,8 +127,15 @@ function newBattle(run) {
 }
 function charStats() {
   const c = battle.run.character; const levelFactor = 1 + (c.level - 1) * .018 + c.dupeLevel * .035;
-  const all = c.characterId === "celestial_guard" ? 1.12 : 1;
-  return { attack: c.attack * levelFactor * all, speed: 205 * c.speed / 100 * all, range: 380 * c.range / 100 * all, charge: c.charge / 100 * all, cooldown: c.cooldown * (c.characterId === "star_sheep" ? .8 : 1) };
+  const bonus = Math.max(0, Number(c.passiveValue || 0)) / 100;
+  const all = c.passiveType === "allBoost" ? 1 + bonus : 1;
+  return {
+    attack: c.attack * levelFactor * all * (c.passiveType === "attackBoost" ? 1 + bonus : 1),
+    speed: 205 * c.speed / 100 * all * (c.passiveType === "speedBoost" ? 1 + bonus : 1),
+    range: 380 * c.range / 100 * all * (c.passiveType === "rangeBoost" ? 1 + bonus : 1),
+    charge: c.charge / 100 * all * (c.passiveType === "chargeBoost" ? 1 + bonus : 1),
+    cooldown: c.cooldown * (c.passiveType === "cooldownBoost" ? Math.max(.25, 1 - bonus) : 1),
+  };
 }
 function mapIndex() { return Math.max(0, dashboard.maps.findIndex((item) => item.id === battle.run.map.id)); }
 function spawnWave() {
@@ -136,17 +162,17 @@ function fire(power = 1, direction = battle.player.direction, spread = 0, pierci
 function useSkill() {
   if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
   if (battle.skillCooldown > 0) { showBattleMessage(`スキル再使用まで ${Math.ceil(battle.skillCooldown)}秒`); return; }
-  const id = battle.run.character.characterId; const stats = charStats(); battle.skillCooldown = stats.cooldown;
-  if (id === "cell_maru" || id === "mint_dragon" || id === "chemist_tanuki" || id === "celestial_guard") {
-    const shots = id === "chemist_tanuki" ? 16 : id === "celestial_guard" ? 12 : 10;
-    for (let i = 0; i < shots; i += 1) fire(id === "celestial_guard" ? 2.2 : 1.5, { x: 1, y: 0 }, Math.PI * 2 * i / shots, true);
-    if (id === "mint_dragon") battle.player.hits = Math.max(0, battle.player.hits - 1);
-    if (id === "celestial_guard") battle.player.frozen = 4;
-  } else if (id === "medic_fox") battle.player.rapid = 8;
-  else if (id === "spark_chick") fire(4, battle.player.direction, 0, true);
-  else if (id === "aqua_cat" || id === "rapid_rabbit") [-.24, 0, .24].forEach((spread) => fire(2.1, battle.player.direction, spread, true));
-  else if (id === "guard_bear") battle.player.invincible = 5;
-  else if (id === "star_sheep") battle.enemies.forEach((enemy) => { if (Math.hypot(enemy.x - battle.player.x, enemy.y - battle.player.y) < 440) { enemy.hp -= stats.attack * 5; enemy.flash = .4; } });
+  const character = battle.run.character; const stats = charStats(); const type = character.skillType; const value = Math.max(1, Number(character.skillValue || 1)); battle.skillCooldown = stats.cooldown;
+  if (["radial", "healBurst", "freezeBurst"].includes(type)) {
+    const shots = Math.max(6, Math.round(value));
+    for (let i = 0; i < shots; i += 1) fire(type === "freezeBurst" ? 2.2 : 1.5, { x: 1, y: 0 }, Math.PI * 2 * i / shots, true);
+    if (type === "healBurst") battle.player.hits = Math.max(0, battle.player.hits - Math.round(value));
+    if (type === "freezeBurst") battle.player.frozen = Math.max(2, value / 3);
+  } else if (type === "rapid") battle.player.rapid = value;
+  else if (type === "pierce") fire(value, battle.player.direction, 0, true);
+  else if (type === "triple") [-.24, 0, .24].forEach((spread) => fire(value, battle.player.direction, spread, true));
+  else if (type === "shield") battle.player.invincible = value;
+  else if (type === "area") battle.enemies.forEach((enemy) => { if (Math.hypot(enemy.x - battle.player.x, enemy.y - battle.player.y) < 440) { enemy.hp -= stats.attack * value; enemy.flash = .4; } });
   showBattleMessage(battle.run.character.skill.split("：")[0]);
 }
 function showBattleMessage(text) { $("battleMessage").textContent = text; $("battleMessage").style.opacity = "1"; clearTimeout(showBattleMessage.timer); showBattleMessage.timer = setTimeout(() => { $("battleMessage").style.opacity = ".45"; }, 1600); }
@@ -154,7 +180,7 @@ function takeHit() {
   const p = battle.player; if (p.invincible > 0 || p.hidden || battle.countdown > 0) return;
   p.hits += 1; p.invincible = 1.2; updateHud();
   if (p.hits < p.maxHits) return;
-  if (battle.run.character.characterId === "chemist_tanuki" && !p.savedDeath) { p.savedDeath = true; p.hits = 0; p.invincible = 3; showBattleMessage("身代わり調合が発動！"); return; }
+  if (battle.run.character.passiveType === "revive" && !p.savedDeath) { p.savedDeath = true; p.hits = 0; p.invincible = 3; showBattleMessage("身代わり能力が発動！"); return; }
   p.lives -= 1; p.hits = 0;
   if (p.lives <= 0) { void finishBattle(false, "残機がなくなりました"); return; }
   p.hidden = true; p.respawn = 5; $("respawnPanel").hidden = false; showBattleMessage("再生処置を開始");
@@ -304,6 +330,7 @@ function bindEvents() {
     const favorite = event.target.closest("[data-favorite]"); if (favorite) await mutate("favorite", { instanceId: favorite.dataset.favorite, favorite: favorite.dataset.value === "true" });
     const strengthen = event.target.closest("[data-strengthen]"); if (strengthen) await resolveDuplicate(strengthen.dataset.strengthen, "strengthen", strengthen.dataset.target);
     const exchange = event.target.closest("[data-exchange]"); if (exchange) await resolveDuplicate(exchange.dataset.exchange, "exchange");
+    const banner = event.target.closest("[data-banner]"); if (banner) { selectedBannerId = banner.dataset.banner; renderGachaBanners(); }
     if (event.target.closest("[data-keep-dialog]")) $("dialog").hidden = true;
   });
   setupJoystick();

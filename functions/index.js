@@ -46,6 +46,7 @@ const {
 } = require("./device_sessions");
 
 const { createMediguardService } = require("./mediguard");
+const { createMediguardAdminService } = require("./mediguard_admin");
 
 initializeApp();
 
@@ -362,6 +363,17 @@ const MEDIGUARD_FUNCTION_OPTIONS = Object.freeze({
 exports.mediguardGame = onCall(
   MEDIGUARD_FUNCTION_OPTIONS,
   (request) => mediguardService.dispatch(request),
+);
+
+const mediguardAdminService = createMediguardAdminService({
+  db,
+  HttpsError,
+  requireAdmin: requireEnabledCareMateAdmin,
+});
+
+exports.mediguardAdmin = onCall(
+  MEDIGUARD_FUNCTION_OPTIONS,
+  (request) => mediguardAdminService.dispatch(request),
 );
 
 exports.changeCareMatePassword = onCall(
