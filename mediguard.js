@@ -211,14 +211,30 @@ function drawBattle() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
   const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.imageSmoothingEnabled = false; const width = rect.width; const height = rect.height;
   const cameraX = Math.max(width / 2, Math.min(WORLD.width - width / 2, battle.player.x)); const cameraY = Math.max(height / 2, Math.min(WORLD.height - height / 2, battle.player.y)); const offsetX = width / 2 - cameraX; const offsetY = height / 2 - cameraY;
-  const colors = MAP_STYLE[battle.run.map.id] || MAP_STYLE.lung; ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, width, height); ctx.save(); ctx.translate(offsetX, offsetY);
-  ctx.fillStyle = colors[1]; for (let x = 70; x < WORLD.width; x += 160) for (let y = 60; y < WORLD.height; y += 150) { const wobble = ((x + y) % 3) * 7; ctx.beginPath(); ctx.arc(x + wobble, y, 34 + ((x * y) % 17), 0, Math.PI * 2); ctx.globalAlpha = .18; ctx.fill(); }
-  ctx.globalAlpha = .32; ctx.strokeStyle = colors[2]; ctx.lineWidth = 4; for (let x = 0; x <= WORLD.width; x += 260) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.bezierCurveTo(x + 120, 300, x - 100, 700, x + 80, WORLD.height); ctx.stroke(); } ctx.globalAlpha = 1;
-  battle.holes.forEach((hole) => { const pulse = .7 + Math.sin(performance.now() / 90) * .15; ctx.fillStyle = hole.spawned ? "#351f2e" : `rgba(100,28,57,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.spawned ? 28 : 34 + pulse * 8, 0, Math.PI * 2); ctx.fill(); if (!hole.spawned) { ctx.strokeStyle = "#ffd38a"; ctx.lineWidth = 3; ctx.stroke(); } });
-  battle.projectiles.forEach((shot) => { ctx.fillStyle = shot.piercing ? "#ffe27a" : "#92f4df"; ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.radius, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); });
-  battle.enemies.forEach((enemy) => { ctx.save(); if (enemy.flash > 0) ctx.globalAlpha = .45; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y, enemy.radius * 3.5, enemy.radius * 3.5); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#2b1d28aa"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44, 4); ctx.fillStyle = "#e96a6a"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44 * hp, 4); });
-  if (!battle.player.hidden) { ctx.save(); if (battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2) ctx.globalAlpha = .3; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 86, 86); ctx.restore(); }
-  ctx.strokeStyle = "#123940"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
+  const colors = MAP_STYLE[battle.run.map.id] || MAP_STYLE.lung;
+  const backdrop = ctx.createLinearGradient(0, 0, width, height); backdrop.addColorStop(0, colors[1]); backdrop.addColorStop(.48, colors[0]); backdrop.addColorStop(1, colors[2]); ctx.fillStyle = backdrop; ctx.fillRect(0, 0, width, height);
+  ctx.save(); ctx.translate(offsetX, offsetY);
+  ctx.fillStyle = colors[1];
+  for (let x = 70; x < WORLD.width; x += 160) for (let y = 60; y < WORLD.height; y += 150) {
+    const wobble = ((x + y) % 3) * 7; const radius = 34 + ((x * y) % 17); const pulse = 1 + Math.sin(performance.now() / 900 + x * .02 + y * .01) * .04;
+    ctx.globalAlpha = .18; ctx.beginPath(); ctx.arc(x + wobble, y, radius * pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = .12; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x + wobble - radius * .16, y - radius * .18, radius * .68, Math.PI * 1.06, Math.PI * 1.7); ctx.stroke();
+  }
+  ctx.globalAlpha = .28; ctx.strokeStyle = colors[2]; ctx.lineCap = "round";
+  for (let x = -80; x <= WORLD.width; x += 270) { ctx.lineWidth = 18; ctx.beginPath(); ctx.moveTo(x, -20); ctx.bezierCurveTo(x + 170, 280, x - 120, 720, x + 110, WORLD.height + 30); ctx.stroke(); ctx.globalAlpha = .16; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 5; ctx.stroke(); ctx.globalAlpha = .28; ctx.strokeStyle = colors[2]; }
+  ctx.globalAlpha = .2; ctx.fillStyle = "#ffffff";
+  for (let index = 0; index < 34; index += 1) { const px = (index * 191 + 73) % WORLD.width; const py = (index * 137 + 41) % WORLD.height; ctx.beginPath(); ctx.arc(px, py, 2 + index % 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  battle.holes.forEach((hole) => {
+    const pulse = .7 + Math.sin(performance.now() / 90) * .15; const radius = hole.spawned ? 28 : 34 + pulse * 8;
+    ctx.save(); ctx.shadowColor = hole.spawned ? "#1c0f20" : "#ffd36a"; ctx.shadowBlur = hole.spawned ? 12 : 24; ctx.fillStyle = hole.spawned ? "#251529" : `rgba(106,22,64,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = hole.spawned ? "#8b4a70" : "#ffe7a3"; ctx.lineWidth = hole.spawned ? 3 : 4; ctx.stroke(); if (!hole.spawned) { ctx.globalAlpha = .5; ctx.beginPath(); ctx.arc(hole.x, hole.y, radius + 12, 0, Math.PI * 2); ctx.stroke(); } ctx.restore();
+  });
+  battle.projectiles.forEach((shot) => { ctx.save(); ctx.shadowColor = shot.piercing ? "#ffd853" : "#62ffe0"; ctx.shadowBlur = 18; ctx.fillStyle = shot.piercing ? "#ffe27a" : "#92f4df"; ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.radius + 2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore(); });
+  battle.enemies.forEach((enemy) => { ctx.save(); ctx.globalAlpha = .24; ctx.fillStyle = "#351d31"; ctx.beginPath(); ctx.ellipse(enemy.x, enemy.y + enemy.radius * .75, enemy.radius * .9, enemy.radius * .32, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = enemy.flash > 0 ? .45 : 1; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y, enemy.radius * 3.7, enemy.radius * 3.7); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#1d1523cc"; ctx.fillRect(enemy.x - 24, enemy.y - enemy.radius - 20, 48, 6); ctx.fillStyle = "#ff5e68"; ctx.fillRect(enemy.x - 23, enemy.y - enemy.radius - 19, 46 * hp, 4); });
+  if (!battle.player.hidden) { ctx.save(); ctx.globalAlpha = .24; ctx.fillStyle = "#15353d"; ctx.beginPath(); ctx.ellipse(battle.player.x, battle.player.y + 28, 28, 10, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2 ? .3 : 1; ctx.shadowColor = "#8bffe9"; ctx.shadowBlur = battle.player.invincible > 0 ? 25 : 8; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 92, 92); ctx.restore(); }
+  ctx.strokeStyle = "#102f38"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
+  const vignette = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * .2, width / 2, height / 2, Math.max(width, height) * .72); vignette.addColorStop(0, "rgba(5,18,25,0)"); vignette.addColorStop(1, "rgba(5,18,25,.36)"); ctx.fillStyle = vignette; ctx.fillRect(0, 0, width, height);
 }
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }
 async function startBattle() {
