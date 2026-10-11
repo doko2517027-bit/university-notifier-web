@@ -11,6 +11,7 @@ test("2510044だけリクエストタブをメディガードへ差し替える"
   assert.match(common, /MEDIGUARD_TEST_STUDENT_NUMBERS = Object\.freeze\(\["2510044"\]\)/);
   assert.match(common, /a\[href="requests\.html"\]/);
   assert.match(common, /link\.href = "mediguard\.html"/);
+  assert.match(common, /<span>メディガ<\/span>/);
   assert.match(client, /isMediguardTestStudent\(studentNumber\)/);
   assert.match(client, /auth\.authStateReady/);
   assert.match(client, /auth\.currentUser\?\.uid !== `caremate-\$\{studentNumber\}`/);

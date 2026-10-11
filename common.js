@@ -1485,7 +1485,7 @@ function ensureMediguardNavTab() {
   for (const link of document.querySelectorAll('.bottom-nav a[href="requests.html"]')) {
     link.href = "mediguard.html";
     link.classList.add("mediguard-nav-link");
-    link.innerHTML = '<span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" width="25" height="25" /></span><span>メディガード</span>';
+    link.innerHTML = '<span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" width="25" height="25" /></span><span>メディガ</span>';
   }
 }
 
