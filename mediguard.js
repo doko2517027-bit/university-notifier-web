@@ -103,7 +103,7 @@ function newBattle(run) {
     run, running: true, startedAt: performance.now(), elapsed: 0, lastTick: performance.now(), countdown: 3000,
     wave: 0, wavePending: true, waveDelay: 500, enemies: [], projectiles: [], holes: [], effects: [], enemyShots: [],
     player: { x: WORLD.width / 2, y: WORLD.height / 2, radius: 23, direction: { x: 1, y: 0 }, hits: 0, maxHits, lives: 3, invincible: 0, respawn: 0, hidden: false, rapid: 0, frozen: 0, savedDeath: false },
-    kills: 0, shots: 0, infection: 0, skillCooldown: 0, chargeStart: 0, ended: false,
+    kills: 0, shots: 0, infection: 0, skillCooldown: 0, chargeStart: 0, alertLock: 0, ended: false,
   };
 }
 function charStats() {
@@ -114,6 +114,7 @@ function charStats() {
 function mapIndex() { return Math.max(0, dashboard.maps.findIndex((item) => item.id === battle.run.map.id)); }
 function spawnWave() {
   battle.wave += 1; battle.wavePending = false; battle.waveDelay = 0;
+  battle.alertLock = 1.25; $("threatFlash").hidden = false;
   $("waveText").textContent = `${battle.wave} / ${battle.run.waves}`; $("waveBanner").textContent = `WAVE ${battle.wave}`;
   $("waveBanner").style.animation = "none"; void $("waveBanner").offsetWidth; $("waveBanner").style.animation = "banner 1.5s both";
   const count = 3 + battle.wave * 2 + Math.min(4, Math.floor(battle.run.character.level / 12));
@@ -127,13 +128,13 @@ function spawnEnemy(hole) {
   battle.enemies.push({ x: hole.x, y: hole.y, radius: strong ? 29 : 23, hp: (strong ? 44 : 25) * scale, maxHp: (strong ? 44 : 25) * scale, speed: (strong ? 52 : 68) * (1 + battle.wave * .07), type: hole.type, flash: 0 });
 }
 function fire(power = 1, direction = battle.player.direction, spread = 0, piercing = false) {
-  if (!battle?.running || battle.player.hidden || battle.countdown > 0) return;
+  if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
   const stats = charStats(); const angle = Math.atan2(direction.y, direction.x) + spread;
   battle.projectiles.push({ x: battle.player.x + Math.cos(angle) * 28, y: battle.player.y + Math.sin(angle) * 28, vx: Math.cos(angle) * (520 + power * 90), vy: Math.sin(angle) * (520 + power * 90), radius: 6 + power * 2, damage: stats.attack * power, life: stats.range / (520 + power * 90), piercing, hit: new Set() });
   battle.shots += 1;
 }
 function useSkill() {
-  if (!battle?.running || battle.player.hidden || battle.countdown > 0) return;
+  if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
   if (battle.skillCooldown > 0) { showBattleMessage(`スキル再使用まで ${Math.ceil(battle.skillCooldown)}秒`); return; }
   const id = battle.run.character.characterId; const stats = charStats(); battle.skillCooldown = stats.cooldown;
   if (id === "cell_maru" || id === "mint_dragon" || id === "chemist_tanuki" || id === "celestial_guard") {
@@ -169,6 +170,7 @@ function movementVector() {
 function updateBattle(dt) {
   if (!battle?.running) return;
   if (battle.countdown > 0) { battle.countdown -= dt * 1000; $("battleMessage").textContent = battle.countdown > 0 ? `${Math.ceil(battle.countdown / 1000)}` : "防衛開始！"; return; }
+  if (battle.alertLock > 0) { battle.alertLock = Math.max(0, battle.alertLock - dt); if (battle.alertLock === 0) $("threatFlash").hidden = true; updateHud(); return; }
   battle.elapsed += dt * 1000; const remaining = Math.max(0, battle.run.timeLimitSeconds - battle.elapsed / 1000); if (remaining <= 0) { void finishBattle(false, "制限時間を超えました"); return; }
   const p = battle.player; p.invincible = Math.max(0, p.invincible - dt); p.rapid = Math.max(0, p.rapid - dt); p.frozen = Math.max(0, p.frozen - dt); battle.skillCooldown = Math.max(0, battle.skillCooldown - dt);
   if (p.hidden) { p.respawn -= dt; $("respawnText").textContent = Math.max(1, Math.ceil(p.respawn)); if (p.respawn <= 0) { p.hidden = false; p.invincible = 2.5; p.x = WORLD.width / 2; p.y = WORLD.height / 2; $("respawnPanel").hidden = true; } }
@@ -206,6 +208,21 @@ function drawCutout(ctx, images, index, x, y, maxWidth, maxHeight) {
   const height = image.naturalHeight * scale;
   ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
 }
+function drawBattleScenery(ctx, mapId) {
+  const style = MAP_STYLE[mapId] || MAP_STYLE.lung; const time = performance.now() / 1000;
+  ctx.save(); ctx.lineCap = "round";
+  for (let index = 0; index < 22; index += 1) {
+    const x = 80 + (index * 317) % (WORLD.width - 160); const y = 70 + (index * 223) % (WORLD.height - 140); const size = 24 + (index % 5) * 9;
+    ctx.globalAlpha = .16; ctx.fillStyle = index % 2 ? style[2] : "#ffffff"; ctx.strokeStyle = index % 2 ? "#ffffff" : style[2]; ctx.lineWidth = 3;
+    if (mapId === "lung" || mapId === "airway") { ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.arc(x + size * .72, y + 4, size * .66, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    else if (mapId === "vessel") { ctx.beginPath(); ctx.ellipse(x, y, size * 1.25, size * .48, (index % 4) * .38, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    else if (mapId === "skin") { ctx.beginPath(); ctx.roundRect(x - size, y - size * .65, size * 2, size * 1.3, 10); ctx.fill(); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(x - size, y); ctx.quadraticCurveTo(x, y - size * (1.2 + Math.sin(time + index) * .08), x + size, y); ctx.quadraticCurveTo(x, y + size, x - size, y); ctx.fill(); ctx.stroke(); }
+  }
+  ctx.globalAlpha = .22; ctx.strokeStyle = "#f4d27a"; ctx.lineWidth = 5; ctx.setLineDash([20, 16]);
+  for (let row = 0; row < 3; row += 1) { const y = 230 + row * 390; ctx.beginPath(); ctx.moveTo(40, y); ctx.bezierCurveTo(430, y - 130, 870, y + 150, 1320, y - 30); ctx.bezierCurveTo(1500, y - 100, 1650, y + 40, 1760, y); ctx.stroke(); }
+  ctx.restore();
+}
 function drawBattle() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
   const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.imageSmoothingEnabled = false; const width = rect.width; const height = rect.height;
@@ -224,6 +241,7 @@ function drawBattle() {
   ctx.globalAlpha = .2; ctx.fillStyle = "#ffffff";
   for (let index = 0; index < 34; index += 1) { const px = (index * 191 + 73) % WORLD.width; const py = (index * 137 + 41) % WORLD.height; ctx.beginPath(); ctx.arc(px, py, 2 + index % 3, 0, Math.PI * 2); ctx.fill(); }
   ctx.globalAlpha = 1;
+  drawBattleScenery(ctx, battle.run.map.id);
   battle.holes.forEach((hole) => {
     const pulse = .7 + Math.sin(performance.now() / 90) * .15; const radius = hole.spawned ? 28 : 34 + pulse * 8;
     ctx.save(); ctx.shadowColor = hole.spawned ? "#1c0f20" : "#ffd36a"; ctx.shadowBlur = hole.spawned ? 12 : 24; ctx.fillStyle = hole.spawned ? "#251529" : `rgba(106,22,64,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, radius, 0, Math.PI * 2); ctx.fill();

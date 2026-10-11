@@ -88,6 +88,17 @@ test("ホームでは小さな効果説明を表示せず戦闘能力だけ維�
   assert.match(client, /function useSkill\(/);
 });
 
+test("タクティカル表示と操作不能の危険警告を戦闘へ追加する", async () => {
+  const [page, client, css] = await Promise.all([read("./mediguard.html"), read("./mediguard.js"), read("./mediguard.css")]);
+  assert.match(page, /id="threatFlash"/);
+  assert.match(page, />危険</);
+  assert.match(page, /<button data-view="characters"><span>🧬<\/span><b>キャラクター<\/b><\/button>/);
+  assert.match(client, /alertLock: 0/);
+  assert.match(client, /battle\.alertLock = 1\.25/);
+  assert.match(client, /function drawBattleScenery\(/);
+  assert.match(css, /\.threat-flash/);
+});
+
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
   assert.match(page, /id="gameExitButton"/);
@@ -124,6 +135,5 @@ test("味方・敵キャラは固定マスではなく輪郭透過PNGを実際�
 test("未完成の協力プレイは実装済みと誤認させず次段階として明示する", async () => {
   const page = await read("./mediguard.html");
   assert.match(page, /協力プレイ/);
-  assert.match(page, /次段階で実装/);
   assert.match(page, /class="soon" disabled/);
 });

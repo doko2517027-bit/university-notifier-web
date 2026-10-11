@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261011-7" />
+    <link rel="stylesheet" href="mediguard.css?v=20261011-8" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -40,12 +40,12 @@
           <button id="selectedCharacter" class="selected-character" type="button" aria-label="キャラクターを変更"><span class="character-sprite sprite-0"></span><i>変更</i></button>
           <button id="sortieButton" class="sortie-button" type="button"><i aria-hidden="true">⚕</i><span>殺 菌</span><small>ランダムな臓器へ緊急出撃</small><em>MISSION START</em></button>
           <div class="home-menu">
-            <button data-view="characters"><span>🧬</span><b>キャラクター</b><small>選択・強化</small></button>
-            <button data-view="gacha"><span>◈</span><b>ガチャ</b><small>30ptから</small></button>
-            <button data-view="records"><span>▥</span><b>記録</b><small>戦績・初回報酬</small></button>
-            <button data-view="help"><span>?</span><b>遊び方</b><small>操作・薬剤表現</small></button>
-            <button class="soon" disabled><span>⌁</span><b>協力プレイ</b><small>次段階で実装</small></button>
-            <button class="soon" disabled><span>♜</span><b>限界突破</b><small>Lv.50から</small></button>
+            <button data-view="characters"><span>🧬</span><b>キャラクター</b></button>
+            <button data-view="gacha"><span>◈</span><b>ガチャ</b></button>
+            <button data-view="records"><span>▥</span><b>記録</b></button>
+            <button data-view="help"><span>?</span><b>遊び方</b></button>
+            <button class="soon" disabled><span>⌁</span><b>協力プレイ</b></button>
+            <button class="soon" disabled><span>♜</span><b>限界突破</b></button>
           </div>
         </section>
 
@@ -95,6 +95,7 @@
       </header>
       <div id="infectionBox" class="infection-box" hidden><span>感染</span><i><b id="infectionBar"></b></i><em id="infectionText">0%</em></div>
       <div id="waveBanner" class="wave-banner">WAVE 1</div>
+      <div id="threatFlash" class="threat-flash" hidden><span>危険</span><b>病原体接近</b></div>
       <div id="battleMessage" class="battle-message">敵の出現地点に注意！</div>
       <div id="joystick" class="joystick"><i id="joystickKnob"></i></div>
       <button id="attackButton" class="battle-action attack" type="button"><span><b>薬剤</b><small>ATTACK</small></span><i id="chargeRing"></i></button>
@@ -107,6 +108,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261011-9"></script>
+    <script type="module" src="mediguard.js?v=20261011-10"></script>
   </body>
 </html>

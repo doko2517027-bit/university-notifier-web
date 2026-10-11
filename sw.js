@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v110";
+const STATIC_CACHE = "caremate-static-v111";
 
-const RUNTIME_CACHE = "caremate-runtime-v110";
+const RUNTIME_CACHE = "caremate-runtime-v111";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -131,9 +131,9 @@ const CORE_ASSETS = [
 
   "mediguard.html",
 
-  "mediguard.css?v=20261011-7",
+  "mediguard.css?v=20261011-8",
 
-  "mediguard.js?v=20261011-9",
+  "mediguard.js?v=20261011-10",
 
   "images/mediguard-tab.svg",
 
