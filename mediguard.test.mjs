@@ -163,3 +163,39 @@ test("未完成の協力プレイは実装済みと誤認させず次段階と�
   assert.match(page, /協力プレイ/);
   assert.match(page, /class="soon" disabled/);
 });
+
+test("初期十字キーと任意スティックを選べ、設定を端末へ保存する", async () => {
+  const [page, client, css] = await Promise.all([read("./mediguard.html"), read("./mediguard.js"), read("./mediguard.css")]);
+  assert.match(page, /id="directionPad"/);
+  for (const direction of ["up", "down", "left", "right"]) assert.match(page, new RegExp(`data-direction="${direction}"`));
+  assert.match(page, /data-control-mode="dpad"/);
+  assert.match(page, /data-control-mode="joystick"/);
+  assert.match(client, /let controlMode = localStorage\.getItem\(CONTROL_STORAGE_KEY\) === "joystick" \? "joystick" : "dpad"/);
+  assert.match(client, /localStorage\.setItem\(CONTROL_STORAGE_KEY, controlMode\)/);
+  assert.match(client, /Number\(dpad\.right\) - Number\(dpad\.left\)/);
+  assert.match(css, /\.direction-pad/);
+});
+
+test("臓器別の遮蔽物は通行と薬剤弾を遮り、身を隠せる地形として動作する", async () => {
+  const client = await read("./mediguard.js");
+  assert.match(client, /const OBSTACLE_LAYOUTS = Object\.freeze/);
+  for (const map of ["lung", "airway", "intestine", "urinary", "vessel", "skin"]) assert.match(client, new RegExp(`${map}: \\[`));
+  assert.match(client, /function moveAroundObstacles\(/);
+  assert.match(client, /function segmentHitsObstacle\(/);
+  assert.match(client, /if \(segmentHitsObstacle\(beforeX, beforeY, shot\.x, shot\.y\)\) shot\.life = 0/);
+  assert.match(client, /drawBattleObstacles\(ctx, battle\.run\.map\.id\)/);
+});
+
+test("出撃読み込み画面とオリジナルBGM・効果音を全ゲーム画面へ備える", async () => {
+  const [page, client, audio, sw] = await Promise.all([read("./mediguard.html"), read("./mediguard.js"), read("./mediguard_audio.js"), read("./sw.js")]);
+  assert.match(page, /class="loading-scene"/);
+  assert.match(page, /id="bgmToggle"/);
+  assert.match(page, /id="sfxToggle"/);
+  assert.match(client, /mediguardAudio\.playMusic\("battle"\)/);
+  assert.match(client, /mediguardAudio\.sfx\("gacha"\)/);
+  assert.match(client, /\$\("loadingScreen"\)\.hidden = false;\n  try/);
+  assert.match(audio, /class MediguardAudio/);
+  assert.match(audio, /AudioContext/);
+  assert.match(audio, /playMusic\(theme = "home"\)/);
+  assert.match(sw, /mediguard_audio\.js\?v=20261012-1/);
+});

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261012-11" />
+    <link rel="stylesheet" href="mediguard.css?v=20261012-12" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -17,7 +17,6 @@
     </section>
 
     <main id="gameShell" class="game-shell" hidden>
-      <button id="gameExitButton" class="game-exit-button" type="button" aria-label="CareMateホームへ戻る">←</button>
       <section id="titleScreen" class="title-screen">
         <div class="title-grid" aria-hidden="true"></div>
         <div class="title-badge">CareMate × BODY DEFENSE</div>
@@ -30,8 +29,9 @@
 
       <section id="gameApp" class="game-app" hidden>
         <header class="game-header">
+          <button id="gameExitButton" class="header-icon-button" type="button" aria-label="CareMateホームへ戻る">←</button>
           <div><small>BODY DEFENSE UNIT</small><strong id="screenTitle">メディガード！</strong></div>
-          <div class="point-pill"><span>GP</span><b id="gachaPoints">0</b></div>
+          <div class="header-tools"><button id="settingsButton" class="header-icon-button" type="button" aria-label="ゲーム設定">⚙</button><div class="point-pill"><span>GP</span><b id="gachaPoints">0</b></div></div>
         </header>
 
         <section id="homeView" class="game-view home-view">
@@ -92,11 +92,30 @@
           </div>
           <p class="medical-note">薬剤名や病原体は学習のきっかけとなるゲーム表現です。実際の診断・治療・薬剤選択を再現するものではありません。</p>
         </section>
+
+        <section id="settingsView" class="game-view panel-view settings-view" hidden>
+          <div class="view-heading"><div><small>SYSTEM CONFIG</small><h2>ゲーム設定</h2></div><button data-view="home">もどる</button></div>
+          <article class="setting-card">
+            <h3>移動・攻撃方向の操作</h3>
+            <p>移動した方向へ薬剤を発射します。初期設定は押し間違いの少ない十字キーです。</p>
+            <div class="control-choice" role="radiogroup" aria-label="操作方法">
+              <button type="button" data-control-mode="dpad" role="radio"><span>✚</span><b>十字キー</b><small>4方向を確実に操作</small></button>
+              <button type="button" data-control-mode="joystick" role="radio"><span>◉</span><b>スティック</b><small>全方向へなめらかに移動</small></button>
+            </div>
+          </article>
+          <article class="setting-card audio-settings">
+            <h3>サウンド</h3>
+            <label><span><b>BGM</b><small>ホーム・戦闘・ガチャの音楽</small></span><input id="bgmToggle" type="checkbox" checked /></label>
+            <label><span><b>効果音</b><small>ボタン・攻撃・スキル・演出音</small></span><input id="sfxToggle" type="checkbox" checked /></label>
+            <label class="volume-setting"><span><b>音量</b><small id="volumeValue">70%</small></span><input id="volumeSlider" type="range" min="0" max="100" value="70" /></label>
+          </article>
+        </section>
       </section>
     </main>
 
     <div id="loadingScreen" class="loading-screen" hidden>
-      <div class="loading-organ"><i></i><span>＋</span></div><small>DEPLOYING TO</small><h2 id="loadingMap">肺胞エリア</h2><p id="loadingPathogen">病原体を解析中…</p><div class="loading-bar"><i></i></div>
+      <div class="loading-scene" aria-hidden="true"><span class="character-sprite sprite-0"></span><i></i><em>☣</em></div>
+      <div class="loading-organ"><i></i><span>＋</span></div><small>DEPLOYING TO</small><h2 id="loadingMap">防衛システム</h2><p id="loadingPathogen">出撃データを読み込み中…</p><div class="loading-bar"><i></i></div><b class="loading-hint">安全な経路を確認しています</b>
     </div>
 
     <section id="battleScreen" class="battle-screen" hidden>
@@ -111,6 +130,12 @@
       <div id="threatFlash" class="threat-flash" hidden><span>危険</span><b>病原体接近</b></div>
       <div id="battleMessage" class="battle-message">敵の出現地点に注意！</div>
       <div id="joystick" class="joystick"><i id="joystickKnob"></i></div>
+      <div id="directionPad" class="direction-pad" aria-label="方向十字キー">
+        <button type="button" data-direction="up" aria-label="上">▲</button>
+        <button type="button" data-direction="left" aria-label="左">◀</button>
+        <button type="button" data-direction="right" aria-label="右">▶</button>
+        <button type="button" data-direction="down" aria-label="下">▼</button>
+      </div>
       <button id="attackButton" class="battle-action attack" type="button"><span><b>薬剤</b><small>ATTACK</small></span><i id="chargeRing"></i></button>
       <button id="skillButton" class="battle-action skill" type="button"><span><b>必殺</b><small>SKILL</small></span><i id="skillCooldown"></i></button>
       <button id="exitBattle" class="exit-battle" type="button">退出</button>
@@ -129,6 +154,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261012-13"></script>
+    <script type="module" src="mediguard.js?v=20261012-14"></script>
   </body>
 </html>

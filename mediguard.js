@@ -1,5 +1,6 @@
 import { auth, functions, studentNumber, initializePage, setupAdminTab, isMediguardTestStudent } from "./common.js?v=20261011-2";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { mediguardAudio } from "./mediguard_audio.js?v=20261012-1";
 
 const $ = (id) => document.getElementById(id);
 const gameCall = httpsCallable(functions, "mediguardGame", { timeout: 60000 });
@@ -19,6 +20,9 @@ let keyState = new Set();
 let selectedBannerId = "";
 let finishGachaCinematic = null;
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
+let dpad = { up: false, down: false, left: false, right: false };
+const CONTROL_STORAGE_KEY = "caremate_mediguard_control_v1";
+let controlMode = localStorage.getItem(CONTROL_STORAGE_KEY) === "joystick" ? "joystick" : "dpad";
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
   const image = new Image();
   image.src = `images/mediguard-sprites/${prefix}-${index}.png`;
@@ -65,10 +69,11 @@ function renderGachaBanners() {
   document.querySelectorAll("[data-draw]").forEach((button) => { button.disabled = !current; });
 }
 function showView(name) {
-  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView", limitBreak: "limitBreakView" };
+  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView", limitBreak: "limitBreakView", settings: "settingsView" };
   document.querySelectorAll(".game-view").forEach((view) => { view.hidden = true; });
   $(ids[name] || ids.home).hidden = false;
-  $("screenTitle").textContent = { home: "メディガード！", characters: "キャラクター", gacha: "キャラガチャ", records: "防衛記録", help: "遊び方", limitBreak: "限界突破" }[name] || "メディガード！";
+  $("screenTitle").textContent = { home: "メディガード！", characters: "キャラクター", gacha: "キャラガチャ", records: "防衛記録", help: "遊び方", limitBreak: "限界突破", settings: "ゲーム設定" }[name] || "メディガード！";
+  mediguardAudio.playMusic(name === "gacha" ? "gacha" : "home");
 }
 function renderCharacters() {
   $("characterList").innerHTML = dashboard.characters.map((item) => {
@@ -107,6 +112,7 @@ function playGachaCinematic(results, banner) {
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   cinematic.className = `gacha-cinematic rarity-${guaranteed ? strongest : "N"} ${guaranteed ? "effect-guaranteed" : "effect-standard"}`;
   cinematic.hidden = false;
+  mediguardAudio.sfx("gacha");
   $("gachaCinematicCode").textContent = banner?.name || "MEDICAL UNIT SCAN";
   $("gachaCinematicText").textContent = guaranteed ? "高密度反応を確認" : "解析を開始";
   $("gachaCinematicRarity").textContent = guaranteed ? `${strongest} 確定反応` : "";
@@ -123,6 +129,7 @@ function playGachaCinematic(results, banner) {
       cinematic.classList.add("phase-reveal");
       if (rare && !guaranteed) { cinematic.classList.add(`rarity-${strongest}`, "effect-surprise"); $("gachaCinematicText").textContent = "反応上昇"; $("gachaCinematicRarity").textContent = `${strongest} UNIT`; }
       else { $("gachaCinematicText").textContent = "ユニットを確認"; }
+      mediguardAudio.sfx("reveal", strongest);
     }, 2350);
     later(finish, 3850);
   });
@@ -157,6 +164,61 @@ async function resolveDuplicate(sourceInstanceId, mode, targetInstanceId = "") {
 }
 
 const WORLD = { width: 1800, height: 1200 };
+const OBSTACLE_LAYOUTS = Object.freeze({
+  lung: [
+    { x: 230, y: 180, w: 300, h: 110, type: "alveoli" }, { x: 750, y: 115, w: 150, h: 300, type: "tissue" },
+    { x: 1210, y: 165, w: 340, h: 115, type: "alveoli" }, { x: 210, y: 720, w: 190, h: 310, type: "tissue" },
+    { x: 620, y: 875, w: 390, h: 120, type: "alveoli" }, { x: 1320, y: 690, w: 180, h: 330, type: "tissue" },
+  ],
+  airway: [
+    { x: 260, y: 185, w: 110, h: 380, type: "cartilage" }, { x: 600, y: 125, w: 470, h: 95, type: "cartilage" },
+    { x: 1210, y: 250, w: 110, h: 350, type: "cartilage" }, { x: 410, y: 765, w: 520, h: 100, type: "cartilage" },
+    { x: 1120, y: 870, w: 390, h: 100, type: "cartilage" },
+  ],
+  intestine: [
+    { x: 170, y: 190, w: 440, h: 105, type: "fold" }, { x: 810, y: 110, w: 120, h: 340, type: "fold" },
+    { x: 1190, y: 220, w: 390, h: 110, type: "fold" }, { x: 230, y: 755, w: 360, h: 120, type: "fold" },
+    { x: 730, y: 900, w: 470, h: 105, type: "fold" }, { x: 1390, y: 670, w: 120, h: 340, type: "fold" },
+  ],
+  urinary: [
+    { x: 210, y: 160, w: 260, h: 160, type: "crystal" }, { x: 720, y: 140, w: 120, h: 310, type: "tissue" },
+    { x: 1230, y: 180, w: 280, h: 150, type: "crystal" }, { x: 290, y: 780, w: 310, h: 155, type: "crystal" },
+    { x: 890, y: 900, w: 420, h: 105, type: "tissue" }, { x: 1430, y: 620, w: 120, h: 310, type: "tissue" },
+  ],
+  vessel: [
+    { x: 180, y: 245, w: 390, h: 80, type: "plaque" }, { x: 690, y: 110, w: 95, h: 350, type: "plaque" },
+    { x: 1140, y: 260, w: 460, h: 85, type: "plaque" }, { x: 260, y: 820, w: 430, h: 90, type: "plaque" },
+    { x: 970, y: 820, w: 100, h: 300, type: "plaque" }, { x: 1370, y: 750, w: 260, h: 95, type: "plaque" },
+  ],
+  skin: [
+    { x: 170, y: 170, w: 250, h: 190, type: "follicle" }, { x: 650, y: 130, w: 150, h: 320, type: "follicle" },
+    { x: 1190, y: 160, w: 350, h: 170, type: "follicle" }, { x: 230, y: 760, w: 350, h: 170, type: "follicle" },
+    { x: 800, y: 850, w: 400, h: 130, type: "follicle" }, { x: 1430, y: 650, w: 150, h: 330, type: "follicle" },
+  ],
+});
+function battleObstacles(mapId = battle?.run?.map?.id) { return OBSTACLE_LAYOUTS[mapId] || OBSTACLE_LAYOUTS.lung; }
+function circleTouchesObstacle(x, y, radius, obstacle) {
+  const nearestX = Math.max(obstacle.x, Math.min(x, obstacle.x + obstacle.w));
+  const nearestY = Math.max(obstacle.y, Math.min(y, obstacle.y + obstacle.h));
+  return Math.hypot(x - nearestX, y - nearestY) < radius;
+}
+function freePosition(x, y, radius = 30, mapId) { return !battleObstacles(mapId).some((obstacle) => circleTouchesObstacle(x, y, radius, obstacle)); }
+function moveAroundObstacles(entity, dx, dy) {
+  const radius = Math.max(8, Number(entity.radius || 20));
+  const targetX = Math.max(radius + 14, Math.min(WORLD.width - radius - 14, entity.x + dx));
+  const targetY = Math.max(radius + 14, Math.min(WORLD.height - radius - 14, entity.y + dy));
+  if (freePosition(targetX, targetY, radius)) { entity.x = targetX; entity.y = targetY; return; }
+  if (freePosition(targetX, entity.y, radius)) entity.x = targetX;
+  else if (freePosition(entity.x, targetY, radius)) entity.y = targetY;
+}
+function segmentHitsObstacle(x1, y1, x2, y2) {
+  const steps = Math.max(2, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 16));
+  for (let step = 1; step <= steps; step += 1) {
+    const t = step / steps; const x = x1 + (x2 - x1) * t; const y = y1 + (y2 - y1) * t;
+    if (!freePosition(x, y, 3)) return true;
+  }
+  return false;
+}
 function newBattle(run) {
   const maxHits = 3 + (run.character.passiveType === "extraHit" ? Math.max(1, Math.round(run.character.passiveValue || 1)) : 0);
   return {
@@ -182,11 +244,12 @@ function mapIndex() { return Math.max(0, dashboard.maps.findIndex((item) => item
 function spawnWave() {
   battle.wave += 1; battle.wavePending = false; battle.waveDelay = 0;
   battle.alertLock = 1.25; $("threatFlash").hidden = false;
+  mediguardAudio.sfx("danger");
   $("waveText").textContent = `${battle.wave} / ${battle.run.waves}`; $("waveBanner").textContent = `WAVE ${battle.wave}`;
   $("waveBanner").style.animation = "none"; void $("waveBanner").offsetWidth; $("waveBanner").style.animation = "banner 1.5s both";
   const count = 3 + battle.wave * 2 + Math.min(4, Math.floor(battle.run.character.level / 12));
   for (let index = 0; index < count; index += 1) {
-    let x; let y; do { x = 110 + Math.random() * (WORLD.width - 220); y = 110 + Math.random() * (WORLD.height - 220); } while (Math.hypot(x - battle.player.x, y - battle.player.y) < 330);
+    let x; let y; do { x = 110 + Math.random() * (WORLD.width - 220); y = 110 + Math.random() * (WORLD.height - 220); } while (Math.hypot(x - battle.player.x, y - battle.player.y) < 330 || !freePosition(x, y, 48));
     battle.holes.push({ x, y, timer: 1 + index * .16, type: (mapIndex() * 2 + (battle.wave > 2 ? 1 : 0)) % 12, wave: battle.wave });
   }
   if (battle.run.limitBreak && battle.wave === battle.run.waves) battle.holes.push({ x: WORLD.width / 2, y: 180, timer: 2.1, type: 11, wave: battle.wave, boss: true });
@@ -201,6 +264,7 @@ function fire(power = 1, direction = battle.player.direction, spread = 0, pierci
   const stats = charStats(); const angle = Math.atan2(direction.y, direction.x) + spread;
   battle.projectiles.push({ x: battle.player.x + Math.cos(angle) * 28, y: battle.player.y + Math.sin(angle) * 28, vx: Math.cos(angle) * (520 + power * 90), vy: Math.sin(angle) * (520 + power * 90), radius: 6 + power * 2, damage: stats.attack * power, life: stats.range / (520 + power * 90), piercing, hit: new Set() });
   battle.shots += 1;
+  mediguardAudio.sfx(power > 1.35 ? "charge" : "shoot");
 }
 function useSkill() {
   if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
@@ -216,11 +280,13 @@ function useSkill() {
   else if (type === "triple") [-.24, 0, .24].forEach((spread) => fire(value, battle.player.direction, spread, true));
   else if (type === "shield") battle.player.invincible = value;
   else if (type === "area") battle.enemies.forEach((enemy) => { if (Math.hypot(enemy.x - battle.player.x, enemy.y - battle.player.y) < 440) { enemy.hp -= stats.attack * value; enemy.flash = .4; } });
+  mediguardAudio.sfx("skill");
   showBattleMessage(battle.run.character.skill.split("：")[0]);
 }
 function showBattleMessage(text) { $("battleMessage").textContent = text; $("battleMessage").style.opacity = "1"; clearTimeout(showBattleMessage.timer); showBattleMessage.timer = setTimeout(() => { $("battleMessage").style.opacity = ".45"; }, 1600); }
 function takeHit() {
   const p = battle.player; if (p.invincible > 0 || p.hidden || battle.countdown > 0) return;
+  mediguardAudio.sfx("hit");
   p.hits += 1; p.invincible = 1.2; updateHud();
   if (p.hits < p.maxHits) return;
   if (battle.run.character.passiveType === "revive" && !p.savedDeath) { p.savedDeath = true; p.hits = 0; p.invincible = 3; showBattleMessage("身代わり能力が発動！"); return; }
@@ -229,7 +295,8 @@ function takeHit() {
   p.hidden = true; p.respawn = 5; $("respawnPanel").hidden = false; showBattleMessage("再生処置を開始");
 }
 function movementVector() {
-  let x = stick.x; let y = stick.y;
+  let x = controlMode === "joystick" ? stick.x : Number(dpad.right) - Number(dpad.left);
+  let y = controlMode === "joystick" ? stick.y : Number(dpad.down) - Number(dpad.up);
   if (keyState.has("KeyA") || keyState.has("ArrowLeft")) x -= 1;
   if (keyState.has("KeyD") || keyState.has("ArrowRight")) x += 1;
   if (keyState.has("KeyW") || keyState.has("ArrowUp")) y -= 1;
@@ -246,16 +313,19 @@ function updateBattle(dt) {
   else {
     const move = movementVector(); if (Math.hypot(move.x, move.y) > .08) p.direction = move;
     const chargeSlow = battle.chargeStart ? .72 : 1; const speed = charStats().speed * chargeSlow;
-    p.x = Math.max(45, Math.min(WORLD.width - 45, p.x + move.x * speed * dt)); p.y = Math.max(45, Math.min(WORLD.height - 45, p.y + move.y * speed * dt));
+    moveAroundObstacles(p, move.x * speed * dt, move.y * speed * dt);
   }
   if (battle.wavePending) { battle.waveDelay -= dt * 1000; if (battle.waveDelay <= 0) spawnWave(); }
   battle.holes.forEach((hole) => { hole.timer -= dt; if (hole.timer <= 0 && !hole.spawned) { hole.spawned = true; spawnEnemy(hole); } }); battle.holes = battle.holes.filter((hole) => hole.timer > -.5);
   const freeze = p.frozen > 0 ? 0 : 1;
   battle.enemies.forEach((enemy) => {
-    enemy.flash = Math.max(0, enemy.flash - dt); const dx = p.x - enemy.x; const dy = p.y - enemy.y; const dist = Math.max(1, Math.hypot(dx, dy)); enemy.x += dx / dist * enemy.speed * dt * freeze; enemy.y += dy / dist * enemy.speed * dt * freeze;
+    enemy.flash = Math.max(0, enemy.flash - dt); const dx = p.x - enemy.x; const dy = p.y - enemy.y; const dist = Math.max(1, Math.hypot(dx, dy));
+    const blocked = segmentHitsObstacle(enemy.x, enemy.y, p.x, p.y); const turn = blocked ? (enemy.x + enemy.y) % 2 ? 1 : -1 : 0;
+    const moveX = blocked ? (-dy / dist * .7 + dx / dist * .3) * turn : dx / dist; const moveY = blocked ? (dx / dist * .7 + dy / dist * .3) * turn : dy / dist;
+    moveAroundObstacles(enemy, moveX * enemy.speed * dt * freeze, moveY * enemy.speed * dt * freeze);
     if (!p.hidden && dist < enemy.radius + p.radius) takeHit();
   });
-  battle.projectiles.forEach((shot) => { shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt; battle.enemies.forEach((enemy) => { if (enemy.hp <= 0 || shot.hit.has(enemy)) return; if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < shot.radius + enemy.radius) { enemy.hp -= shot.damage; enemy.flash = .15; shot.hit.add(enemy); if (!shot.piercing) shot.life = 0; } }); });
+  battle.projectiles.forEach((shot) => { const beforeX = shot.x; const beforeY = shot.y; shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt; if (segmentHitsObstacle(beforeX, beforeY, shot.x, shot.y)) shot.life = 0; battle.enemies.forEach((enemy) => { if (enemy.hp <= 0 || shot.hit.has(enemy)) return; if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < shot.radius + enemy.radius) { enemy.hp -= shot.damage; enemy.flash = .15; shot.hit.add(enemy); if (!shot.piercing) shot.life = 0; } }); });
   battle.projectiles = battle.projectiles.filter((shot) => shot.life > 0 && shot.x > 0 && shot.y > 0 && shot.x < WORLD.width && shot.y < WORLD.height);
   const defeated = battle.enemies.filter((enemy) => enemy.hp <= 0).length; battle.kills += defeated; battle.enemies = battle.enemies.filter((enemy) => enemy.hp > 0);
   if (!battle.wavePending && battle.wave > 0 && battle.enemies.length === 0 && battle.holes.length === 0) { if (battle.wave >= battle.run.waves) { void finishBattle(true, "全ウェーブを撃退しました"); return; } battle.wavePending = true; battle.waveDelay = 1800; showBattleMessage("次のウェーブを準備中"); }
@@ -292,6 +362,24 @@ function drawBattleScenery(ctx, mapId) {
   for (let row = 0; row < 3; row += 1) { const y = 230 + row * 390; ctx.beginPath(); ctx.moveTo(40, y); ctx.bezierCurveTo(430, y - 130, 870, y + 150, 1320, y - 30); ctx.bezierCurveTo(1500, y - 100, 1650, y + 40, 1760, y); ctx.stroke(); }
   ctx.restore();
 }
+function drawBattleObstacles(ctx, mapId) {
+  const colors = MAP_STYLE[mapId] || MAP_STYLE.lung;
+  battleObstacles(mapId).forEach((obstacle, index) => {
+    const radius = Math.min(44, Math.max(18, Math.min(obstacle.w, obstacle.h) * .22));
+    ctx.save();
+    ctx.shadowColor = "#11202899"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 12;
+    const gradient = ctx.createLinearGradient(obstacle.x, obstacle.y, obstacle.x + obstacle.w, obstacle.y + obstacle.h);
+    gradient.addColorStop(0, colors[2]); gradient.addColorStop(.52, colors[0]); gradient.addColorStop(1, "#293b3c");
+    ctx.fillStyle = gradient; ctx.strokeStyle = "#fff7d26b"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h, radius); ctx.fill(); ctx.stroke();
+    ctx.shadowColor = "transparent"; ctx.globalAlpha = .34; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(obstacle.x + 10, obstacle.y + 9, obstacle.w - 20, Math.max(14, obstacle.h * .26), Math.max(8, radius - 8)); ctx.stroke();
+    ctx.globalAlpha = .28; ctx.fillStyle = index % 2 ? "#ffcf7a" : "#b7fff0";
+    const dots = Math.max(2, Math.min(7, Math.floor(obstacle.w / 70)));
+    for (let dot = 0; dot < dots; dot += 1) { ctx.beginPath(); ctx.arc(obstacle.x + 24 + dot * Math.max(32, (obstacle.w - 48) / dots), obstacle.y + obstacle.h * .72, 6 + dot % 3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  });
+}
 function drawBattle() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
   const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.imageSmoothingEnabled = false; const width = rect.width; const height = rect.height;
@@ -311,6 +399,7 @@ function drawBattle() {
   for (let index = 0; index < 34; index += 1) { const px = (index * 191 + 73) % WORLD.width; const py = (index * 137 + 41) % WORLD.height; ctx.beginPath(); ctx.arc(px, py, 2 + index % 3, 0, Math.PI * 2); ctx.fill(); }
   ctx.globalAlpha = 1;
   drawBattleScenery(ctx, battle.run.map.id);
+  drawBattleObstacles(ctx, battle.run.map.id);
   battle.holes.forEach((hole) => {
     const pulse = .7 + Math.sin(performance.now() / 90) * .15; const radius = hole.spawned ? 28 : 34 + pulse * 8;
     ctx.save(); ctx.shadowColor = hole.spawned ? "#1c0f20" : "#ffd36a"; ctx.shadowBlur = hole.spawned ? 12 : 24; ctx.fillStyle = hole.spawned ? "#251529" : `rgba(106,22,64,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, radius, 0, Math.PI * 2); ctx.fill();
@@ -325,19 +414,25 @@ function drawBattle() {
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }
 async function startBattle(action = "startRun") {
   if (busy) return; setBusy(true);
+  $("loadingMap").textContent = action === "startLimitBreak" ? "限界突破戦" : "出撃地点を選定中";
+  $("loadingPathogen").textContent = "病原体と安全な経路を解析しています…";
+  $("loadingScreen").hidden = false;
   try {
-    const run = await api(action, { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = run.limitBreak ? `${run.bossName} / 上限解放戦` : `${run.map.pathogen} / ${run.map.weapon}`; $("loadingScreen").hidden = false;
+    const run = await api(action, { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = run.limitBreak ? `${run.bossName} / 上限解放戦` : `${run.map.pathogen} / ${run.map.weapon}`;
     await new Promise((resolve) => setTimeout(resolve, 1450)); battle = newBattle(run); $("battleMapName").textContent = run.map.name; $("waveText").textContent = `0 / ${run.waves}`; $("loadingScreen").hidden = true; $("battleScreen").hidden = false; $("respawnPanel").hidden = true; updateHud(); lastFrame = performance.now(); cancelAnimationFrame(frameId); frameId = requestAnimationFrame(gameLoop);
+    mediguardAudio.playMusic("battle");
   } catch (error) { showToast(errorText(error)); $("loadingScreen").hidden = true; }
   finally { setBusy(false); }
 }
 async function finishBattle(won, reason) {
   if (!battle || battle.ended) return; battle.ended = true; battle.running = false; cancelAnimationFrame(frameId);
+  mediguardAudio.sfx(won ? "win" : "lose");
   const summary = { won, wave: battle.wave, kills: battle.kills, shots: battle.shots, damageTaken: 3 * (3 - battle.player.lives) + battle.player.hits, durationMs: Math.round(Math.max(3000, battle.elapsed)) };
   let result = null; try { result = await api("finishRun", { runId: battle.run.runId, summary, requestId: requestId() }); await refresh(); } catch (error) { showToast(errorText(error, "戦闘記録を保存できませんでした。")); }
   $("battleScreen").hidden = true; $("resultLabel").textContent = won ? "MISSION COMPLETE" : "MISSION FAILED"; $("resultTitle").textContent = result?.unlockedCap ? "限界突破成功" : won ? "防衛成功" : "防衛失敗";
   $("resultBody").innerHTML = `<p>${escapeHtml(reason)}</p><div class="result-stats"><article><span>到達</span><b>W${summary.wave}</b></article><article><span>撃退</span><b>${summary.kills}</b></article><article><span>EXP</span><b>+${result?.reward?.xp || 0}</b></article></div>${result?.unlockedCap ? `<p class="limit-unlocked"><b>レベル上限 Lv.${result.unlockedCap} 解放</b></p>` : ""}${result?.firstClear ? `<p><b>初回クリア報酬 +${result.reward.gachaPoints}GP</b></p>` : ""}${result?.character ? `<p>${escapeHtml(result.character.name)} Lv.${result.character.level}</p>` : ""}`;
   $("resultScreen").hidden = false;
+  mediguardAudio.playMusic("home");
 }
 function beginCharge() { if (!battle?.running || battle.player.rapid > 0) { fire(1); return; } battle.chargeStart = performance.now(); }
 function releaseCharge() { if (!battle?.running) return; const held = battle.chargeStart ? performance.now() - battle.chargeStart : 0; battle.chargeStart = 0; fire(1 + Math.min(2, held / (900 / charStats().charge))); }
@@ -361,9 +456,43 @@ function setupJoystick() {
   const end = (event) => { if (stick.pointer !== event.pointerId) return; stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 }; knob.style.transform = ""; area.classList.remove("active"); area.style.left = ""; area.style.top = ""; area.style.bottom = ""; };
   screen.addEventListener("pointerup", end); screen.addEventListener("pointercancel", end);
 }
+function applyControlMode(mode, announce = false) {
+  controlMode = mode === "joystick" ? "joystick" : "dpad";
+  localStorage.setItem(CONTROL_STORAGE_KEY, controlMode);
+  $("joystick").hidden = controlMode !== "joystick";
+  $("directionPad").hidden = controlMode !== "dpad";
+  document.querySelectorAll("[data-control-mode]").forEach((button) => {
+    const selected = button.dataset.controlMode === controlMode;
+    button.classList.toggle("selected", selected); button.setAttribute("aria-checked", String(selected));
+  });
+  stick.x = 0; stick.y = 0; dpad = { up: false, down: false, left: false, right: false };
+  if (announce) showToast(controlMode === "dpad" ? "十字キー操作に変更しました。" : "スティック操作に変更しました。");
+}
+function setupDirectionPad() {
+  document.querySelectorAll("[data-direction]").forEach((button) => {
+    const direction = button.dataset.direction;
+    const press = (event) => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); dpad[direction] = true; button.classList.add("pressed"); };
+    const release = (event) => { event?.preventDefault?.(); dpad[direction] = false; button.classList.remove("pressed"); };
+    button.addEventListener("pointerdown", press);
+    ["pointerup", "pointercancel", "pointerleave"].forEach((name) => button.addEventListener(name, release));
+  });
+}
+function syncSettingsUi() {
+  const settings = mediguardAudio.settings;
+  $("bgmToggle").checked = settings.bgm; $("sfxToggle").checked = settings.sfx;
+  $("volumeSlider").value = String(Math.round(settings.volume * 100)); $("volumeValue").textContent = `${Math.round(settings.volume * 100)}%`;
+  applyControlMode(controlMode);
+}
+async function enterGame() {
+  await mediguardAudio.unlock(); mediguardAudio.sfx("open");
+  $("loadingMap").textContent = "防衛本部"; $("loadingPathogen").textContent = "キャラクターと作戦データを準備しています…"; $("loadingScreen").hidden = false;
+  await new Promise((resolve) => setTimeout(resolve, 720));
+  $("titleScreen").hidden = true; $("gameApp").hidden = false; $("loadingScreen").hidden = true; showView("home");
+}
 function bindEvents() {
-  $("startButton").addEventListener("click", () => { $("titleScreen").hidden = true; $("gameApp").hidden = false; showView("home"); });
+  $("startButton").addEventListener("click", () => { void enterGame(); });
   $("gameExitButton").addEventListener("click", () => { window.location.href = "index.html"; }); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", () => startBattle("startRun"));
+  $("settingsButton").addEventListener("click", () => showView("settings"));
   $("limitBreakChallenge").addEventListener("click", () => startBattle("startLimitBreak"));
   document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
   document.querySelectorAll("[data-draw]").forEach((button) => button.addEventListener("click", () => drawGacha(Number(button.dataset.draw))));
@@ -379,6 +508,12 @@ function bindEvents() {
     if (event.target.closest("[data-keep-dialog]")) $("dialog").hidden = true;
   });
   setupJoystick();
+  setupDirectionPad(); syncSettingsUi();
+  document.querySelectorAll("[data-control-mode]").forEach((button) => button.addEventListener("click", () => applyControlMode(button.dataset.controlMode, true)));
+  $("bgmToggle").addEventListener("change", () => mediguardAudio.update({ bgm: $("bgmToggle").checked }));
+  $("sfxToggle").addEventListener("change", () => mediguardAudio.update({ sfx: $("sfxToggle").checked }));
+  $("volumeSlider").addEventListener("input", () => { const volume = Number($("volumeSlider").value) / 100; $("volumeValue").textContent = `${Math.round(volume * 100)}%`; mediguardAudio.update({ volume }); });
+  document.querySelector("#gameShell").addEventListener("click", (event) => { if (event.target.closest("button") && event.target.id !== "attackButton" && event.target.id !== "skillButton") mediguardAudio.sfx("button"); });
   $("attackButton").addEventListener("pointerdown", (event) => { event.preventDefault(); $("attackButton").setPointerCapture(event.pointerId); beginCharge(); }); $("attackButton").addEventListener("pointerup", (event) => { event.preventDefault(); releaseCharge(); }); $("attackButton").addEventListener("pointercancel", releaseCharge);
   $("skillButton").addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); $("skillButton").classList.add("pressed"); useSkill(); });
   ["pointerup", "pointercancel", "pointerleave"].forEach((name) => $("skillButton").addEventListener(name, () => $("skillButton").classList.remove("pressed")));
