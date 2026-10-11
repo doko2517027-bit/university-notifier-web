@@ -112,6 +112,19 @@ test("ガチャ結果確定後にレア度別演出を再生し、スキップ�
   assert.match(server, /transaction\.create\(opRef, \{ type: "gacha", result/);
 });
 
+test("個体ごとのレベル上限到達後だけ限界突破ボスへ挑戦して上限を10解放する", async () => {
+  const [page, client, server] = await Promise.all([read("./mediguard.html"), read("./mediguard.js"), read("./functions/mediguard.js")]);
+  assert.match(page, /id="limitBreakView"/);
+  assert.match(page, /id="limitBreakChallenge"/);
+  assert.match(client, /startBattle\("startLimitBreak"\)/);
+  assert.match(client, /battle\.run\.limitBreak/);
+  assert.match(server, /async function startLimitBreak/);
+  assert.match(server, /current\.level < current\.levelCap/);
+  assert.match(server, /Math\.min\(100, current\.levelCap \+ 10\)/);
+  assert.match(server, /levelCap: unlockedCap/);
+  assert.match(server, /action === "startLimitBreak"/);
+});
+
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
   assert.match(page, /id="gameExitButton"/);

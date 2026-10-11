@@ -185,6 +185,25 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
       transaction.create(opRef, { type: "start_run", result, createdAt: new Date() }); return result;
     });
   }
+  async function startLimitBreak(request) {
+    const studentNumber = requireTester(request); const requestId = operationId(request.data?.requestId); await ensurePlayer(studentNumber);
+    const config = await loadMediguardConfig(db);
+    if (!config.settings.gameEnabled) throw new HttpsError("failed-precondition", "現在メディガはメンテナンス中です。");
+    return db.runTransaction(async (transaction) => {
+      const stateRef = playerRef(studentNumber); const opRef = operationRef(studentNumber, requestId);
+      const [state, op] = await Promise.all([transaction.get(stateRef), transaction.get(opRef)]); if (op.exists) return op.data().result;
+      const selected = String(state.data()?.selectedCharacterId || ""); const character = await transaction.get(characterRef(studentNumber, selected));
+      if (!character.exists) throw new HttpsError("failed-precondition", "出撃キャラクターを選択してください。");
+      const current = publicCharacter({ id: selected, data: () => character.data() }, config.characters);
+      if (current.level < current.levelCap) throw new HttpsError("failed-precondition", `Lv.${current.levelCap}到達後に挑戦できます。`);
+      if (current.levelCap >= 100) throw new HttpsError("failed-precondition", "現在の限界レベルまで解放済みです。");
+      const targetCap = Math.min(100, current.levelCap + 10); const runId = crypto.randomUUID().replaceAll("-", "");
+      const map = { id: `limit_${targetCap}`, name: `限界突破 Lv.${targetCap}`, pathogen: "免疫暴走体", weapon: "高濃度薬剤弾", firstClearPoints: 0 };
+      const result = { runId, map, character: current, seed: crypto.randomInt(1, 2 ** 30), waves: 3, timeLimitSeconds: 120, limitBreak: true, targetCap, bossName: `免疫暴走体・第${targetCap / 10 - 4}形態` };
+      transaction.create(runRef(studentNumber, runId), { runId, mode: "limitBreak", mapId: map.id, map, targetCap, characterInstanceId: selected, seed: result.seed, status: "active", startedAt: new Date(), createdAtMs: Date.now() });
+      transaction.create(opRef, { type: "start_limit_break", result, createdAt: new Date() }); return result;
+    });
+  }
   async function finishRun(request) {
     const studentNumber = requireTester(request); const runId = operationId(request.data?.runId); const summary = request.data?.summary || {};
     const requestId = operationId(request.data?.requestId);
@@ -193,16 +212,19 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
       const run = await transaction.get(runRef(studentNumber, runId)); if (!run.exists) throw new HttpsError("not-found", "戦闘記録が見つかりません。");
       if (run.data()?.status === "finished") return run.data().result;
       if (run.data()?.status !== "active" || !isPlausibleRun(summary, run.data()?.createdAtMs)) throw new HttpsError("failed-precondition", "戦闘結果を確認できませんでした。");
-      const map = MAPS.find((item) => item.id === run.data()?.mapId); const stateRef = playerRef(studentNumber);
+      const limitBreak = run.data()?.mode === "limitBreak";
+      const map = limitBreak ? run.data()?.map : MAPS.find((item) => item.id === run.data()?.mapId); const stateRef = playerRef(studentNumber);
       const [state, character, operation] = await Promise.all([
         transaction.get(stateRef), transaction.get(characterRef(studentNumber, run.data()?.characterInstanceId)), transaction.get(operationRef(studentNumber, requestId)),
       ]);
       if (operation.exists) return operation.data().result;
       const firstClears = Array.isArray(state.data()?.firstClears) ? state.data().firstClears : [];
-      const firstClear = !firstClears.includes(map.id); const reward = runReward(summary, map, firstClear);
+      const firstClear = !limitBreak && !firstClears.includes(map.id); const reward = runReward(summary, map, firstClear);
       const advanced = applyExperience({ ...character.data(), levelCap: Number(character.data()?.levelCap || INITIAL_LEVEL_CAP) }, reward.xp);
-      const result = { reward, firstClear: reward.won && firstClear, map, character: publicCharacter({ id: character.id, data: () => advanced.character }, config.characters) };
-      transaction.update(character.ref, { level: advanced.character.level, xp: advanced.character.xp, updatedAt: new Date() });
+      const unlockedCap = limitBreak && reward.won ? Math.min(100, Number(run.data()?.targetCap || advanced.character.levelCap)) : advanced.character.levelCap;
+      advanced.character.levelCap = unlockedCap;
+      const result = { reward, firstClear: reward.won && firstClear, map, limitBreak, unlockedCap: limitBreak && reward.won ? unlockedCap : null, character: publicCharacter({ id: character.id, data: () => advanced.character }, config.characters) };
+      transaction.update(character.ref, { level: advanced.character.level, xp: advanced.character.xp, levelCap: unlockedCap, updatedAt: new Date() });
       transaction.update(stateRef, {
         gachaPoints: Number(state.data()?.gachaPoints || 0) + reward.gachaPoints,
         firstClears: result.firstClear ? [...firstClears, map.id] : firstClears,
@@ -223,6 +245,7 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
     if (action === "favorite") return favoriteCharacter(request);
     if (action === "duplicate") return resolveDuplicate(request);
     if (action === "startRun") return startRun(request);
+    if (action === "startLimitBreak") return startLimitBreak(request);
     if (action === "finishRun") return finishRun(request);
     throw new HttpsError("invalid-argument", "操作を確認してください。");
   }

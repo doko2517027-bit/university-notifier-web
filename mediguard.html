@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261012-10" />
+    <link rel="stylesheet" href="mediguard.css?v=20261012-11" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -45,7 +45,7 @@
             <button data-view="records"><span>▥</span><b>記録</b></button>
             <button data-view="help"><span>?</span><b>遊び方</b></button>
             <button class="soon" disabled><span>⌁</span><b>協力プレイ</b></button>
-            <button class="soon" disabled><span>♜</span><b>限界突破</b></button>
+            <button id="limitBreakButton" data-view="limitBreak"><span>♜</span><b>限界突破</b></button>
           </div>
         </section>
 
@@ -68,6 +68,18 @@
           <div id="recordGrid" class="record-grid"></div>
           <h3 class="section-title">臓器別・初回クリア</h3><div id="mapRecords" class="map-records"></div>
           <h3 class="section-title">最近の出撃</h3><div id="runHistory" class="run-history"></div>
+        </section>
+
+        <section id="limitBreakView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>LIMIT BREAK</small><h2>限界突破</h2></div><button data-view="home">もどる</button></div>
+          <div class="limit-break-stage">
+            <div class="limit-boss-mark"><span>☣</span></div>
+            <small>専用ボス</small><h3 id="limitBossName">免疫暴走体</h3>
+            <p id="limitBreakStatus">キャラクターの成長状態を確認中</p>
+            <div class="limit-cap-route"><b id="currentLevelCap">Lv.50</b><i>→</i><strong id="nextLevelCap">Lv.60</strong></div>
+            <button id="limitBreakChallenge" type="button">限界突破戦へ出撃</button>
+          </div>
+          <p class="medical-note">レベル上限に到達した個体だけが挑戦できます。勝利すると、その個体だけの上限が10上がります。失敗してもキャラクターやポイントは失いません。</p>
         </section>
 
         <section id="helpView" class="game-view panel-view" hidden>
@@ -117,6 +129,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261012-12"></script>
+    <script type="module" src="mediguard.js?v=20261012-13"></script>
   </body>
 </html>

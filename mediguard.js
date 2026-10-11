@@ -48,7 +48,7 @@ function render() {
   $("gachaPoints").textContent = format(dashboard.player.gachaPoints);
   $("selectedName").textContent = character.name; $("selectedLevel").textContent = character.level;
   $("selectedCharacter").querySelector("span").className = spriteClass(character.sprite);
-  renderCharacters(); renderRecords(); renderGachaBanners();
+  renderCharacters(); renderRecords(); renderGachaBanners(); renderLimitBreak();
 }
 function selectedBanner() {
   return dashboard?.banners?.find((item) => item.id === selectedBannerId)
@@ -65,10 +65,10 @@ function renderGachaBanners() {
   document.querySelectorAll("[data-draw]").forEach((button) => { button.disabled = !current; });
 }
 function showView(name) {
-  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView" };
+  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView", limitBreak: "limitBreakView" };
   document.querySelectorAll(".game-view").forEach((view) => { view.hidden = true; });
   $(ids[name] || ids.home).hidden = false;
-  $("screenTitle").textContent = { home: "メディガード！", characters: "キャラクター", gacha: "キャラガチャ", records: "防衛記録", help: "遊び方" }[name] || "メディガード！";
+  $("screenTitle").textContent = { home: "メディガード！", characters: "キャラクター", gacha: "キャラガチャ", records: "防衛記録", help: "遊び方", limitBreak: "限界突破" }[name] || "メディガード！";
 }
 function renderCharacters() {
   $("characterList").innerHTML = dashboard.characters.map((item) => {
@@ -86,6 +86,14 @@ function renderRecords() {
   const cleared = new Set(dashboard.player.firstClears || []);
   $("mapRecords").innerHTML = dashboard.maps.map((map) => `<article><b>${escapeHtml(map.name)}</b><small>${cleared.has(map.id) ? "✓ 初回報酬獲得済み" : `未クリア · 初回${map.firstClearPoints}GP`}</small></article>`).join("");
   $("runHistory").innerHTML = dashboard.history.length ? dashboard.history.map((run) => `<p>${run.result?.reward?.won ? "✓ 防衛成功" : "× 防衛失敗"} · ${escapeHtml(run.result?.map?.name || run.mapId)} · ${format(run.summary?.kills)}体撃退</p>`).join("") : "<p>まだ出撃記録がありません。</p>";
+}
+function renderLimitBreak() {
+  const character = selectedCharacter(); if (!character) return;
+  const capped = character.level >= character.levelCap; const complete = character.levelCap >= 100; const next = Math.min(100, character.levelCap + 10);
+  $("currentLevelCap").textContent = `Lv.${character.levelCap}`; $("nextLevelCap").textContent = complete ? "解放完了" : `Lv.${next}`;
+  $("limitBossName").textContent = complete ? "すべての限界を突破済み" : `免疫暴走体・第${next / 10 - 4}形態`;
+  $("limitBreakStatus").textContent = complete ? `${character.name}は現在の最大上限Lv.100まで解放済みです。` : capped ? `${character.name} Lv.${character.level}：挑戦できます。` : `${character.name}はあと${character.levelCap - character.level}レベルで挑戦できます。`;
+  $("limitBreakChallenge").disabled = complete || !capped; $("limitBreakChallenge").textContent = complete ? "限界突破完了" : capped ? "限界突破戦へ出撃" : `Lv.${character.levelCap}で解放`;
 }
 function openDialog(title, html) { $("dialogTitle").textContent = title; $("dialogBody").innerHTML = html; $("dialog").hidden = false; }
 function playGachaCinematic(results, banner) {
@@ -181,10 +189,12 @@ function spawnWave() {
     let x; let y; do { x = 110 + Math.random() * (WORLD.width - 220); y = 110 + Math.random() * (WORLD.height - 220); } while (Math.hypot(x - battle.player.x, y - battle.player.y) < 330);
     battle.holes.push({ x, y, timer: 1 + index * .16, type: (mapIndex() * 2 + (battle.wave > 2 ? 1 : 0)) % 12, wave: battle.wave });
   }
+  if (battle.run.limitBreak && battle.wave === battle.run.waves) battle.holes.push({ x: WORLD.width / 2, y: 180, timer: 2.1, type: 11, wave: battle.wave, boss: true });
 }
 function spawnEnemy(hole) {
-  const strong = hole.type >= 6; const scale = 1 + (battle.run.character.level - 1) * .012 + (battle.wave - 1) * .18;
-  battle.enemies.push({ x: hole.x, y: hole.y, radius: strong ? 29 : 23, hp: (strong ? 44 : 25) * scale, maxHp: (strong ? 44 : 25) * scale, speed: (strong ? 52 : 68) * (1 + battle.wave * .07), type: hole.type, flash: 0 });
+  const strong = hole.type >= 6; const scale = 1 + (battle.run.character.level - 1) * .012 + (battle.wave - 1) * .18; const boss = hole.boss === true;
+  const hp = (boss ? 180 : strong ? 44 : 25) * scale;
+  battle.enemies.push({ x: hole.x, y: hole.y, radius: boss ? 46 : strong ? 29 : 23, hp, maxHp: hp, speed: (boss ? 43 : strong ? 52 : 68) * (1 + battle.wave * .07), type: hole.type, boss, flash: 0 });
 }
 function fire(power = 1, direction = battle.player.direction, spread = 0, piercing = false) {
   if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
@@ -313,10 +323,10 @@ function drawBattle() {
   const vignette = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * .2, width / 2, height / 2, Math.max(width, height) * .72); vignette.addColorStop(0, "rgba(5,18,25,0)"); vignette.addColorStop(1, "rgba(5,18,25,.36)"); ctx.fillStyle = vignette; ctx.fillRect(0, 0, width, height);
 }
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }
-async function startBattle() {
+async function startBattle(action = "startRun") {
   if (busy) return; setBusy(true);
   try {
-    const run = await api("startRun", { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = `${run.map.pathogen} / ${run.map.weapon}`; $("loadingScreen").hidden = false;
+    const run = await api(action, { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = run.limitBreak ? `${run.bossName} / 上限解放戦` : `${run.map.pathogen} / ${run.map.weapon}`; $("loadingScreen").hidden = false;
     await new Promise((resolve) => setTimeout(resolve, 1450)); battle = newBattle(run); $("battleMapName").textContent = run.map.name; $("waveText").textContent = `0 / ${run.waves}`; $("loadingScreen").hidden = true; $("battleScreen").hidden = false; $("respawnPanel").hidden = true; updateHud(); lastFrame = performance.now(); cancelAnimationFrame(frameId); frameId = requestAnimationFrame(gameLoop);
   } catch (error) { showToast(errorText(error)); $("loadingScreen").hidden = true; }
   finally { setBusy(false); }
@@ -325,8 +335,8 @@ async function finishBattle(won, reason) {
   if (!battle || battle.ended) return; battle.ended = true; battle.running = false; cancelAnimationFrame(frameId);
   const summary = { won, wave: battle.wave, kills: battle.kills, shots: battle.shots, damageTaken: 3 * (3 - battle.player.lives) + battle.player.hits, durationMs: Math.round(Math.max(3000, battle.elapsed)) };
   let result = null; try { result = await api("finishRun", { runId: battle.run.runId, summary, requestId: requestId() }); await refresh(); } catch (error) { showToast(errorText(error, "戦闘記録を保存できませんでした。")); }
-  $("battleScreen").hidden = true; $("resultLabel").textContent = won ? "MISSION COMPLETE" : "MISSION FAILED"; $("resultTitle").textContent = won ? "防衛成功" : "防衛失敗";
-  $("resultBody").innerHTML = `<p>${escapeHtml(reason)}</p><div class="result-stats"><article><span>到達</span><b>W${summary.wave}</b></article><article><span>撃退</span><b>${summary.kills}</b></article><article><span>EXP</span><b>+${result?.reward?.xp || 0}</b></article></div>${result?.firstClear ? `<p><b>初回クリア報酬 +${result.reward.gachaPoints}GP</b></p>` : ""}${result?.character ? `<p>${escapeHtml(result.character.name)} Lv.${result.character.level}</p>` : ""}`;
+  $("battleScreen").hidden = true; $("resultLabel").textContent = won ? "MISSION COMPLETE" : "MISSION FAILED"; $("resultTitle").textContent = result?.unlockedCap ? "限界突破成功" : won ? "防衛成功" : "防衛失敗";
+  $("resultBody").innerHTML = `<p>${escapeHtml(reason)}</p><div class="result-stats"><article><span>到達</span><b>W${summary.wave}</b></article><article><span>撃退</span><b>${summary.kills}</b></article><article><span>EXP</span><b>+${result?.reward?.xp || 0}</b></article></div>${result?.unlockedCap ? `<p class="limit-unlocked"><b>レベル上限 Lv.${result.unlockedCap} 解放</b></p>` : ""}${result?.firstClear ? `<p><b>初回クリア報酬 +${result.reward.gachaPoints}GP</b></p>` : ""}${result?.character ? `<p>${escapeHtml(result.character.name)} Lv.${result.character.level}</p>` : ""}`;
   $("resultScreen").hidden = false;
 }
 function beginCharge() { if (!battle?.running || battle.player.rapid > 0) { fire(1); return; } battle.chargeStart = performance.now(); }
@@ -353,7 +363,8 @@ function setupJoystick() {
 }
 function bindEvents() {
   $("startButton").addEventListener("click", () => { $("titleScreen").hidden = true; $("gameApp").hidden = false; showView("home"); });
-  $("gameExitButton").addEventListener("click", () => { window.location.href = "index.html"; }); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", startBattle);
+  $("gameExitButton").addEventListener("click", () => { window.location.href = "index.html"; }); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", () => startBattle("startRun"));
+  $("limitBreakChallenge").addEventListener("click", () => startBattle("startLimitBreak"));
   document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
   document.querySelectorAll("[data-draw]").forEach((button) => button.addEventListener("click", () => drawGacha(Number(button.dataset.draw))));
   $("ratesButton").addEventListener("click", showRates); $("dialogClose").addEventListener("click", () => { $("dialog").hidden = true; });
