@@ -72,6 +72,13 @@ test("スマホ縦横・タブレット・PCでゲーム全体は画面外へス
   assert.doesNotMatch(page, /class="bottom-nav game-bottom-nav"/);
 });
 
+test("メディガ内だけ文字選択・長押しコピー・画像ドラッグを無効にする", async () => {
+  const css = await read("./mediguard.css");
+  assert.match(css, /\.mediguard-body\{[^}]*-webkit-user-select:none;user-select:none/);
+  assert.match(css, /\.mediguard-body \*\{[^}]*-webkit-user-select:none;user-select:none/);
+  assert.match(css, /\.mediguard-body img,\.mediguard-body canvas\{[^}]*-webkit-user-drag:none/);
+});
+
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
   assert.match(page, /aria-label="CareMateホームへ"/);
