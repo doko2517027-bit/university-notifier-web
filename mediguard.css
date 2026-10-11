@@ -18,8 +18,9 @@
 /* Full-screen game controls and compact landscape layout. */
 :root{--mg-line:rgba(21,61,67,.09)}
 .game-shell{inset:0}
+.game-exit-button{position:absolute;z-index:20;left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));display:grid;place-items:center;width:44px;height:44px;border:1px solid #91f8e349;border-radius:13px;background:#071f2dc7;box-shadow:0 6px 20px #00131d66;color:#eafffa!important;font-size:25px;font-weight:800;backdrop-filter:blur(5px)}
 .title-back{position:absolute;z-index:2;left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;gap:7px;min-height:44px;padding:8px 13px;border:1px solid #ffffff24;border-radius:13px;background:#143e456b;color:#fff;text-decoration:none;font-size:14px;font-weight:800;backdrop-filter:blur(5px)}
-.game-header{grid-template-columns:48px minmax(0,1fr) auto;padding:7px 12px;border-bottom:1px solid #ffffff14;box-shadow:0 3px 14px #153d4324}
+.game-header{grid-template-columns:minmax(0,1fr) auto;padding:7px 12px 7px 66px;border-bottom:1px solid #ffffff14;box-shadow:0 3px 14px #153d4324}
 .icon-button{width:44px;height:44px;border-color:#ffffff24;border-radius:13px;font-size:25px}
 .point-pill{min-height:40px;border:1px solid #ffffff12}
 .home-menu button{min-height:56px;padding:8px 5px;border-color:var(--mg-line)}
@@ -40,7 +41,7 @@
 .game-bottom-nav{display:none!important}
 
 @media(orientation:landscape) and (max-height:600px){
-  .game-app{grid-template-rows:48px minmax(0,1fr)}.game-header{height:48px;padding:3px 10px}.icon-button{width:40px;height:40px}.point-pill{min-height:36px;padding:5px 8px}
+  .game-app{grid-template-rows:48px minmax(0,1fr)}.game-header{height:48px;padding:3px 10px 3px 58px}.game-exit-button{left:max(8px,env(safe-area-inset-left));top:max(5px,env(safe-area-inset-top));width:38px;height:38px}.icon-button{width:40px;height:40px}.point-pill{min-height:36px;padding:5px 8px}
   .home-view{grid-template-columns:minmax(140px,.9fr) minmax(150px,.9fr) minmax(210px,1.2fr);grid-template-rows:auto minmax(0,1fr) auto;gap:4px 10px;padding:5px 10px}
   .home-info{grid-column:2;gap:5px}.home-info strong{font-size:15px}.home-info b{padding:3px 6px}.selected-character{grid-column:2;grid-row:2;width:min(34vh,150px);height:min(34vh,150px)}
   .home-info>span{display:none}.home-info{justify-content:center}

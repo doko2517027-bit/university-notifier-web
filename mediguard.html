@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261011-5" />
+    <link rel="stylesheet" href="mediguard.css?v=20261011-6" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -17,8 +17,8 @@
     </section>
 
     <main id="gameShell" class="game-shell" hidden>
+      <button id="gameExitButton" class="game-exit-button" type="button" aria-label="CareMateホームへ戻る">←</button>
       <section id="titleScreen" class="title-screen">
-        <a class="title-back" href="index.html" aria-label="CareMateホームへ戻る">← <span>CareMate</span></a>
         <div class="title-grid" aria-hidden="true"></div>
         <div class="title-badge">CareMate × BODY DEFENSE</div>
         <div class="title-character character-sprite sprite-0"></div>
@@ -30,7 +30,6 @@
 
       <section id="gameApp" class="game-app" hidden>
         <header class="game-header">
-          <button id="homeButton" class="icon-button" type="button" aria-label="CareMateホームへ">←</button>
           <div><small>BODY DEFENSE UNIT</small><strong id="screenTitle">メディガード！</strong></div>
           <div class="point-pill"><span>GP</span><b id="gachaPoints">0</b></div>
         </header>
@@ -109,6 +108,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261011-7"></script>
+    <script type="module" src="mediguard.js?v=20261011-8"></script>
   </body>
 </html>

@@ -82,8 +82,9 @@ test("メディガ内だけ文字選択・長押しコピー・画像ドラッ�
 
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
-  assert.match(page, /aria-label="CareMateホームへ"/);
-  assert.match(page, /class="title-back" href="index\.html"/);
+  assert.match(page, /id="gameExitButton"/);
+  assert.doesNotMatch(page, /id="homeButton"/);
+  assert.doesNotMatch(page, /class="title-back"/);
   assert.match(client, /window\.location\.href = "index\.html"/);
   assert.match(client, /stick\.baseX \+=/);
   assert.match(client, /screen\.setPointerCapture/);
