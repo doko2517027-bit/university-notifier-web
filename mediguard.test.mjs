@@ -69,16 +69,21 @@ test("スマホ縦横・タブレット・PCでゲーム全体は画面外へス
   assert.match(css, /env\(safe-area-inset-bottom\)/);
 });
 
-test("オリジナルのキャラクター・病原体・タブ画像を実際に使用する", async () => {
+test("味方・敵キャラは固定マスではなく輪郭透過PNGを実際に使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
-  assert.match(css, /mediguard-characters\.png/);
-  assert.match(client, /mediguard-pathogens\.png/);
+  assert.match(css, /mediguard-sprites\/character-0\.png/);
+  assert.match(css, /background-size:contain/);
+  assert.match(client, /loadSpriteSet\("character", 10\)/);
+  assert.match(client, /loadSpriteSet\("pathogen", 12\)/);
+  assert.match(client, /function drawCutout\(/);
+  assert.doesNotMatch(client, /function drawAtlas\(/);
   assert.match(page, /images\/mediguard-tab\.svg/);
-  await Promise.all([
-    access(new URL("./images/mediguard-characters.png", import.meta.url)),
-    access(new URL("./images/mediguard-pathogens.png", import.meta.url)),
-    access(new URL("./images/mediguard-tab.svg", import.meta.url)),
-  ]);
+  const sprites = [
+    ...Array.from({ length: 10 }, (_, index) => `./images/mediguard-sprites/character-${index}.png`),
+    ...Array.from({ length: 12 }, (_, index) => `./images/mediguard-sprites/pathogen-${index}.png`),
+    "./images/mediguard-tab.svg",
+  ];
+  await Promise.all(sprites.map((path) => access(new URL(path, import.meta.url))));
 });
 
 test("未完成の協力プレイは実装済みと誤認させず次段階として明示する", async () => {

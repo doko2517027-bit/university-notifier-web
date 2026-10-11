@@ -17,10 +17,13 @@ let frameId = 0;
 let lastFrame = 0;
 let keyState = new Set();
 let stick = { x: 0, y: 0, pointer: null };
-let characterImage = new Image();
-let pathogenImage = new Image();
-characterImage.src = "images/mediguard-characters.png";
-pathogenImage.src = "images/mediguard-pathogens.png";
+const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
+  const image = new Image();
+  image.src = `images/mediguard-sprites/${prefix}-${index}.png`;
+  return image;
+});
+const characterImages = loadSpriteSet("character", 10);
+const pathogenImages = loadSpriteSet("pathogen", 12);
 
 function requestId() { return crypto.randomUUID ? crypto.randomUUID().replaceAll("-", "") : `${Date.now()}_${crypto.getRandomValues(new Uint32Array(4)).join("_")}`; }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]); }
@@ -195,9 +198,13 @@ function updateHud() {
   const charge = battle.chargeStart ? Math.min(100, (performance.now() - battle.chargeStart) / (1200 / charStats().charge) * 100) : 0; $("attackButton").style.setProperty("--progress", charge);
   const cooldown = charStats().cooldown; const progress = battle.skillCooldown ? Math.max(0, 100 - battle.skillCooldown / cooldown * 100) : 100; $("skillButton").style.setProperty("--progress", progress); $("skillButton").classList.toggle("cooling", battle.skillCooldown > 0); $("skillCooldown").textContent = battle.skillCooldown > 0 ? Math.ceil(battle.skillCooldown) : "";
 }
-function drawAtlas(ctx, image, columns, rows, index, x, y, width, height) {
-  if (!image.complete || !image.naturalWidth) return; const cellW = image.naturalWidth / columns; const cellH = image.naturalHeight / rows; const col = index % columns; const row = Math.floor(index / columns);
-  ctx.drawImage(image, col * cellW, row * cellH, cellW, cellH, x - width / 2, y - height / 2, width, height);
+function drawCutout(ctx, images, index, x, y, maxWidth, maxHeight) {
+  const image = images[Math.max(0, Math.min(images.length - 1, Number(index || 0)))];
+  if (!image?.complete || !image.naturalWidth) return;
+  const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
 }
 function drawBattle() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
@@ -208,8 +215,8 @@ function drawBattle() {
   ctx.globalAlpha = .32; ctx.strokeStyle = colors[2]; ctx.lineWidth = 4; for (let x = 0; x <= WORLD.width; x += 260) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.bezierCurveTo(x + 120, 300, x - 100, 700, x + 80, WORLD.height); ctx.stroke(); } ctx.globalAlpha = 1;
   battle.holes.forEach((hole) => { const pulse = .7 + Math.sin(performance.now() / 90) * .15; ctx.fillStyle = hole.spawned ? "#351f2e" : `rgba(100,28,57,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.spawned ? 28 : 34 + pulse * 8, 0, Math.PI * 2); ctx.fill(); if (!hole.spawned) { ctx.strokeStyle = "#ffd38a"; ctx.lineWidth = 3; ctx.stroke(); } });
   battle.projectiles.forEach((shot) => { ctx.fillStyle = shot.piercing ? "#ffe27a" : "#92f4df"; ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.radius, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); });
-  battle.enemies.forEach((enemy) => { ctx.save(); if (enemy.flash > 0) ctx.globalAlpha = .45; drawAtlas(ctx, pathogenImage, 6, 2, enemy.type, enemy.x, enemy.y, enemy.radius * 3.5, enemy.radius * 3.5); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#2b1d28aa"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44, 4); ctx.fillStyle = "#e96a6a"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44 * hp, 4); });
-  if (!battle.player.hidden) { ctx.save(); if (battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2) ctx.globalAlpha = .3; drawAtlas(ctx, characterImage, 5, 2, battle.run.character.sprite, battle.player.x, battle.player.y, 86, 86); ctx.restore(); const d = battle.player.direction; ctx.strokeStyle = "#d6fff6a8"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(battle.player.x, battle.player.y); ctx.lineTo(battle.player.x + d.x * 48, battle.player.y + d.y * 48); ctx.stroke(); }
+  battle.enemies.forEach((enemy) => { ctx.save(); if (enemy.flash > 0) ctx.globalAlpha = .45; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y, enemy.radius * 3.5, enemy.radius * 3.5); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#2b1d28aa"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44, 4); ctx.fillStyle = "#e96a6a"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44 * hp, 4); });
+  if (!battle.player.hidden) { ctx.save(); if (battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2) ctx.globalAlpha = .3; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 86, 86); ctx.restore(); const d = battle.player.direction; ctx.strokeStyle = "#d6fff6a8"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(battle.player.x, battle.player.y); ctx.lineTo(battle.player.x + d.x * 48, battle.player.y + d.y * 48); ctx.stroke(); }
   ctx.strokeStyle = "#123940"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
 }
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }

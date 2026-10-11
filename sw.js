@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v103";
+const STATIC_CACHE = "caremate-static-v104";
 
-const RUNTIME_CACHE = "caremate-runtime-v103";
+const RUNTIME_CACHE = "caremate-runtime-v104";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -131,15 +131,34 @@ const CORE_ASSETS = [
 
   "mediguard.html",
 
-  "mediguard.css?v=20261011-1",
+  "mediguard.css?v=20261011-2",
 
-  "mediguard.js?v=20261011-4",
+  "mediguard.js?v=20261011-5",
 
   "images/mediguard-tab.svg",
 
-  "images/mediguard-characters.png",
-
-  "images/mediguard-pathogens.png",
+  "images/mediguard-sprites/character-0.png",
+  "images/mediguard-sprites/character-1.png",
+  "images/mediguard-sprites/character-2.png",
+  "images/mediguard-sprites/character-3.png",
+  "images/mediguard-sprites/character-4.png",
+  "images/mediguard-sprites/character-5.png",
+  "images/mediguard-sprites/character-6.png",
+  "images/mediguard-sprites/character-7.png",
+  "images/mediguard-sprites/character-8.png",
+  "images/mediguard-sprites/character-9.png",
+  "images/mediguard-sprites/pathogen-0.png",
+  "images/mediguard-sprites/pathogen-1.png",
+  "images/mediguard-sprites/pathogen-2.png",
+  "images/mediguard-sprites/pathogen-3.png",
+  "images/mediguard-sprites/pathogen-4.png",
+  "images/mediguard-sprites/pathogen-5.png",
+  "images/mediguard-sprites/pathogen-6.png",
+  "images/mediguard-sprites/pathogen-7.png",
+  "images/mediguard-sprites/pathogen-8.png",
+  "images/mediguard-sprites/pathogen-9.png",
+  "images/mediguard-sprites/pathogen-10.png",
+  "images/mediguard-sprites/pathogen-11.png",
 
   "quiz.html",
 
