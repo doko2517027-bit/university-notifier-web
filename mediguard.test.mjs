@@ -99,6 +99,19 @@ test("タクティカル表示と操作不能の危険警告を戦闘へ追加�
   assert.match(css, /\.threat-flash/);
 });
 
+test("ガチャ結果確定後にレア度別演出を再生し、スキップでも結果を変えない", async () => {
+  const [page, client, css, server] = await Promise.all([read("./mediguard.html"), read("./mediguard.js"), read("./mediguard.css"), read("./functions/mediguard.js")]);
+  assert.match(page, /id="gachaCinematic"/);
+  assert.match(page, /id="gachaSkipButton"/);
+  assert.match(client, /const result = await api\("draw"/);
+  assert.match(client, /await playGachaCinematic\(result\.results, banner\); await refresh\(\)/);
+  assert.match(client, /finishGachaCinematic\?\.\(\)/);
+  assert.match(css, /\.gacha-cinematic\.rarity-LR/);
+  assert.match(css, /\.gacha-cinematic\.effect-guaranteed/);
+  assert.match(css, /\.gacha-cinematic\.effect-surprise/);
+  assert.match(server, /transaction\.create\(opRef, \{ type: "gacha", result/);
+});
+
 test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
   const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
   assert.match(page, /id="gameExitButton"/);

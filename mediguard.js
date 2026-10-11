@@ -17,6 +17,7 @@ let frameId = 0;
 let lastFrame = 0;
 let keyState = new Set();
 let selectedBannerId = "";
+let finishGachaCinematic = null;
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
   const image = new Image();
@@ -87,6 +88,37 @@ function renderRecords() {
   $("runHistory").innerHTML = dashboard.history.length ? dashboard.history.map((run) => `<p>${run.result?.reward?.won ? "✓ 防衛成功" : "× 防衛失敗"} · ${escapeHtml(run.result?.map?.name || run.mapId)} · ${format(run.summary?.kills)}体撃退</p>`).join("") : "<p>まだ出撃記録がありません。</p>";
 }
 function openDialog(title, html) { $("dialogTitle").textContent = title; $("dialogBody").innerHTML = html; $("dialog").hidden = false; }
+function playGachaCinematic(results, banner) {
+  const order = { N: 0, R: 1, SR: 2, SSR: 3, UR: 4, LR: 5 };
+  const strongest = results.reduce((best, item) => order[item.rarity] > order[best] ? item.rarity : best, "N");
+  const rare = order[strongest] >= order.SSR;
+  const random = crypto.getRandomValues(new Uint32Array(1))[0] % 100;
+  const guaranteed = rare && random < 65;
+  const cinematic = $("gachaCinematic");
+  const timers = [];
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  cinematic.className = `gacha-cinematic rarity-${guaranteed ? strongest : "N"} ${guaranteed ? "effect-guaranteed" : "effect-standard"}`;
+  cinematic.hidden = false;
+  $("gachaCinematicCode").textContent = banner?.name || "MEDICAL UNIT SCAN";
+  $("gachaCinematicText").textContent = guaranteed ? "高密度反応を確認" : "解析を開始";
+  $("gachaCinematicRarity").textContent = guaranteed ? `${strongest} 確定反応` : "";
+  return new Promise((resolve) => {
+    let done = false;
+    const later = (callback, delay) => timers.push(setTimeout(callback, reduced ? Math.min(delay, 80) : delay));
+    const finish = () => {
+      if (done) return; done = true; timers.forEach(clearTimeout); cinematic.hidden = true; cinematic.className = "gacha-cinematic"; finishGachaCinematic = null; resolve();
+    };
+    finishGachaCinematic = finish;
+    later(() => cinematic.classList.add("phase-charge"), 120);
+    later(() => { cinematic.classList.add("phase-lock"); $("gachaCinematicText").textContent = guaranteed ? "確定シグナル接続" : "生命反応を照合中"; }, 1050);
+    later(() => {
+      cinematic.classList.add("phase-reveal");
+      if (rare && !guaranteed) { cinematic.classList.add(`rarity-${strongest}`, "effect-surprise"); $("gachaCinematicText").textContent = "反応上昇"; $("gachaCinematicRarity").textContent = `${strongest} UNIT`; }
+      else { $("gachaCinematicText").textContent = "ユニットを確認"; }
+    }, 2350);
+    later(finish, 3850);
+  });
+}
 function showRates() {
   const labels = { N: "ノーマル", R: "レア", SR: "SR", SSR: "SSR", UR: "UR", LR: "LR" };
   const banner = selectedBanner();
@@ -98,7 +130,8 @@ async function drawGacha(count) {
   try {
     const banner = selectedBanner();
     if (!banner) throw new Error("現在引けるガチャはありません。");
-    const result = await api("draw", { count, bannerId: banner.id, requestId: requestId() }); await refresh();
+    const result = await api("draw", { count, bannerId: banner.id, requestId: requestId() });
+    await playGachaCinematic(result.results, banner); await refresh();
     $("dialogTitle").textContent = "スキャン結果";
     $("dialogBody").innerHTML = `<div class="gacha-result">${result.results.map((item) => {
       const targets = dashboard.characters.filter((entry) => entry.characterId === item.characterId && entry.instanceId !== item.instanceId);
@@ -324,6 +357,7 @@ function bindEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
   document.querySelectorAll("[data-draw]").forEach((button) => button.addEventListener("click", () => drawGacha(Number(button.dataset.draw))));
   $("ratesButton").addEventListener("click", showRates); $("dialogClose").addEventListener("click", () => { $("dialog").hidden = true; });
+  $("gachaSkipButton").addEventListener("click", () => finishGachaCinematic?.());
   $("dialog").addEventListener("click", (event) => { if (event.target === $("dialog")) $("dialog").hidden = true; });
   document.addEventListener("click", async (event) => {
     const select = event.target.closest("[data-select]"); if (select) await mutate("select", { instanceId: select.dataset.select }, "出撃キャラクターを変更しました。");

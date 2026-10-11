@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261011-9" />
+    <link rel="stylesheet" href="mediguard.css?v=20261012-10" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -106,9 +106,17 @@
     </section>
 
     <div id="resultScreen" class="result-screen" hidden><section><small id="resultLabel">MISSION COMPLETE</small><h2 id="resultTitle">防衛成功</h2><div id="resultBody"></div><div><button id="retryButton" class="primary">もう一度出撃</button><button id="resultHome">ホームへ</button></div></section></div>
+    <section id="gachaCinematic" class="gacha-cinematic" hidden aria-live="polite">
+      <button id="gachaSkipButton" type="button">演出をスキップ</button>
+      <div class="gacha-lab-grid" aria-hidden="true"></div>
+      <div class="gacha-reactor" aria-hidden="true"><i></i><i></i><i></i><span>＋</span></div>
+      <div class="gacha-scan-line" aria-hidden="true"></div>
+      <div class="gacha-particles" aria-hidden="true"></div>
+      <div class="gacha-cinematic-copy"><small id="gachaCinematicCode">MEDICAL UNIT SCAN</small><strong id="gachaCinematicText">解析を開始</strong><b id="gachaCinematicRarity"></b></div>
+    </section>
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261011-11"></script>
+    <script type="module" src="mediguard.js?v=20261012-12"></script>
   </body>
 </html>
