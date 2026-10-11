@@ -62,11 +62,29 @@ test("6臓器マップ・臓器別初回報酬・個体別経験値を保存す�
 });
 
 test("スマホ縦横・タブレット・PCでゲーム全体は画面外へスクロールしない", async () => {
-  const css = await read("./mediguard.css");
+  const [css, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.html")]);
   assert.match(css, /html,body\{[^}]*overflow:hidden/);
   assert.match(css, /@media\(orientation:landscape\) and \(max-height:600px\)/);
+  assert.match(css, /@media\(orientation:landscape\) and \(max-height:430px\)/);
   assert.match(css, /@media\(min-width:900px\)/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
+  assert.match(css, /\.game-shell\{inset:0\}/);
+  assert.doesNotMatch(page, /class="bottom-nav game-bottom-nav"/);
+});
+
+test("ゲーム操作は追従スティック・大型ボタン・即応スキルを使用する", async () => {
+  const [css, client, page] = await Promise.all([read("./mediguard.css"), read("./mediguard.js"), read("./mediguard.html")]);
+  assert.match(page, /aria-label="CareMateホームへ"/);
+  assert.match(page, /class="title-back" href="index\.html"/);
+  assert.match(client, /window\.location\.href = "index\.html"/);
+  assert.match(client, /stick\.baseX \+=/);
+  assert.match(client, /screen\.setPointerCapture/);
+  assert.match(client, /skillButton"\)\.addEventListener\("pointerdown"/);
+  assert.match(client, /スキル再使用まで/);
+  assert.doesNotMatch(client, /ctx\.lineTo\(battle\.player\.x \+ d\.x \* 48/);
+  assert.match(css, /\.joystick\{[^}]*width:124px/);
+  assert.match(css, /\.battle-action\.attack\{[^}]*width:102px/);
+  assert.match(css, /\.battle-action\.skill\{[^}]*width:78px/);
 });
 
 test("味方・敵キャラは固定マスではなく輪郭透過PNGを実際に使用する", async () => {
@@ -77,7 +95,7 @@ test("味方・敵キャラは固定マスではなく輪郭透過PNGを実際�
   assert.match(client, /loadSpriteSet\("pathogen", 12\)/);
   assert.match(client, /function drawCutout\(/);
   assert.doesNotMatch(client, /function drawAtlas\(/);
-  assert.match(page, /images\/mediguard-tab\.svg/);
+  assert.doesNotMatch(page, /class="bottom-nav game-bottom-nav"/);
   const sprites = [
     ...Array.from({ length: 10 }, (_, index) => `./images/mediguard-sprites/character-${index}.png`),
     ...Array.from({ length: 12 }, (_, index) => `./images/mediguard-sprites/pathogen-${index}.png`),

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261011-2" />
+    <link rel="stylesheet" href="mediguard.css?v=20261011-3" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -18,6 +18,7 @@
 
     <main id="gameShell" class="game-shell" hidden>
       <section id="titleScreen" class="title-screen">
+        <a class="title-back" href="index.html" aria-label="CareMateホームへ戻る">← <span>CareMate</span></a>
         <div class="title-grid" aria-hidden="true"></div>
         <div class="title-badge">CareMate × BODY DEFENSE</div>
         <div class="title-character character-sprite sprite-0"></div>
@@ -29,7 +30,7 @@
 
       <section id="gameApp" class="game-app" hidden>
         <header class="game-header">
-          <button id="homeButton" class="icon-button" type="button" aria-label="ゲームホームへ">⌂</button>
+          <button id="homeButton" class="icon-button" type="button" aria-label="CareMateホームへ">←</button>
           <div><small>BODY DEFENSE UNIT</small><strong id="screenTitle">メディガード！</strong></div>
           <div class="point-pill"><span>GP</span><b id="gachaPoints">0</b></div>
         </header>
@@ -108,7 +109,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <nav class="bottom-nav game-bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">📅</span></span><span>カレンダー</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="mediguard.html" class="active"><span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" /></span><span>メディガード</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a></nav>
-    <script type="module" src="mediguard.js?v=20261011-5"></script>
+    <script type="module" src="mediguard.js?v=20261011-6"></script>
   </body>
 </html>

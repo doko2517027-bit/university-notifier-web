@@ -16,7 +16,7 @@ let battle = null;
 let frameId = 0;
 let lastFrame = 0;
 let keyState = new Set();
-let stick = { x: 0, y: 0, pointer: null };
+let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
   const image = new Image();
   image.src = `images/mediguard-sprites/${prefix}-${index}.png`;
@@ -134,7 +134,8 @@ function fire(power = 1, direction = battle.player.direction, spread = 0, pierci
   battle.shots += 1;
 }
 function useSkill() {
-  if (!battle?.running || battle.skillCooldown > 0 || battle.player.hidden || battle.countdown > 0) return;
+  if (!battle?.running || battle.player.hidden || battle.countdown > 0) return;
+  if (battle.skillCooldown > 0) { showBattleMessage(`スキル再使用まで ${Math.ceil(battle.skillCooldown)}秒`); return; }
   const id = battle.run.character.characterId; const stats = charStats(); battle.skillCooldown = stats.cooldown;
   if (id === "cell_maru" || id === "mint_dragon" || id === "chemist_tanuki" || id === "celestial_guard") {
     const shots = id === "chemist_tanuki" ? 16 : id === "celestial_guard" ? 12 : 10;
@@ -216,7 +217,7 @@ function drawBattle() {
   battle.holes.forEach((hole) => { const pulse = .7 + Math.sin(performance.now() / 90) * .15; ctx.fillStyle = hole.spawned ? "#351f2e" : `rgba(100,28,57,${pulse})`; ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.spawned ? 28 : 34 + pulse * 8, 0, Math.PI * 2); ctx.fill(); if (!hole.spawned) { ctx.strokeStyle = "#ffd38a"; ctx.lineWidth = 3; ctx.stroke(); } });
   battle.projectiles.forEach((shot) => { ctx.fillStyle = shot.piercing ? "#ffe27a" : "#92f4df"; ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.radius, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); });
   battle.enemies.forEach((enemy) => { ctx.save(); if (enemy.flash > 0) ctx.globalAlpha = .45; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y, enemy.radius * 3.5, enemy.radius * 3.5); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#2b1d28aa"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44, 4); ctx.fillStyle = "#e96a6a"; ctx.fillRect(enemy.x - 22, enemy.y - enemy.radius - 18, 44 * hp, 4); });
-  if (!battle.player.hidden) { ctx.save(); if (battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2) ctx.globalAlpha = .3; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 86, 86); ctx.restore(); const d = battle.player.direction; ctx.strokeStyle = "#d6fff6a8"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(battle.player.x, battle.player.y); ctx.lineTo(battle.player.x + d.x * 48, battle.player.y + d.y * 48); ctx.stroke(); }
+  if (!battle.player.hidden) { ctx.save(); if (battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2) ctx.globalAlpha = .3; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 86, 86); ctx.restore(); }
   ctx.strokeStyle = "#123940"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
 }
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }
@@ -239,14 +240,28 @@ async function finishBattle(won, reason) {
 function beginCharge() { if (!battle?.running || battle.player.rapid > 0) { fire(1); return; } battle.chargeStart = performance.now(); }
 function releaseCharge() { if (!battle?.running) return; const held = battle.chargeStart ? performance.now() - battle.chargeStart : 0; battle.chargeStart = 0; fire(1 + Math.min(2, held / (900 / charStats().charge))); }
 function setupJoystick() {
-  const area = $("joystick"); const knob = $("joystickKnob");
-  const move = (event) => { if (stick.pointer !== event.pointerId) return; const rect = area.getBoundingClientRect(); let x = event.clientX - (rect.left + rect.width / 2); let y = event.clientY - (rect.top + rect.height / 2); const max = rect.width * .34; const length = Math.hypot(x, y); if (length > max) { x = x / length * max; y = y / length * max; } stick.x = x / max; stick.y = y / max; knob.style.transform = `translate(${x}px,${y}px)`; };
-  area.addEventListener("pointerdown", (event) => { stick.pointer = event.pointerId; area.setPointerCapture(event.pointerId); move(event); }); area.addEventListener("pointermove", move);
-  const end = (event) => { if (stick.pointer !== event.pointerId) return; stick = { x: 0, y: 0, pointer: null }; knob.style.transform = ""; }; area.addEventListener("pointerup", end); area.addEventListener("pointercancel", end);
+  const screen = $("battleScreen"); const area = $("joystick"); const knob = $("joystickKnob");
+  const placeBase = (x, y) => { const size = area.offsetWidth; area.style.left = `${x - size / 2}px`; area.style.top = `${y - size / 2}px`; area.style.bottom = "auto"; };
+  const activate = (event) => {
+    if (stick.pointer !== null || !battle?.running) return false;
+    const rect = screen.getBoundingClientRect();
+    if (event.clientX > rect.left + rect.width * .56 || event.target.closest("button")) return false;
+    event.preventDefault(); stick.pointer = event.pointerId; stick.baseX = event.clientX; stick.baseY = event.clientY; area.classList.add("active"); placeBase(stick.baseX, stick.baseY); screen.setPointerCapture(event.pointerId); return true;
+  };
+  const move = (event) => {
+    if (stick.pointer !== event.pointerId) return;
+    const max = area.offsetWidth * .34; let x = event.clientX - stick.baseX; let y = event.clientY - stick.baseY; const length = Math.hypot(x, y);
+    if (length > max) { const overflow = length - max; stick.baseX += x / length * overflow; stick.baseY += y / length * overflow; placeBase(stick.baseX, stick.baseY); x = event.clientX - stick.baseX; y = event.clientY - stick.baseY; }
+    stick.x = x / max; stick.y = y / max; knob.style.transform = `translate(${x}px,${y}px)`;
+  };
+  screen.addEventListener("pointerdown", (event) => { if (activate(event)) move(event); });
+  screen.addEventListener("pointermove", move);
+  const end = (event) => { if (stick.pointer !== event.pointerId) return; stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 }; knob.style.transform = ""; area.classList.remove("active"); area.style.left = ""; area.style.top = ""; area.style.bottom = ""; };
+  screen.addEventListener("pointerup", end); screen.addEventListener("pointercancel", end);
 }
 function bindEvents() {
   $("startButton").addEventListener("click", () => { $("titleScreen").hidden = true; $("gameApp").hidden = false; showView("home"); });
-  $("homeButton").addEventListener("click", () => showView("home")); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", startBattle);
+  $("homeButton").addEventListener("click", () => { window.location.href = "index.html"; }); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", startBattle);
   document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
   document.querySelectorAll("[data-draw]").forEach((button) => button.addEventListener("click", () => drawGacha(Number(button.dataset.draw))));
   $("ratesButton").addEventListener("click", showRates); $("dialogClose").addEventListener("click", () => { $("dialog").hidden = true; });
@@ -260,11 +275,13 @@ function bindEvents() {
   });
   setupJoystick();
   $("attackButton").addEventListener("pointerdown", (event) => { event.preventDefault(); $("attackButton").setPointerCapture(event.pointerId); beginCharge(); }); $("attackButton").addEventListener("pointerup", (event) => { event.preventDefault(); releaseCharge(); }); $("attackButton").addEventListener("pointercancel", releaseCharge);
-  $("skillButton").addEventListener("click", useSkill); $("exitBattle").addEventListener("click", () => { if (confirm("この出撃を終了しますか？")) void finishBattle(false, "途中退出しました"); });
+  $("skillButton").addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); $("skillButton").classList.add("pressed"); useSkill(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((name) => $("skillButton").addEventListener(name, () => $("skillButton").classList.remove("pressed")));
+  $("exitBattle").addEventListener("click", () => { if (confirm("この出撃を終了しますか？")) void finishBattle(false, "途中退出しました"); });
   $("retryButton").addEventListener("click", () => { $("resultScreen").hidden = true; void startBattle(); }); $("resultHome").addEventListener("click", () => { $("resultScreen").hidden = true; showView("home"); });
   addEventListener("keydown", (event) => { keyState.add(event.code); if (event.code === "Space" && !event.repeat) { event.preventDefault(); beginCharge(); } if (event.code === "KeyE" && !event.repeat) useSkill(); });
   addEventListener("keyup", (event) => { keyState.delete(event.code); if (event.code === "Space") { event.preventDefault(); releaseCharge(); } });
-  $("battleCanvas").addEventListener("pointerdown", (event) => { if (!battle?.running) return; const rect = $("battleCanvas").getBoundingClientRect(); const x = event.clientX - rect.left - rect.width / 2; const y = event.clientY - rect.top - rect.height / 2; const length = Math.hypot(x, y); if (length > 5) battle.player.direction = { x: x / length, y: y / length }; fire(1); });
+  $("battleCanvas").addEventListener("pointerdown", (event) => { if (!battle?.running) return; const rect = $("battleCanvas").getBoundingClientRect(); if (event.clientX <= rect.left + rect.width * .56) return; const x = event.clientX - rect.left - rect.width / 2; const y = event.clientY - rect.top - rect.height / 2; const length = Math.hypot(x, y); if (length > 5) battle.player.direction = { x: x / length, y: y / length }; fire(1); });
   document.addEventListener("visibilitychange", () => { if (document.hidden && battle?.running) lastFrame = performance.now(); });
 }
 async function boot() {
