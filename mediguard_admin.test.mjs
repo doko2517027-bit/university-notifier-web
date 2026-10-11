@@ -9,6 +9,7 @@ test("管理メニューからメディガ管理へ移動できる", async () =>
   assert.match(admin, /mediguard_admin\.html/);
   assert.match(admin, />メディガ管理</);
   assert.match(page, /data-admin-tab="operation"/);
+  assert.match(page, /data-admin-tab="dashboard"/);
   assert.match(page, /data-admin-tab="gacha"/);
   assert.match(page, /data-admin-tab="characters"/);
 });
@@ -42,11 +43,22 @@ test("設定は直接Firestoreへ公開せずCloud Functionsだけが扱う", as
 
 test("管理画面がPC・スマホの縦横で枠内に収まる", async () => {
   const [page, css] = await Promise.all([read("./mediguard_admin.html"), read("./mediguard_admin.css")]);
-  assert.match(page, /mediguard_admin\.css\?v=20261012-2/);
+  assert.match(page, /mediguard_admin\.css\?v=20261012-3/);
   assert.match(css, /overflow-x:hidden/);
   assert.match(css, /overflow-wrap:anywhere/);
   assert.match(css, /grid-template-columns:minmax\(230px,320px\) minmax\(0,1fr\)/);
   assert.match(css, /@media\(max-width:520px\)/);
   assert.match(css, /@media\(orientation:landscape\) and \(max-height:600px\)/);
   assert.match(css, /@media\(orientation:landscape\) and \(min-width:761px\) and \(max-height:600px\)/);
+});
+
+test("実データの運営状況を管理ダッシュボードへ表示する", async () => {
+  const [page, client, server, metrics] = await Promise.all([read("./mediguard_admin.html"), read("./mediguard_admin.js"), read("./functions/mediguard_admin.js"), read("./functions/mediguard_admin_metrics.js")]);
+  for (const id of ["metricsCards", "activityChart", "rarityChart", "popularCharacters", "systemHealth"]) assert.match(page, new RegExp(`id="${id}"`));
+  assert.match(client, /refreshMetrics/);
+  assert.match(client, /setInterval/);
+  assert.match(server, /collectionGroup\("runs"\)/);
+  assert.match(server, /collectionGroup\("operations"\)/);
+  assert.match(server, /realtimeDb\?\.ref\("status"\)/);
+  assert.match(metrics, /buildMediguardAdminMetrics/);
 });

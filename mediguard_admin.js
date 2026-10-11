@@ -39,6 +39,36 @@ function renderSummary() {
     ["登録内容", `${state.summary.bannerCount}ガチャ・${state.summary.characterCount}キャラ`],
   ].map(([label, value]) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></article>`).join("");
 }
+function renderMetrics() {
+  const metrics = state.metrics || {};
+  const cards = [
+    ["総プレイヤー", `${Number(metrics.totalPlayers || 0).toLocaleString("ja-JP")}人`, "登録済み", "#4b9b7b"],
+    ["今日のプレイヤー", `${Number(metrics.todayPlayers || 0).toLocaleString("ja-JP")}人`, "本日操作あり", "#4a92bd"],
+    ["現在オンライン", `${Number(metrics.onlinePlayers || 0).toLocaleString("ja-JP")}人`, "メディガを表示中", "#67ad58"],
+    ["戦闘勝率", `${Number(metrics.winRate || 0).toFixed(1)}%`, `${Number(metrics.wins || 0)}勝 / ${Number(metrics.battleCount || 0)}戦`, "#d89b3c"],
+    ["ガチャ実行", `${Number(metrics.gachaExecutions || 0).toLocaleString("ja-JP")}回`, `${Number(metrics.gachaResults || 0)}体排出`, "#9a72c4"],
+    ["戦闘回数", `${Number(metrics.battleCount || 0).toLocaleString("ja-JP")}回`, "完了した出撃", "#4f879f"],
+    ["24時間エラー", `${Number(metrics.errorCount24h || 0).toLocaleString("ja-JP")}件`, "記録済みエラー", Number(metrics.errorCount24h || 0) ? "#bd4c44" : "#4b9b7b"],
+    ["公開キャラ", `${Number(state.summary?.characterCount || 0)}体`, `${Number(state.summary?.bannerCount || 0)}ガチャ公開`, "#aa7b45"],
+  ];
+  $("metricsCards").innerHTML = cards.map(([label, value, note, color]) => `<article class="metrics-card" style="--metric-color:${color}"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b><small>${escapeHtml(note)}</small></article>`).join("");
+
+  const activity = Array.isArray(metrics.activity) ? metrics.activity : [];
+  const maxActivity = Math.max(1, ...activity.flatMap((item) => [Number(item.battles || 0), Number(item.gacha || 0)]));
+  $("activityChart").innerHTML = activity.map((item) => `<div class="activity-day"><div class="activity-bars" title="${escapeHtml(item.label)} 出撃${Number(item.battles || 0)}回・ガチャ${Number(item.gacha || 0)}回"><i class="activity-bar" style="height:${Math.max(3, (Number(item.battles || 0) / maxActivity) * 100)}%"></i><i class="activity-bar gacha" style="height:${Math.max(3, (Number(item.gacha || 0) / maxActivity) * 100)}%"></i></div><div><b>${escapeHtml(item.label)}</b><span>${Number(item.battles || 0)} / ${Number(item.gacha || 0)}</span></div></div>`).join("") || "<p>まだ集計データがありません。</p>";
+
+  const rarityCounts = metrics.rarityCounts || {};
+  const maxRarity = Math.max(1, ...Object.values(rarityCounts).map(Number));
+  $("rarityChart").innerHTML = Object.keys(RARITY_COLORS).map((rarity) => `<div class="metric-row"><b style="color:${RARITY_COLORS[rarity]}">${rarity}</b><span class="metric-track"><i class="metric-fill" style="--metric-color:${RARITY_COLORS[rarity]};width:${(Number(rarityCounts[rarity] || 0) / maxRarity) * 100}%"></i></span><span>${Number(rarityCounts[rarity] || 0)}体</span></div>`).join("");
+
+  const popular = Array.isArray(metrics.popularCharacters) ? metrics.popularCharacters : [];
+  const maxPopular = Math.max(1, ...popular.map((item) => Number(item.count || 0)));
+  $("popularCharacters").innerHTML = popular.length ? popular.map((item) => `<div class="metric-row"><b>${escapeHtml(item.name)}</b><span class="metric-track"><i class="metric-fill" style="width:${(Number(item.count || 0) / maxPopular) * 100}%"></i></span><span>${Number(item.count || 0)}体</span></div>`).join("") : "<p>キャラクター所持データはまだありません。</p>";
+
+  const errors = Number(metrics.errorCount24h || 0);
+  $("systemHealth").innerHTML = `<div class="system-health-value" style="--health-color:${errors ? "#bd4c44" : "#4b9b7b"}"><i></i><div><b>${errors ? "確認が必要です" : "正常に稼働中"}</b><span>${errors ? `直近24時間に${errors}件の記録があります。` : "直近24時間のエラー記録はありません。"}</span></div></div>`;
+  $("metricsUpdatedAt").textContent = metrics.generatedAt ? `最終更新 ${new Date(metrics.generatedAt).toLocaleString("ja-JP")}` : "";
+}
 function renderSettings() {
   const form = $("settingsForm");
   form.elements.gameEnabled.checked = state.settings.gameEnabled !== false;
@@ -94,9 +124,18 @@ function newCharacter() {
   $("characterEditorTitle").textContent = "新しいキャラクター設定"; $("characterPreview").className = "character-sprite sprite-0"; renderCharacterList();
 }
 function renderAll() {
-  renderSummary(); renderSettings(); renderBannerList(); renderCharacterList();
+  renderSummary(); renderMetrics(); renderSettings(); renderBannerList(); renderCharacterList();
   if (!editingBannerId && state.banners[0]) editBanner(state.banners[0].id);
   if (!editingCharacterId && state.characters[0]) editCharacter(state.characters[0].id);
+}
+async function refreshMetrics(showMessage = true) {
+  const button = $("refreshMetricsButton");
+  button.disabled = true; button.textContent = "更新中…";
+  try {
+    const result = await call("metrics"); state.metrics = result.metrics; renderMetrics();
+    if (showMessage) message("運営状況を更新しました。");
+  } catch (error) { if (showMessage) message(errorText(error), true); }
+  finally { button.disabled = false; button.textContent = "↻ 更新"; }
 }
 async function load() {
   state = await call("dashboard");
@@ -115,6 +154,7 @@ $("profileButton").onclick = () => { location.href = "profile.html"; };
 await auth.authStateReady();
 if (!(await isAdmin())) { location.replace("admin.html"); throw new Error("管理者権限がありません。"); }
 document.querySelectorAll("[data-admin-tab]").forEach((button) => { button.onclick = () => switchTab(button.dataset.adminTab); });
+$("refreshMetricsButton").onclick = () => refreshMetrics(true);
 $("settingsForm").onsubmit = async (event) => { event.preventDefault(); try { await call("saveSettings", { activeBannerId: event.currentTarget.elements.activeBannerId.value, gameEnabled: event.currentTarget.elements.gameEnabled.checked, notice: event.currentTarget.elements.notice.value }); message("運用設定を保存しました。"); state = await call("dashboard"); renderAll(); } catch (error) { message(errorText(error), true); } };
 $("newBannerButton").onclick = newBanner;
 $("bannerList").onclick = (event) => { const button = event.target.closest("[data-edit-banner]"); if (button) editBanner(button.dataset.editBanner); };
@@ -131,3 +171,4 @@ $("characterForm").elements.sprite.onchange = (event) => { $("characterPreview")
 $("characterForm").onsubmit = async (event) => { event.preventDefault(); const form = event.currentTarget; const character = Object.fromEntries(["id", "name", "rarity", "sprite", "attack", "speed", "range", "charge", "passiveType", "passiveValue", "passive", "skillType", "skillValue", "skill", "cooldown"].map((key) => [key, form.elements[key].value])); character.enabled = form.elements.enabled.checked; try { await call("saveCharacter", { character }); message("キャラクター設定を保存しました。"); editingCharacterId = character.id; state = await call("dashboard"); renderAll(); } catch (error) { message(errorText(error), true); } };
 
 await initializePage([setupAdminTab(), loadUserName($("userName")), loadProfileImage($("topProfileImage")), load()]);
+setInterval(() => { if (!document.hidden && document.querySelector('[data-admin-panel="dashboard"]:not([hidden])')) refreshMetrics(false); }, 30000);

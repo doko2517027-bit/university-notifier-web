@@ -15,6 +15,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getDatabase } = require("firebase-admin/database");
 
 const {
   deleteCareMateDataExceptExternalMedia,
@@ -367,6 +368,7 @@ exports.mediguardGame = onCall(
 
 const mediguardAdminService = createMediguardAdminService({
   db,
+  realtimeDb: getDatabase(),
   HttpsError,
   requireAdmin: requireEnabledCareMateAdmin,
 });

@@ -3,24 +3,58 @@ const {
   loadMediguardConfig, sanitizeBanner, sanitizeCharacter,
   validateBanner, validateCharacter,
 } = require("./mediguard_config");
+const { buildMediguardAdminMetrics } = require("./mediguard_admin_metrics");
 
-function createMediguardAdminService({ db, HttpsError, requireAdmin }) {
+function createMediguardAdminService({ db, realtimeDb, HttpsError, requireAdmin }) {
   const settingsRef = () => db.collection("mediguardGameConfig").doc("settings");
   const bannerRef = (id) => db.collection("mediguardGachaBanners").doc(id);
   const characterRef = (id) => db.collection("mediguardCharacterConfigs").doc(id);
 
+  async function collectMetrics(config) {
+    const safeDocs = async (query, prefix = "") => {
+      try {
+        const snapshot = await query.get();
+        return snapshot.docs
+          .filter((doc) => !prefix || String(doc.ref?.path || "").startsWith(prefix))
+          .map((doc) => ({ id: doc.id, path: doc.ref?.path || "", ...doc.data() }));
+      } catch (error) {
+        console.error("メディガ管理集計を読み込めませんでした:", error);
+        return [];
+      }
+    };
+    const safePresence = async () => {
+      try { return (await realtimeDb?.ref("status").get())?.val?.() || {}; } catch (error) { console.error("メディガ接続状況を読み込めませんでした:", error); return {}; }
+    };
+    const [players, runs, operations, characters, errors, presence] = await Promise.all([
+      safeDocs(db.collection("mediguardPlayers")),
+      safeDocs(db.collectionGroup("runs").where("status", "==", "finished").limit(3000), "mediguardPlayers/"),
+      safeDocs(db.collectionGroup("operations").where("type", "==", "gacha").limit(3000), "mediguardPlayers/"),
+      safeDocs(db.collectionGroup("characters").limit(3000), "mediguardPlayers/"),
+      safeDocs(db.collection("mediguardErrors").limit(300)),
+      safePresence(),
+    ]);
+    return buildMediguardAdminMetrics({ players, runs, operations, characters, errors, presence, catalog: config.characters });
+  }
+
+  async function metrics(request) {
+    await requireAdmin(request);
+    const config = await loadMediguardConfig(db);
+    return { metrics: await collectMetrics(config) };
+  }
+
   async function dashboard(request) {
     await requireAdmin(request);
     const config = await loadMediguardConfig(db);
-    const players = await db.collection("mediguardPlayers").count().get();
+    const metrics = await collectMetrics(config);
     return {
       ...config,
       options: { rarities: RARITIES, passiveTypes: PASSIVE_TYPES, skillTypes: SKILL_TYPES },
       summary: {
-        playerCount: players.data().count,
+        playerCount: metrics.totalPlayers,
         bannerCount: config.banners.length,
         characterCount: config.characters.filter((item) => item.enabled).length,
       },
+      metrics,
     };
   }
 
@@ -99,6 +133,7 @@ function createMediguardAdminService({ db, HttpsError, requireAdmin }) {
   async function dispatch(request) {
     const action = String(request.data?.action || "dashboard");
     if (action === "dashboard") return dashboard(request);
+    if (action === "metrics") return metrics(request);
     if (action === "saveBanner") return saveBanner(request);
     if (action === "deleteBanner") return deleteBanner(request);
     if (action === "saveCharacter") return saveCharacter(request);
