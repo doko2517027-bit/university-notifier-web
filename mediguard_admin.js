@@ -1,5 +1,6 @@
 import { auth, functions, isAdmin, setupTheme, initializePage, setupAdminTab, loadUserName, loadProfileImage } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { AUDIO_SLOTS, DEFAULT_AUDIO } from './mediguard_audio_slots.mjs?v=20261012-1';
 
 const $ = (id) => document.getElementById(id);
 const adminCall = httpsCallable(functions, "mediguardAdmin", { timeout: 60000 });
@@ -9,6 +10,34 @@ const SKILL_LABELS = { radial: "全方向攻撃（弾数）", rapid: "連射強�
 let state = null;
 let editingBannerId = "";
 let editingCharacterId = "";
+let audioDraft=null;
+let audioFilter='bgm';
+let audioUploads=0;
+function renderAudioSettings(){
+  if(!audioDraft)audioDraft=structuredClone(state.settings.audio||{});
+  $('audioSettingsList').innerHTML=AUDIO_SLOTS.filter(slot=>slot.kind===audioFilter).map(slot=>{
+    const audio={...DEFAULT_AUDIO[slot.id],...(audioDraft[slot.id]||{})};audio.url ||= DEFAULT_AUDIO[slot.id].url;
+    return `<article class="audio-setting-card" data-audio-key="${slot.id}"><header><h3>${slot.label}</h3><label><input type="checkbox" data-audio-enabled ${audio.enabled!==false?'checked':''}>再生する</label></header><p data-audio-filename>${escapeHtml(audio.filename||'標準の音')}</p><audio controls preload="none" src="${escapeHtml(audio.url)}"></audio><label class="audio-upload">音声を選択<input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-audio-file></label><label class="audio-volume">音量 <input type="range" min="0" max="100" value="${Math.round(audio.volume*100)}" data-audio-volume><output>${Math.round(audio.volume*100)}%</output></label><button type="button" data-audio-reset class="btn">標準の音に戻す</button><small data-audio-status role="status"></small></article>`;
+  }).join('');
+}
+async function uploadAudio(file){
+  if(!/\.(mp3|m4a|wav|aac|ogg)$/i.test(file.name))throw new Error('MP3・M4A・WAV・AAC・OGGを選択してください。');
+  if(file.size>25*1024*1024)throw new Error('1ファイル25MB以下にしてください。');
+  const form=new FormData();form.append('file',file);form.append('upload_preset','caremate_upload');form.append('folder','caremate/mediguard/audio');
+  const response=await fetch('https://api.cloudinary.com/v1_1/vpctonjf/video/upload',{method:'POST',body:form});const data=await response.json();
+  if(!response.ok||!data.secure_url)throw new Error(data.error?.message||'音声を保存できませんでした。');
+  return {url:data.secure_url,filename:file.name};
+}
+function bindAudioSettings(){
+  document.querySelectorAll('[data-audio-filter]').forEach(button=>button.addEventListener('click',()=>{audioFilter=button.dataset.audioFilter;document.querySelectorAll('[data-audio-filter]').forEach(item=>item.classList.toggle('btn-primary',item===button));renderAudioSettings();}));
+  $('audioSettingsList').addEventListener('change',async event=>{const card=event.target.closest('[data-audio-key]');if(!card)return;const id=card.dataset.audioKey;const current={...DEFAULT_AUDIO[id],...(audioDraft[id]||{})};
+    if(event.target.matches('[data-audio-file]')){const file=event.target.files?.[0];if(!file)return;audioUploads++;$('saveAudioButton').disabled=true;const status=card.querySelector('[data-audio-status]');status.textContent='アップロード中…';try{const uploaded=await uploadAudio(file);audioDraft[id]={...current,...uploaded,enabled:true};card.querySelector('audio').src=uploaded.url;card.querySelector('[data-audio-filename]').textContent=uploaded.filename;card.querySelector('[data-audio-enabled]').checked=true;status.textContent='アップロード完了。上の「音の設定を保存」で反映します。';}catch(error){status.textContent=error.message;}finally{audioUploads--;$('saveAudioButton').disabled=audioUploads>0;}}
+    else if(event.target.matches('[data-audio-enabled]'))audioDraft[id]={...current,url:audioDraft[id]?.url||'',enabled:event.target.checked};
+  });
+  $('audioSettingsList').addEventListener('input',event=>{if(!event.target.matches('[data-audio-volume]'))return;const card=event.target.closest('[data-audio-key]'),id=card.dataset.audioKey,volume=Number(event.target.value)/100;const existing=audioDraft[id]||{};audioDraft[id]={...existing,volume,url:existing.url||'',enabled:existing.enabled!==false};card.querySelector('output').textContent=`${event.target.value}%`;card.querySelector('audio').volume=volume;});
+  $('audioSettingsList').addEventListener('click',event=>{if(event.target.closest('[data-audio-reset]')){delete audioDraft[event.target.closest('[data-audio-key]').dataset.audioKey];renderAudioSettings();}});
+  $('saveAudioButton').addEventListener('click',async()=>{if(audioUploads)return;const button=$('saveAudioButton');button.disabled=true;try{const result=await call('saveAudio',{audio:audioDraft});state.settings.audio=result.audio;audioDraft=structuredClone(result.audio);$('audioSaveStatus').textContent='保存しました。ゲームを次に開いたときから反映されます。';}catch(error){$('audioSaveStatus').textContent=errorText(error);}finally{button.disabled=false;}});
+}
 
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]); }
 function message(value, error = false) { $("adminMessage").textContent = value; $("adminMessage").classList.toggle("error", error); }
@@ -23,6 +52,7 @@ function call(action, payload = {}) { return adminCall({ action, ...payload }).t
 function switchTab(name) {
   document.querySelectorAll("[data-admin-tab]").forEach((button) => button.classList.toggle("active", button.dataset.adminTab === name));
   document.querySelectorAll("[data-admin-panel]").forEach((panel) => { panel.hidden = panel.dataset.adminPanel !== name; });
+  if(name==='audio'){renderAudioSettings();}
 }
 function currentBannerStatus(item) {
   if (!item.enabled) return "非公開";
@@ -171,4 +201,5 @@ $("characterForm").elements.sprite.onchange = (event) => { $("characterPreview")
 $("characterForm").onsubmit = async (event) => { event.preventDefault(); const form = event.currentTarget; const character = Object.fromEntries(["id", "name", "rarity", "sprite", "attack", "speed", "range", "charge", "passiveType", "passiveValue", "passive", "skillType", "skillValue", "skill", "cooldown"].map((key) => [key, form.elements[key].value])); character.enabled = form.elements.enabled.checked; try { await call("saveCharacter", { character }); message("キャラクター設定を保存しました。"); editingCharacterId = character.id; state = await call("dashboard"); renderAll(); } catch (error) { message(errorText(error), true); } };
 
 await initializePage([setupAdminTab(), loadUserName($("userName")), loadProfileImage($("topProfileImage")), load()]);
+bindAudioSettings();
 setInterval(() => { if (!document.hidden && document.querySelector('[data-admin-panel="dashboard"]:not([hidden])')) refreshMetrics(false); }, 30000);

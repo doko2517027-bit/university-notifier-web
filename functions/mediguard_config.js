@@ -1,4 +1,5 @@
 const { CHARACTERS, GACHA_COSTS, RARITY_WEIGHTS } = require("./mediguard_policy");
+const { sanitizeAudioConfig } = require('./mediguard_audio_policy');
 
 const RARITIES = Object.freeze(["N", "R", "SR", "SSR", "UR", "LR"]);
 const PASSIVE_TYPES = Object.freeze([
@@ -142,6 +143,7 @@ async function loadMediguardConfig(db) {
     activeBannerId: identifier(settingsSnapshot.data()?.activeBannerId, banners[0]?.id || DEFAULT_BANNER.id),
     gameEnabled: settingsSnapshot.data()?.gameEnabled !== false,
     notice: text(settingsSnapshot.data()?.notice, 160),
+    audio: sanitizeAudioConfig(settingsSnapshot.data()?.audio || {}),
   };
   return { settings, banners, characters };
 }

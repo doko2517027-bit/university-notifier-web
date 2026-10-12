@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v120";
+const STATIC_CACHE = "caremate-static-v121";
 
-const RUNTIME_CACHE = "caremate-runtime-v120";
+const RUNTIME_CACHE = "caremate-runtime-v121";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -133,21 +133,23 @@ const CORE_ASSETS = [
 
   "mediguard.html",
 
-  "mediguard.css?v=20261012-13",
+  "mediguard.css?v=20261012-17",
 
-  "mediguard.js?v=20261012-17",
+  "mediguard.js?v=20261012-18",
 
-  "mediguard_3d.js?v=20261012-1",
+  "mediguard_3d.js?v=20261012-4",
 
   THREE_MODULE_URL,
 
-  "mediguard_audio.js?v=20261012-1",
+  "mediguard_audio.js?v=20261012-2",
+
+  "mediguard_audio_slots.mjs?v=20261012-1",
 
   "mediguard_admin.html",
 
-  "mediguard_admin.css?v=20261012-3",
+  "mediguard_admin.css?v=20261012-6",
 
-  "mediguard_admin.js?v=20261012-2",
+  "mediguard_admin.js?v=20261012-3",
 
   "images/mediguard-tab.svg",
 
@@ -472,7 +474,7 @@ function isStaticAsset(request, url) {
     return true;
   }
 
-  return /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|json)$/i.test(url.pathname);
+  return /\.(?:js|mjs|css|png|jpg|jpeg|webp|svg|gif|ico|json|wav|mp3|m4a|ogg)$/i.test(url.pathname);
 }
 
 /* ========================================

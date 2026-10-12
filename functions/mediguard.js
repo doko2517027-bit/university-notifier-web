@@ -92,6 +92,7 @@ function createMediguardService({ db, HttpsError, requireStudent }) {
       activeBannerId: activeBanners.some((item) => item.id === config.settings.activeBannerId) ? config.settings.activeBannerId : activeBanners[0]?.id || "",
       gameEnabled: config.settings.gameEnabled,
       gameNotice: config.settings.notice,
+      audio: config.settings.audio,
       history: history.docs.map((doc) => ({ id: doc.id, ...doc.data(), startedAt: doc.data()?.startedAt?.toMillis?.() || 0 })).sort((a, b) => b.startedAt - a.startedAt),
     };
   }

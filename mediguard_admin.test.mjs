@@ -43,7 +43,7 @@ test("設定は直接Firestoreへ公開せずCloud Functionsだけが扱う", as
 
 test("管理画面がPC・スマホの縦横で枠内に収まる", async () => {
   const [page, css] = await Promise.all([read("./mediguard_admin.html"), read("./mediguard_admin.css")]);
-  assert.match(page, /mediguard_admin\.css\?v=20261012-3/);
+  assert.match(page, /mediguard_admin\.css\?v=20261012-6/);
   assert.match(css, /overflow-x:hidden/);
   assert.match(css, /overflow-wrap:anywhere/);
   assert.match(css, /grid-template-columns:minmax\(230px,320px\) minmax\(0,1fr\)/);

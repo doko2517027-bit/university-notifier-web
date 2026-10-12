@@ -425,6 +425,9 @@ service cloud.firestore {
       }
     }
 
+    match /mediguardCoopRooms/{document=**} { allow read, write: if false; }
+    match /mediguardCoopCodes/{document=**} { allow read, write: if false; }
+    match /mediguardCoopJoinLimits/{document=**} { allow read, write: if false; }
     /* メディガの運用設定はCloud Functionsだけが読み書きする。 */
     match /mediguardGameConfig/{document=**} {
       allow read, write: if false;

@@ -1,9 +1,32 @@
-import { auth, functions, studentNumber, initializePage, setupAdminTab, isMediguardTestStudent } from "./common.js?v=20261011-2";
+import { auth, functions, realtimeDb, studentNumber, initializePage, setupAdminTab, isMediguardTestStudent } from "./common.js?v=20261011-2";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
-import { mediguardAudio } from "./mediguard_audio.js?v=20261012-1";
+import { ref as realtimeRef, onValue } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
+import { mediguardAudio } from "./mediguard_audio.js?v=20261012-2";
 
 const $ = (id) => document.getElementById(id);
 const gameCall = httpsCallable(functions, "mediguardGame", { timeout: 60000 });
+const coopCall=httpsCallable(functions,'mediguardCoop',{timeout:20000});
+const participantId=sessionStorage.getItem('mediguardParticipantId')||crypto.randomUUID().replaceAll('-','');sessionStorage.setItem('mediguardParticipantId',participantId);
+const participantKey=`${studentNumber}_${participantId}`;
+let coopRoom=null,coopUnsubscribe=null,coopTickTimer=0,coopTickBusy=false,coopNetworkErrors=0,coopFireSeq=0,coopSkillSeq=0,coopShotPower=1;
+async function coopApi(action,payload={}){return (await coopCall({action,participantId,...payload})).data;}
+function renderCoopRoom(){
+  $('coopEntry').hidden=Boolean(coopRoom);$('coopLobby').hidden=!coopRoom;if(!coopRoom)return;
+  $('coopCodeDisplay').textContent=coopRoom.code;const entries=Object.entries(coopRoom.members||{});
+  $('coopMemberList').innerHTML=entries.map(([key,m])=>`<article><span class="${spriteClass(m.character.sprite)}"></span><div><strong>${key===participantKey?'あなた':escapeHtml(m.name||'プレイヤー')}${key===coopRoom.hostId?' · ホスト':''}</strong><span>${escapeHtml(m.character.name)} Lv.${m.character.level}</span></div><b class="${m.ready?'ready':''}">${m.ready?'準備完了':'準備中'}</b></article>`).join('');
+  $('coopReadyButton').textContent=coopRoom.members[participantKey]?.ready?'準備を解除':'準備完了';$('startCoopBattle').hidden=coopRoom.hostId!==participantKey;$('startCoopBattle').disabled=entries.some(([,m])=>!m.ready)||coopRoom.status!=='lobby';apply3DPortraits($('coopMemberList'));
+}
+async function watchCoopRoom(roomId){
+  coopUnsubscribe?.();coopUnsubscribe=onValue(realtimeRef(realtimeDb,`mediguardCoop/${roomId}`),snapshot=>{const room=snapshot.val();if(!room){coopRoom=null;renderCoopRoom();$('coopStatus').textContent='ルームが終了しました。';return;}coopRoom=room;if(room.status==='lobby'||!battle?.running)renderCoopRoom();if(room.match&&battle?.run?.coop?.roomId===roomId)applyCoopState(room.match);else if(room.status==='active'&&room.members?.[participantKey]&&!busy)void launchCoopBattle(room);},error=>{$('coopStatus').textContent=errorText(error);});
+}
+async function openCoopRoom(action){if(busy)return;setBusy(true);$('coopStatus').textContent='接続中…';try{const response=await coopApi(action,action==='joinRoom'?{code:$('coopRoomCode').value.trim()}:{});await watchCoopRoom(response.room.roomId);showView('coop');$('coopStatus').textContent='全員が準備できたら、ホストが出撃できます。';}catch(error){$('coopStatus').textContent=errorText(error);}finally{setBusy(false);}}
+async function launchCoopBattle(room){
+  if(busy||battle?.running)return;setBusy(true);$('loadingScreen').hidden=false;$('loadingMap').textContent=room.map.name;$('loadingPathogen').textContent='全員の出撃準備を待っています…';mediguardAudio.playMusic('loading');
+  try{await initialize3D();const own=room.members[participantKey];const run={runId:`coop_${room.roomId}`,map:room.map,character:own.character,waves:3,timeLimitSeconds:150,coop:{roomId:room.roomId}};battle=newBattle(run);battle.serverPlayers={};battle.remotePlayers={};battle.serverElapsed=0;$('battleMapName').textContent=`${run.map.name} · 協力`;$('battleScreen').hidden=false;$('loadingScreen').hidden=true;$('respawnPanel').hidden=true;coopFireSeq=0;coopSkillSeq=0;applyCoopState(room.match);lastFrame=performance.now();cancelAnimationFrame(frameId);frameId=requestAnimationFrame(gameLoop);mediguardAudio.playMusic('battle');clearInterval(coopTickTimer);coopTickTimer=setInterval(()=>void sendCoopInput(),350);void sendCoopInput();}catch(error){showToast(errorText(error));$('loadingScreen').hidden=true;}finally{setBusy(false);}
+}
+function applyCoopState(state){if(!battle?.run?.coop)return;const own=state.players?.[participantKey];if(!own)return;const oldWave=battle.wave;battle.wave=state.wave;battle.countdown=state.status==='loading'?3000:state.countdown*1000;battle.serverElapsed=(state.elapsed||0)*1000;battle.elapsed=battle.serverElapsed;battle.alertLock=state.alertLock||0;battle.infection=state.infection||0;battle.kills=state.kills||0;battle.shots=own.shots||0;battle.enemies=Object.values(state.enemies||{}).map(e=>({...e,targetX:e.x,targetY:e.y}));battle.holes=Object.values(state.holes||{});battle.projectiles=Object.values(state.projectiles||{});battle.serverPlayers=state.players||{};battle.remotePlayers=Object.fromEntries(Object.entries(state.players||{}).filter(([key])=>key!==participantKey));battle.player.targetX=own.x;battle.player.targetY=own.y;Object.assign(battle.player,{hits:own.hits,maxHits:own.maxHits,lives:own.lives,hidden:own.hidden,respawn:own.respawn,invincible:own.invincible,rapid:own.rapid});battle.skillCooldown=own.skillCooldown||0;$('respawnPanel').hidden=!own.hidden||own.lives<=0;$('respawnText').textContent=Math.max(1,Math.ceil(own.respawn||0));$('waveText').textContent=`${state.wave} / 3`;$('threatFlash').hidden=!battle.alertLock;if(state.wave>oldWave){$('waveBanner').textContent=`WAVE ${state.wave}`;mediguardAudio.sfx('danger');}if(own.lives<=0)showBattleMessage('観戦中 · 味方の防衛を見守れます');updateHud();if(state.status==='finished'&&!battle.ended)void finishBattle(state.result.won,state.result.reason);}
+async function sendCoopInput(){if(!battle?.run?.coop||!battle.running||coopTickBusy||document.hidden)return;coopTickBusy=true;try{const result=await coopApi('tick',{roomId:battle.run.coop.roomId,input:{move:movementVector(),aim:battle.player.direction,fireSeq:coopFireSeq,skillSeq:coopSkillSeq,power:coopShotPower,loaded:true}});coopNetworkErrors=0;applyCoopState(result.match);}catch(error){coopNetworkErrors++;showBattleMessage(coopNetworkErrors>3?'再接続しています…':'接続を確認中…');if(coopNetworkErrors>12){clearInterval(coopTickTimer);void finishBattle(false,'接続が途切れました');}}finally{coopTickBusy=false;}}
+function updateCoopBattle(dt){const p=battle.player,move=movementVector();if(!p.hidden&&battle.countdown<=0&&battle.alertLock<=0){const len=Math.hypot(move.x,move.y);if(len>.08&&attackAim.pointer===null)p.direction={x:move.x/len,y:move.y/len};p.visualAngle+=shortestAngle(p.visualAngle,Math.atan2(p.direction.y,p.direction.x))*Math.min(1,dt*14);const speed=charStats().speed;p.velocity.x=move.x*speed;p.velocity.y=move.y*speed;p.moving=len>.08;if(p.moving){p.walkTime+=dt*9;moveAroundObstacles(p,move.x*speed*dt,move.y*speed*dt);}if(Number.isFinite(p.targetX)){p.x+=(p.targetX-p.x)*Math.min(1,dt*2);p.y+=(p.targetY-p.y)*Math.min(1,dt*2);}}else p.moving=false;if(battle.countdown>0)$('battleMessage').textContent=coopRoom?.match?.status==='loading'?'全員の読み込みを待っています…':String(Math.ceil(battle.countdown/1000));battle.remotePlayers&&Object.values(battle.remotePlayers).forEach(p=>{p.velocity={x:(p.input?.move?.x||0)*200,y:(p.input?.move?.y||0)*200};p.visualAngle=Math.atan2(p.direction?.y||0,p.direction?.x||1);p.walkTime=(performance.now()/1000)*9;});updateHud();}
 const RARITY_COLORS = { N: "#708c84", R: "#408fc5", SR: "#8258c9", SSR: "#d65788", UR: "#e18c2f", LR: "#d9ac2a" };
 const MAP_STYLE = {
   lung: ["#dca6af", "#f2cad0", "#a96675"], airway: ["#b4c5c8", "#dce7e4", "#668b8e"],
@@ -19,12 +42,21 @@ let lastFrame = 0;
 let keyState = new Set();
 let selectedBannerId = "";
 let finishGachaCinematic = null;
+let gachaResults=[];
+function renderGachaResults(page=0){
+  if(!gachaResults.length)return;page=Math.max(0,Math.min(gachaResults.length-1,page));const item=gachaResults[page];
+  const targets=dashboard.characters.filter(entry=>entry.characterId===item.characterId&&entry.instanceId!==item.instanceId);
+  $('dialogTitle').textContent=`スキャン結果 ${page+1} / ${gachaResults.length}`;
+  $('dialogBody').innerHTML=`<div class="gacha-result"><article style="--rarity:${RARITY_COLORS[item.rarity]}"><span class="${spriteClass(item.sprite)}"></span><b style="color:${RARITY_COLORS[item.rarity]}">${item.rarity}</b><strong>${escapeHtml(item.name)}</strong><small>Lv.1の新個体</small><div class="duplicate-actions"><button data-keep-dialog>そのまま所持</button>${targets.length?`<button data-strengthen="${item.instanceId}" data-target="${targets[0].instanceId}">既存個体を強化</button><button data-exchange="${item.instanceId}">GPへ交換</button>`:''}</div></article></div>${gachaResults.length>1?`<div class="gacha-pagination"><button data-gacha-page="${page-1}" ${page===0?'disabled':''}>◀ 前へ</button><span>${page+1} / ${gachaResults.length}</span><button data-gacha-page="${page+1}" ${page===gachaResults.length-1?'disabled':''}>次へ ▶</button></div>`:''}`;
+  apply3DPortraits($('dialogBody'));$('dialog').hidden=false;
+}
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 let dpad = { up: false, down: false, left: false, right: false };
 let attackAim = { pointer: null, x: 0, y: 0 };
 let battle3d = null;
 let home3d = null;
 let portraits3d = null;
+let gacha3d=null;
 let loading3d = null;
 const CONTROL_STORAGE_KEY = "caremate_mediguard_control_v1";
 let controlMode = localStorage.getItem(CONTROL_STORAGE_KEY) === "joystick" ? "joystick" : "dpad";
@@ -47,7 +79,7 @@ function setBusy(value) { busy = value; document.body.classList.toggle("game-bus
 function spriteClass(index) { return `character-sprite sprite-${Math.max(0, Math.min(9, Number(index || 0)))}`; }
 function selectedCharacter() { return dashboard?.characters?.find((item) => item.instanceId === dashboard.player.selectedCharacterId) || dashboard?.characters?.[0]; }
 async function api(action, payload = {}) { const response = await gameCall({ action, ...payload }); return response.data; }
-async function refresh() { dashboard = await api("dashboard"); render(); return dashboard; }
+async function refresh() { dashboard = await api("dashboard"); mediguardAudio.configure(dashboard.audio||{}); render(); return dashboard; }
 async function mutate(action, payload, success) {
   if (busy) return null; setBusy(true);
   try { const result = await api(action, payload); await refresh(); if (success) showToast(success); return result; }
@@ -73,11 +105,12 @@ function apply3DPortraits(root = document) {
 }
 async function initialize3D() {
   if (battle3d || loading3d) return loading3d;
-  loading3d = import("./mediguard_3d.js?v=20261012-1").then((module) => {
+  loading3d = import("./mediguard_3d.js?v=20261012-4").then((module) => {
     if (!module.supportsMediguard3D()) return false;
     battle3d = new module.Mediguard3DBattle($("battleCanvas"));
     home3d = new module.Mediguard3DShowcase($("home3dCanvas"));
     portraits3d = new module.Mediguard3DPortraits();
+    gacha3d=new module.Mediguard3DGacha($('gacha3dCanvas'));
     const character = selectedCharacter(); if (character) home3d.setCharacter(character.sprite);
     document.body.classList.add("mediguard-3d");
     apply3DPortraits();
@@ -100,11 +133,12 @@ function renderGachaBanners() {
   document.querySelectorAll("[data-draw]").forEach((button) => { button.disabled = !current; });
 }
 function showView(name) {
-  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView", limitBreak: "limitBreakView", settings: "settingsView" };
+  const ids = { home: "homeView", characters: "charactersView", gacha: "gachaView", records: "recordsView", help: "helpView", limitBreak: "limitBreakView", settings: "settingsView",coop:'coopView' };
   document.querySelectorAll(".game-view").forEach((view) => { view.hidden = true; });
   $(ids[name] || ids.home).hidden = false;
   $("screenTitle").textContent = { home: "メディガード！", characters: "キャラクター", gacha: "キャラガチャ", records: "防衛記録", help: "遊び方", limitBreak: "限界突破", settings: "ゲーム設定" }[name] || "メディガード！";
-  mediguardAudio.playMusic(name === "gacha" ? "gacha" : "home");
+  $("gameExitButton").hidden = name !== 'home';
+  mediguardAudio.playMusic(name);
 }
 function renderCharacters() {
   $("characterList").innerHTML = dashboard.characters.map((item) => {
@@ -143,6 +177,7 @@ function playGachaCinematic(results, banner) {
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   cinematic.className = `gacha-cinematic rarity-${guaranteed ? strongest : "N"} ${guaranteed ? "effect-guaranteed" : "effect-standard"}`;
   cinematic.hidden = false;
+  const strongestCharacter=results.find(item=>item.rarity===strongest)||results[0];gacha3d?.start(strongestCharacter?.sprite||0,guaranteed?strongest:'N');
   mediguardAudio.sfx("gacha");
   $("gachaCinematicCode").textContent = banner?.name || "MEDICAL UNIT SCAN";
   $("gachaCinematicText").textContent = guaranteed ? "高密度反応を確認" : "解析を開始";
@@ -151,18 +186,19 @@ function playGachaCinematic(results, banner) {
     let done = false;
     const later = (callback, delay) => timers.push(setTimeout(callback, reduced ? Math.min(delay, 80) : delay));
     const finish = () => {
-      if (done) return; done = true; timers.forEach(clearTimeout); cinematic.hidden = true; cinematic.className = "gacha-cinematic"; finishGachaCinematic = null; resolve();
+      if (done) return; done = true; timers.forEach(clearTimeout); cinematic.hidden = true; cinematic.className = "gacha-cinematic";gacha3d?.stop(); finishGachaCinematic = null; resolve();
     };
     finishGachaCinematic = finish;
-    later(() => cinematic.classList.add("phase-charge"), 120);
+    later(() => {cinematic.classList.add("phase-charge");mediguardAudio.sfx('gachaCharge');}, 120);
     later(() => { cinematic.classList.add("phase-lock"); $("gachaCinematicText").textContent = guaranteed ? "確定シグナル接続" : "生命反応を照合中"; }, 1050);
     later(() => {
       cinematic.classList.add("phase-reveal");
+      gacha3d?.reveal();
       if (rare && !guaranteed) { cinematic.classList.add(`rarity-${strongest}`, "effect-surprise"); $("gachaCinematicText").textContent = "反応上昇"; $("gachaCinematicRarity").textContent = `${strongest} UNIT`; }
       else { $("gachaCinematicText").textContent = "ユニットを確認"; }
       mediguardAudio.sfx("reveal", strongest);
     }, 2350);
-    later(finish, 3850);
+    later(finish, 5200);
   });
 }
 function showRates() {
@@ -178,13 +214,7 @@ async function drawGacha(count) {
     if (!banner) throw new Error("現在引けるガチャはありません。");
     const result = await api("draw", { count, bannerId: banner.id, requestId: requestId() });
     await playGachaCinematic(result.results, banner); await refresh();
-    $("dialogTitle").textContent = "スキャン結果";
-    $("dialogBody").innerHTML = `<div class="gacha-result">${result.results.map((item) => {
-      const targets = dashboard.characters.filter((entry) => entry.characterId === item.characterId && entry.instanceId !== item.instanceId);
-      return `<article style="--rarity:${RARITY_COLORS[item.rarity]}"><span class="${spriteClass(item.sprite)}"></span><b style="color:${RARITY_COLORS[item.rarity]}">${item.rarity}</b><strong>${escapeHtml(item.name)}</strong><small>Lv.1の新個体</small><div class="duplicate-actions"><button data-keep-dialog>そのまま所持</button>${targets.length ? `<button data-strengthen="${item.instanceId}" data-target="${targets[0].instanceId}">既存個体を強化</button><button data-exchange="${item.instanceId}">GPへ交換</button>` : ""}</div></article>`;
-    }).join("")}</div>`;
-    apply3DPortraits($("dialogBody"));
-    $("dialog").hidden = false;
+    gachaResults=result.results;renderGachaResults();
   } catch (error) { showToast(errorText(error)); }
   finally { setBusy(false); }
 }
@@ -297,6 +327,7 @@ function spawnEnemy(hole) {
 }
 function fire(power = 1, direction = battle.player.direction, spread = 0, piercing = false) {
   if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
+  if(battle.run.coop){coopFireSeq++;coopShotPower=power;mediguardAudio.sfx(power>1.35?'charge':'shoot');void sendCoopInput();return;}
   const stats = charStats(); const angle = Math.atan2(direction.y, direction.x) + spread;
   battle.projectiles.push({ x: battle.player.x + Math.cos(angle) * 28, y: battle.player.y + Math.sin(angle) * 28, vx: Math.cos(angle) * (520 + power * 90), vy: Math.sin(angle) * (520 + power * 90), radius: 6 + power * 2, damage: stats.attack * power, life: stats.range / (520 + power * 90), piercing, hit: new Set() });
   battle.shots += 1;
@@ -305,6 +336,7 @@ function fire(power = 1, direction = battle.player.direction, spread = 0, pierci
 function useSkill() {
   if (!battle?.running || battle.player.hidden || battle.countdown > 0 || battle.alertLock > 0) return;
   if (battle.skillCooldown > 0) { showBattleMessage(`スキル再使用まで ${Math.ceil(battle.skillCooldown)}秒`); return; }
+  if(battle.run.coop){coopSkillSeq++;mediguardAudio.sfx('skill');void sendCoopInput();return;}
   const character = battle.run.character; const stats = charStats(); const type = character.skillType; const value = Math.max(1, Number(character.skillValue || 1)); battle.skillCooldown = stats.cooldown;
   if (["radial", "healBurst", "freezeBurst"].includes(type)) {
     const shots = Math.max(6, Math.round(value));
@@ -342,6 +374,7 @@ function movementVector() {
 function shortestAngle(from, to) { return Math.atan2(Math.sin(to - from), Math.cos(to - from)); }
 function updateBattle(dt) {
   if (!battle?.running) return;
+  if(battle.run.coop){updateCoopBattle(dt);return;}
   if (battle.countdown > 0) { battle.countdown -= dt * 1000; $("battleMessage").textContent = battle.countdown > 0 ? `${Math.ceil(battle.countdown / 1000)}` : "防衛開始！"; return; }
   if (battle.alertLock > 0) { battle.alertLock = Math.max(0, battle.alertLock - dt); if (battle.alertLock === 0) $("threatFlash").hidden = true; updateHud(); return; }
   battle.elapsed += dt * 1000; const remaining = Math.max(0, battle.run.timeLimitSeconds - battle.elapsed / 1000); if (remaining <= 0) { void finishBattle(false, "制限時間を超えました"); return; }
@@ -350,7 +383,7 @@ function updateBattle(dt) {
   else {
     const move = movementVector(); const inputStrength = Math.min(1, Math.hypot(move.x, move.y));
     if (inputStrength > .08) {
-      p.direction = { x: move.x / inputStrength, y: move.y / inputStrength };
+      if(attackAim.pointer===null)p.direction = { x: move.x / inputStrength, y: move.y / inputStrength };
       const targetAngle = Math.atan2(p.direction.y, p.direction.x);
       p.visualAngle += shortestAngle(p.visualAngle, targetAngle) * Math.min(1, dt * 13);
     }
@@ -519,6 +552,7 @@ async function startBattle(action = "startRun") {
   $("loadingMap").textContent = action === "startLimitBreak" ? "限界突破戦" : "出撃地点を選定中";
   $("loadingPathogen").textContent = "病原体と安全な経路を解析しています…";
   $("loadingScreen").hidden = false;
+  mediguardAudio.playMusic('loading');mediguardAudio.sfx('sortie');
   try {
     await initialize3D();
     const run = await api(action, { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = run.limitBreak ? `${run.bossName} / 上限解放戦` : `${run.map.pathogen} / ${run.map.weapon}`;
@@ -531,11 +565,12 @@ async function finishBattle(won, reason) {
   if (!battle || battle.ended) return; battle.ended = true; battle.running = false; cancelAnimationFrame(frameId);
   mediguardAudio.sfx(won ? "win" : "lose");
   const summary = { won, wave: battle.wave, kills: battle.kills, shots: battle.shots, damageTaken: 3 * (3 - battle.player.lives) + battle.player.hits, durationMs: Math.round(Math.max(3000, battle.elapsed)) };
-  let result = null; try { result = await api("finishRun", { runId: battle.run.runId, summary, requestId: requestId() }); await refresh(); } catch (error) { showToast(errorText(error, "戦闘記録を保存できませんでした。")); }
+  clearInterval(coopTickTimer);
+  let result = null; try { if(battle.run.coop&&coopRoom?.match?.status!=='finished'){await coopApi('leaveRoom',{roomId:battle.run.coop.roomId});coopUnsubscribe?.();coopUnsubscribe=null;coopRoom=null;renderCoopRoom();}else{result = battle.run.coop?await coopApi('finishRoom',{roomId:battle.run.coop.roomId}):await api("finishRun", { runId: battle.run.runId, summary, requestId: requestId() });} await refresh(); } catch (error) { showToast(errorText(error, "戦闘記録を保存できませんでした。")); }
   $("battleScreen").hidden = true; $("resultLabel").textContent = won ? "MISSION COMPLETE" : "MISSION FAILED"; $("resultTitle").textContent = result?.unlockedCap ? "限界突破成功" : won ? "防衛成功" : "防衛失敗";
   $("resultBody").innerHTML = `<p>${escapeHtml(reason)}</p><div class="result-stats"><article><span>到達</span><b>W${summary.wave}</b></article><article><span>撃退</span><b>${summary.kills}</b></article><article><span>EXP</span><b>+${result?.reward?.xp || 0}</b></article></div>${result?.unlockedCap ? `<p class="limit-unlocked"><b>レベル上限 Lv.${result.unlockedCap} 解放</b></p>` : ""}${result?.firstClear ? `<p><b>初回クリア報酬 +${result.reward.gachaPoints}GP</b></p>` : ""}${result?.character ? `<p>${escapeHtml(result.character.name)} Lv.${result.character.level}</p>` : ""}`;
   $("resultScreen").hidden = false;
-  mediguardAudio.playMusic("home");
+  mediguardAudio.playMusic(won?'resultWin':'resultLose');
 }
 function beginCharge() { if (!battle?.running || battle.player.rapid > 0) { fire(1); return; } battle.chargeStart = performance.now(); }
 function releaseCharge() { if (!battle?.running) return; const held = battle.chargeStart ? performance.now() - battle.chargeStart : 0; battle.chargeStart = 0; fire(1 + Math.min(2, held / (900 / charStats().charge))); }
@@ -593,6 +628,11 @@ async function enterGame() {
   $("titleScreen").hidden = true; $("gameApp").hidden = false; $("loadingScreen").hidden = true; showView("home");
 }
 function bindEvents() {
+  $('createCoopRoom').addEventListener('click',()=>void openCoopRoom('createRoom'));$('joinCoopRoom').addEventListener('click',()=>void openCoopRoom('joinRoom'));
+  $('coopReadyButton').addEventListener('click',async()=>{try{await coopApi('setReady',{roomId:coopRoom.roomId,ready:!coopRoom.members[participantKey]?.ready});}catch(error){$('coopStatus').textContent=errorText(error);}});
+  $('startCoopBattle').addEventListener('click',async()=>{try{await coopApi('startRoom',{roomId:coopRoom.roomId});}catch(error){$('coopStatus').textContent=errorText(error);}});
+  $('leaveCoopRoom').addEventListener('click',async()=>{try{await coopApi('leaveRoom',{roomId:coopRoom.roomId});coopUnsubscribe?.();coopRoom=null;renderCoopRoom();}catch(error){$('coopStatus').textContent=errorText(error);}});
+  $('copyCoopCode').addEventListener('click',async()=>{await navigator.clipboard.writeText(coopRoom.code);showToast('ルームコードをコピーしました');});
   $("startButton").addEventListener("click", () => { void enterGame(); });
   $("gameExitButton").addEventListener("click", () => { window.location.href = "index.html"; }); $("selectedCharacter").addEventListener("click", () => showView("characters")); $("sortieButton").addEventListener("click", () => startBattle("startRun"));
   $("settingsButton").addEventListener("click", () => showView("settings"));
@@ -608,6 +648,7 @@ function bindEvents() {
     const strengthen = event.target.closest("[data-strengthen]"); if (strengthen) await resolveDuplicate(strengthen.dataset.strengthen, "strengthen", strengthen.dataset.target);
     const exchange = event.target.closest("[data-exchange]"); if (exchange) await resolveDuplicate(exchange.dataset.exchange, "exchange");
     const banner = event.target.closest("[data-banner]"); if (banner) { selectedBannerId = banner.dataset.banner; renderGachaBanners(); }
+    const resultPage=event.target.closest('[data-gacha-page]');if(resultPage)renderGachaResults(Number(resultPage.dataset.gachaPage));
     if (event.target.closest("[data-keep-dialog]")) $("dialog").hidden = true;
   });
   setupJoystick();
@@ -616,14 +657,14 @@ function bindEvents() {
   $("bgmToggle").addEventListener("change", () => mediguardAudio.update({ bgm: $("bgmToggle").checked }));
   $("sfxToggle").addEventListener("change", () => mediguardAudio.update({ sfx: $("sfxToggle").checked }));
   $("volumeSlider").addEventListener("input", () => { const volume = Number($("volumeSlider").value) / 100; $("volumeValue").textContent = `${Math.round(volume * 100)}%`; mediguardAudio.update({ volume }); });
-  document.querySelector("#gameShell").addEventListener("click", (event) => { if (event.target.closest("button") && event.target.id !== "attackButton" && event.target.id !== "skillButton") mediguardAudio.sfx("button"); });
+  document.querySelector("#gameShell").addEventListener("click", (event) => {const button=event.target.closest('button');if(!button||['attackButton','skillButton'].includes(button.id))return;const kind=button.matches('[data-view=home],#resultHome,#gameExitButton')?'back':button.matches('[data-select],#selectedCharacter')?'select':button.matches('[data-view],#settingsButton')?'open':'button';mediguardAudio.sfx(kind);});
   $("attackButton").addEventListener("pointerdown", (event) => { event.preventDefault(); attackAim = { pointer: event.pointerId, x: event.clientX, y: event.clientY }; $("attackButton").setPointerCapture(event.pointerId); beginCharge(); });
   $("attackButton").addEventListener("pointermove", (event) => { if (attackAim.pointer !== event.pointerId || !battle?.running) return; const dx = event.clientX - attackAim.x; const dy = event.clientY - attackAim.y; const length = Math.hypot(dx, dy); if (length > 10) battle.player.direction = { x: dx / length, y: dy / length }; });
   $("attackButton").addEventListener("pointerup", (event) => { event.preventDefault(); attackAim.pointer = null; releaseCharge(); }); $("attackButton").addEventListener("pointercancel", () => { attackAim.pointer = null; releaseCharge(); });
   $("skillButton").addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); $("skillButton").classList.add("pressed"); useSkill(); });
   ["pointerup", "pointercancel", "pointerleave"].forEach((name) => $("skillButton").addEventListener(name, () => $("skillButton").classList.remove("pressed")));
   $("exitBattle").addEventListener("click", () => { if (confirm("この出撃を終了しますか？")) void finishBattle(false, "途中退出しました"); });
-  $("retryButton").addEventListener("click", () => { $("resultScreen").hidden = true; void startBattle(); }); $("resultHome").addEventListener("click", () => { $("resultScreen").hidden = true; showView("home"); });
+  $("retryButton").addEventListener("click", () => { $("resultScreen").hidden = true;if(battle?.run?.coop){coopRoom=null;coopUnsubscribe?.();renderCoopRoom();showView('coop');}else void startBattle(); }); $("resultHome").addEventListener("click", () => { $("resultScreen").hidden = true; showView("home"); });
   addEventListener("keydown", (event) => { keyState.add(event.code); if (event.code === "Space" && !event.repeat) { event.preventDefault(); beginCharge(); } if (event.code === "KeyE" && !event.repeat) useSkill(); });
   addEventListener("keyup", (event) => { keyState.delete(event.code); if (event.code === "Space") { event.preventDefault(); releaseCharge(); } });
   $("battleCanvas").addEventListener("pointerdown", (event) => { if (!battle?.running) return; const rect = $("battleCanvas").getBoundingClientRect(); if (event.clientX <= rect.left + rect.width * .56) return; const x = event.clientX - rect.left - rect.width / 2; const y = event.clientY - rect.top - rect.height / 2; const length = Math.hypot(x, y); if (length > 5) battle.player.direction = { x: x / length, y: y / length }; fire(1); });

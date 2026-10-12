@@ -14,7 +14,7 @@ function position3(x, y, height = 0) {
 }
 
 function material(color, options = {}) {
-  return new THREE.MeshStandardMaterial({ color, roughness: .72, metalness: .04, ...options });
+  return new THREE.MeshStandardMaterial({ color, roughness: .54, metalness: .02, ...options });
 }
 
 function mesh(geometry, mat, cast = true, receive = true) {
@@ -44,18 +44,28 @@ function characterPalette(sprite = 0) {
 function createCharacterModel(sprite = 0) {
   const [skin, suit, accent] = characterPalette(sprite);
   const root = new THREE.Group(); root.userData.sprite = Number(sprite || 0);
-  const shadow = mesh(new THREE.CircleGeometry(25, 32), new THREE.MeshBasicMaterial({ color: 0x261621, transparent: true, opacity: .27, depthWrite: false }), false, false);
+  const shadow = mesh(new THREE.CircleGeometry(25, 32), new THREE.MeshBasicMaterial({ color: 0x261621, transparent: true, opacity: .18, depthWrite: false }), false, false);
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = .7; root.add(shadow);
   const rig = new THREE.Group(); rig.position.y = 4; root.add(rig);
-  const body = mesh(new THREE.SphereGeometry(22, 24, 18), material(suit)); body.scale.set(1, 1.16, .82); body.position.y = 38; rig.add(body);
-  const belly = mesh(new THREE.SphereGeometry(15, 22, 16), material(skin)); belly.scale.set(1, .92, .42); belly.position.set(0, 36, 17); rig.add(belly);
-  const head = mesh(new THREE.SphereGeometry(28, 28, 20), material(skin)); head.scale.set(1.06, .95, .92); head.position.y = 73; rig.add(head);
-  const face = new THREE.Group(); face.position.set(0, 72, 25); rig.add(face);
-  [-9, 9].forEach((x) => { const eye = mesh(new THREE.SphereGeometry(3.4, 16, 12), material(0x242028), false, false); eye.position.x = x; face.add(eye); });
-  const smile = mesh(new THREE.TorusGeometry(5.5, 1.15, 7, 18, Math.PI), material(0x643b43), false, false); smile.position.y = -8; smile.rotation.z = Math.PI; face.add(smile);
+  const body = mesh(new THREE.SphereGeometry(24, 32, 24), material(0xf8f0df)); body.scale.set(1, .94, .83); body.position.y = 32; rig.add(body);
+  const belt = mesh(new THREE.TorusGeometry(21, 3.5, 10, 36),material(0x67492f));belt.rotation.x=Math.PI/2;belt.scale.z=.86;belt.position.y=26;rig.add(belt);
+  const collar=mesh(new THREE.TorusGeometry(19,6,14,40),material(suit));collar.rotation.x=Math.PI/2;collar.scale.z=.8;collar.position.y=48;rig.add(collar);
+  const scarf=mesh(new THREE.CapsuleGeometry(5,17,8,14),material(suit));scarf.position.set(9,35,21);scarf.rotation.z=-.25;rig.add(scarf);
+  let headGeometry;
+  if(sprite===0){const profile=[new THREE.Vector2(0,-23),new THREE.Vector2(13,-23),new THREE.Vector2(25,-16),new THREE.Vector2(30,-4),new THREE.Vector2(28,9),new THREE.Vector2(21,20),new THREE.Vector2(8,26),new THREE.Vector2(4,36),new THREE.Vector2(0,42)];headGeometry=new THREE.LatheGeometry(profile,48);}
+  else headGeometry=new THREE.SphereGeometry(28,40,32);
+  const head = mesh(headGeometry, material(skin)); head.scale.set(1.06,.96,.9);head.position.y = 76; rig.add(head);
+  const face = new THREE.Group(); face.position.set(0, 74, 25); rig.add(face);
+  [-10,10].forEach((x)=>{const eye=mesh(new THREE.SphereGeometry(4.2,20,16),material(0x142a35),false,false);eye.scale.set(.76,1.16,.43);eye.position.set(x,1,1);face.add(eye);const sparkle=mesh(new THREE.SphereGeometry(1.25,12,8),material(0xffffff),false,false);sparkle.position.set(x-1,3,3);face.add(sparkle);const blush=mesh(new THREE.SphereGeometry(4.3,16,12),material(0xeaa89b));blush.scale.set(1,.42,.13);blush.position.set(x*1.35,-5,0);face.add(blush);});
+  const smile = mesh(new THREE.TorusGeometry(4.6,.8,8,22,Math.PI), material(0x5e3740),false,false);smile.position.set(0,-5,1);smile.rotation.z=Math.PI;face.add(smile);
+  if(sprite!==0&&sprite!==2){const muzzle=mesh(new THREE.SphereGeometry(10,24,16),material(0xffe8cb));muzzle.scale.set(1,.68,.37);muzzle.position.set(0,66,25);rig.add(muzzle);const nose=mesh(new THREE.SphereGeometry(3,16,10),material(0x4d3034));nose.scale.set(1,.72,.5);nose.position.set(0,69,30);rig.add(nose);}
+  if(sprite===2){const beak=mesh(new THREE.ConeGeometry(4.5,8,4),material(0xea8130));beak.rotation.x=Math.PI/2;beak.position.set(0,69,30);rig.add(beak);}
+  const satchel=mesh(new THREE.BoxGeometry(16,17,9,2,2,2),material(0x8b5f3d));satchel.position.set(-24,32,0);satchel.rotation.z=-.16;rig.add(satchel);
+  const badgeV=mesh(new THREE.BoxGeometry(3,10,1.2),material(0xfdf5e3));badgeV.position.set(-24,33,5);rig.add(badgeV);const badgeH=mesh(new THREE.BoxGeometry(10,3,1.2),material(0xfdf5e3));badgeH.position.set(-24,33,5);rig.add(badgeH);
   const makeLimb = (side, arm = false) => {
     const pivot = new THREE.Group(); pivot.position.set(side * (arm ? 22 : 10), arm ? 47 : 22, 0); rig.add(pivot);
-    const limb = mesh(new THREE.CapsuleGeometry(arm ? 5.2 : 6.4, arm ? 18 : 20, 7, 12), material(arm ? skin : suit)); limb.position.y = arm ? -10 : -13; pivot.add(limb); return pivot;
+    const limb = mesh(new THREE.CapsuleGeometry(arm ? 6.1 : 6.9, arm ? 12 : 14, 10, 18), material(arm ? 0xf8f0df : suit)); limb.position.y = arm ? -9 : -11;pivot.add(limb);
+    const extremity=mesh(new THREE.SphereGeometry(arm?6.2:8,18,14),material(arm?skin:suit));extremity.scale.set(1,.65,arm?1:1.4);extremity.position.set(0,arm?-18:-21,arm?2:4);pivot.add(extremity);return pivot;
   };
   root.userData.leftArm = makeLimb(-1, true); root.userData.rightArm = makeLimb(1, true);
   root.userData.leftLeg = makeLimb(-1, false); root.userData.rightLeg = makeLimb(1, false);
@@ -81,6 +91,8 @@ function createCharacterModel(sprite = 0) {
   const crossV = mesh(new THREE.BoxGeometry(4, 14, 4), material(0xf8f2da)); crossV.position.set(0, 22, 9); staff.add(crossV);
   const crossH = mesh(new THREE.BoxGeometry(14, 4, 4), material(0xf8f2da)); crossH.position.set(0, 22, 9); staff.add(crossH);
   root.userData.rig = rig; root.userData.shadow = shadow;
+  const selectionRing=mesh(new THREE.TorusGeometry(28,1.3,8,48),new THREE.MeshBasicMaterial({color:0x78e9b8,transparent:true,opacity:.85}),false,false);selectionRing.rotation.x=-Math.PI/2;selectionRing.position.y=1.2;root.add(selectionRing);root.userData.ring=selectionRing;
+  root.traverse(child=>{if(child.material)child.userData.baseOpacity=child.material.opacity;});
   return root;
 }
 
@@ -150,9 +162,9 @@ class BaseRenderer {
 }
 
 export class Mediguard3DBattle extends BaseRenderer {
-  constructor(canvas) { super(canvas); this.mapId = ""; this.playerModel = null; this.enemyObjects = new Map(); this.holeObjects = new Map(); this.projectileObjects = new Map(); }
+  constructor(canvas) { super(canvas); this.mapId = ""; this.playerModel = null; this.enemyObjects = new Map(); this.holeObjects = new Map(); this.projectileObjects = new Map();this.remoteObjects=new Map(); }
   buildWorld(mapId, obstacles) {
-    [...this.scene.children].forEach(disposeObject); this.enemyObjects.clear(); this.holeObjects.clear(); this.projectileObjects.clear(); this.playerModel = null; this.mapId = mapId;
+    [...this.scene.children].forEach(disposeObject); this.enemyObjects.clear(); this.holeObjects.clear(); this.projectileObjects.clear();this.remoteObjects.clear(); this.playerModel = null; this.mapId = mapId;
     const colors = MAP_COLORS[mapId] || MAP_COLORS.lung; this.scene.background = new THREE.Color(colors[2]); this.scene.fog = new THREE.Fog(colors[2], 640, 1200); addLights(this.scene);
     const texture = createCellTexture(colors); const floor = mesh(new THREE.PlaneGeometry(WORLD_WIDTH * WORLD_SCALE, WORLD_HEIGHT * WORLD_SCALE), material(0xffffff, { map: texture, roughness: .88 }), false, true); floor.rotation.x = -Math.PI / 2; this.scene.add(floor);
     const membraneMat = material(colors[1], { emissive: colors[2], emissiveIntensity: .08 });
@@ -161,19 +173,20 @@ export class Mediguard3DBattle extends BaseRenderer {
   }
   syncMap(map, factory, store, update) {
     const active = new Set();
-    map.forEach((entity) => { active.add(entity); let object = store.get(entity); if (!object) { object = factory(entity); store.set(entity, object); this.scene.add(object); } update(object, entity); });
+    map.forEach((entity) => { const key=entity.id||entity;active.add(key); let object = store.get(key); if (!object) { object = factory(entity); store.set(key, object); this.scene.add(object); } update(object, entity); });
     for (const [entity, object] of store) if (!active.has(entity)) { disposeObject(object); store.delete(entity); }
   }
   render(battle, obstacles) {
     this.resize(); if (this.mapId !== battle.run.map.id) this.buildWorld(battle.run.map.id, obstacles);
     const time = performance.now() / 1000;
     if (!this.playerModel || this.playerModel.userData.sprite !== Number(battle.run.character.sprite || 0)) { if (this.playerModel) disposeObject(this.playerModel); this.playerModel = createCharacterModel(battle.run.character.sprite); this.scene.add(this.playerModel); }
-    const playerPosition = position3(battle.player.x, battle.player.y); this.playerModel.position.copy(playerPosition); this.playerModel.visible = !battle.player.hidden; animateCharacter(this.playerModel, battle.player, time);
-    this.playerModel.traverse((child) => { if (child.material && "opacity" in child.material) { child.material.transparent = battle.player.invincible > 0; child.material.opacity = battle.player.invincible > 0 && Math.floor(time * 10) % 2 ? .42 : 1; } });
-    this.syncMap(battle.enemies, (enemy) => createMicrobe(enemy.type, enemy.radius), this.enemyObjects, (object, enemy) => { object.position.copy(position3(enemy.x, enemy.y)); object.rotation.y = Math.atan2(battle.player.x - enemy.x, battle.player.y - enemy.y); object.position.y = 2 + Math.sin(time * 5 + enemy.x * .01) * 3; object.userData.body.scale.setScalar(enemy.flash > 0 ? 1.15 : 1); });
+    const playerPosition = position3(battle.player.x, battle.player.y); this.playerModel.scale.setScalar(.36);this.playerModel.position.copy(playerPosition); this.playerModel.visible = !battle.player.hidden; animateCharacter(this.playerModel, battle.player, time);
+    this.playerModel.traverse((child) => { if(child.material){const base=child.userData.baseOpacity??1;child.material.transparent=base<1||battle.player.invincible>0;child.material.opacity=base*(battle.player.invincible>0&&Math.floor(time*10)%2?.45:1);} });
+    this.syncMap(battle.enemies,(enemy)=>createMicrobe(enemy.type,enemy.radius*.78),this.enemyObjects,(object,enemy)=>{object.position.copy(position3(enemy.x,enemy.y));object.rotation.y=Math.atan2(battle.player.x-enemy.x,battle.player.y-enemy.y);object.position.y=2+Math.sin(time*5+enemy.x*.01)*2;object.userData.body.scale.setScalar(enemy.flash>0?1.1:1);const near=Math.hypot(enemy.x-battle.player.x,enemy.y-battle.player.y)<125&&enemy.y>=battle.player.y-30;object.traverse(child=>{if(child.material){child.material.transparent=near;child.material.opacity=near?.36:1;}});});
     this.syncMap(battle.holes, () => { const ring = mesh(new THREE.TorusGeometry(24, 6, 10, 32), material(0x4a1737, { emissive: 0x7c2349, emissiveIntensity: .4 })); ring.rotation.x = Math.PI / 2; return ring; }, this.holeObjects, (object, hole) => { object.position.copy(position3(hole.x, hole.y, 2)); const pulse = hole.spawned ? 1 : 1 + Math.sin(time * 9) * .16; object.scale.setScalar(pulse); });
     this.syncMap(battle.projectiles, (shot) => mesh(new THREE.SphereGeometry(Math.max(5, shot.radius * .75), 14, 10), material(shot.piercing ? 0xffdc58 : 0x62f6dc, { emissive: shot.piercing ? 0xffb429 : 0x2cbba8, emissiveIntensity: 1.4 })), this.projectileObjects, (object, shot) => object.position.copy(position3(shot.x, shot.y, 24)));
-    const follow = new THREE.Vector3(playerPosition.x, 0, playerPosition.z); const landscape = this.canvas.clientWidth > this.canvas.clientHeight; const cameraOffset = landscape ? new THREE.Vector3(0, 430, 475) : new THREE.Vector3(0, 520, 610); const targetCamera = follow.clone().add(cameraOffset); this.camera.position.lerp(targetCamera, .11); this.camera.lookAt(follow.x, 18, follow.z - 28);
+    this.syncMap(Object.values(battle.remotePlayers||{}),p=>createCharacterModel(p.character.sprite),this.remoteObjects,(object,p)=>{object.scale.setScalar(.36);object.position.copy(position3(p.x,p.y));object.visible=!p.hidden;animateCharacter(object,p,time);object.userData.ring.material.color.setHex(0x87bbff);});
+    const follow=new THREE.Vector3(THREE.MathUtils.clamp(playerPosition.x,-WORLD_WIDTH*WORLD_SCALE/2+180,WORLD_WIDTH*WORLD_SCALE/2-180),0,THREE.MathUtils.clamp(playerPosition.z,-WORLD_HEIGHT*WORLD_SCALE/2+140,WORLD_HEIGHT*WORLD_SCALE/2-140));const landscape=this.canvas.clientWidth>this.canvas.clientHeight;const cameraOffset=landscape?new THREE.Vector3(0,510,380):new THREE.Vector3(0,640,455);const targetCamera=follow.clone().add(cameraOffset);this.camera.position.lerp(targetCamera,.13);this.camera.lookAt(follow.x,12,follow.z-12);
     this.renderer.render(this.scene, this.camera);
   }
 }
@@ -186,7 +199,7 @@ export class Mediguard3DShowcase extends BaseRenderer {
     this.camera.position.set(0, 105, 235); this.camera.lookAt(0, 48, 0); this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
   setCharacter(sprite) { if (this.sprite === Number(sprite || 0)) return; this.sprite = Number(sprite || 0); if (this.actor) disposeObject(this.actor); this.actor = createCharacterModel(this.sprite); this.actor.scale.setScalar(1.2); this.scene.add(this.actor); }
-  loop() { if (!this.running) return; this.resize(); const time = performance.now() / 1000; if (this.actor) { animateCharacter(this.actor, { direction: { x: Math.sin(time * .38), y: Math.cos(time * .38) }, velocity: { x: 0, y: 0 }, walkTime: 0 }, time); this.actor.rotation.y = Math.sin(time * .45) * .32; } this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.loop); }
+  loop() { if (!this.running) return;if(document.hidden||!this.canvas.getBoundingClientRect().width||!document.getElementById('battleScreen')?.hidden){requestAnimationFrame(this.loop);return;} this.resize(); const time = performance.now() / 1000; if (this.actor) { animateCharacter(this.actor, { direction: { x: Math.sin(time * .38), y: Math.cos(time * .38) }, velocity: { x: 0, y: 0 }, walkTime: 0 }, time); this.actor.rotation.y = Math.sin(time * .45) * .32; } this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.loop); }
 }
 
 export class Mediguard3DPortraits {
@@ -201,6 +214,14 @@ export class Mediguard3DPortraits {
     const actor = createCharacterModel(key); actor.scale.setScalar(1.2); actor.rotation.y = -.26; animateCharacter(actor, { direction: { x: .22, y: 1 }, velocity: { x: 0, y: 0 }, walkTime: 0 }, key * .37); this.scene.add(actor);
     this.renderer.render(this.scene, this.camera); const portrait = this.canvas.toDataURL("image/png"); disposeObject(actor); this.cache.set(key, portrait); return portrait;
   }
+}
+
+export class Mediguard3DGacha extends BaseRenderer {
+  constructor(canvas){super(canvas);this.scene.background=new THREE.Color(0x10273c);addLights(this.scene);this.phase='idle';this.started=0;this.active=false;this.actor=null;this.capsule=new THREE.Group();this.scene.add(this.capsule);const surface=material(0xe6f1df,{metalness:.35,roughness:.3});this.lower=mesh(new THREE.SphereGeometry(40,40,26,0,Math.PI*2,Math.PI/2,Math.PI/2),surface);this.upper=mesh(new THREE.SphereGeometry(40,40,26,0,Math.PI*2,0,Math.PI/2),material(0x278f9b,{metalness:.3}));this.capsule.add(this.lower,this.upper);const seam=mesh(new THREE.TorusGeometry(40,3,12,48),material(0xf1c759,{metalness:.4}));seam.rotation.x=Math.PI/2;this.capsule.add(seam);this.core=mesh(new THREE.SphereGeometry(14,24,16),material(0x96f5d1,{emissive:0x6ad5b5,emissiveIntensity:.8}));this.capsule.add(this.core);const platform=mesh(new THREE.CylinderGeometry(78,92,12,48),material(0x27435d,{metalness:.5}));platform.position.y=-55;this.scene.add(platform);this.camera.position.set(0,65,260);this.camera.lookAt(0,10,0);this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);}
+  start(sprite=0,rarity='N'){if(this.actor)disposeObject(this.actor);this.actor=createCharacterModel(sprite);this.actor.scale.setScalar(.9);this.actor.position.y=-30;this.actor.visible=false;this.scene.add(this.actor);this.rarity=rarity;this.started=performance.now();this.active=true;this.phase='charge';this.capsule.visible=true;this.upper.position.y=0;this.upper.rotation.z=0;this.core.material.color.setHex({N:0x78cfaf,R:0x62bcf0,SR:0xae8afa,SSR:0xf987b7,UR:0xfac378,LR:0xffe896}[rarity]||0x78cfaf);}
+  reveal(){this.phase='reveal';}
+  stop(){this.active=false;}
+  loop(){if(this.active&&!document.hidden&&this.canvas.getBoundingClientRect().width){this.resize();const t=(performance.now()-this.started)/1000;this.capsule.rotation.y=t*1.2;this.capsule.position.y=Math.sin(t*3)*3;this.core.scale.setScalar(.8+Math.sin(t*6)*.16);if(this.phase==='reveal'){this.upper.position.y=THREE.MathUtils.lerp(this.upper.position.y,115,.09);this.upper.rotation.z=THREE.MathUtils.lerp(this.upper.rotation.z,-.9,.09);this.lower.position.y=THREE.MathUtils.lerp(this.lower.position.y,-65,.09);this.actor.visible=true;this.actor.position.y=THREE.MathUtils.lerp(this.actor.position.y,-12,.07);this.actor.rotation.y=Math.sin(t*.8)*.24;this.core.visible=false;}else{this.lower.position.y=0;this.core.visible=true;}this.renderer.render(this.scene,this.camera);}requestAnimationFrame(this.loop);}
 }
 
 export function supportsMediguard3D() {

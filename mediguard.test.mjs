@@ -158,10 +158,11 @@ test("味方・敵キャラは固定マスではなく輪郭透過PNGを実際�
   await Promise.all(sprites.map((path) => access(new URL(path, import.meta.url))));
 });
 
-test("未完成の協力プレイは実装済みと誤認させず次段階として明示する", async () => {
+test("協力プレイは専用のルーム画面から開始する", async () => {
   const page = await read("./mediguard.html");
   assert.match(page, /協力プレイ/);
-  assert.match(page, /class="soon" disabled/);
+  assert.match(page, /id="coopView"/);
+  assert.match(page, /id="startCoopBattle"/);
 });
 
 test("初期十字キーと任意スティックを選べ、設定を端末へ保存する", async () => {
@@ -193,11 +194,11 @@ test("出撃読み込み画面とオリジナルBGM・効果音を全ゲーム�
   assert.match(page, /id="sfxToggle"/);
   assert.match(client, /mediguardAudio\.playMusic\("battle"\)/);
   assert.match(client, /mediguardAudio\.sfx\("gacha"\)/);
-  assert.match(client, /\$\("loadingScreen"\)\.hidden = false;\n  try/);
+  assert.match(client, /\$\("loadingScreen"\)\.hidden = false;/);
   assert.match(audio, /class MediguardAudio/);
-  assert.match(audio, /AudioContext/);
-  assert.match(audio, /playMusic\(theme = "home"\)/);
-  assert.match(sw, /mediguard_audio\.js\?v=20261012-1/);
+  assert.match(audio, /new Audio\(slot\.url\)/);
+  assert.doesNotMatch(audio, /createOscillator/);
+  assert.match(sw, /mediguard_audio\.js\?v=20261012-/);
 });
 
 test("キャラクターは4方向4歩幅の素材と連続角度・加減速で滑らかに歩く", async () => {
@@ -219,7 +220,7 @@ test("キャラクター・敵・細胞内ステージ・障害物・弾・追�
     read("./mediguard.html"), read("./mediguard.js"), read("./mediguard_3d.js"), read("./sw.js"),
   ]);
   assert.match(page, /id="home3dCanvas"/);
-  assert.match(client, /import\("\.\/mediguard_3d\.js\?v=20261012-1"\)/);
+  assert.match(client, /import\("\.\/mediguard_3d\.js\?v=20261012-4"\)/);
   assert.match(client, /new module\.Mediguard3DBattle/);
   assert.match(client, /new module\.Mediguard3DShowcase/);
   assert.match(client, /new module\.Mediguard3DPortraits/);

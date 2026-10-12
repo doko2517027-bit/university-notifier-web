@@ -4,6 +4,7 @@ const {
   validateBanner, validateCharacter,
 } = require("./mediguard_config");
 const { buildMediguardAdminMetrics } = require("./mediguard_admin_metrics");
+const { sanitizeAudioConfig } = require('./mediguard_audio_policy');
 
 function createMediguardAdminService({ db, realtimeDb, HttpsError, requireAdmin }) {
   const settingsRef = () => db.collection("mediguardGameConfig").doc("settings");
@@ -130,6 +131,12 @@ function createMediguardAdminService({ db, realtimeDb, HttpsError, requireAdmin 
     return { initialized: true };
   }
 
+  async function saveAudio(request) {
+    const adminStudentNumber=await requireAdmin(request);
+    let audio;try{audio=sanitizeAudioConfig(request.data?.audio||{});}catch(error){throw new HttpsError('invalid-argument',error.message);}
+    await settingsRef().set({audio,updatedAt:new Date(),updatedBy:adminStudentNumber},{merge:true});
+    return {saved:true,audio};
+  }
   async function dispatch(request) {
     const action = String(request.data?.action || "dashboard");
     if (action === "dashboard") return dashboard(request);
@@ -139,6 +146,7 @@ function createMediguardAdminService({ db, realtimeDb, HttpsError, requireAdmin 
     if (action === "saveCharacter") return saveCharacter(request);
     if (action === "saveSettings") return saveSettings(request);
     if (action === "initializeDefaults") return initializeDefaults(request);
+    if (action === 'saveAudio') return saveAudio(request);
     throw new HttpsError("invalid-argument", "操作を確認してください。");
   }
   return { dispatch };

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>メディガ管理 | CareMate</title>
     <link rel="stylesheet" href="style.css?v=20261002-1" />
-    <link rel="stylesheet" href="mediguard_admin.css?v=20261012-3" />
+    <link rel="stylesheet" href="mediguard_admin.css?v=20261012-6" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("loggedIn") !== "true") location.replace("login.html");
@@ -25,6 +25,7 @@
         <button type="button" data-admin-tab="operation">運用設定</button>
         <button type="button" data-admin-tab="gacha">ガチャ管理</button>
         <button type="button" data-admin-tab="characters">キャラクター</button>
+        <button type="button" data-admin-tab="audio">音楽・効果音</button>
       </nav>
 
       <section class="mediguard-admin-panel" data-admin-panel="dashboard">
@@ -87,9 +88,16 @@
           </form>
         </div>
       </section>
+      <section class="mediguard-admin-panel" data-admin-panel="audio" hidden>
+        <div class="mediguard-admin-heading"><div><span>SOUND STUDIO</span><h2>音楽・効果音</h2></div><button id="saveAudioButton" type="button" class="btn btn-primary">音の設定を保存</button></div>
+        <p>MP3・M4A・WAV・AAC・OGGを選んで、試聴してから保存できます。音声はCareMateで使用中のCloudinaryに保存します。</p>
+        <div class="audio-filter"><button type="button" data-audio-filter="bgm" class="btn btn-primary">画面のBGM</button><button type="button" data-audio-filter="sfx" class="btn">ボタン・効果音</button></div>
+        <div id="audioSettingsList" class="audio-settings-list"></div>
+        <p id="audioSaveStatus" role="status" aria-live="polite"></p>
+      </section>
     </main>
 
     <nav class="bottom-nav"><a href="index.html"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a><a href="calendar.html"><span class="nav-icon-wrap"><span class="nav-icon">🗓️</span></span><span>カレンダー</span></a><a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a><a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a><a id="settingsTab" class="active" href="admin.html"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a></nav>
-    <script type="module" src="mediguard_admin.js?v=20261012-2"></script>
+    <script type="module" src="mediguard_admin.js?v=20261012-3"></script>
   </body>
 </html>

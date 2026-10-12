@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
     <meta name="theme-color" content="#153d43" />
     <title>メディガード！ | CareMate</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="mediguard.css?v=20261012-13" />
+    <link rel="stylesheet" href="mediguard.css?v=20261012-17" />
     <link rel="icon" href="images/icon-192.png" />
   </head>
   <body class="mediguard-body page-loading">
@@ -44,11 +43,17 @@
             <button data-view="gacha"><span>◈</span><b>ガチャ</b></button>
             <button data-view="records"><span>▥</span><b>記録</b></button>
             <button data-view="help"><span>?</span><b>遊び方</b></button>
-            <button class="soon" disabled><span>⌁</span><b>協力プレイ</b></button>
+            <button data-view="coop"><span>⌁</span><b>協力プレイ</b></button>
             <button id="limitBreakButton" data-view="limitBreak"><span>♜</span><b>限界突破</b></button>
           </div>
         </section>
 
+        <section id="coopView" class="game-view panel-view" hidden>
+          <div class="view-heading"><div><small>TEAM DEFENSE</small><h2>協力プレイ</h2></div><button data-view="home">もどる</button></div>
+          <div id="coopEntry" class="coop-entry"><article><h3>一緒に出撃</h3><p>最大10人で、同じ細胞内の病原体を撃退。</p><button id="createCoopRoom" class="primary" type="button">ルームを作る</button></article><article><label for="coopRoomCode">6桁のルームコード</label><input id="coopRoomCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><button id="joinCoopRoom" type="button">参加する</button></article><p>現在は2510044限定テスト。同じアカウントの別端末・別タブでも参加できます。</p></div>
+          <div id="coopLobby" class="coop-lobby" hidden><header><span>ルームコード</span><strong id="coopCodeDisplay">------</strong><button id="copyCoopCode" type="button">コピー</button></header><div id="coopMemberList" class="coop-member-list"></div><div class="coop-actions"><button id="coopReadyButton" type="button">準備完了</button><button id="startCoopBattle" class="primary" type="button">全員で出撃</button><button id="leaveCoopRoom" type="button">ルームを退出</button></div></div>
+          <p id="coopStatus" class="coop-status" role="status" aria-live="polite"></p>
+        </section>
         <section id="charactersView" class="game-view panel-view" hidden>
           <div class="view-heading"><div><small>UNIT LIST</small><h2>キャラクター</h2></div><button data-view="home">もどる</button></div>
           <p class="view-note">同じ種類でも個体ごとにレベルを保存します。★で交換・合成から保護できます。</p>
@@ -145,6 +150,7 @@
     <div id="resultScreen" class="result-screen" hidden><section><small id="resultLabel">MISSION COMPLETE</small><h2 id="resultTitle">防衛成功</h2><div id="resultBody"></div><div><button id="retryButton" class="primary">もう一度出撃</button><button id="resultHome">ホームへ</button></div></section></div>
     <section id="gachaCinematic" class="gacha-cinematic" hidden aria-live="polite">
       <button id="gachaSkipButton" type="button">演出をスキップ</button>
+      <canvas id="gacha3dCanvas" aria-hidden="true"></canvas>
       <div class="gacha-lab-grid" aria-hidden="true"></div>
       <div class="gacha-reactor" aria-hidden="true"><i></i><i></i><i></i><span>＋</span></div>
       <div class="gacha-scan-line" aria-hidden="true"></div>
@@ -154,6 +160,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261012-17"></script>
+    <script type="module" src="mediguard.js?v=20261012-18"></script>
   </body>
 </html>

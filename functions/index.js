@@ -48,6 +48,7 @@ const {
 
 const { createMediguardService } = require("./mediguard");
 const { createMediguardAdminService } = require("./mediguard_admin");
+const { createMediguardCoopService } = require("./mediguard_coop");
 
 initializeApp();
 
@@ -364,6 +365,18 @@ const MEDIGUARD_FUNCTION_OPTIONS = Object.freeze({
 exports.mediguardGame = onCall(
   MEDIGUARD_FUNCTION_OPTIONS,
   (request) => mediguardService.dispatch(request),
+);
+
+const mediguardCoopService = createMediguardCoopService({
+  db,
+  realtimeDb: getDatabase(),
+  HttpsError,
+  requireStudent: requireAuthenticatedCareMateStudent,
+});
+
+exports.mediguardCoop = onCall(
+  MEDIGUARD_FUNCTION_OPTIONS,
+  (request) => mediguardCoopService.dispatch(request),
 );
 
 const mediguardAdminService = createMediguardAdminService({
