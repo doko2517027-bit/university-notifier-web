@@ -10,7 +10,7 @@ function showGate(state) {
   gate.dataset.state = state;
   if (state === 'maintenance') {
     badge.textContent = 'COMING SOON';
-    title.textContent = 'ただいま整備中';
+    title.textContent = 'ただいまメンテナンス中';
     detail.textContent = 'みんなが気持ちよく遊べるよう、対戦環境を調整しています。公開まで、もう少しお待ちください。';
     status.textContent = '現在は限定テスト中です';
   } else {
