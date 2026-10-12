@@ -1,0 +1,26 @@
+#accessScreen[hidden] { display: none !important; }
+#accessScreen { position: fixed; inset: 0; z-index: 100; overflow: hidden; display: grid; place-items: center;
+  padding: max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+  color: #f5f8ff; background: radial-gradient(circle at 64% 31%,#365f9c 0,#1a3359 36%,#0e1930 76%); }
+#accessScreen::before, #accessScreen::after { content: ''; position: absolute; border: 1px solid #b0d5ff31; border-radius: 50%; pointer-events: none; }
+#accessScreen::before { width: min(86vw,690px); aspect-ratio: 1; transform: translate(27vw,-18vh) rotate(-22deg); box-shadow: 0 0 0 32px #8ab2ed0b,0 0 0 65px #8ab2ed08; }
+#accessScreen::after { width: min(43vw,320px); aspect-ratio: 1; transform: translate(-39vw,35vh); background: #8bd4ff08; }
+.access-card { position: relative; width: min(100%,530px); padding: clamp(24px,5vw,42px); border: 1px solid #c2dbff38; border-radius: 28px;
+  background: linear-gradient(145deg,#263d69ed,#172443f2); box-shadow: 0 28px 70px #050c1d99; text-align: left; }
+.access-brand { margin: 0 0 28px; color: #bfd8ff; letter-spacing: .14em; font-weight: 900; font-size: .86rem; }
+.access-art { width: 88px; height: 88px; position: relative; display: grid; place-items: center; margin: 0 0 24px; border-radius: 24px;
+  background: linear-gradient(145deg,#fdd96d,#ffb85e); box-shadow: 0 13px 0 #a87444,0 22px 34px #060f2b9c; transform: rotate(-8deg); }
+.access-art span { width: 45px; height: 45px; border: 8px solid #203a66; border-radius: 50%; transform: rotate(28deg); position: relative; }
+.access-art span::after { content: ''; position: absolute; width: 33px; height: 11px; background: #203a66; right: -28px; bottom: -8px; border-radius: 12px; transform: rotate(42deg); }
+.access-badge { display: inline-block; padding: 7px 11px; border-radius: 999px; color: #1b3152; background: #cde5ff; font-size: .75rem; font-weight: 900; letter-spacing: .12em; }
+#accessTitle { margin: 15px 0 10px; font-size: clamp(1.9rem,6vw,3rem); line-height: 1.16; }
+#accessDetail { margin: 0; color: #d7e5ff; line-height: 1.7; font-size: clamp(.96rem,2.8vw,1.08rem); }
+.access-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 27px; flex-wrap: wrap; }
+.access-footer a { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 9px 17px; border-radius: 12px;
+  color: #182b4a; background: #fbd16b; font-weight: 900; text-decoration: none; }
+#accessStatus { color: #abc2e5; font-size: .83rem; }
+@media(max-height:520px) { .access-card { width: min(100%,720px); padding: 18px 24px; display: grid; grid-template-columns: 70px 1fr; column-gap: 20px; }
+  .access-brand { grid-column: 1/-1; margin: 0 0 8px; } .access-art { width: 60px; height: 60px; border-radius: 18px; grid-row: 2/5; margin: 8px 0 0; }
+  .access-art span { width: 30px; height: 30px; border-width: 6px; } .access-art span::after { width: 25px; height: 8px; right: -22px; bottom: -6px; }
+  .access-badge { justify-self: start; } #accessTitle { margin: 4px 0; font-size: 1.7rem; } #accessDetail { font-size: .89rem; line-height: 1.4; }
+  .access-footer { grid-column: 2; margin-top: 10px; } }

@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test src/battle/*.test.mjs src/services/*.test.mjs"
+    "test": "node --test src/battle/*.test.mjs src/services/*.test.mjs src/integrations/*.test.mjs"
   }
 }

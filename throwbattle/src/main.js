@@ -51,8 +51,7 @@ async function initializeCloud() {
   if (!THROB_TEST_STUDENTS.includes(localStudentNumber) || localStorage.getItem('loggedIn') !== 'true') return;
   renderCloudStatus('loading', 'CareMateの認証を確認中…');
   try {
-    const { connectCareMate } = await import('./integrations/caremate.js');
-    const connection = await connectCareMate();
+    const connection = window.__throbConnection;
     if (!connection) {
       renderCloudStatus('offline', '本人確認できません。記録はこの端末だけに保存します。');
       return;

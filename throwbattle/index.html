@@ -8,12 +8,23 @@
   <link rel="stylesheet" href="./style.css?v=3">
   <link rel="stylesheet" href="./responsive.css?v=1">
   <link rel="stylesheet" href="./phase5.css?v=1">
+  <link rel="stylesheet" href="./access.css?v=1">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
 </head>
 <body>
-  <div id="app">
+  <main id="accessScreen" aria-label="Throbの公開状況">
+    <div class="access-card">
+      <p class="access-brand">THROB / THROW OBJE</p>
+      <div class="access-art" aria-hidden="true"><span></span></div>
+      <span id="accessBadge" class="access-badge">CHECKING ACCESS</span>
+      <h1 id="accessTitle">利用状況を確認中</h1>
+      <p id="accessDetail">CareMateのログイン情報を確認しています。</p>
+      <div class="access-footer"><a href="../index.html">← CareMateに戻る</a><span id="accessStatus" role="status">少しお待ちください</span></div>
+    </div>
+  </main>
+  <div id="app" style="display:none">
     <main id="titleScreen" class="screen title-screen active" aria-label="タイトル画面">
       <div class="title-art" aria-hidden="true"><span>✦</span><span>●</span><span>◆</span></div>
       <div class="title-copy"><p class="eyebrow">THROW OBJE</p><h1>Throb</h1><p>身近な物で、勝負しよう。</p></div>
@@ -96,6 +107,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/main.js?v=6"></script>
+  <script type="module" src="./src/bootstrap.js?v=1"></script>
 </body>
 </html>
