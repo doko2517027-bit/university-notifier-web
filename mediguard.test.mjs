@@ -221,6 +221,9 @@ test("キャラクター・敵・細胞内ステージ・障害物・弾・追�
   assert.match(page, /id="home3dCanvas"/);
   assert.match(client, /import\("\.\/mediguard_3d\.js\?v=20261012-1"\)/);
   assert.match(client, /new module\.Mediguard3DBattle/);
+  assert.match(client, /new module\.Mediguard3DShowcase/);
+  assert.match(client, /new module\.Mediguard3DPortraits/);
+  assert.match(client, /function apply3DPortraits/);
   assert.match(client, /battle3d\.render\(battle, battleObstacles/);
   assert.match(renderer, /three@0\.186\.0\/build\/three\.module\.min\.js/);
   assert.match(renderer, /new THREE\.WebGLRenderer/);
@@ -232,6 +235,11 @@ test("キャラクター・敵・細胞内ステージ・障害物・弾・追�
   assert.match(renderer, /new THREE\.SphereGeometry\(Math\.max\(5, shot\.radius/);
   assert.match(renderer, /this\.camera\.position\.lerp\(targetCamera/);
   assert.match(renderer, /export function supportsMediguard3D/);
+  assert.match(renderer, /export class Mediguard3DPortraits/);
+  assert.match(renderer, /preserveDrawingBuffer: true/);
+  for (const feature of ["addConeEar", "addRoundEar", "addLongEar", "addTail", "addWing", "addGoggles"]) assert.match(renderer, new RegExp(`const ${feature}`));
+  assert.match(renderer, /if \(sprite === 5\).*addWing/);
+  assert.match(renderer, /if \(sprite === 8\).*addGoggles/);
   assert.match(sw, /THREE_MODULE_URL/);
   await access(new URL("./mediguard_3d.js", import.meta.url));
 });

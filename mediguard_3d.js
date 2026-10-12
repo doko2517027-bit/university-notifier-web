@@ -34,9 +34,9 @@ function disposeObject(object) {
 
 function characterPalette(sprite = 0) {
   const palettes = [
-    [0xf8ead1, 0x2a9ca0, 0x66d6d4], [0xffd9b3, 0xe76d63, 0xffb15c], [0xdff4ef, 0x4b83ce, 0x83c8ff],
-    [0xf0e4ff, 0x8754bd, 0xcaa4ef], [0xfbe8b9, 0xb88536, 0xf1cf67], [0xe1f4ce, 0x58965b, 0x8ed082],
-    [0xf4d9e6, 0xc35582, 0xef91b2], [0xe5e5e5, 0x58626f, 0x9aa5b1], [0xe7ddcc, 0x9f6650, 0xd29a77], [0xe9dfff, 0x7256b4, 0xbfa6f2],
+    [0xf8ead1, 0x2a9ca0, 0x66d6d4], [0xf18b58, 0xf4eee2, 0xd85246], [0xf0c33d, 0x238c9e, 0x65dbe2],
+    [0x50b9e5, 0xeaf7f4, 0x3378bc], [0x8d5d3f, 0xf3ead8, 0x2d9ba0], [0x72c9aa, 0xf3efe2, 0x42b878],
+    [0xe8874a, 0xf3e4ce, 0xbe463c], [0xeee5de, 0x6750a6, 0xe0bc45], [0x5d9d98, 0xf2e8d8, 0x39c990], [0xfff0c7, 0xdba838, 0x3aa7aa],
   ];
   return palettes[Math.max(0, Math.min(palettes.length - 1, Number(sprite || 0)))];
 }
@@ -59,7 +59,22 @@ function createCharacterModel(sprite = 0) {
   };
   root.userData.leftArm = makeLimb(-1, true); root.userData.rightArm = makeLimb(1, true);
   root.userData.leftLeg = makeLimb(-1, false); root.userData.rightLeg = makeLimb(1, false);
-  const halo = mesh(new THREE.TorusGeometry(16, 2.4, 9, 30), material(accent, { emissive: accent, emissiveIntensity: .25 }), false, false); halo.rotation.x = Math.PI / 2; halo.position.y = 105; rig.add(halo);
+  const addConeEar = (side, color = skin, height = 27) => { const ear = mesh(new THREE.ConeGeometry(9, height, 4), material(color)); ear.position.set(side * 18, 101, 0); ear.rotation.z = side * -.18; rig.add(ear); };
+  const addRoundEar = (side, color = skin) => { const ear = mesh(new THREE.SphereGeometry(10, 16, 12), material(color)); ear.position.set(side * 21, 96, 0); rig.add(ear); };
+  const addLongEar = (side, color = skin) => { const ear = mesh(new THREE.CapsuleGeometry(7, 33, 7, 12), material(color)); ear.position.set(side * 13, 119, -2); ear.rotation.z = side * -.12; rig.add(ear); };
+  const addTail = (color = skin, curl = .15) => { const tail = mesh(new THREE.TorusGeometry(28, 9, 10, 26, Math.PI * 1.15), material(color)); tail.position.set(-3, 44, -22); tail.rotation.set(Math.PI / 2, curl, -.45); rig.add(tail); };
+  const addWing = (side, color = 0xf4ead8) => { const wing = mesh(new THREE.ConeGeometry(17, 48, 5), material(color)); wing.scale.set(1, 1, .35); wing.position.set(side * 27, 53, -13); wing.rotation.z = side * .72; wing.rotation.x = -.18; rig.add(wing); };
+  const addGoggles = (color = 0x2b3c45) => { [-1, 1].forEach((side) => { const lens = mesh(new THREE.TorusGeometry(7, 2.2, 7, 20), material(color, { metalness: .45 })); lens.position.set(side * 9, 86, 24); rig.add(lens); }); const bridge = mesh(new THREE.BoxGeometry(7, 2.2, 2.2), material(color)); bridge.position.set(0, 86, 24); rig.add(bridge); };
+  if (sprite === 0 || sprite === 9) { const halo = mesh(new THREE.TorusGeometry(sprite === 9 ? 18 : 16, 2.4, 9, 30), material(accent, { emissive: accent, emissiveIntensity: .25 }), false, false); halo.rotation.x = Math.PI / 2; halo.position.y = 105; rig.add(halo); }
+  if ([1, 3, 8, 9].includes(sprite)) { addConeEar(-1); addConeEar(1); addTail(skin, sprite === 8 ? .55 : .15); }
+  if (sprite === 2) { addGoggles(); for (let i = -1; i <= 1; i += 1) { const plume = mesh(new THREE.ConeGeometry(5.5, 23, 5), material(skin)); plume.position.set(i * 8, 107 + Math.abs(i) * -3, -1); plume.rotation.z = i * -.25; rig.add(plume); } }
+  if (sprite === 3) { const crown = mesh(new THREE.ConeGeometry(9, 22, 5), material(0x326db4, { emissive: 0x194b83, emissiveIntensity: .22 })); crown.position.y = 111; rig.add(crown); }
+  if (sprite === 4) { addRoundEar(-1); addRoundEar(1); const shield = mesh(new THREE.CylinderGeometry(22, 25, 7, 6), material(0x248f98, { metalness: .3 })); shield.rotation.z = Math.PI / 2; shield.position.set(-31, 42, 9); rig.add(shield); }
+  if (sprite === 5) { addConeEar(-1, 0xf0ddb4, 23); addConeEar(1, 0xf0ddb4, 23); addWing(-1, 0xbce9d0); addWing(1, 0xbce9d0); addTail(skin, .5); }
+  if (sprite === 6) { addLongEar(-1); addLongEar(1); addGoggles(0x493a34); }
+  if (sprite === 7) { for (let i = 0; i < 8; i += 1) { const puff = mesh(new THREE.SphereGeometry(9, 13, 10), material(skin)); const angle = i / 8 * Math.PI * 2; puff.position.set(Math.cos(angle) * 24, 83 + Math.sin(angle) * 19, -6); rig.add(puff); } addRoundEar(-1, suit); addRoundEar(1, suit); }
+  if (sprite === 8) { addGoggles(0x303b3c); const pack = mesh(new THREE.BoxGeometry(35, 39, 17), material(0x2b514f)); pack.position.set(0, 47, -21); rig.add(pack); }
+  if (sprite === 9) { addWing(-1, 0xfff2ca); addWing(1, 0xfff2ca); const crown = mesh(new THREE.ConeGeometry(12, 25, 5), material(0xe2ad35, { metalness: .35 })); crown.position.y = 114; rig.add(crown); }
   const staff = new THREE.Group(); staff.position.set(30, 49, 2); staff.rotation.z = -.22; rig.add(staff);
   const pole = mesh(new THREE.CylinderGeometry(2.1, 2.1, 60, 10), material(0x6b4a36)); pole.position.y = -12; staff.add(pole);
   const core = mesh(new THREE.SphereGeometry(9, 18, 14), material(accent, { emissive: accent, emissiveIntensity: .35 })); core.position.y = 22; staff.add(core);
@@ -172,6 +187,20 @@ export class Mediguard3DShowcase extends BaseRenderer {
   }
   setCharacter(sprite) { if (this.sprite === Number(sprite || 0)) return; this.sprite = Number(sprite || 0); if (this.actor) disposeObject(this.actor); this.actor = createCharacterModel(this.sprite); this.actor.scale.setScalar(1.2); this.scene.add(this.actor); }
   loop() { if (!this.running) return; this.resize(); const time = performance.now() / 1000; if (this.actor) { animateCharacter(this.actor, { direction: { x: Math.sin(time * .38), y: Math.cos(time * .38) }, velocity: { x: 0, y: 0 }, walkTime: 0 }, time); this.actor.rotation.y = Math.sin(time * .45) * .32; } this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.loop); }
+}
+
+export class Mediguard3DPortraits {
+  constructor() {
+    this.canvas = document.createElement("canvas"); this.canvas.width = 320; this.canvas.height = 320; this.cache = new Map();
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+    this.renderer.setSize(320, 320, false); this.renderer.setPixelRatio(1); this.renderer.setClearColor(0x000000, 0); this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12;
+    this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(37, 1, 1, 1000); this.camera.position.set(0, 88, 245); this.camera.lookAt(0, 52, 0); addLights(this.scene);
+  }
+  render(sprite = 0) {
+    const key = Number(sprite || 0); if (this.cache.has(key)) return this.cache.get(key);
+    const actor = createCharacterModel(key); actor.scale.setScalar(1.2); actor.rotation.y = -.26; animateCharacter(actor, { direction: { x: .22, y: 1 }, velocity: { x: 0, y: 0 }, walkTime: 0 }, key * .37); this.scene.add(actor);
+    this.renderer.render(this.scene, this.camera); const portrait = this.canvas.toDataURL("image/png"); disposeObject(actor); this.cache.set(key, portrait); return portrait;
+  }
 }
 
 export function supportsMediguard3D() {

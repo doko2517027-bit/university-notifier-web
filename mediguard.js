@@ -24,6 +24,7 @@ let dpad = { up: false, down: false, left: false, right: false };
 let attackAim = { pointer: null, x: 0, y: 0 };
 let battle3d = null;
 let home3d = null;
+let portraits3d = null;
 let loading3d = null;
 const CONTROL_STORAGE_KEY = "caremate_mediguard_control_v1";
 let controlMode = localStorage.getItem(CONTROL_STORAGE_KEY) === "joystick" ? "joystick" : "dpad";
@@ -60,6 +61,15 @@ function render() {
   $("selectedCharacter").querySelector("span").className = spriteClass(character.sprite);
   home3d?.setCharacter(character.sprite);
   renderCharacters(); renderRecords(); renderGachaBanners(); renderLimitBreak();
+  apply3DPortraits();
+}
+function apply3DPortraits(root = document) {
+  if (!portraits3d) return;
+  root.querySelectorAll(".character-sprite").forEach((element) => {
+    const spriteClassName = [...element.classList].find((name) => /^sprite-\d+$/.test(name));
+    if (!spriteClassName) return; const sprite = Number(spriteClassName.slice(7));
+    element.style.backgroundImage = `url("${portraits3d.render(sprite)}")`; element.classList.add("rendered-3d");
+  });
 }
 async function initialize3D() {
   if (battle3d || loading3d) return loading3d;
@@ -67,8 +77,10 @@ async function initialize3D() {
     if (!module.supportsMediguard3D()) return false;
     battle3d = new module.Mediguard3DBattle($("battleCanvas"));
     home3d = new module.Mediguard3DShowcase($("home3dCanvas"));
+    portraits3d = new module.Mediguard3DPortraits();
     const character = selectedCharacter(); if (character) home3d.setCharacter(character.sprite);
     document.body.classList.add("mediguard-3d");
+    apply3DPortraits();
     return true;
   }).catch((error) => { console.warn("3D表示を開始できないため2D表示を使用します。", error); return false; });
   return loading3d;
@@ -171,6 +183,7 @@ async function drawGacha(count) {
       const targets = dashboard.characters.filter((entry) => entry.characterId === item.characterId && entry.instanceId !== item.instanceId);
       return `<article style="--rarity:${RARITY_COLORS[item.rarity]}"><span class="${spriteClass(item.sprite)}"></span><b style="color:${RARITY_COLORS[item.rarity]}">${item.rarity}</b><strong>${escapeHtml(item.name)}</strong><small>Lv.1の新個体</small><div class="duplicate-actions"><button data-keep-dialog>そのまま所持</button>${targets.length ? `<button data-strengthen="${item.instanceId}" data-target="${targets[0].instanceId}">既存個体を強化</button><button data-exchange="${item.instanceId}">GPへ交換</button>` : ""}</div></article>`;
     }).join("")}</div>`;
+    apply3DPortraits($("dialogBody"));
     $("dialog").hidden = false;
   } catch (error) { showToast(errorText(error)); }
   finally { setBusy(false); }

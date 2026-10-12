@@ -193,3 +193,4 @@
 
 /* WebGL 3D表示。利用不可端末では既存の輪郭PNGへ自動フォールバックする。 */
 #home3dCanvas{position:absolute;inset:-12% -18% -8%;width:136%;height:120%;display:block;pointer-events:none;z-index:1}.selected-character>span{position:relative;z-index:1}.selected-character>i{z-index:3}.mediguard-3d .selected-character>span{opacity:0}.mediguard-3d #battleCanvas{image-rendering:auto;background:#472d43}.mediguard-3d .selected-character:before{opacity:.3}.mediguard-3d .selected-character{overflow:visible}
+.mediguard-3d .character-sprite.rendered-3d{background-position:center;background-repeat:no-repeat;background-size:contain;image-rendering:auto;filter:drop-shadow(0 9px 5px #321c2f66)}.mediguard-3d .title-character.rendered-3d{filter:drop-shadow(0 18px 12px #0a171b88)}.mediguard-3d .loading-scene .character-sprite.rendered-3d{filter:drop-shadow(0 8px 5px #1c101c77)}
