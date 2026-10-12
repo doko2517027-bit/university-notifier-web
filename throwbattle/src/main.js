@@ -1,6 +1,7 @@
 import { ASSETS, MENU_ITEMS, WEAPONS } from './data/config.js';
 import { ARMOR, PROGRESSION, SKILLS } from './data/progression.js';
-import { loadProfile, saveProfile, deriveStats, battleLoadout, allocateStat, equip, upgradeWeapon, applyBattleResult } from './services/profile.js';
+import { createProfile, loadProfile, saveProfile, deriveStats, battleLoadout, allocateStat, equip, upgradeWeapon, applyBattleResult } from './services/profile.js';
+import { PrototypeCloudSync, THROB_TEST_STUDENTS } from './services/cloudSync.js';
 import { GameApp } from './game/GameApp.js';
 import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
@@ -16,6 +17,65 @@ let tutorialReturn = 'menuScreen';
 let { profile, recovered: recoveredProfile } = loadProfile();
 let currentMatchId = null;
 let currentReward = null;
+let cloudSync = null;
+let cloudInitializationPending = null;
+
+function renderCloudStatus(state, message) {
+  byId('cloudStatus').textContent = message;
+  byId('cloudStatus').dataset.state = state;
+  byId('cloudActions').hidden = !['conflict', 'import'].includes(state);
+  byId('chooseCloudButton').hidden = state === 'import';
+  byId('chooseLocalButton').textContent = state === 'import' ? 'この端末の記録を移す' : 'この端末を使う';
+}
+
+function acceptCloudProfile(remote) {
+  const local = JSON.stringify(profile);
+  if (local !== JSON.stringify(createProfile()) && local !== JSON.stringify(remote)) {
+    try { localStorage.setItem('throb:standalone-profile-backup:v1', local); }
+    catch { renderCloudStatus('error', '端末のバックアップを保存できないため、切り替えませんでした。'); return false; }
+  }
+  if (!saveProfile(remote)) return false;
+  profile = remote;
+  recoveredProfile = false;
+  renderMenu();
+  const active = document.querySelector('.screen.active')?.id;
+  if (active === 'characterScreen') renderCharacter();
+  if (active === 'equipmentScreen') renderEquipment();
+  if (active === 'upgradeScreen') renderUpgrade();
+  if (active === 'inventoryScreen') renderInventory();
+  return true;
+}
+
+async function initializeCloud() {
+  const localStudentNumber = localStorage.getItem('studentNumber');
+  if (!THROB_TEST_STUDENTS.includes(localStudentNumber) || localStorage.getItem('loggedIn') !== 'true') return;
+  renderCloudStatus('loading', 'CareMateの認証を確認中…');
+  try {
+    const { connectCareMate } = await import('./integrations/caremate.js');
+    const connection = await connectCareMate();
+    if (!connection) {
+      renderCloudStatus('offline', '本人確認できません。記録はこの端末だけに保存します。');
+      return;
+    }
+    if (connection.learningPoints !== null) {
+      const element = byId('careMatePoints');
+      element.textContent = `学習ポイント ${connection.learningPoints}pt（表示のみ）`;
+      element.hidden = false;
+    }
+    cloudSync = new PrototypeCloudSync({ adapter: connection.adapter, getLocal: () => profile,
+      acceptRemote: acceptCloudProfile, onStatus: renderCloudStatus });
+    await cloudSync.connect(connection.studentNumber);
+  } catch (error) {
+    console.warn('Throb cloud sync unavailable:', error);
+    renderCloudStatus('offline', 'クラウドに接続できません。記録はこの端末に保存します。');
+  }
+}
+
+function tryCloudInitialization() {
+  if (cloudInitializationPending) return cloudInitializationPending;
+  cloudInitializationPending = initializeCloud().finally(() => { cloudInitializationPending = null; });
+  return cloudInitializationPending;
+}
 
 function persist(next) {
   if (!saveProfile(next)) {
@@ -24,6 +84,7 @@ function persist(next) {
   }
   profile = next;
   recoveredProfile = false;
+  void cloudSync?.save(next);
   return true;
 }
 
@@ -261,6 +322,15 @@ for (const [name, description] of MENU_ITEMS) {
 }
 document.querySelectorAll('.phase5-back').forEach((button) => button.addEventListener('click', openMenu));
 byId('upgradeBackButton').addEventListener('click', () => show('equipmentScreen'));
+byId('chooseCloudButton').addEventListener('click', async () => {
+  if (window.confirm('この端末の記録をバックアップして、クラウドの記録に切り替えますか？')) await cloudSync?.chooseRemote();
+});
+byId('chooseLocalButton').addEventListener('click', async () => {
+  const question = cloudSync?.state === 'import'
+    ? 'この端末の旧試作記録が本人のものなら、クラウドへ移しますか？'
+    : 'クラウド側の記録を、この端末の記録で上書きしますか？';
+  if (window.confirm(question)) await cloudSync?.chooseLocal();
+});
 
 byId('startButton').addEventListener('click', () => {
   audio.playBgm();
@@ -287,4 +357,8 @@ byId('startButton').textContent = 'タップしてスタート';
 byId('loadStatus').textContent = '準備完了';
 window.__throbReady = true;
 applyVisualAssets();
+void tryCloudInitialization();
+window.addEventListener('online', () => {
+  if (!cloudSync || ['offline', 'unavailable'].includes(cloudSync.state)) void tryCloudInitialization();
+});
 window.addEventListener('pagehide', () => { preview.stop(); game?.destroy(); audio.stop(); }, { once: true });

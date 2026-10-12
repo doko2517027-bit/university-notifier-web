@@ -26,7 +26,7 @@ export function createProfile() {
   };
 }
 
-function validProfile(value) {
+export function validProfile(value) {
   if (!value || value.version !== 1 || value.character?.id !== 'student') return false;
   const { character, inventory, equipped, record } = value;
   if (![character.level, character.xp, character.cap, character.points, record?.matches, record?.wins]

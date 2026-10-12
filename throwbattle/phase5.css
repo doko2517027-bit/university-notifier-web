@@ -29,6 +29,15 @@
 .phase5-upgrade-card button { min-height: 42px; }
 .phase5-reward { color: var(--good) !important; font-size: 1.1rem; font-weight: 900; }
 .local-save-label { white-space: nowrap; }
+.menu-footer { position: relative; }
+#cloudStatus { display: inline; max-width: 35vw; overflow: hidden; text-overflow: ellipsis; }
+#cloudStatus[data-state="conflict"], #cloudStatus[data-state="import"], #cloudStatus[data-state="error"] { color: #ffd9a5; }
+#cloudStatus[data-state="synced"] { color: #c6f4d4; }
+.cloud-actions { position: absolute; z-index: 20; right: 0; bottom: calc(100% + 8px); display: flex; gap: 8px;
+  padding: 10px; border: 1px solid #ffffff55; border-radius: 12px; background: #17213dec; box-shadow: 0 12px 30px #0008; }
+.cloud-actions[hidden], #careMatePoints[hidden] { display: none !important; }
+.cloud-actions button[hidden] { display: none !important; }
+.cloud-actions button { white-space: nowrap; }
 #skillHud { position: absolute; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(85px + env(safe-area-inset-bottom, 0px)); z-index: 8; display: grid; gap: 7px; }
 #skillHud button { min-width: 118px; min-height: 40px; border: 1px solid #a9f3d0a3; border-radius: 10px; padding: 6px 10px; color: #f6fff9; background: #187e71de; font-weight: 800; }
 #skillHud button:disabled { color: #b6c3cc; background: #253f54c9; }
@@ -37,6 +46,9 @@
   .phase5-inventory { grid-template-columns: 1fr; }
   .phase5-upgrade-grid { grid-template-columns: 1fr; }
   .local-save-label { display: none; }
+  #cloudStatus { display: inline; max-width: 58vw; font-size: .72rem; }
+  #careMatePoints { display: none; }
+  .cloud-actions { left: 0; right: auto; }
 }
 @media (pointer: coarse) {
   #skillHud { right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(148px + env(safe-area-inset-bottom, 0px)); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }

@@ -33,7 +33,7 @@
       <div class="menu-top"><div><p class="eyebrow">THROW OBJE</p><h2>Throb</h2></div><span class="prototype-pill">試作版・CPU戦</span></div>
       <div class="menu-content"><div class="menu-stage"><div id="menuModel" aria-label="選択中のキャラクター"></div><p>モデルは後からGLBに差し替えできます</p></div>
         <div class="menu-actions"><button id="battleMenuButton" class="primary hero-action" type="button">対戦する <span>›</span></button><div id="menuGrid" class="menu-grid"></div></div></div>
-      <div class="menu-footer"><button id="menuHelpButton" class="ghost" type="button">遊び方</button><span id="menuLoadout">装備中：パソコン / ナイフ / ベッド</span><span class="local-save-label">試作版の記録はこの端末に保存</span></div>
+      <div class="menu-footer"><button id="menuHelpButton" class="ghost" type="button">遊び方</button><span id="menuLoadout">装備中：パソコン / ナイフ / ベッド</span><span id="cloudStatus" class="local-save-label" role="status">この端末に保存</span><span id="careMatePoints" class="local-save-label" hidden></span><div id="cloudActions" class="cloud-actions" hidden><button id="chooseCloudButton" class="ghost" type="button">クラウドを使う</button><button id="chooseLocalButton" class="ghost" type="button">この端末を使う</button></div></div>
     </main>
 
     <main id="characterScreen" class="screen panel-screen" aria-label="キャラクター育成">
@@ -96,6 +96,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/main.js?v=5"></script>
+  <script type="module" src="./src/main.js?v=6"></script>
 </body>
 </html>
