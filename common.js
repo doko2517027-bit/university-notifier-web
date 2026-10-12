@@ -61,6 +61,7 @@ import {
 } from "./device_touch_controller.mjs";
 
 import { describePresenceDevice } from "./presence_device_label.mjs";
+import { ensureThrobNavTab } from "./throb_nav.mjs";
 import { initializeGlobalStudyTracking } from "./study_tracking.js?v=20261009-2";
 const firebaseConfig = {
   apiKey: "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY",
@@ -1444,7 +1445,7 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
-  ensureThrobNavTab();
+  ensureThrobNavTab(document, localStorage.getItem('loggedIn') === 'true', studentNumber);
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1475,28 +1476,14 @@ function ensureCalendarNavTab() {
   }
 }
 
-function ensureThrobNavTab() {
-  for (const nav of document.querySelectorAll('.bottom-nav')) {
-    if (nav.querySelector('.throb-nav-link')) continue;
-    const requests = nav.querySelector('a[href="requests.html"]');
-    if (!requests) continue;
-    const link = document.createElement('a');
-    link.href = 'throwbattle/';
-    link.className = 'throb-nav-link';
-    link.setAttribute('aria-label', 'Throb');
-    link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">🎯</span></span><span>Throb</span>';
-    requests.insertAdjacentElement('afterend', link);
-  }
-}
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     ensureCalendarNavTab();
-    ensureThrobNavTab();
+    ensureThrobNavTab(document, localStorage.getItem('loggedIn') === 'true', studentNumber);
   }, { once: true });
 } else {
   ensureCalendarNavTab();
-  ensureThrobNavTab();
+  ensureThrobNavTab(document, localStorage.getItem('loggedIn') === 'true', studentNumber);
 }
 
 export function showNewsSkeleton(target, count = 3) {

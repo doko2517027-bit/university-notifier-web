@@ -7,6 +7,14 @@
       content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
     />
     <title>機能リクエスト | CareMate</title>
+    <script>
+      window.hideRequestsForThrobPilot = localStorage.getItem("loggedIn") === "true"
+        && localStorage.getItem("studentNumber") === "2510044";
+      if (window.hideRequestsForThrobPilot) {
+        document.documentElement.style.display = "none";
+        location.replace("throwbattle/");
+      }
+    </script>
     <link rel="stylesheet" href="style.css?v=20261002-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
@@ -234,6 +242,8 @@
         ><span>設定</span></a
       >
     </nav>
-    <script type="module" src="requests.js"></script>
+    <script type="module">
+      if (!window.hideRequestsForThrobPilot) await import("./requests.js");
+    </script>
   </body>
 </html>

@@ -21200,7 +21200,7 @@ course-tagが付いたspanには適用しない。
 .calendar-admin-item small { color: var(--subtext); margin-top: 3px; }
 .calendar-admin-item > div:last-child { display: flex; flex-wrap: wrap; gap: 7px; flex: 0 0 auto; }
 .bottom-nav:has(.calendar-nav-link) a { font-size: 11px; }
-.bottom-nav:has(.throb-nav-link) a { font-size: 10px; }
+.bottom-nav:has(.throb-nav-link):has(a[href="requests.html"]) a { font-size: 10px; }
 @media (max-width: 650px) {
   .calendar-page { width: 100%; }
   .calendar-panel, .calendar-agenda { padding: 10px; }
@@ -21233,8 +21233,8 @@ course-tagが付いたspanには適用しない。
   .calendar-admin-item { align-items: stretch; flex-direction: column; }
   .calendar-admin-item > div:last-child .btn { flex: 1; }
   .bottom-nav:has(.calendar-nav-link) a { font-size: 10px; }
-  .bottom-nav:has(.throb-nav-link) a { font-size: 9px; }
-  .bottom-nav:has(.throb-nav-link) .nav-icon { font-size: 19px; }
+  .bottom-nav:has(.throb-nav-link):has(a[href="requests.html"]) a { font-size: 9px; }
+  .bottom-nav:has(.throb-nav-link):has(a[href="requests.html"]) .nav-icon { font-size: 19px; }
 }
 /* CareMateお知らせの写真・PDF */
 #systemNewsAttachments {
