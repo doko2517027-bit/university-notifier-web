@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#151b35">
+  <title>Throb | Throw Obje</title>
+  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./responsive.css?v=1">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <div id="app">
+    <main id="titleScreen" class="screen title-screen active" aria-label="タイトル画面">
+      <div class="title-art" aria-hidden="true"><span>✦</span><span>●</span><span>◆</span></div>
+      <div class="title-copy"><p class="eyebrow">THROW OBJE</p><h1>Throb</h1><p>身近な物で、勝負しよう。</p></div>
+      <button id="startButton" class="primary large" type="button" disabled>読み込み中…</button>
+      <p id="loadStatus" class="status" role="status">ゲームを準備しています</p>
+    </main>
+
+    <main id="tutorialScreen" class="screen panel-screen" aria-label="遊び方">
+      <div class="panel"><p class="eyebrow">HOW TO PLAY</p><h2>投げて、避けて、3機で勝負</h2>
+        <p>移動と視点操作で狙いを定め、物を投げて相手のHPを0にしよう。倒れても残機があれば10秒後に復活します。</p>
+        <div class="tutorial-grid"><div><strong>PC</strong><p>WASD 移動 / マウス 視点 / 左クリック 投擲 / Space ジャンプ / Shift ダッシュ / V 視点切替 / 1〜3 武器 / Esc 一時停止</p></div><div><strong>スマホ</strong><p>左スティックで移動、右側をなぞって視点操作。右側の投擲・ジャンプ・ダッシュを使います。横画面でプレイしてください。</p></div></div>
+        <div class="row"><button id="skipTutorial" class="ghost" type="button">スキップ</button><button id="finishTutorial" class="primary" type="button">わかった</button></div>
+      </div>
+    </main>
+
+    <main id="menuScreen" class="screen menu-screen" aria-label="メインメニュー">
+      <div class="menu-top"><div><p class="eyebrow">THROW OBJE</p><h2>Throb</h2></div><span class="prototype-pill">試作版・CPU戦</span></div>
+      <div class="menu-content"><div class="menu-stage"><div id="menuModel" aria-label="選択中のキャラクター"></div><p>モデルは後からGLBに差し替えできます</p></div>
+        <div class="menu-actions"><button id="battleMenuButton" class="primary hero-action" type="button">対戦する <span>›</span></button><div id="menuGrid" class="menu-grid"></div></div></div>
+      <div class="menu-footer"><button id="menuHelpButton" class="ghost" type="button">遊び方</button><span>装備中：パソコン / ナイフ / ベッド</span></div>
+    </main>
+
+    <main id="setupScreen" class="screen panel-screen" aria-label="対戦設定">
+      <div class="panel setup-panel"><div class="panel-heading"><button id="setupBackButton" class="ghost" type="button">‹ 戻る</button><h2>対戦設定</h2></div>
+        <div class="setup-grid"><label>対戦相手<select id="opponentSelect"><option value="cpu">CPU</option></select></label><label>難易度<select id="difficultySelect"><option value="easy">簡単</option><option value="normal" selected>普通</option><option value="hard">難しい</option></select></label><label>ルール<select id="ruleSelect"><option value="elimination">生き残り勝負</option><option value="kills">撃破数勝負</option><option value="capture" disabled>陣地取り（開発中）</option></select></label><label>ステージ<select id="stageSelect"><option value="classroom">教室（屋内）</option></select></label></div>
+        <div class="setup-summary"><strong>3機制</strong><span>倒れたら10秒後に復活 / 復活後3秒無敵</span><span>2人戦：制限時間5分</span></div>
+        <button id="beginBattleButton" class="primary large" type="button">CPU戦を始める</button>
+      </div>
+    </main>
+
+    <main id="battleScreen" class="screen battle-screen" aria-label="対戦画面">
+      <div id="game" aria-label="3D対戦ステージ"></div>
+      <div id="crosshair" aria-hidden="true"></div>
+      <div id="battleHud"><div class="hud-player"><strong>YOU</strong><div class="hp-track"><i id="playerHpBar"></i></div><span id="playerHudText">100 HP・残機3</span></div><div class="hud-center"><span id="battleTime">05:00</span><span id="battleScore">0 - 0</span></div><div class="hud-player enemy"><strong>CPU</strong><div class="hp-track"><i id="enemyHpBar"></i></div><span id="enemyHudText">100 HP・残機3</span></div></div>
+      <div id="battleNotice" role="status" aria-live="polite"></div>
+      <div id="weaponHud" aria-label="武器選択"></div>
+      <button id="pauseButton" class="hud-button" type="button" aria-label="一時停止">Ⅱ</button>
+      <div id="mobileControls"><div id="joystick" aria-label="移動スティック"><div id="joystickKnob"></div></div><div id="lookArea" aria-label="視点操作"></div><div class="action-buttons"><button id="mobileJump" type="button">ジャンプ</button><button id="mobileDash" type="button">ダッシュ</button><button id="mobileView" type="button">視点</button><button id="throwButton" type="button">投げる</button></div></div>
+      <div id="pauseOverlay" class="overlay" hidden><div class="overlay-card"><h2>一時停止</h2><p>準備ができたら再開してください。</p><button id="resumeButton" class="primary" type="button">再開</button><button id="leaveBattleButton" class="ghost" type="button">対戦をやめる</button></div></div>
+    </main>
+
+    <main id="resultScreen" class="screen panel-screen" aria-label="結果画面"><div class="panel result-panel"><p class="eyebrow">MATCH RESULT</p><h2 id="resultTitle">WIN</h2><p id="resultReason"></p><div class="result-stats"><div><span>撃破数</span><strong id="resultKills">0</strong></div><div><span>与ダメージ</span><strong id="resultDamage">0</strong></div><div><span>残機</span><strong id="resultLives">0</strong></div></div><div class="row"><button id="rematchButton" class="primary" type="button">もう一度</button><button id="resultMenuButton" class="ghost" type="button">メニューへ</button></div></div></main>
+    <div id="rotateMessage" aria-live="polite"><div><span>↻</span><strong>スマホは横画面でプレイ</strong><p>端末を横に向けてください</p></div></div>
+  </div>
+  <script>
+    window.setTimeout(() => {
+      if (window.__throbReady) return;
+      document.getElementById('loadStatus').textContent = '読み込みに失敗しました。通信を確認して再読み込みしてください。';
+      document.getElementById('startButton').textContent = '読み込み失敗';
+    }, 12000);
+  </script>
+  <script type="module" src="./src/main.js?v=4"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+@media (max-height: 530px) {
+  .menu-screen { gap: 7px; }
+  .menu-top { min-height: 31px; }
+  .menu-footer { min-height: 34px; }
+  .menu-footer .ghost { min-height: 34px; padding: 4px 11px; }
+  .menu-actions { gap: 5px; }
+  .menu-grid { gap: 5px; }
+  .menu-grid button { min-height: 34px; padding: 4px 8px; }
+  .hero-action { min-height: 40px; }
+}
+
+@media (max-width: 680px) and (orientation: landscape) {
+  .menu-footer span { display: none; }
+  .menu-stage { min-width: 0; }
+  .panel-screen { padding: 6px; }
+  .panel { max-height: 100%; }
+  #battleHud { gap: 6px; }
+  .hud-player { min-width: 0; }
+  .hud-player>span { font-size: .65rem; }
+  #weaponHud button { white-space: nowrap; }
+}
