@@ -21,6 +21,7 @@ let selectedBannerId = "";
 let finishGachaCinematic = null;
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 let dpad = { up: false, down: false, left: false, right: false };
+let attackAim = { pointer: null, x: 0, y: 0 };
 const CONTROL_STORAGE_KEY = "caremate_mediguard_control_v1";
 let controlMode = localStorage.getItem(CONTROL_STORAGE_KEY) === "joystick" ? "joystick" : "dpad";
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
@@ -30,6 +31,8 @@ const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index
 });
 const characterImages = loadSpriteSet("character", 10);
 const pathogenImages = loadSpriteSet("pathogen", 12);
+const starterWalkImage = new Image();
+starterWalkImage.src = "images/mediguard-sprites/character-0-walk-v2.png";
 
 function requestId() { return crypto.randomUUID ? crypto.randomUUID().replaceAll("-", "") : `${Date.now()}_${crypto.getRandomValues(new Uint32Array(4)).join("_")}`; }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]); }
@@ -166,34 +169,34 @@ async function resolveDuplicate(sourceInstanceId, mode, targetInstanceId = "") {
 const WORLD = { width: 1800, height: 1200 };
 const OBSTACLE_LAYOUTS = Object.freeze({
   lung: [
-    { x: 230, y: 180, w: 300, h: 110, type: "alveoli" }, { x: 750, y: 115, w: 150, h: 300, type: "tissue" },
-    { x: 1210, y: 165, w: 340, h: 115, type: "alveoli" }, { x: 210, y: 720, w: 190, h: 310, type: "tissue" },
-    { x: 620, y: 875, w: 390, h: 120, type: "alveoli" }, { x: 1320, y: 690, w: 180, h: 330, type: "tissue" },
+    { x: 230, y: 180, w: 300, h: 110, type: "mitochondrion" }, { x: 750, y: 115, w: 150, h: 300, type: "er" },
+    { x: 1210, y: 165, w: 340, h: 115, type: "golgi" }, { x: 210, y: 720, w: 190, h: 310, type: "er" },
+    { x: 620, y: 875, w: 390, h: 120, type: "mitochondrion" }, { x: 1320, y: 690, w: 180, h: 330, type: "golgi" },
   ],
   airway: [
-    { x: 260, y: 185, w: 110, h: 380, type: "cartilage" }, { x: 600, y: 125, w: 470, h: 95, type: "cartilage" },
-    { x: 1210, y: 250, w: 110, h: 350, type: "cartilage" }, { x: 410, y: 765, w: 520, h: 100, type: "cartilage" },
-    { x: 1120, y: 870, w: 390, h: 100, type: "cartilage" },
+    { x: 260, y: 185, w: 110, h: 380, type: "er" }, { x: 600, y: 125, w: 470, h: 95, type: "golgi" },
+    { x: 1210, y: 250, w: 110, h: 350, type: "er" }, { x: 410, y: 765, w: 520, h: 100, type: "mitochondrion" },
+    { x: 1120, y: 870, w: 390, h: 100, type: "golgi" },
   ],
   intestine: [
-    { x: 170, y: 190, w: 440, h: 105, type: "fold" }, { x: 810, y: 110, w: 120, h: 340, type: "fold" },
-    { x: 1190, y: 220, w: 390, h: 110, type: "fold" }, { x: 230, y: 755, w: 360, h: 120, type: "fold" },
-    { x: 730, y: 900, w: 470, h: 105, type: "fold" }, { x: 1390, y: 670, w: 120, h: 340, type: "fold" },
+    { x: 170, y: 190, w: 440, h: 105, type: "golgi" }, { x: 810, y: 110, w: 120, h: 340, type: "er" },
+    { x: 1190, y: 220, w: 390, h: 110, type: "mitochondrion" }, { x: 230, y: 755, w: 360, h: 120, type: "golgi" },
+    { x: 730, y: 900, w: 470, h: 105, type: "mitochondrion" }, { x: 1390, y: 670, w: 120, h: 340, type: "er" },
   ],
   urinary: [
-    { x: 210, y: 160, w: 260, h: 160, type: "crystal" }, { x: 720, y: 140, w: 120, h: 310, type: "tissue" },
-    { x: 1230, y: 180, w: 280, h: 150, type: "crystal" }, { x: 290, y: 780, w: 310, h: 155, type: "crystal" },
-    { x: 890, y: 900, w: 420, h: 105, type: "tissue" }, { x: 1430, y: 620, w: 120, h: 310, type: "tissue" },
+    { x: 210, y: 160, w: 260, h: 160, type: "lysosome" }, { x: 720, y: 140, w: 120, h: 310, type: "er" },
+    { x: 1230, y: 180, w: 280, h: 150, type: "nucleus" }, { x: 290, y: 780, w: 310, h: 155, type: "lysosome" },
+    { x: 890, y: 900, w: 420, h: 105, type: "mitochondrion" }, { x: 1430, y: 620, w: 120, h: 310, type: "er" },
   ],
   vessel: [
-    { x: 180, y: 245, w: 390, h: 80, type: "plaque" }, { x: 690, y: 110, w: 95, h: 350, type: "plaque" },
-    { x: 1140, y: 260, w: 460, h: 85, type: "plaque" }, { x: 260, y: 820, w: 430, h: 90, type: "plaque" },
-    { x: 970, y: 820, w: 100, h: 300, type: "plaque" }, { x: 1370, y: 750, w: 260, h: 95, type: "plaque" },
+    { x: 180, y: 245, w: 390, h: 80, type: "microtubule" }, { x: 690, y: 110, w: 95, h: 350, type: "er" },
+    { x: 1140, y: 260, w: 460, h: 85, type: "microtubule" }, { x: 260, y: 820, w: 430, h: 90, type: "mitochondrion" },
+    { x: 970, y: 820, w: 100, h: 300, type: "er" }, { x: 1370, y: 750, w: 260, h: 95, type: "lysosome" },
   ],
   skin: [
-    { x: 170, y: 170, w: 250, h: 190, type: "follicle" }, { x: 650, y: 130, w: 150, h: 320, type: "follicle" },
-    { x: 1190, y: 160, w: 350, h: 170, type: "follicle" }, { x: 230, y: 760, w: 350, h: 170, type: "follicle" },
-    { x: 800, y: 850, w: 400, h: 130, type: "follicle" }, { x: 1430, y: 650, w: 150, h: 330, type: "follicle" },
+    { x: 170, y: 170, w: 250, h: 190, type: "nucleus" }, { x: 650, y: 130, w: 150, h: 320, type: "er" },
+    { x: 1190, y: 160, w: 350, h: 170, type: "golgi" }, { x: 230, y: 760, w: 350, h: 170, type: "lysosome" },
+    { x: 800, y: 850, w: 400, h: 130, type: "mitochondrion" }, { x: 1430, y: 650, w: 150, h: 330, type: "er" },
   ],
 });
 function battleObstacles(mapId = battle?.run?.map?.id) { return OBSTACLE_LAYOUTS[mapId] || OBSTACLE_LAYOUTS.lung; }
@@ -224,7 +227,11 @@ function newBattle(run) {
   return {
     run, running: true, startedAt: performance.now(), elapsed: 0, lastTick: performance.now(), countdown: 3000,
     wave: 0, wavePending: true, waveDelay: 500, enemies: [], projectiles: [], holes: [], effects: [], enemyShots: [],
-    player: { x: WORLD.width / 2, y: WORLD.height / 2, radius: 23, direction: { x: 1, y: 0 }, hits: 0, maxHits, lives: 3, invincible: 0, respawn: 0, hidden: false, rapid: 0, frozen: 0, savedDeath: false },
+    player: {
+      x: WORLD.width / 2, y: WORLD.height / 2, radius: 23,
+      direction: { x: 1, y: 0 }, visualAngle: 0, velocity: { x: 0, y: 0 }, walkTime: 0, moving: false,
+      hits: 0, maxHits, lives: 3, invincible: 0, respawn: 0, hidden: false, rapid: 0, frozen: 0, savedDeath: false,
+    },
     kills: 0, shots: 0, infection: 0, skillCooldown: 0, chargeStart: 0, alertLock: 0, ended: false,
   };
 }
@@ -303,6 +310,7 @@ function movementVector() {
   if (keyState.has("KeyS") || keyState.has("ArrowDown")) y += 1;
   const length = Math.hypot(x, y); return length > 1 ? { x: x / length, y: y / length } : { x, y };
 }
+function shortestAngle(from, to) { return Math.atan2(Math.sin(to - from), Math.cos(to - from)); }
 function updateBattle(dt) {
   if (!battle?.running) return;
   if (battle.countdown > 0) { battle.countdown -= dt * 1000; $("battleMessage").textContent = battle.countdown > 0 ? `${Math.ceil(battle.countdown / 1000)}` : "防衛開始！"; return; }
@@ -311,9 +319,21 @@ function updateBattle(dt) {
   const p = battle.player; p.invincible = Math.max(0, p.invincible - dt); p.rapid = Math.max(0, p.rapid - dt); p.frozen = Math.max(0, p.frozen - dt); battle.skillCooldown = Math.max(0, battle.skillCooldown - dt);
   if (p.hidden) { p.respawn -= dt; $("respawnText").textContent = Math.max(1, Math.ceil(p.respawn)); if (p.respawn <= 0) { p.hidden = false; p.invincible = 2.5; p.x = WORLD.width / 2; p.y = WORLD.height / 2; $("respawnPanel").hidden = true; } }
   else {
-    const move = movementVector(); if (Math.hypot(move.x, move.y) > .08) p.direction = move;
+    const move = movementVector(); const inputStrength = Math.min(1, Math.hypot(move.x, move.y));
+    if (inputStrength > .08) {
+      p.direction = { x: move.x / inputStrength, y: move.y / inputStrength };
+      const targetAngle = Math.atan2(p.direction.y, p.direction.x);
+      p.visualAngle += shortestAngle(p.visualAngle, targetAngle) * Math.min(1, dt * 13);
+    }
     const chargeSlow = battle.chargeStart ? .72 : 1; const speed = charStats().speed * chargeSlow;
-    moveAroundObstacles(p, move.x * speed * dt, move.y * speed * dt);
+    const response = inputStrength > .08 ? 12 : 17;
+    const blend = 1 - Math.exp(-response * dt);
+    p.velocity.x += (move.x * speed - p.velocity.x) * blend;
+    p.velocity.y += (move.y * speed - p.velocity.y) * blend;
+    const travelSpeed = Math.hypot(p.velocity.x, p.velocity.y);
+    p.moving = travelSpeed > 12;
+    if (p.moving) p.walkTime += dt * (5.8 + Math.min(5.4, travelSpeed / 42));
+    moveAroundObstacles(p, p.velocity.x * dt, p.velocity.y * dt);
   }
   if (battle.wavePending) { battle.waveDelay -= dt * 1000; if (battle.waveDelay <= 0) spawnWave(); }
   battle.holes.forEach((hole) => { hole.timer -= dt; if (hole.timer <= 0 && !hole.spawned) { hole.spawned = true; spawnEnemy(hole); } }); battle.holes = battle.holes.filter((hole) => hole.timer > -.5);
@@ -347,6 +367,36 @@ function drawCutout(ctx, images, index, x, y, maxWidth, maxHeight) {
   const height = image.naturalHeight * scale;
   ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
 }
+function walkDirectionRow(angle) {
+  const normalized = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  if (normalized >= Math.PI * .25 && normalized < Math.PI * .75) return 0;
+  if (normalized >= Math.PI * .75 && normalized < Math.PI * 1.25) return 3;
+  if (normalized >= Math.PI * 1.25 && normalized < Math.PI * 1.75) return 2;
+  return 1;
+}
+function drawPlayerSprite(ctx, player, character, x, y, maxWidth, maxHeight, shadow = false) {
+  const useWalkSheet = Number(character.sprite || 0) === 0 && starterWalkImage.complete && starterWalkImage.naturalWidth;
+  if (!useWalkSheet) {
+    ctx.save();
+    const lean = player.moving ? Math.sin(player.walkTime * Math.PI * .5) * .045 : 0;
+    ctx.translate(x, y); ctx.rotate(lean); ctx.scale(player.direction.x < -.12 ? -1 : 1, 1);
+    drawCutout(ctx, characterImages, character.sprite, 0, 0, maxWidth, maxHeight);
+    ctx.restore();
+    return;
+  }
+  const columns = 4; const rows = 4;
+  const sourceWidth = starterWalkImage.naturalWidth / columns; const sourceHeight = starterWalkImage.naturalHeight / rows;
+  const frame = player.moving ? Math.floor(player.walkTime) % columns : 0;
+  const row = walkDirectionRow(player.visualAngle);
+  const stride = player.moving ? Math.sin(player.walkTime * Math.PI * 2) : 0;
+  const width = maxWidth * (1 + Math.abs(stride) * .018);
+  const height = maxHeight * (1 - Math.abs(stride) * .012);
+  const residual = shortestAngle(row === 0 ? Math.PI / 2 : row === 1 ? 0 : row === 2 ? -Math.PI / 2 : Math.PI, player.visualAngle);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(Math.max(-.16, Math.min(.16, residual * .18)));
+  if (shadow) ctx.scale(1.03, .96);
+  ctx.drawImage(starterWalkImage, frame * sourceWidth, row * sourceHeight, sourceWidth, sourceHeight, -width / 2, -height / 2, width, height);
+  ctx.restore();
+}
 function drawBattleScenery(ctx, mapId) {
   const style = MAP_STYLE[mapId] || MAP_STYLE.lung; const time = performance.now() / 1000;
   ctx.save(); ctx.lineCap = "round";
@@ -367,26 +417,37 @@ function drawBattleObstacles(ctx, mapId) {
   battleObstacles(mapId).forEach((obstacle, index) => {
     const radius = Math.min(44, Math.max(18, Math.min(obstacle.w, obstacle.h) * .22));
     ctx.save();
-    ctx.shadowColor = "#11202899"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 12;
+    ctx.shadowColor = "#5a293c80"; ctx.shadowBlur = 20; ctx.shadowOffsetY = 20;
     const gradient = ctx.createLinearGradient(obstacle.x, obstacle.y, obstacle.x + obstacle.w, obstacle.y + obstacle.h);
-    gradient.addColorStop(0, colors[2]); gradient.addColorStop(.52, colors[0]); gradient.addColorStop(1, "#293b3c");
-    ctx.fillStyle = gradient; ctx.strokeStyle = "#fff7d26b"; ctx.lineWidth = 4;
+    const organelleColor = { mitochondrion: "#7fc6df", lysosome: "#f4d85a", nucleus: "#cda9d5", golgi: "#87bf75", er: "#e98994", microtubule: "#82ad68" }[obstacle.type] || colors[0];
+    gradient.addColorStop(0, "#fff7ee"); gradient.addColorStop(.2, organelleColor); gradient.addColorStop(1, colors[2]);
+    ctx.fillStyle = gradient; ctx.strokeStyle = "#6d3f4b"; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.roundRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h, radius); ctx.fill(); ctx.stroke();
-    ctx.shadowColor = "transparent"; ctx.globalAlpha = .34; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.roundRect(obstacle.x + 10, obstacle.y + 9, obstacle.w - 20, Math.max(14, obstacle.h * .26), Math.max(8, radius - 8)); ctx.stroke();
-    ctx.globalAlpha = .28; ctx.fillStyle = index % 2 ? "#ffcf7a" : "#b7fff0";
-    const dots = Math.max(2, Math.min(7, Math.floor(obstacle.w / 70)));
-    for (let dot = 0; dot < dots; dot += 1) { ctx.beginPath(); ctx.arc(obstacle.x + 24 + dot * Math.max(32, (obstacle.w - 48) / dots), obstacle.y + obstacle.h * .72, 6 + dot % 3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.shadowColor = "transparent"; ctx.globalAlpha = .5; ctx.strokeStyle = "#fffdf5"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(obstacle.x + 12, obstacle.y + 10, obstacle.w - 24, Math.max(16, obstacle.h * .22), Math.max(8, radius - 8)); ctx.stroke();
+    ctx.globalAlpha = .62; ctx.strokeStyle = "#71444e"; ctx.lineWidth = 5;
+    if (obstacle.type === "mitochondrion") {
+      const middle = obstacle.y + obstacle.h * .58; ctx.beginPath(); ctx.moveTo(obstacle.x + 20, middle);
+      for (let step = 1; step <= 6; step += 1) ctx.lineTo(obstacle.x + 20 + (obstacle.w - 40) * step / 6, middle + (step % 2 ? -obstacle.h * .18 : obstacle.h * .16)); ctx.stroke();
+    } else if (obstacle.type === "lysosome" || obstacle.type === "nucleus") {
+      ctx.fillStyle = obstacle.type === "nucleus" ? "#f48e92" : "#fff075"; ctx.globalAlpha = .75; ctx.beginPath(); ctx.ellipse(obstacle.x + obstacle.w / 2, obstacle.y + obstacle.h * .58, obstacle.w * .22, obstacle.h * .24, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      const bands = Math.max(2, Math.min(6, Math.floor(obstacle.w / 80)));
+      for (let band = 0; band < bands; band += 1) { const y = obstacle.y + obstacle.h * (.42 + band * .1); ctx.beginPath(); ctx.moveTo(obstacle.x + 18, y); ctx.bezierCurveTo(obstacle.x + obstacle.w * .34, y - 18, obstacle.x + obstacle.w * .63, y + 18, obstacle.x + obstacle.w - 18, y); ctx.stroke(); }
+    }
+    ctx.globalAlpha = .28; ctx.fillStyle = index % 2 ? "#fff2a0" : "#b7fff0";
+    for (let dot = 0; dot < 3; dot += 1) { ctx.beginPath(); ctx.arc(obstacle.x + obstacle.w * (.23 + dot * .27), obstacle.y + obstacle.h * .76, 5 + dot, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
   });
 }
 function drawBattle() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
   const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.imageSmoothingEnabled = false; const width = rect.width; const height = rect.height;
-  const cameraX = Math.max(width / 2, Math.min(WORLD.width - width / 2, battle.player.x)); const cameraY = Math.max(height / 2, Math.min(WORLD.height - height / 2, battle.player.y)); const offsetX = width / 2 - cameraX; const offsetY = height / 2 - cameraY;
+  const zoom = width < 700 ? 1.34 : 1.2; const verticalScale = .84; const viewWidth = width / zoom; const viewHeight = height / (zoom * verticalScale);
+  const cameraX = Math.max(viewWidth / 2, Math.min(WORLD.width - viewWidth / 2, battle.player.x)); const cameraY = Math.max(viewHeight / 2, Math.min(WORLD.height - viewHeight / 2, battle.player.y));
   const colors = MAP_STYLE[battle.run.map.id] || MAP_STYLE.lung;
   const backdrop = ctx.createLinearGradient(0, 0, width, height); backdrop.addColorStop(0, colors[1]); backdrop.addColorStop(.48, colors[0]); backdrop.addColorStop(1, colors[2]); ctx.fillStyle = backdrop; ctx.fillRect(0, 0, width, height);
-  ctx.save(); ctx.translate(offsetX, offsetY);
+  ctx.save(); ctx.translate(width / 2, height / 2); ctx.scale(zoom, zoom * verticalScale); ctx.translate(-cameraX, -cameraY);
   ctx.fillStyle = colors[1];
   for (let x = 70; x < WORLD.width; x += 160) for (let y = 60; y < WORLD.height; y += 150) {
     const wobble = ((x + y) % 3) * 7; const radius = 34 + ((x * y) % 17); const pulse = 1 + Math.sin(performance.now() / 900 + x * .02 + y * .01) * .04;
@@ -406,8 +467,16 @@ function drawBattle() {
     ctx.shadowBlur = 0; ctx.strokeStyle = hole.spawned ? "#8b4a70" : "#ffe7a3"; ctx.lineWidth = hole.spawned ? 3 : 4; ctx.stroke(); if (!hole.spawned) { ctx.globalAlpha = .5; ctx.beginPath(); ctx.arc(hole.x, hole.y, radius + 12, 0, Math.PI * 2); ctx.stroke(); } ctx.restore();
   });
   battle.projectiles.forEach((shot) => { ctx.save(); ctx.shadowColor = shot.piercing ? "#ffd853" : "#62ffe0"; ctx.shadowBlur = 18; ctx.fillStyle = shot.piercing ? "#ffe27a" : "#92f4df"; ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.radius + 2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore(); });
-  battle.enemies.forEach((enemy) => { ctx.save(); ctx.globalAlpha = .24; ctx.fillStyle = "#351d31"; ctx.beginPath(); ctx.ellipse(enemy.x, enemy.y + enemy.radius * .75, enemy.radius * .9, enemy.radius * .32, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = enemy.flash > 0 ? .45 : 1; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y, enemy.radius * 3.7, enemy.radius * 3.7); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#1d1523cc"; ctx.fillRect(enemy.x - 24, enemy.y - enemy.radius - 20, 48, 6); ctx.fillStyle = "#ff5e68"; ctx.fillRect(enemy.x - 23, enemy.y - enemy.radius - 19, 46 * hp, 4); });
-  if (!battle.player.hidden) { ctx.save(); ctx.globalAlpha = .24; ctx.fillStyle = "#15353d"; ctx.beginPath(); ctx.ellipse(battle.player.x, battle.player.y + 28, 28, 10, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2 ? .3 : 1; ctx.shadowColor = "#8bffe9"; ctx.shadowBlur = battle.player.invincible > 0 ? 25 : 8; drawCutout(ctx, characterImages, battle.run.character.sprite, battle.player.x, battle.player.y, 92, 92); ctx.restore(); }
+  battle.enemies.forEach((enemy) => { const bob = Math.sin(performance.now() / 210 + enemy.x * .01) * 2; ctx.save(); ctx.globalAlpha = .26; ctx.fillStyle = "#351d31"; ctx.beginPath(); ctx.ellipse(enemy.x + 4, enemy.y + enemy.radius * .92, enemy.radius * 1.08, enemy.radius * .38, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = enemy.flash > 0 ? .45 : 1; ctx.filter = "drop-shadow(0 7px 3px rgba(66,26,48,.5))"; drawCutout(ctx, pathogenImages, enemy.type, enemy.x, enemy.y - 4 + bob, enemy.radius * 4.15, enemy.radius * 4.15); ctx.restore(); const hp = Math.max(0, enemy.hp / enemy.maxHp); ctx.fillStyle = "#1d1523cc"; ctx.fillRect(enemy.x - 24, enemy.y - enemy.radius - 26, 48, 6); ctx.fillStyle = "#ff5e68"; ctx.fillRect(enemy.x - 23, enemy.y - enemy.radius - 25, 46 * hp, 4); });
+  if (!battle.player.hidden) {
+    const speed = Math.hypot(battle.player.velocity.x, battle.player.velocity.y);
+    const bob = battle.player.moving ? Math.abs(Math.sin(battle.player.walkTime * Math.PI)) * -3.2 : Math.sin(performance.now() / 430) * .7;
+    const bodySize = 118 + Math.min(8, speed / 40);
+    ctx.save(); ctx.globalAlpha = .28; ctx.fillStyle = "#542f4266"; ctx.beginPath(); ctx.ellipse(battle.player.x + 5, battle.player.y + 38, battle.player.moving ? 39 : 35, battle.player.moving ? 11 : 13, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = .18; ctx.filter = "brightness(.35) saturate(.7)"; drawPlayerSprite(ctx, battle.player, battle.run.character, battle.player.x + 4, battle.player.y + 8, bodySize, bodySize, true);
+    ctx.globalAlpha = battle.player.invincible > 0 && Math.floor(performance.now() / 100) % 2 ? .3 : 1; ctx.filter = "drop-shadow(0 7px 3px rgba(72,35,52,.45))"; ctx.shadowColor = "#8bffe9"; ctx.shadowBlur = battle.player.invincible > 0 ? 25 : 5; drawPlayerSprite(ctx, battle.player, battle.run.character, battle.player.x, battle.player.y - 6 + bob, bodySize, bodySize);
+    ctx.restore();
+  }
   ctx.strokeStyle = "#102f38"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
   const vignette = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * .2, width / 2, height / 2, Math.max(width, height) * .72); vignette.addColorStop(0, "rgba(5,18,25,0)"); vignette.addColorStop(1, "rgba(5,18,25,.36)"); ctx.fillStyle = vignette; ctx.fillRect(0, 0, width, height);
 }
@@ -514,7 +583,9 @@ function bindEvents() {
   $("sfxToggle").addEventListener("change", () => mediguardAudio.update({ sfx: $("sfxToggle").checked }));
   $("volumeSlider").addEventListener("input", () => { const volume = Number($("volumeSlider").value) / 100; $("volumeValue").textContent = `${Math.round(volume * 100)}%`; mediguardAudio.update({ volume }); });
   document.querySelector("#gameShell").addEventListener("click", (event) => { if (event.target.closest("button") && event.target.id !== "attackButton" && event.target.id !== "skillButton") mediguardAudio.sfx("button"); });
-  $("attackButton").addEventListener("pointerdown", (event) => { event.preventDefault(); $("attackButton").setPointerCapture(event.pointerId); beginCharge(); }); $("attackButton").addEventListener("pointerup", (event) => { event.preventDefault(); releaseCharge(); }); $("attackButton").addEventListener("pointercancel", releaseCharge);
+  $("attackButton").addEventListener("pointerdown", (event) => { event.preventDefault(); attackAim = { pointer: event.pointerId, x: event.clientX, y: event.clientY }; $("attackButton").setPointerCapture(event.pointerId); beginCharge(); });
+  $("attackButton").addEventListener("pointermove", (event) => { if (attackAim.pointer !== event.pointerId || !battle?.running) return; const dx = event.clientX - attackAim.x; const dy = event.clientY - attackAim.y; const length = Math.hypot(dx, dy); if (length > 10) battle.player.direction = { x: dx / length, y: dy / length }; });
+  $("attackButton").addEventListener("pointerup", (event) => { event.preventDefault(); attackAim.pointer = null; releaseCharge(); }); $("attackButton").addEventListener("pointercancel", () => { attackAim.pointer = null; releaseCharge(); });
   $("skillButton").addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); $("skillButton").classList.add("pressed"); useSkill(); });
   ["pointerup", "pointercancel", "pointerleave"].forEach((name) => $("skillButton").addEventListener(name, () => $("skillButton").classList.remove("pressed")));
   $("exitBattle").addEventListener("click", () => { if (confirm("この出撃を終了しますか？")) void finishBattle(false, "途中退出しました"); });

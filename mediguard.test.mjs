@@ -199,3 +199,17 @@ test("出撃読み込み画面とオリジナルBGM・効果音を全ゲーム�
   assert.match(audio, /playMusic\(theme = "home"\)/);
   assert.match(sw, /mediguard_audio\.js\?v=20261012-1/);
 });
+
+test("キャラクターは4方向4歩幅の素材と連続角度・加減速で滑らかに歩く", async () => {
+  const [client, sw] = await Promise.all([read("./mediguard.js"), read("./sw.js")]);
+  assert.match(client, /character-0-walk-v2\.png/);
+  assert.match(client, /visualAngle: 0, velocity: \{ x: 0, y: 0 \}, walkTime: 0/);
+  assert.match(client, /function shortestAngle\(/);
+  assert.match(client, /1 - Math\.exp\(-response \* dt\)/);
+  assert.match(client, /p\.walkTime \+= dt \* \(5\.8/);
+  assert.match(client, /function walkDirectionRow\(/);
+  assert.match(client, /const columns = 4; const rows = 4/);
+  assert.match(client, /drawPlayerSprite\(ctx, battle\.player/);
+  assert.match(sw, /images\/mediguard-sprites\/character-0-walk-v2\.png/);
+  await access(new URL("./images/mediguard-sprites/character-0-walk-v2.png", import.meta.url));
+});
