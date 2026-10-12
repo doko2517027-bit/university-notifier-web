@@ -12,11 +12,13 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v118";
+const STATIC_CACHE = "caremate-static-v119";
 
-const RUNTIME_CACHE = "caremate-runtime-v118";
+const RUNTIME_CACHE = "caremate-runtime-v119";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
+
+const THREE_MODULE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.min.js";
 
 /*
 確実に存在する主要ファイルだけ
@@ -133,7 +135,11 @@ const CORE_ASSETS = [
 
   "mediguard.css?v=20261012-13",
 
-  "mediguard.js?v=20261012-15",
+  "mediguard.js?v=20261012-16",
+
+  "mediguard_3d.js?v=20261012-1",
+
+  THREE_MODULE_URL,
 
   "mediguard_audio.js?v=20261012-1",
 
@@ -314,7 +320,12 @@ self.addEventListener("fetch", (event) => {
         Google
         などは常に本来の通信を使う。
         */
-  if (url.origin !== self.location.origin) {
+  if (url.origin !== self.location.origin && url.href !== THREE_MODULE_URL) {
+    return;
+  }
+
+  if (url.href === THREE_MODULE_URL) {
+    event.respondWith(handleStaticRequest(request));
     return;
   }
 

@@ -22,6 +22,9 @@ let finishGachaCinematic = null;
 let stick = { x: 0, y: 0, pointer: null, baseX: 0, baseY: 0 };
 let dpad = { up: false, down: false, left: false, right: false };
 let attackAim = { pointer: null, x: 0, y: 0 };
+let battle3d = null;
+let home3d = null;
+let loading3d = null;
 const CONTROL_STORAGE_KEY = "caremate_mediguard_control_v1";
 let controlMode = localStorage.getItem(CONTROL_STORAGE_KEY) === "joystick" ? "joystick" : "dpad";
 const loadSpriteSet = (prefix, count) => Array.from({ length: count }, (_, index) => {
@@ -55,7 +58,20 @@ function render() {
   $("gachaPoints").textContent = format(dashboard.player.gachaPoints);
   $("selectedName").textContent = character.name; $("selectedLevel").textContent = character.level;
   $("selectedCharacter").querySelector("span").className = spriteClass(character.sprite);
+  home3d?.setCharacter(character.sprite);
   renderCharacters(); renderRecords(); renderGachaBanners(); renderLimitBreak();
+}
+async function initialize3D() {
+  if (battle3d || loading3d) return loading3d;
+  loading3d = import("./mediguard_3d.js?v=20261012-1").then((module) => {
+    if (!module.supportsMediguard3D()) return false;
+    battle3d = new module.Mediguard3DBattle($("battleCanvas"));
+    home3d = new module.Mediguard3DShowcase($("home3dCanvas"));
+    const character = selectedCharacter(); if (character) home3d.setCharacter(character.sprite);
+    document.body.classList.add("mediguard-3d");
+    return true;
+  }).catch((error) => { console.warn("3D表示を開始できないため2D表示を使用します。", error); return false; });
+  return loading3d;
 }
 function selectedBanner() {
   return dashboard?.banners?.find((item) => item.id === selectedBannerId)
@@ -440,7 +456,7 @@ function drawBattleObstacles(ctx, mapId) {
     ctx.restore();
   });
 }
-function drawBattle() {
+function drawBattle2D() {
   if (!battle) return; const canvas = $("battleCanvas"); const rect = canvas.getBoundingClientRect(); const ratio = Math.min(2, devicePixelRatio || 1); if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }
   const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.imageSmoothingEnabled = false; const width = rect.width; const height = rect.height;
   const zoom = width < 700 ? 1.34 : 1.2; const verticalScale = .84; const viewWidth = width / zoom; const viewHeight = height / (zoom * verticalScale);
@@ -480,6 +496,10 @@ function drawBattle() {
   ctx.strokeStyle = "#102f38"; ctx.lineWidth = 18; ctx.strokeRect(0, 0, WORLD.width, WORLD.height); ctx.restore();
   const vignette = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * .2, width / 2, height / 2, Math.max(width, height) * .72); vignette.addColorStop(0, "rgba(5,18,25,0)"); vignette.addColorStop(1, "rgba(5,18,25,.36)"); ctx.fillStyle = vignette; ctx.fillRect(0, 0, width, height);
 }
+function drawBattle() {
+  if (battle3d) { battle3d.render(battle, battleObstacles(battle?.run?.map?.id)); return; }
+  drawBattle2D();
+}
 function gameLoop(now) { if (!battle?.running) return; const dt = Math.min(.05, (now - (lastFrame || now)) / 1000); lastFrame = now; updateBattle(dt); drawBattle(); frameId = requestAnimationFrame(gameLoop); }
 async function startBattle(action = "startRun") {
   if (busy) return; setBusy(true);
@@ -487,6 +507,7 @@ async function startBattle(action = "startRun") {
   $("loadingPathogen").textContent = "病原体と安全な経路を解析しています…";
   $("loadingScreen").hidden = false;
   try {
+    await initialize3D();
     const run = await api(action, { requestId: requestId() }); $("loadingMap").textContent = run.map.name; $("loadingPathogen").textContent = run.limitBreak ? `${run.bossName} / 上限解放戦` : `${run.map.pathogen} / ${run.map.weapon}`;
     await new Promise((resolve) => setTimeout(resolve, 1450)); battle = newBattle(run); $("battleMapName").textContent = run.map.name; $("waveText").textContent = `0 / ${run.waves}`; $("loadingScreen").hidden = true; $("battleScreen").hidden = false; $("respawnPanel").hidden = true; updateHud(); lastFrame = performance.now(); cancelAnimationFrame(frameId); frameId = requestAnimationFrame(gameLoop);
     mediguardAudio.playMusic("battle");
@@ -600,7 +621,7 @@ async function boot() {
   try {
     await auth.authStateReady();
     if (auth.currentUser?.uid !== `caremate-${studentNumber}`) { location.replace("login.html"); return; }
-    bindEvents(); await refresh(); $("gameShell").hidden = false; document.body.classList.remove("page-loading"); $("gameGate").hidden = true;
+    bindEvents(); await refresh(); $("gameShell").hidden = false; document.body.classList.remove("page-loading"); $("gameGate").hidden = true; void initialize3D();
   } catch (error) {
     console.error(error);
     if (["functions/permission-denied", "functions/unauthenticated"].includes(error?.code)) { location.replace("login.html"); return; }

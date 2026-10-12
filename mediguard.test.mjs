@@ -213,3 +213,25 @@ test("キャラクターは4方向4歩幅の素材と連続角度・加減速で
   assert.match(sw, /images\/mediguard-sprites\/character-0-walk-v2\.png/);
   await access(new URL("./images/mediguard-sprites/character-0-walk-v2.png", import.meta.url));
 });
+
+test("キャラクター・敵・細胞内ステージ・障害物・弾・追従カメラを実3Dで描画する", async () => {
+  const [page, client, renderer, sw] = await Promise.all([
+    read("./mediguard.html"), read("./mediguard.js"), read("./mediguard_3d.js"), read("./sw.js"),
+  ]);
+  assert.match(page, /id="home3dCanvas"/);
+  assert.match(client, /import\("\.\/mediguard_3d\.js\?v=20261012-1"\)/);
+  assert.match(client, /new module\.Mediguard3DBattle/);
+  assert.match(client, /battle3d\.render\(battle, battleObstacles/);
+  assert.match(renderer, /three@0\.186\.0\/build\/three\.module\.min\.js/);
+  assert.match(renderer, /new THREE\.WebGLRenderer/);
+  assert.match(renderer, /new THREE\.PerspectiveCamera/);
+  assert.match(renderer, /function createCharacterModel/);
+  assert.match(renderer, /leftLeg\.rotation\.x = stride/);
+  assert.match(renderer, /function createMicrobe/);
+  assert.match(renderer, /function createObstacle/);
+  assert.match(renderer, /new THREE\.SphereGeometry\(Math\.max\(5, shot\.radius/);
+  assert.match(renderer, /this\.camera\.position\.lerp\(targetCamera/);
+  assert.match(renderer, /export function supportsMediguard3D/);
+  assert.match(sw, /THREE_MODULE_URL/);
+  await access(new URL("./mediguard_3d.js", import.meta.url));
+});

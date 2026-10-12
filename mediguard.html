@@ -37,7 +37,7 @@
         <section id="homeView" class="game-view home-view">
           <div class="organ-monitor" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <div class="home-info"><span>出撃ユニット</span><strong id="selectedName">セルマル</strong><b>Lv.<i id="selectedLevel">1</i></b></div>
-          <button id="selectedCharacter" class="selected-character" type="button" aria-label="キャラクターを変更"><span class="character-sprite sprite-0"></span><i>変更</i></button>
+          <button id="selectedCharacter" class="selected-character" type="button" aria-label="キャラクターを変更"><canvas id="home3dCanvas" aria-hidden="true"></canvas><span class="character-sprite sprite-0"></span><i>変更</i></button>
           <button id="sortieButton" class="sortie-button" type="button"><i aria-hidden="true">⚕</i><span>殺 菌</span><small>ランダムな臓器へ緊急出撃</small><em>MISSION START</em></button>
           <div class="home-menu">
             <button data-view="characters"><span>🧬</span><b>キャラクター</b></button>
@@ -154,6 +154,6 @@
     <div id="dialog" class="game-overlay" hidden><section class="game-dialog"><button id="dialogClose" class="dialog-close">×</button><h2 id="dialogTitle"></h2><div id="dialogBody"></div></section></div>
     <p id="toast" class="game-toast" hidden></p>
 
-    <script type="module" src="mediguard.js?v=20261012-15"></script>
+    <script type="module" src="mediguard.js?v=20261012-16"></script>
   </body>
 </html>
