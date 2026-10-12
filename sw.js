@@ -12,13 +12,12 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v121";
+const STATIC_CACHE = "caremate-static-v122";
 
-const RUNTIME_CACHE = "caremate-runtime-v121";
+const RUNTIME_CACHE = "caremate-runtime-v122";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
-const THREE_MODULE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.min.js";
 
 /*
 確実に存在する主要ファイルだけ
@@ -131,51 +130,6 @@ const CORE_ASSETS = [
 
   "study_tracking.js?v=20261009-2",
 
-  "mediguard.html",
-
-  "mediguard.css?v=20261012-17",
-
-  "mediguard.js?v=20261012-18",
-
-  "mediguard_3d.js?v=20261012-4",
-
-  THREE_MODULE_URL,
-
-  "mediguard_audio.js?v=20261012-2",
-
-  "mediguard_audio_slots.mjs?v=20261012-1",
-
-  "mediguard_admin.html",
-
-  "mediguard_admin.css?v=20261012-6",
-
-  "mediguard_admin.js?v=20261012-3",
-
-  "images/mediguard-tab.svg",
-
-  "images/mediguard-sprites/character-0.png",
-  "images/mediguard-sprites/character-0-walk-v2.png",
-  "images/mediguard-sprites/character-1.png",
-  "images/mediguard-sprites/character-2.png",
-  "images/mediguard-sprites/character-3.png",
-  "images/mediguard-sprites/character-4.png",
-  "images/mediguard-sprites/character-5.png",
-  "images/mediguard-sprites/character-6.png",
-  "images/mediguard-sprites/character-7.png",
-  "images/mediguard-sprites/character-8.png",
-  "images/mediguard-sprites/character-9.png",
-  "images/mediguard-sprites/pathogen-0.png",
-  "images/mediguard-sprites/pathogen-1.png",
-  "images/mediguard-sprites/pathogen-2.png",
-  "images/mediguard-sprites/pathogen-3.png",
-  "images/mediguard-sprites/pathogen-4.png",
-  "images/mediguard-sprites/pathogen-5.png",
-  "images/mediguard-sprites/pathogen-6.png",
-  "images/mediguard-sprites/pathogen-7.png",
-  "images/mediguard-sprites/pathogen-8.png",
-  "images/mediguard-sprites/pathogen-9.png",
-  "images/mediguard-sprites/pathogen-10.png",
-  "images/mediguard-sprites/pathogen-11.png",
 
   "quiz.html",
 
@@ -322,12 +276,7 @@ self.addEventListener("fetch", (event) => {
         Google
         などは常に本来の通信を使う。
         */
-  if (url.origin !== self.location.origin && url.href !== THREE_MODULE_URL) {
-    return;
-  }
-
-  if (url.href === THREE_MODULE_URL) {
-    event.respondWith(handleStaticRequest(request));
+  if (url.origin !== self.location.origin) {
     return;
   }
 

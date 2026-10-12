@@ -112,11 +112,6 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, "asia-northeast1");
 
 export const studentNumber = localStorage.getItem("studentNumber");
-export const MEDIGUARD_TEST_STUDENT_NUMBERS = Object.freeze(["2510044"]);
-
-export function isMediguardTestStudent(value = studentNumber) {
-  return MEDIGUARD_TEST_STUDENT_NUMBERS.includes(String(value || ""));
-}
 
 const DEVICE_ID_STORAGE_KEY = "careMateDeviceId";
 const DEVICE_ID_COOKIE_KEY = "careMateDeviceId";
@@ -1449,7 +1444,6 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
-  ensureMediguardNavTab();
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1480,23 +1474,12 @@ function ensureCalendarNavTab() {
   }
 }
 
-function ensureMediguardNavTab() {
-  if (!isMediguardTestStudent()) return;
-  for (const link of document.querySelectorAll('.bottom-nav a[href="requests.html"]')) {
-    link.href = "mediguard.html";
-    link.classList.add("mediguard-nav-link");
-    link.innerHTML = '<span class="nav-icon-wrap"><img class="mediguard-nav-icon" src="images/mediguard-tab.svg" alt="" width="25" height="25" /></span><span>メディガ</span>';
-  }
-}
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     ensureCalendarNavTab();
-    ensureMediguardNavTab();
   }, { once: true });
 } else {
   ensureCalendarNavTab();
-  ensureMediguardNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {
@@ -2137,7 +2120,6 @@ const presencePageNames = {
   "calendar.html": "カレンダー",
   "news.html": "お知らせ",
   "requests.html": "機能リクエスト",
-  "mediguard.html": "メディガード",
   "profile.html": "プロフィール",
   "settings.html": "設定画面",
   "assignment.html": "課題画面",

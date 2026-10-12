@@ -1,4 +1,0 @@
-const test=require('node:test');const assert=require('node:assert/strict');const {sanitizeAudioConfig}=require('./mediguard_audio_policy');
-test('CloudinaryのMP3/M4Aを保存し、音量を制限する',()=>{const result=sanitizeAudioConfig({bgm_home:{url:'https://res.cloudinary.com/vpctonjf/video/upload/v123/caremate/music.m4a',volume:10}});assert.equal(result.bgm_home.volume,1);assert.equal(result.bgm_home.loop,true);});
-test('任意URLや実行可能なファイルは保存できない',()=>{for(const url of ['javascript:alert(1)','https://example.com/audio.mp3','https://res.cloudinary.com/vpctonjf/video/upload/test.html'])assert.throws(()=>sanitizeAudioConfig({sfx_button:{url}}));});
-test('標準音量・無音も保存できる',()=>{const result=sanitizeAudioConfig({bgm_home:{volume:.3,enabled:false},evil:{url:'x'}});assert.equal(result.bgm_home.enabled,false);assert.equal(result.bgm_home.volume,.3);assert.equal(result.evil,undefined);assert.equal('url' in result.bgm_home,false);});

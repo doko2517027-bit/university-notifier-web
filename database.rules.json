@@ -2,12 +2,6 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "mediguardCoop": {
-      "$roomId": {
-        ".read": "auth != null && auth.uid === 'caremate-2510044' && auth.token.studentNumber === '2510044' && data.child('owners').child(auth.token.studentNumber).val() === true",
-        ".write": false
-      }
-    },
     "status": {
       ".read": "auth != null && auth.uid === 'caremate-2510044' && auth.token.studentNumber === '2510044' && auth.token.admin === true",
       "$studentNumber": {

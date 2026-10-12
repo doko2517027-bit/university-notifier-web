@@ -408,40 +408,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    /* メディガード限定テスト。更新はすべてCloud Functionsに限定する。 */
-    match /mediguardPlayers/{studentId} {
-      function isMediguardTester() {
-        return request.auth != null &&
-          request.auth.uid == 'caremate-' + studentId &&
-          request.auth.token.studentNumber == studentId &&
-          studentId == '2510044';
-      }
-      allow read: if isMediguardTester();
-      allow create, update, delete: if false;
-
-      match /{document=**} {
-        allow read: if isMediguardTester();
-        allow create, update, delete: if false;
-      }
-    }
-
-    match /mediguardCoopRooms/{document=**} { allow read, write: if false; }
-    match /mediguardCoopCodes/{document=**} { allow read, write: if false; }
-    match /mediguardCoopJoinLimits/{document=**} { allow read, write: if false; }
-    /* メディガの運用設定はCloud Functionsだけが読み書きする。 */
-    match /mediguardGameConfig/{document=**} {
-      allow read, write: if false;
-    }
-    match /mediguardGachaBanners/{document=**} {
-      allow read, write: if false;
-    }
-    match /mediguardCharacterConfigs/{document=**} {
-      allow read, write: if false;
-    }
-    match /mediguardAdminAudit/{document=**} {
-      allow read, write: if false;
-    }
-
 
     /* ========================================
        公開ユーザー情報

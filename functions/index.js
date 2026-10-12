@@ -15,7 +15,6 @@ const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { getDatabase } = require("firebase-admin/database");
 
 const {
   deleteCareMateDataExceptExternalMedia,
@@ -46,9 +45,6 @@ const {
   isPrimaryDeviceAuditAdminIdentity,
 } = require("./device_sessions");
 
-const { createMediguardService } = require("./mediguard");
-const { createMediguardAdminService } = require("./mediguard_admin");
-const { createMediguardCoopService } = require("./mediguard_coop");
 
 initializeApp();
 
@@ -347,49 +343,6 @@ function requireAuthenticatedCareMateStudent(request) {
 
   return studentNumber;
 }
-
-const mediguardService = createMediguardService({
-  db,
-  HttpsError,
-  requireStudent: requireAuthenticatedCareMateStudent,
-});
-
-const MEDIGUARD_FUNCTION_OPTIONS = Object.freeze({
-  region: "asia-northeast1",
-  cors: [SITE_ORIGIN],
-  cpu: "gcf_gen1",
-  concurrency: 1,
-  maxInstances: 3,
-});
-
-exports.mediguardGame = onCall(
-  MEDIGUARD_FUNCTION_OPTIONS,
-  (request) => mediguardService.dispatch(request),
-);
-
-const mediguardCoopService = createMediguardCoopService({
-  db,
-  realtimeDb: getDatabase(),
-  HttpsError,
-  requireStudent: requireAuthenticatedCareMateStudent,
-});
-
-exports.mediguardCoop = onCall(
-  MEDIGUARD_FUNCTION_OPTIONS,
-  (request) => mediguardCoopService.dispatch(request),
-);
-
-const mediguardAdminService = createMediguardAdminService({
-  db,
-  realtimeDb: getDatabase(),
-  HttpsError,
-  requireAdmin: requireEnabledCareMateAdmin,
-});
-
-exports.mediguardAdmin = onCall(
-  MEDIGUARD_FUNCTION_OPTIONS,
-  (request) => mediguardAdminService.dispatch(request),
-);
 
 exports.changeCareMatePassword = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
