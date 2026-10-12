@@ -1,4 +1,6 @@
-import { ASSETS, MENU_ITEMS } from './data/config.js';
+import { ASSETS, MENU_ITEMS, WEAPONS } from './data/config.js';
+import { ARMOR, PROGRESSION, SKILLS } from './data/progression.js';
+import { loadProfile, saveProfile, deriveStats, battleLoadout, allocateStat, equip, upgradeWeapon, applyBattleResult } from './services/profile.js';
 import { GameApp } from './game/GameApp.js';
 import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
@@ -11,11 +13,137 @@ let game = null;
 let lastSettings = { difficulty: 'normal', rule: 'elimination' };
 let noticeTimer = null;
 let tutorialReturn = 'menuScreen';
+let { profile, recovered: recoveredProfile } = loadProfile();
+let currentMatchId = null;
+let currentReward = null;
+
+function persist(next) {
+  if (!saveProfile(next)) {
+    byId('menuLoadout').textContent = '保存できません。ブラウザの保存設定を確認してください。';
+    return false;
+  }
+  profile = next;
+  recoveredProfile = false;
+  return true;
+}
+
+function renderMenu() {
+  preview.weaponId = profile.equipped.weapons[0];
+  const weapons = profile.equipped.weapons.map((id) => WEAPONS.find((item) => item.id === id)?.name || id);
+  byId('menuLoadout').textContent = recoveredProfile ? '古い保存データを読み込めず、初期状態で開始しました。'
+    : `Lv.${profile.character.level} ・ ${weapons.join(' / ')}`;
+}
+
+function renderCharacter() {
+  const { character, record } = profile;
+  const needed = PROGRESSION.xpForNextLevel(character.level);
+  byId('characterLevel').textContent = `Lv.${character.level}`;
+  byId('characterCap').textContent = `上限 Lv.${character.cap}`;
+  byId('characterRecord').textContent = `${record.matches}試合・${record.wins}勝`;
+  byId('characterXpBar').style.width = `${character.level >= character.cap ? 100 : Math.min(100, character.xp / needed * 100)}%`;
+  byId('characterXpText').textContent = character.level >= character.cap
+    ? `上限到達・保留中のEXP ${character.xp}` : `次のレベルまで ${Math.max(0, needed - character.xp)} EXP`;
+  byId('characterPoints').textContent = `振り分け可能：${character.points}ポイント`;
+  const grid = byId('statGrid');
+  grid.replaceChildren();
+  const stats = deriveStats(profile);
+  const values = { hp: stats.maxHp, attack: stats.attack, defense: stats.defense,
+    speed: stats.walkSpeed.toFixed(2), strength: `${Math.round((stats.throwPower - 1) * 100)}%` };
+  for (const [key, definition] of Object.entries(PROGRESSION.stats)) {
+    const row = document.createElement('div'); row.className = 'phase5-stat';
+    const label = document.createElement('span');
+    label.textContent = `${definition.label} ${values[key]}（+${character.allocated[key]}pt）`;
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = '＋';
+    button.setAttribute('aria-label', `${definition.label}に1ポイント振る`);
+    button.disabled = character.points < 1;
+    button.addEventListener('click', () => { const next = allocateStat(profile, key); if (next && persist(next)) renderCharacter(); });
+    row.append(label, button); grid.appendChild(row);
+  }
+}
+
+function renderEquipment() {
+  const grid = byId('equipmentGrid');
+  grid.replaceChildren();
+  const addSelect = (title, category, slot, options, selected) => {
+    const label = document.createElement('label'); label.textContent = title;
+    const select = document.createElement('select');
+    for (const [id, name] of options) {
+      const option = document.createElement('option'); option.value = id; option.textContent = name;
+      select.appendChild(option);
+    }
+    select.value = selected ?? '';
+    select.addEventListener('change', () => {
+      const next = equip(profile, category, slot, select.value || null);
+      if (next && persist(next)) { renderEquipment(); renderMenu(); }
+      else select.value = selected ?? '';
+    });
+    label.appendChild(select); grid.appendChild(label);
+  };
+  const weapons = profile.inventory.weapons.map((id) => [id, WEAPONS.find((item) => item.id === id).name]);
+  profile.equipped.weapons.forEach((id, slot) => addSelect(`武器 ${slot + 1}`, 'weapons', slot, weapons, id));
+  for (const [slot, title] of [['head', '頭防具'], ['body', '胴防具']]) {
+    const choices = [['', '装備しない'], ...profile.inventory.armor.filter((id) => ARMOR[id].slot === slot).map((id) => [id, ARMOR[id].name])];
+    addSelect(title, 'armor', slot, choices, profile.equipped.armor[slot]);
+  }
+  const skills = profile.inventory.skills.map((id) => [id, `${SKILLS[id].name}：${SKILLS[id].description}`]);
+  profile.equipped.skills.forEach((id, slot) => addSelect(`スキル ${slot + 1}（${slot ? 'E' : 'Q'}）`, 'skills', slot, skills, id));
+  const upgradeLink = document.createElement('div'); upgradeLink.className = 'phase5-upgrade-link';
+  const upgradeButton = document.createElement('button'); upgradeButton.type = 'button'; upgradeButton.className = 'ghost';
+  upgradeButton.textContent = '武器を強化 ›';
+  upgradeButton.addEventListener('click', () => show('upgradeScreen'));
+  upgradeLink.appendChild(upgradeButton); grid.appendChild(upgradeLink);
+  const stats = deriveStats(profile);
+  byId('equipmentStats').textContent = `出撃時：HP ${stats.maxHp} ・ 防御 ${stats.defense} ・ 移動 ${stats.walkSpeed.toFixed(2)}`;
+}
+
+function renderUpgrade() {
+  byId('trainingParts').textContent = `練習パーツ ${profile.inventory.trainingParts}個`;
+  const grid = byId('upgradeGrid'); grid.replaceChildren();
+  for (const id of profile.inventory.weapons) {
+    const weapon = WEAPONS.find((item) => item.id === id);
+    const level = profile.inventory.weaponLevels[id];
+    const maxed = level >= PROGRESSION.weaponUpgrade.maxLevel;
+    const cost = maxed ? 0 : PROGRESSION.weaponUpgrade.costForNext(level);
+    const card = document.createElement('div'); card.className = 'phase5-upgrade-card';
+    const name = document.createElement('strong'); name.textContent = `${weapon.name} Lv.${level}`;
+    const damage = document.createElement('span');
+    damage.textContent = `威力 ${weapon.damage + (level - 1) * PROGRESSION.weaponUpgrade.damagePerLevel}`;
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'primary';
+    button.textContent = maxed ? '最大強化' : `強化する（${cost}個）`;
+    button.disabled = maxed || profile.inventory.trainingParts < cost;
+    button.addEventListener('click', () => {
+      const next = upgradeWeapon(profile, id);
+      if (next && persist(next)) { renderUpgrade(); renderInventory(); }
+    });
+    card.append(name, damage, button); grid.appendChild(card);
+  }
+}
+
+function renderInventory() {
+  const groups = [
+    ['武器', profile.inventory.weapons.map((id) => `${WEAPONS.find((item) => item.id === id).name} Lv.${profile.inventory.weaponLevels[id]}`)],
+    ['防具', profile.inventory.armor.map((id) => ARMOR[id].name)],
+    ['スキル', profile.inventory.skills.map((id) => `${SKILLS[id].name}（${SKILLS[id].description}）`)],
+  ];
+  const grid = byId('inventoryGrid'); grid.replaceChildren();
+  byId('inventoryIntro').textContent = `練習パーツ ${profile.inventory.trainingParts}個 ・ ガチャ・ショップによる追加は後の段階で実装します。`;
+  for (const [title, items] of groups) {
+    const section = document.createElement('section');
+    const heading = document.createElement('h3'); heading.textContent = title;
+    const list = document.createElement('ul');
+    for (const name of items) { const item = document.createElement('li'); item.textContent = name; list.appendChild(item); }
+    section.append(heading, list); grid.appendChild(section);
+  }
+}
 
 function show(name) {
   for (const screen of Object.values(screens)) screen.classList.toggle('active', screen.id === name);
-  if (name === 'menuScreen') preview.start().catch(showFatal);
+  if (name === 'menuScreen') { renderMenu(); preview.start().catch(showFatal); }
   else preview.stop();
+  if (name === 'characterScreen') renderCharacter();
+  if (name === 'equipmentScreen') renderEquipment();
+  if (name === 'upgradeScreen') renderUpgrade();
+  if (name === 'inventoryScreen') renderInventory();
 }
 
 function applyVisualAssets() {
@@ -65,7 +193,16 @@ function openMenu() {
   show('menuScreen');
 }
 
+function recordResult(result) {
+  if (!currentMatchId) return;
+  const reward = applyBattleResult(profile, result, currentMatchId);
+  if (reward.duplicate) return;
+  if (persist(reward.profile)) currentReward = reward;
+  else currentReward = { xp: 0, levels: 0, saveFailed: true };
+}
+
 function showResult(result) {
+  recordResult(result);
   game?.destroy();
   game = null;
   byId('pauseOverlay').hidden = true;
@@ -74,6 +211,8 @@ function showResult(result) {
   byId('resultKills').textContent = String(result.player.kills);
   byId('resultDamage').textContent = String(result.player.damage);
   byId('resultLives').textContent = String(result.player.lives);
+  byId('resultReward').textContent = currentReward?.saveFailed ? '記録を保存できませんでした'
+    : `獲得EXP +${currentReward?.xp || 0} ・ 練習パーツ +${currentReward?.parts || 0}${currentReward?.levels ? ` ・ ${currentReward.levels}レベルアップ！` : ''}`;
   show('resultScreen');
 }
 
@@ -81,13 +220,16 @@ async function startBattle() {
   preview.stop();
   game?.destroy();
   game = null;
+  currentMatchId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  currentReward = null;
   lastSettings = { difficulty: byId('difficultySelect').value, rule: byId('ruleSelect').value };
   byId('beginBattleButton').disabled = true;
   byId('beginBattleButton').textContent = 'ステージを読み込み中…';
   show('battleScreen');
   byId('battleNotice').textContent = 'ステージを読み込み中…';
   try {
-    game = new GameApp({ container: byId('game'), settings: lastSettings, onResult: showResult,
+    game = new GameApp({ container: byId('game'), settings: lastSettings, loadout: battleLoadout(profile),
+      onMatchFinished: recordResult, onResult: showResult,
       onPause: (paused) => { byId('pauseOverlay').hidden = !paused; }, onNotice: notice,
       onSound: (name) => audio.play(name) });
     await game.start();
@@ -103,18 +245,22 @@ async function startBattle() {
   }
 }
 
+const menuScreens = { キャラクター: 'characterScreen', 武器: 'equipmentScreen', 倉庫: 'inventoryScreen' };
 for (const [name, description] of MENU_ITEMS) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.disabled = true;
-  button.setAttribute('aria-label', `${name}・開発中`);
+  button.disabled = !menuScreens[name];
+  button.setAttribute('aria-label', menuScreens[name] ? name : `${name}・開発中`);
   const heading = document.createElement('strong');
   heading.textContent = name;
   const hint = document.createElement('span');
-  hint.textContent = `開発中・${description}`;
+  hint.textContent = `${menuScreens[name] ? '' : '開発中・'}${description}`;
   button.append(heading, hint);
+  if (menuScreens[name]) button.addEventListener('click', () => show(menuScreens[name]));
   byId('menuGrid').appendChild(button);
 }
+document.querySelectorAll('.phase5-back').forEach((button) => button.addEventListener('click', openMenu));
+byId('upgradeBackButton').addEventListener('click', () => show('equipmentScreen'));
 
 byId('startButton').addEventListener('click', () => {
   audio.playBgm();

@@ -1,7 +1,7 @@
 import { CONFIG } from '../data/config.js';
 
 export class BattleSession {
-  constructor({ rule = 'elimination', difficulty = 'normal' } = {}) {
+  constructor({ rule = 'elimination', difficulty = 'normal', playerStats = {} } = {}) {
     this.rule = rule;
     this.difficulty = difficulty;
     this.elapsed = 0;
@@ -9,19 +9,22 @@ export class BattleSession {
     this.suddenDeath = false;
     this.finished = false;
     this.result = null;
-    this.player = this.makeFighter('player');
+    this.player = this.makeFighter('player', playerStats);
     this.cpu = this.makeFighter('cpu');
   }
 
-  makeFighter(id) {
-    return { id, hp: CONFIG.maxHealth, lives: CONFIG.lives, kills: 0, damage: 0, respawnAt: 0, invincibleUntil: 0 };
+  makeFighter(id, stats = {}) {
+    const maxHp = Number.isFinite(stats.maxHp) ? Math.max(CONFIG.maxHealth, Math.min(500, stats.maxHp)) : CONFIG.maxHealth;
+    const defense = Number.isFinite(stats.defense) ? Math.max(0, Math.min(100, stats.defense)) : 0;
+    return { id, hp: maxHp, maxHp, defense, lives: CONFIG.lives, kills: 0, damage: 0, respawnAt: 0, invincibleUntil: 0 };
   }
 
   hit(targetId, amount, now = this.elapsed) {
     const target = this[targetId];
     const source = this[targetId === 'player' ? 'cpu' : 'player'];
     if (this.finished || target.lives <= 0 || target.respawnAt > now || target.invincibleUntil > now) return null;
-    const actual = Math.min(target.hp, Math.max(0, Math.round(amount)));
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    const actual = Math.min(target.hp, Math.max(1, Math.round(amount - target.defense)));
     if (!actual) return null;
     target.hp -= actual;
     source.damage += actual;
@@ -39,7 +42,7 @@ export class BattleSession {
   heal(targetId, amount) {
     const target = this[targetId];
     if (this.finished || target.lives <= 0 || target.respawnAt > this.elapsed) return 0;
-    const applied = Math.min(CONFIG.maxHealth - target.hp, amount);
+    const applied = Math.min(target.maxHp - target.hp, amount);
     target.hp += applied;
     return applied;
   }
@@ -52,7 +55,7 @@ export class BattleSession {
     for (const fighter of [this.player, this.cpu]) {
       if (fighter.respawnAt > 0 && this.elapsed >= fighter.respawnAt) {
         fighter.respawnAt = 0;
-        fighter.hp = CONFIG.maxHealth;
+        fighter.hp = fighter.maxHp;
         fighter.invincibleUntil = this.elapsed + CONFIG.invincibleSeconds;
         events.push({ kind: 'respawn', targetId: fighter.id });
       }

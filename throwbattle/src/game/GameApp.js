@@ -9,14 +9,17 @@ const near = (a, b, distance) => Math.hypot(a.x - b.x, a.z - b.z) < distance;
 const facing = (dx, dz) => Math.atan2(-dx, -dz);
 
 export class GameApp {
-  constructor({ container, settings, onResult, onPause, onNotice, onSound = () => {} }) {
+  constructor({ container, settings, loadout, onMatchFinished = () => {}, onResult, onPause, onNotice, onSound = () => {} }) {
     this.container = container;
     this.settings = settings;
     this.onResult = onResult;
+    this.onMatchFinished = onMatchFinished;
     this.onPause = onPause;
     this.onNotice = onNotice;
     this.onSound = onSound;
-    this.session = new BattleSession(settings);
+    this.loadout = loadout || { stats: { maxHp: CONFIG.maxHealth, attack: 0, defense: 0, walkSpeed: CONFIG.walkSpeed, throwPower: 1 }, weapons: WEAPONS, skills: [] };
+    this.weapons = this.loadout.weapons;
+    this.session = new BattleSession({ ...settings, playerStats: this.loadout.stats });
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x9ec5df);
     this.camera = new THREE.PerspectiveCamera(69, 1, 0.1, 120);
@@ -29,9 +32,12 @@ export class GameApp {
     this.pitch = 0;
     this.frame = null;
     this.finishTimer = null;
+    this.finishing = false;
     this.input = null;
     this.weaponIndex = 0;
     this.weaponHud = document.getElementById('weaponHud');
+    this.skillReadyAt = [0, 0];
+    this.speedBoostUntil = 0;
   }
 
   async start() {
@@ -91,7 +97,7 @@ export class GameApp {
 
   buildWeaponHud() {
     this.weaponHud.replaceChildren();
-    WEAPONS.forEach((weapon, index) => {
+    this.weapons.forEach((weapon, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = `${index + 1} ${weapon.name}`;
@@ -106,7 +112,7 @@ export class GameApp {
   }
 
   selectWeapon(index) {
-    if (index < 0 || index >= WEAPONS.length || this.weaponIndex === index && this.weaponHud.querySelector('.active')) return;
+    if (index < 0 || index >= this.weapons.length || this.weaponIndex === index && this.weaponHud.querySelector('.active')) return;
     this.weaponIndex = index;
     [...this.weaponHud.children].forEach((button, i) => button.classList.toggle('active', i === index));
   }
@@ -121,6 +127,7 @@ export class GameApp {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     if (this.input.consumePause()) this.setPaused(!this.paused);
     if (!this.paused && !this.session.finished) {
+      for (const index of this.input.consumeSkills()) this.useSkill(index);
       this.updatePlayer(delta);
       this.updateCpu(delta);
       this.updateProjectiles(delta);
@@ -150,13 +157,31 @@ export class GameApp {
     const fighter = this.session.player;
     if (fighter.respawnAt > this.session.elapsed || fighter.lives <= 0) return;
     const { forward, right } = this.input.movement;
-    const multiplier = this.input.keys.has('ShiftLeft') || this.input.keys.has('ShiftRight') ? CONFIG.dashMultiplier : 1;
-    const dx = (-Math.sin(this.yaw) * forward + Math.cos(this.yaw) * right) * CONFIG.walkSpeed * multiplier * delta;
-    const dz = (-Math.cos(this.yaw) * forward - Math.sin(this.yaw) * right) * CONFIG.walkSpeed * multiplier * delta;
+    const multiplier = (this.input.keys.has('ShiftLeft') || this.input.keys.has('ShiftRight') ? CONFIG.dashMultiplier : 1)
+      * (this.speedBoostUntil > this.session.elapsed ? 1.3 : 1);
+    const dx = (-Math.sin(this.yaw) * forward + Math.cos(this.yaw) * right) * this.loadout.stats.walkSpeed * multiplier * delta;
+    const dz = (-Math.cos(this.yaw) * forward - Math.sin(this.yaw) * right) * this.loadout.stats.walkSpeed * multiplier * delta;
     this.moveActor(this.player, dx, dz, delta, this.input.consumeJump());
     this.player.root.rotation.y = this.yaw;
     this.player.moving = Math.abs(forward) + Math.abs(right) > 0.1;
-    if (this.input.firing) this.fire(this.player, this.direction, WEAPONS[this.weaponIndex]);
+    if (this.input.firing) this.fire(this.player, this.direction, this.weapons[this.weaponIndex]);
+  }
+
+  useSkill(index) {
+    const skill = this.loadout.skills[index];
+    const fighter = this.session.player;
+    if (!skill || this.session.finished || this.paused || fighter.lives <= 0 || fighter.respawnAt > this.session.elapsed
+      || this.skillReadyAt[index] > this.session.elapsed) return;
+    if (skill.effect === 'heal') {
+      if (this.session.heal('player', skill.amount) <= 0) { this.onNotice('HPが満タンです'); return; }
+    } else if (skill.effect === 'guard') {
+      fighter.invincibleUntil = Math.max(fighter.invincibleUntil, this.session.elapsed + skill.duration);
+    } else if (skill.effect === 'speed') {
+      this.speedBoostUntil = this.session.elapsed + skill.duration;
+    } else return;
+    this.skillReadyAt[index] = this.session.elapsed + skill.cooldown;
+    this.onNotice(`${skill.name}を使用！`);
+    this.onSound('click');
   }
 
   moveActor(actor, dx, dz, delta, jump = false) {
@@ -223,11 +248,17 @@ export class GameApp {
     if (actor.id === 'player') this.onSound('throw');
     const weaponIndex = WEAPONS.findIndex((candidate) => candidate.id === weapon.id);
     const mesh = this.weaponVisuals[weaponIndex]?.clone(true) || makePlaceholderWeapon(weapon);
+    const activeWeapon = actor.id === 'player' ? {
+      ...weapon,
+      damage: weapon.damage + this.loadout.stats.attack,
+      projectileSpeed: weapon.projectileSpeed * this.loadout.stats.throwPower,
+      range: weapon.range * this.loadout.stats.throwPower,
+    } : weapon;
     const start = actor.root.position.clone().add(new THREE.Vector3(0, 1.52, 0));
     start.addScaledVector(direction, 0.88);
     mesh.position.copy(start);
     this.scene.add(mesh);
-    this.projectiles.push({ mesh, ownerId: actor.id, weapon, sharedVisual: Boolean(this.weaponVisuals[weaponIndex]), velocity: direction.clone().multiplyScalar(weapon.projectileSpeed), age: 0, distance: 0 });
+    this.projectiles.push({ mesh, ownerId: actor.id, weapon: activeWeapon, sharedVisual: Boolean(this.weaponVisuals[weaponIndex]), velocity: direction.clone().multiplyScalar(activeWeapon.projectileSpeed), age: 0, distance: 0 });
   }
 
   updateProjectiles(delta) {
@@ -329,14 +360,21 @@ export class GameApp {
 
   updateHud() {
     const { player, cpu } = this.session;
-    document.getElementById('playerHpBar').style.width = `${Math.max(0, player.hp)}%`;
-    document.getElementById('enemyHpBar').style.width = `${Math.max(0, cpu.hp)}%`;
+    document.getElementById('playerHpBar').style.width = `${Math.max(0, player.hp / player.maxHp * 100)}%`;
+    document.getElementById('enemyHpBar').style.width = `${Math.max(0, cpu.hp / cpu.maxHp * 100)}%`;
     const downTime = player.respawnAt > this.session.elapsed ? `・復活まで${Math.ceil(player.respawnAt - this.session.elapsed)}秒` : '';
     document.getElementById('playerHudText').textContent = `${player.hp} HP・残機${player.lives}${downTime}`;
     document.getElementById('enemyHudText').textContent = `${cpu.hp} HP・残機${cpu.lives}`;
     const remaining = Math.ceil(this.session.remaining);
     document.getElementById('battleTime').textContent = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
     document.getElementById('battleScore').textContent = `${player.kills} - ${cpu.kills}`;
+    for (const [index, skill] of this.loadout.skills.entries()) {
+      const button = document.getElementById(`skill${index + 1}Button`);
+      if (!button) continue;
+      const remaining = Math.max(0, Math.ceil(this.skillReadyAt[index] - this.session.elapsed));
+      button.textContent = `${index === 0 ? 'Q' : 'E'} ${skill.name}${remaining ? ` ${remaining}秒` : ''}`;
+      button.disabled = remaining > 0 || player.lives <= 0 || player.respawnAt > this.session.elapsed;
+    }
   }
 
   setPaused(paused) {
@@ -348,7 +386,10 @@ export class GameApp {
   }
 
   finish() {
+    if (this.finishing) return;
+    this.finishing = true;
     this.input.reset();
+    this.onMatchFinished(this.session.result);
     this.onNotice(this.session.result.winner === 'player' ? 'WIN!' : this.session.result.winner === 'cpu' ? 'LOSE' : 'DRAW');
     this.finishTimer = setTimeout(() => this.onResult(this.session.result), 1700);
   }

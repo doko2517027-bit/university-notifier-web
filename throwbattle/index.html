@@ -7,6 +7,7 @@
   <title>Throb | Throw Obje</title>
   <link rel="stylesheet" href="./style.css?v=3">
   <link rel="stylesheet" href="./responsive.css?v=1">
+  <link rel="stylesheet" href="./phase5.css?v=1">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -32,7 +33,37 @@
       <div class="menu-top"><div><p class="eyebrow">THROW OBJE</p><h2>Throb</h2></div><span class="prototype-pill">試作版・CPU戦</span></div>
       <div class="menu-content"><div class="menu-stage"><div id="menuModel" aria-label="選択中のキャラクター"></div><p>モデルは後からGLBに差し替えできます</p></div>
         <div class="menu-actions"><button id="battleMenuButton" class="primary hero-action" type="button">対戦する <span>›</span></button><div id="menuGrid" class="menu-grid"></div></div></div>
-      <div class="menu-footer"><button id="menuHelpButton" class="ghost" type="button">遊び方</button><span>装備中：パソコン / ナイフ / ベッド</span></div>
+      <div class="menu-footer"><button id="menuHelpButton" class="ghost" type="button">遊び方</button><span id="menuLoadout">装備中：パソコン / ナイフ / ベッド</span><span class="local-save-label">試作版の記録はこの端末に保存</span></div>
+    </main>
+
+    <main id="characterScreen" class="screen panel-screen" aria-label="キャラクター育成">
+      <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>キャラクター育成</h2></div>
+        <div class="phase5-summary"><strong id="characterLevel">Lv.1</strong><span id="characterCap">上限 Lv.50</span><span id="characterRecord">0試合</span></div>
+        <div class="xp-track"><i id="characterXpBar"></i></div><p id="characterXpText" class="phase5-muted">次のレベルまで75 EXP</p>
+        <p id="characterPoints" class="phase5-points">振り分け可能：0ポイント</p><div id="statGrid" class="phase5-list"></div>
+        <p class="phase5-footnote">レベル上限はLv.50＋30試合で100、Lv.100＋100試合で150に解放。育成データはこの端末だけに保存されます。</p>
+      </div>
+    </main>
+
+    <main id="equipmentScreen" class="screen panel-screen" aria-label="装備とスキル">
+      <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>装備とスキル</h2></div>
+        <p class="phase5-muted">3つの武器を試合中に切り替えられます。防具とスキルは出撃前に選んでください。</p>
+        <div id="equipmentGrid" class="phase5-equipment"></div><p id="equipmentStats" class="phase5-points"></p>
+      </div>
+    </main>
+
+    <main id="upgradeScreen" class="screen panel-screen" aria-label="武器強化">
+      <div class="panel phase5-panel"><div class="panel-heading"><button id="upgradeBackButton" class="ghost" type="button">‹ 装備へ</button><h2>武器強化</h2></div>
+        <p id="trainingParts" class="phase5-points">練習パーツ 0個</p><p class="phase5-muted">試合で手に入る練習パーツを使い、所持武器の威力を上げられます。</p>
+        <div id="upgradeGrid" class="phase5-upgrade-grid"></div>
+      </div>
+    </main>
+
+    <main id="inventoryScreen" class="screen panel-screen" aria-label="倉庫">
+      <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>倉庫</h2></div>
+        <p id="inventoryIntro" class="phase5-muted">現在の所持品。ガチャ・ショップによる追加は後の段階で実装します。</p>
+        <div id="inventoryGrid" class="phase5-inventory"></div>
+      </div>
     </main>
 
     <main id="setupScreen" class="screen panel-screen" aria-label="対戦設定">
@@ -49,12 +80,13 @@
       <div id="battleHud"><div class="hud-player"><strong>YOU</strong><div class="hp-track"><i id="playerHpBar"></i></div><span id="playerHudText">100 HP・残機3</span></div><div class="hud-center"><span id="battleTime">05:00</span><span id="battleScore">0 - 0</span></div><div class="hud-player enemy"><strong>CPU</strong><div class="hp-track"><i id="enemyHpBar"></i></div><span id="enemyHudText">100 HP・残機3</span></div></div>
       <div id="battleNotice" role="status" aria-live="polite"></div>
       <div id="weaponHud" aria-label="武器選択"></div>
+      <div id="skillHud" aria-label="スキル"><button id="skill1Button" type="button">Q 応急手当</button><button id="skill2Button" type="button">E 防壁</button></div>
       <button id="pauseButton" class="hud-button" type="button" aria-label="一時停止">Ⅱ</button>
       <div id="mobileControls"><div id="joystick" aria-label="移動スティック"><div id="joystickKnob"></div></div><div id="lookArea" aria-label="視点操作"></div><div class="action-buttons"><button id="mobileJump" type="button">ジャンプ</button><button id="mobileDash" type="button">ダッシュ</button><button id="mobileView" type="button">視点</button><button id="throwButton" type="button">投げる</button></div></div>
       <div id="pauseOverlay" class="overlay" hidden><div class="overlay-card"><h2>一時停止</h2><p>準備ができたら再開してください。</p><button id="resumeButton" class="primary" type="button">再開</button><button id="leaveBattleButton" class="ghost" type="button">対戦をやめる</button></div></div>
     </main>
 
-    <main id="resultScreen" class="screen panel-screen" aria-label="結果画面"><div class="panel result-panel"><p class="eyebrow">MATCH RESULT</p><h2 id="resultTitle">WIN</h2><p id="resultReason"></p><div class="result-stats"><div><span>撃破数</span><strong id="resultKills">0</strong></div><div><span>与ダメージ</span><strong id="resultDamage">0</strong></div><div><span>残機</span><strong id="resultLives">0</strong></div></div><div class="row"><button id="rematchButton" class="primary" type="button">もう一度</button><button id="resultMenuButton" class="ghost" type="button">メニューへ</button></div></div></main>
+    <main id="resultScreen" class="screen panel-screen" aria-label="結果画面"><div class="panel result-panel"><p class="eyebrow">MATCH RESULT</p><h2 id="resultTitle">WIN</h2><p id="resultReason"></p><div class="result-stats"><div><span>撃破数</span><strong id="resultKills">0</strong></div><div><span>与ダメージ</span><strong id="resultDamage">0</strong></div><div><span>残機</span><strong id="resultLives">0</strong></div></div><p id="resultReward" class="phase5-reward">獲得EXP +0</p><div class="row"><button id="rematchButton" class="primary" type="button">もう一度</button><button id="resultMenuButton" class="ghost" type="button">メニューへ</button></div></div></main>
     <div id="rotateMessage" aria-live="polite"><div><span>↻</span><strong>スマホは横画面でプレイ</strong><p>端末を横に向けてください</p></div></div>
   </div>
   <script>
@@ -64,6 +96,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/main.js?v=4"></script>
+  <script type="module" src="./src/main.js?v=5"></script>
 </body>
 </html>

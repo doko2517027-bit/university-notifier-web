@@ -40,3 +40,13 @@ test('pause is controlled by caller and healing cannot exceed maximum', () => {
   assert.equal(match.player.hp, 100);
   assert.equal(match.remaining, 300);
 });
+
+test('equipped armor changes player maximum HP and reduces incoming damage only', () => {
+  const match = new BattleSession({ playerStats: { maxHp: 115, defense: 3 } });
+  assert.equal(match.player.hp, 115);
+  assert.equal(match.cpu.hp, 100);
+  assert.equal(match.hit('player', 20).amount, 17);
+  assert.equal(match.heal('player', 50), 17);
+  assert.equal(match.player.hp, 115);
+  assert.equal(match.hit('cpu', 20).amount, 20);
+});

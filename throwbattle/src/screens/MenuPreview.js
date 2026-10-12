@@ -9,6 +9,7 @@ export class MenuPreview {
     this.angle = 0.5;
     this.dragPointer = null;
     this.lastX = 0;
+    this.weaponId = WEAPONS[0].id;
   }
 
   async start() {
@@ -32,9 +33,10 @@ export class MenuPreview {
     this.asset = await loadCharacter(CHARACTERS.student.model, CHARACTERS.student.color);
     if (!this.running) { disposeObject(this.asset.model); return; }
     this.scene.add(this.asset.model);
-    const weaponVisual = await loadVisualModel(WEAPONS[0].model);
+    const equippedWeapon = WEAPONS.find((weapon) => weapon.id === this.weaponId) || WEAPONS[0];
+    const weaponVisual = await loadVisualModel(equippedWeapon.model);
     if (!this.running) { if (weaponVisual) disposeObject(weaponVisual); return; }
-    const weapon = weaponVisual || makePlaceholderWeapon(WEAPONS[0]);
+    const weapon = weaponVisual || makePlaceholderWeapon(equippedWeapon);
     weapon.position.set(0.68, 1.25, -0.22);
     weapon.rotation.y = 0.4;
     this.asset.model.add(weapon);

@@ -8,6 +8,7 @@ export class InputController {
     this.jumpQueued = false;
     this.toggleViewQueued = false;
     this.pauseQueued = false;
+    this.skillQueued = [];
     this.selectedWeapon = 0;
     this.listeners = [];
     this.joystickPointer = null;
@@ -30,6 +31,8 @@ export class InputController {
       if (event.code === 'Space') this.jumpQueued = true;
       if (event.code === 'KeyV') this.toggleViewQueued = true;
       if (event.code === 'Escape') this.pauseQueued = true;
+      if (event.code === 'KeyQ') this.skillQueued.push(0);
+      if (event.code === 'KeyE') this.skillQueued.push(1);
       if (/^Digit[123]$/.test(event.code)) this.selectedWeapon = Number(event.code.slice(-1)) - 1;
     });
     this.on(window, 'keyup', (event) => this.keys.delete(event.code));
@@ -116,6 +119,9 @@ export class InputController {
     this.on(dash, 'pointerdown', (event) => { event.preventDefault(); dash.setPointerCapture(event.pointerId); this.keys.add('ShiftLeft'); });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) this.on(dash, type, () => this.keys.delete('ShiftLeft'));
     this.on(document.getElementById('mobileView'), 'pointerdown', (event) => { event.preventDefault(); this.toggleViewQueued = true; });
+    for (const [index, id] of ['skill1Button', 'skill2Button'].entries()) {
+      this.on(document.getElementById(id), 'pointerdown', (event) => { event.preventDefault(); this.skillQueued.push(index); });
+    }
   }
 
   get movement() {
@@ -129,6 +135,7 @@ export class InputController {
   consumeJump() { const value = this.jumpQueued; this.jumpQueued = false; return value; }
   consumeView() { const value = this.toggleViewQueued; this.toggleViewQueued = false; return value; }
   consumePause() { const value = this.pauseQueued; this.pauseQueued = false; return value; }
-  reset() { this.keys.clear(); this.firing = false; this.joystick = { x: 0, y: 0 }; this.look = { x: 0, y: 0 }; }
+  consumeSkills() { const value = this.skillQueued; this.skillQueued = []; return value; }
+  reset() { this.keys.clear(); this.firing = false; this.skillQueued = []; this.joystick = { x: 0, y: 0 }; this.look = { x: 0, y: 0 }; }
   destroy() { this.reset(); this.listeners.forEach((off) => off()); document.exitPointerLock?.(); }
 }

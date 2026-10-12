@@ -1,0 +1,67 @@
+.phase5-panel { width: min(100%, 920px); }
+.phase5-panel .panel-heading { justify-content: space-between; }
+.phase5-panel .panel-heading h2 { margin: 0; }
+.phase5-muted { color: var(--muted) !important; margin: 8px 0 14px; }
+.phase5-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+.phase5-summary > * { border-radius: 999px; background: #ffffff16; padding: 7px 12px; }
+.phase5-summary strong { color: var(--accent); font-size: 1.25rem; }
+.xp-track { height: 13px; overflow: hidden; background: #101729; border-radius: 999px; border: 1px solid #aab9e378; }
+.xp-track i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #55cfb9, #a6e9cd); }
+.phase5-points { color: var(--accent) !important; font-weight: 900; margin: 8px 0 12px; }
+.phase5-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.phase5-stat { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; background: #ffffff12; border: 1px solid #ffffff25; border-radius: 12px; padding: 9px 12px; }
+.phase5-stat span { min-width: 0; overflow-wrap: anywhere; }
+.phase5-stat button { min-width: 42px; min-height: 42px; border-radius: 10px; border: 1px solid #ffffff50; color: #14203a; background: var(--accent); font-weight: 900; flex: none; }
+.phase5-stat button:disabled { opacity: .45; }
+.phase5-footnote { margin: 14px 0 0; font-size: .8rem; }
+.phase5-equipment { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.phase5-equipment label { display: grid; gap: 7px; min-width: 0; background: #ffffff10; padding: 10px; border-radius: 12px; font-weight: 800; }
+.phase5-equipment select { min-width: 0; width: 100%; min-height: 42px; border: 1px solid #8f9fcb85; border-radius: 10px; background: #101a35; color: var(--ink); padding: 6px 9px; }
+.phase5-inventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.phase5-inventory section { border: 1px solid #ffffff30; border-radius: 14px; padding: 12px; background: #ffffff0e; }
+.phase5-inventory h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+.phase5-inventory ul { margin: 0; padding-left: 1.2em; line-height: 1.65; }
+.phase5-upgrade-link { display: grid; place-items: center; min-width: 0; }
+.phase5-upgrade-link button { width: 100%; min-height: 58px; }
+.phase5-upgrade-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.phase5-upgrade-card { display: grid; gap: 7px; border: 1px solid #ffffff32; border-radius: 13px; background: #ffffff12; padding: 11px; }
+.phase5-upgrade-card strong { color: var(--accent); }
+.phase5-upgrade-card button { min-height: 42px; }
+.phase5-reward { color: var(--good) !important; font-size: 1.1rem; font-weight: 900; }
+.local-save-label { white-space: nowrap; }
+#skillHud { position: absolute; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(85px + env(safe-area-inset-bottom, 0px)); z-index: 8; display: grid; gap: 7px; }
+#skillHud button { min-width: 118px; min-height: 40px; border: 1px solid #a9f3d0a3; border-radius: 10px; padding: 6px 10px; color: #f6fff9; background: #187e71de; font-weight: 800; }
+#skillHud button:disabled { color: #b6c3cc; background: #253f54c9; }
+@media (max-width: 750px) {
+  .phase5-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phase5-inventory { grid-template-columns: 1fr; }
+  .phase5-upgrade-grid { grid-template-columns: 1fr; }
+  .local-save-label { display: none; }
+}
+@media (pointer: coarse) {
+  #skillHud { right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(148px + env(safe-area-inset-bottom, 0px)); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  #skillHud button { min-width: 82px; min-height: 39px; padding: 4px; font-size: .72rem; }
+}
+@media (max-height: 440px) {
+  .phase5-panel { padding: 10px 14px; }
+  .phase5-panel .panel-heading { margin-bottom: 5px; }
+  .phase5-panel .panel-heading h2 { font-size: 1.2rem; }
+  .phase5-summary { margin: 5px 0; }
+  .phase5-summary > * { padding: 4px 9px; }
+  .phase5-muted { margin: 3px 0 8px; }
+  .phase5-equipment { gap: 6px; }
+  .phase5-equipment label { padding: 6px; gap: 3px; font-size: .85rem; }
+  .phase5-equipment select { min-height: 35px; }
+  .phase5-stat { padding: 5px 8px; }
+  .phase5-stat button { min-width: 35px; min-height: 35px; }
+  #skillHud { bottom: calc(119px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height: 440px) and (min-width: 700px) {
+  .phase5-list, .phase5-equipment { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .phase5-footnote { margin-top: 6px; font-size: .72rem; }
+  #equipmentScreen .phase5-muted { display: none; }
+  #equipmentScreen .phase5-equipment label { padding: 4px 6px; }
+  #equipmentScreen .phase5-equipment select { min-height: 32px; }
+  #equipmentScreen .phase5-points { margin: 5px 0 0; }
+  .phase5-upgrade-link button { min-height: 47px; }
+}
