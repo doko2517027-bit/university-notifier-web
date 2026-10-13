@@ -19,6 +19,126 @@ let currentMatchId = null;
 let currentReward = null;
 let cloudSync = null;
 let cloudInitializationPending = null;
+let gachaApi = null;
+let gachaBusy = false;
+let gachaState = null;
+const GACHA_PENDING_KEY = 'throb:gacha:pending:v1';
+const GACHA_TYPES = Object.freeze([
+  ['character', 'キャラクター', 50, 500],
+  ['gear', '武器・防具', 30, 300],
+  ['accessory', 'アクセサリー', 20, 200],
+  ['skill', 'スキル', 50, 500],
+]);
+
+function pendingGacha() {
+  try {
+    const value = JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || 'null');
+    return value && GACHA_TYPES.some(([key]) => key === value.category) &&
+      [1, 10].includes(value.count) && typeof value.operationId === 'string' ? value : null;
+  } catch { return null; }
+}
+
+function renderGachaState() {
+  byId('gachaBalance').textContent = gachaState ? `${gachaState.balance} pt` : '未接続';
+  const pending = pendingGacha();
+  byId('gachaRetryButton').hidden = !pending;
+  document.querySelectorAll('.gacha-draw').forEach((button) => {
+    button.disabled = gachaBusy || !gachaApi || !gachaState || !!pending ||
+      gachaState.balance < Number(button.dataset.cost);
+  });
+  const inventory = byId('gachaInventory');
+  inventory.replaceChildren();
+  for (const item of gachaState?.inventory || []) {
+    const row = document.createElement('div');
+    row.className = `gacha-item rarity-${item.rarity}`;
+    row.textContent = `${item.rarity}　${item.name}　Lv.${item.level}`;
+    inventory.appendChild(row);
+  }
+  if (!inventory.children.length) inventory.textContent = 'まだ獲得品はありません。';
+}
+
+async function loadGachaState() {
+  if (!gachaApi) {
+    byId('gachaStatus').textContent = '本人確認またはサーバー接続が完了していません。';
+    renderGachaState();
+    return;
+  }
+  byId('gachaStatus').textContent = '残高と獲得品を確認中…';
+  try {
+    gachaState = await gachaApi.state();
+    const pending = pendingGacha();
+    if (pending && gachaState.recent?.some((entry) => entry.operationId === pending.operationId)) {
+      localStorage.removeItem(GACHA_PENDING_KEY);
+      byId('gachaStatus').textContent = '直前の抽選は保存済みです。獲得品を確認してください。';
+    } else {
+      byId('gachaStatus').textContent = pending ? '直前の抽選を確認できます。' : '抽選の準備ができました。';
+    }
+  } catch (error) {
+    console.warn('Throb gacha state unavailable:', error);
+    gachaState = null;
+    byId('gachaStatus').textContent = 'ガチャに接続できません。通信を確認して開き直してください。';
+  }
+  renderGachaState();
+}
+
+async function drawGacha(category, count, retry = false) {
+  if (gachaBusy || !gachaApi) return;
+  const existing = pendingGacha();
+  if (existing && !retry) return;
+  const operation = existing || { category, count, operationId: crypto.randomUUID() };
+  if (!existing) {
+    try { localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(operation)); }
+    catch { byId('gachaStatus').textContent = '抽選の受付番号を保存できません。ブラウザの保存設定を確認してください。'; return; }
+  }
+  gachaBusy = true;
+  renderGachaState();
+  byId('gachaStatus').textContent = '抽選を確定して保存中…';
+  try {
+    const result = await gachaApi.draw(operation);
+    localStorage.removeItem(GACHA_PENDING_KEY);
+    const results = byId('gachaResults');
+    results.replaceChildren();
+    for (const item of result.results) {
+      const card = document.createElement('div');
+      card.className = `gacha-item rarity-${item.rarity}`;
+      card.textContent = `${item.rarity}　${item.name}`;
+      results.appendChild(card);
+    }
+    byId('gachaStatus').textContent = result.repeated ? '保存済みの抽選結果を再表示しました。' : `${result.results.length}件を獲得しました。`;
+    gachaState = { ...(gachaState || {}), balance: result.balance,
+      inventory: [...result.results.map((item) => ({ ...item, level: 1 })),
+        ...(gachaState?.inventory || []).filter((item) => !result.results.some((newItem) => newItem.itemId === item.itemId))].slice(0, 100) };
+    try { gachaState = await gachaApi.state(); }
+    catch { byId('gachaStatus').textContent += ' 残高は保存済みですが、一覧の更新は次回開いたときに確認できます。'; }
+  } catch (error) {
+    console.warn('Throb gacha draw unavailable:', error);
+    byId('gachaStatus').textContent = '抽選結果を確認できません。受付番号を保持しています。「確認・再試行」を押してください。';
+  } finally {
+    gachaBusy = false;
+    renderGachaState();
+  }
+}
+
+function createGachaButtons() {
+  for (const [category, title, single, ten] of GACHA_TYPES) {
+    const card = document.createElement('section');
+    card.className = 'gacha-type';
+    const name = document.createElement('strong');
+    name.textContent = title;
+    card.appendChild(name);
+    for (const [count, cost] of [[1, single], [10, ten]]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'primary gacha-draw';
+      button.dataset.cost = String(cost);
+      button.textContent = `${count === 1 ? '1回' : '10連'} ${cost}pt`;
+      button.disabled = true;
+      button.addEventListener('click', () => void drawGacha(category, count));
+      card.appendChild(button);
+    }
+    byId('gachaTypes').appendChild(card);
+  }
+}
 
 function renderCloudStatus(state, message) {
   byId('cloudStatus').textContent = message;
@@ -56,6 +176,7 @@ async function initializeCloud() {
       renderCloudStatus('offline', '本人確認できません。記録はこの端末だけに保存します。');
       return;
     }
+    gachaApi = connection.gacha;
     if (connection.learningPoints !== null) {
       const element = byId('careMatePoints');
       element.textContent = `学習ポイント ${connection.learningPoints}pt（表示のみ）`;
@@ -204,6 +325,7 @@ function show(name) {
   if (name === 'equipmentScreen') renderEquipment();
   if (name === 'upgradeScreen') renderUpgrade();
   if (name === 'inventoryScreen') renderInventory();
+  if (name === 'gachaScreen') void loadGachaState();
 }
 
 function applyVisualAssets() {
@@ -305,7 +427,7 @@ async function startBattle() {
   }
 }
 
-const menuScreens = { キャラクター: 'characterScreen', 武器: 'equipmentScreen', 倉庫: 'inventoryScreen' };
+const menuScreens = { キャラクター: 'characterScreen', 武器: 'equipmentScreen', 倉庫: 'inventoryScreen', ガチャ: 'gachaScreen' };
 for (const [name, description] of MENU_ITEMS) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -320,6 +442,12 @@ for (const [name, description] of MENU_ITEMS) {
   byId('menuGrid').appendChild(button);
 }
 document.querySelectorAll('.phase5-back').forEach((button) => button.addEventListener('click', openMenu));
+byId('gachaBackButton').addEventListener('click', openMenu);
+byId('gachaRetryButton').addEventListener('click', () => {
+  const pending = pendingGacha();
+  if (pending) void drawGacha(pending.category, pending.count, true);
+});
+createGachaButtons();
 byId('upgradeBackButton').addEventListener('click', () => show('equipmentScreen'));
 byId('chooseCloudButton').addEventListener('click', async () => {
   if (window.confirm('この端末の記録をバックアップして、クラウドの記録に切り替えますか？')) await cloudSync?.chooseRemote();

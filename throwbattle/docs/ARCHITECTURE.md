@@ -4,7 +4,6 @@
 - `style.css` / `responsive.css` / `phase5.css`：仮デザイン、画面サイズ調整、育成画面。
 - `src/main.js`：画面遷移と試合の生成・終了。
 - `src/data/config.js`：数値、キャラ・武器・ステージ、素材パスを集約。
-- `src/data/i18n.js`：将来の多言語表示用辞書。現段階の全UIは未切替。
 - `src/data/progression.js`：経験値、能力、初期防具・スキルの定義。
 - `src/services/profile.js`：独立したローカル試作プロフィール、装備変更、試合報酬の一回限りの反映。
 - `src/services/cloudSync.js`：試作記録の競合検出と同期。既存の記録を無断で上書きしない。

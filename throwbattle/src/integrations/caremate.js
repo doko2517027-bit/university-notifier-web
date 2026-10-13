@@ -11,10 +11,11 @@ const firebaseConfig = {
 const sdk = 'https://www.gstatic.com/firebasejs/12.2.1';
 
 export async function connectCareMate() {
-  const [{ initializeApp, getApps, getApp }, { getAuth, getIdTokenResult }, firestore] = await Promise.all([
+  const [{ initializeApp, getApps, getApp }, { getAuth, getIdTokenResult }, firestore, functions] = await Promise.all([
     import(`${sdk}/firebase-app.js`),
     import(`${sdk}/firebase-auth.js`),
     import(`${sdk}/firebase-firestore.js`),
+    import(`${sdk}/firebase-functions.js`),
   ]);
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -61,5 +62,14 @@ export async function connectCareMate() {
   } catch {
     // The point display is optional. Throb never writes official CareMate points.
   }
-  return { studentNumber: verified, adapter, learningPoints };
+  const functionsApp = functions.getFunctions(app, 'asia-northeast1');
+  const gacha = {
+    async state() {
+      return (await functions.httpsCallable(functionsApp, 'getThrobGachaState')({})).data;
+    },
+    async draw(payload) {
+      return (await functions.httpsCallable(functionsApp, 'drawThrobGacha')(payload)).data;
+    },
+  };
+  return { studentNumber: verified, adapter, learningPoints, gacha };
 }

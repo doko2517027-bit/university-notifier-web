@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./responsive.css?v=1">
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
+  <link rel="stylesheet" href="./gacha.css?v=1">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -74,6 +75,20 @@
       <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>倉庫</h2></div>
         <p id="inventoryIntro" class="phase5-muted">現在の所持品。ガチャ・ショップによる追加は後の段階で実装します。</p>
         <div id="inventoryGrid" class="phase5-inventory"></div>
+      </div>
+    </main>
+
+    <main id="gachaScreen" class="screen panel-screen" aria-label="テスト用ガチャ">
+      <div class="panel gacha-panel">
+        <div class="panel-heading"><button id="gachaBackButton" class="ghost" type="button">‹ メニュー</button><h2>ガチャ</h2></div>
+        <p class="gacha-explanation">2510044限定のテスト用です。正式な学習ポイントは消費しません。獲得品は専用倉庫に保存され、装備・出撃への反映は次の開発段階です。</p>
+        <div class="gacha-balance"><span>テスト用ポイント</span><strong id="gachaBalance">読み込み中…</strong></div>
+        <div id="gachaTypes" class="gacha-types"></div>
+        <p id="gachaStatus" class="gacha-status" role="status">通信を確認中…</p>
+        <button id="gachaRetryButton" class="ghost" type="button" hidden>直前の抽選を確認・再試行</button>
+        <div id="gachaResults" class="gacha-results" aria-live="polite"></div>
+        <details class="gacha-inventory"><summary>獲得済みアイテムを見る（最新100件）</summary><div id="gachaInventory"></div></details>
+        <details class="gacha-rates"><summary>排出率・保証内容を見る</summary><p>N 40% / R 30% / SR 18% / SSR 9% / UR 2.5% / LR 0.5%</p><p>10連はSR以上を最低1個保証します。保証が必要な場合は最後の1枠をSR以上で再抽選します。</p></details>
       </div>
     </main>
 

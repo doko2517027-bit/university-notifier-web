@@ -1,0 +1,20 @@
+.gacha-panel { width: min(100%, 920px); max-height: min(92dvh, 760px); overflow: auto; }
+.gacha-panel .panel-heading { justify-content: space-between; }
+.gacha-panel h2 { margin: 0; }
+.gacha-explanation { margin: 8px 0 12px; line-height: 1.45; color: var(--muted); }
+.gacha-balance { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: #ffffff15; }
+.gacha-balance strong { color: var(--accent); font-size: 1.25rem; }
+.gacha-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.gacha-type { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 7px; padding: 10px; border-radius: 13px; background: #ffffff10; border: 1px solid #ffffff35; }
+.gacha-type strong { grid-column: 1 / -1; }
+.gacha-type button { min-width: 0; min-height: 40px; padding: 5px 7px; }
+.gacha-type button:disabled { opacity: .55; }
+.gacha-status { min-height: 1.5em; margin: 10px 0; }
+.gacha-results { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.gacha-item { min-width: 0; overflow-wrap: anywhere; border-radius: 9px; padding: 8px; background: #ffffff18; border-left: 4px solid #b9c0d0; }
+.rarity-R { border-color: #66c5e9; }.rarity-SR { border-color: #7ddd9c; }.rarity-SSR { border-color: #c28bff; }.rarity-UR { border-color: #ffca69; }.rarity-LR { border-color: #f5a9e9; }
+.gacha-inventory, .gacha-rates { margin-top: 9px; padding: 7px 10px; border-radius: 10px; border: 1px solid #ffffff30; }
+.gacha-inventory summary, .gacha-rates summary { cursor: pointer; font-weight: 800; }
+#gachaInventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
+@media (max-width: 650px) { .gacha-types { grid-template-columns: 1fr; }.gacha-results { grid-template-columns: repeat(2, minmax(0, 1fr)); } #gachaInventory { grid-template-columns: 1fr; } }
+@media (max-height: 450px) and (min-width: 650px) { .gacha-panel { max-height: 96dvh; padding: 8px 14px; }.gacha-explanation { font-size: .8rem; margin: 4px 0; }.gacha-types { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-top: 5px; }.gacha-type { padding: 5px; gap: 4px; font-size: .85rem; }.gacha-type button { min-height: 34px; }.gacha-status { margin: 4px 0; } }
