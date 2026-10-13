@@ -73,6 +73,9 @@ export async function connectCareMate() {
     async buy(payload) {
       return (await functions.httpsCallable(functionsApp, 'buyThrobShopItem')(payload)).data;
     },
+    async equip(payload) {
+      return (await functions.httpsCallable(functionsApp, 'equipThrobItem')(payload)).data;
+    },
   };
   return { studentNumber: verified, adapter, learningPoints, gacha };
 }

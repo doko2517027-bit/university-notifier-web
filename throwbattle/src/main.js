@@ -5,6 +5,7 @@ import { PrototypeCloudSync, THROB_TEST_STUDENTS } from './services/cloudSync.js
 import { GameApp } from './game/GameApp.js';
 import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
+import { pilotBonuses } from './services/pilotBonuses.js';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);
@@ -25,6 +26,7 @@ let gachaState = null;
 const GACHA_PENDING_KEY = 'throb:gacha:pending:v1';
 const SHOP_PENDING_KEY = 'throb:shop:pending:v1';
 let shopBusy = false;
+let onlineEquipBusy = false;
 const GACHA_TYPES = Object.freeze([
   ['character', 'キャラクター', 50, 500],
   ['gear', '武器・防具', 30, 300],
@@ -314,8 +316,10 @@ function persist(next) {
 function renderMenu() {
   preview.weaponId = profile.equipped.weapons[0];
   const weapons = profile.equipped.weapons.map((id) => WEAPONS.find((item) => item.id === id)?.name || id);
+  const selectedCharacter = gachaState?.inventory?.find((item) =>
+    item.itemId === gachaState?.equippedItems?.character);
   byId('menuLoadout').textContent = recoveredProfile ? '古い保存データを読み込めず、初期状態で開始しました。'
-    : `Lv.${profile.character.level} ・ ${weapons.join(' / ')}`;
+    : `Lv.${profile.character.level} ・ ${selectedCharacter ? `${selectedCharacter.name} ・ ` : ''}${weapons.join(' / ')}`;
 }
 
 function renderCharacter() {
@@ -410,7 +414,7 @@ function renderInventory() {
     ['スキル', profile.inventory.skills.map((id) => `${SKILLS[id].name}（${SKILLS[id].description}）`)],
   ];
   const grid = byId('inventoryGrid'); grid.replaceChildren();
-  byId('inventoryIntro').textContent = `練習パーツ ${profile.inventory.trainingParts}個 ・ テスト用獲得品の装備・出撃反映は開発中です。`;
+  byId('inventoryIntro').textContent = `練習パーツ ${profile.inventory.trainingParts}個 ・ 獲得品は各カテゴリ1個を選び、CPU戦に試作ボーナスが反映されます。`;
   for (const [title, items] of groups) {
     const section = document.createElement('section');
     const heading = document.createElement('h3'); heading.textContent = title;
@@ -420,23 +424,57 @@ function renderInventory() {
   }
 }
 
+function renderOnlineInventory() {
+  const list = byId('inventoryOnline');
+  list.replaceChildren();
+  for (const item of gachaState?.inventory || []) {
+    const row = document.createElement('div');
+    row.className = `gacha-item rarity-${item.rarity}`;
+    const name = document.createElement('strong');
+    name.textContent = `${item.rarity}　${item.name}　Lv.${item.level}`;
+    const selected = gachaState.equippedItems?.[item.category] === item.itemId;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ghost';
+    button.textContent = selected ? '選択を外す' : '選択する';
+    button.disabled = onlineEquipBusy;
+    button.addEventListener('click', () => void equipOnlineItem(item.itemId, !selected));
+    row.append(name, button);
+    list.appendChild(row);
+  }
+  if (!list.children.length) list.textContent = 'まだ獲得品はありません。';
+}
+
 async function loadOnlineInventory() {
   const list = byId('inventoryOnline');
   list.textContent = '獲得品を確認中…';
   if (!gachaApi) { list.textContent = '本人確認またはサーバー接続が完了していません。'; return; }
   try {
     gachaState = await gachaApi.state();
-    list.replaceChildren();
-    for (const item of gachaState.inventory || []) {
-      const row = document.createElement('div');
-      row.className = `gacha-item rarity-${item.rarity}`;
-      row.textContent = `${item.rarity}　${item.name}　Lv.${item.level}`;
-      list.appendChild(row);
-    }
-    if (!list.children.length) list.textContent = 'まだ獲得品はありません。';
+    renderOnlineInventory();
+    byId('inventoryOnlineStatus').textContent = '選択はクラウドに保存されます。キャラはHP、武器・防具は投擲威力、アクセサリーは速度、スキルは再使用時間に反映。';
   } catch (error) {
     console.warn('Throb online inventory unavailable:', error);
     list.textContent = '獲得品を読み込めませんでした。';
+  }
+}
+
+async function equipOnlineItem(itemId, equip) {
+  if (onlineEquipBusy || !gachaApi) return;
+  onlineEquipBusy = true;
+  renderOnlineInventory();
+  byId('inventoryOnlineStatus').textContent = '選択を保存中…';
+  try {
+    await gachaApi.equip({ itemId, equip });
+    gachaState = await gachaApi.state();
+    renderOnlineInventory();
+    byId('inventoryOnlineStatus').textContent = equip ? '選択を保存しました。次のCPU戦から反映されます。' : '選択を外しました。';
+  } catch (error) {
+    console.warn('Throb item equip unavailable:', error);
+    byId('inventoryOnlineStatus').textContent = '保存結果を確認できません。画面を開き直して確認してください。';
+  } finally {
+    onlineEquipBusy = false;
+    renderOnlineInventory();
   }
 }
 
@@ -531,10 +569,15 @@ async function startBattle() {
   lastSettings = { difficulty: byId('difficultySelect').value, rule: byId('ruleSelect').value };
   byId('beginBattleButton').disabled = true;
   byId('beginBattleButton').textContent = 'ステージを読み込み中…';
+  if (gachaApi) {
+    try { gachaState = await gachaApi.state(); }
+    catch (error) { console.warn('Throb pilot bonus unavailable; using base stats:', error); gachaState = null; }
+  }
   show('battleScreen');
   byId('battleNotice').textContent = 'ステージを読み込み中…';
   try {
-    game = new GameApp({ container: byId('game'), settings: lastSettings, loadout: battleLoadout(profile),
+    game = new GameApp({ container: byId('game'), settings: lastSettings,
+      loadout: battleLoadout(profile, pilotBonuses(gachaState)),
       onMatchFinished: recordResult, onResult: showResult,
       onPause: (paused) => { byId('pauseOverlay').hidden = !paused; }, onNotice: notice,
       onSound: (name) => audio.play(name) });

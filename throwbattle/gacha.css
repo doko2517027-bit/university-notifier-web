@@ -17,6 +17,8 @@
 .gacha-inventory summary, .gacha-rates summary { cursor: pointer; font-weight: 800; }
 #gachaInventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
 #inventoryOnline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+#inventoryOnline .gacha-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+#inventoryOnline .gacha-item button { min-height: 38px; padding: 6px 10px; }
 .shop-offers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
 .shop-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 10px; border: 1px solid #ffffff35; border-radius: 12px; background: #ffffff10; }
 .shop-offer strong { min-width: 0; overflow-wrap: anywhere; }

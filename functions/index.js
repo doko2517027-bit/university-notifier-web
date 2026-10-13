@@ -26,7 +26,7 @@ const webpush = require("web-push");
 const crypto = require("node:crypto");
 
 const { hashPassword, matchesPasswordHash, isValidNewPassword } = require("./password_change_policy");
-const { getPilotGachaState, drawPilotGacha, buyPilotShopItem } = require("./throb_gacha_transaction");
+const { getPilotGachaState, drawPilotGacha, buyPilotShopItem, equipPilotItem } = require("./throb_gacha_transaction");
 const { getThrobConfig, saveThrobConfig } = require('./throb_game_config');
 
 const { reminderMinutes, isReminderDue, matchesAudience } = require("./calendar_reminders");
@@ -399,6 +399,19 @@ exports.buyThrobShopItem = onCall({ region: 'asia-northeast1' }, async (request)
     }
     console.error('Throb shop purchase:', error);
     throw new HttpsError('internal', '購入を確定できませんでした。再試行してください。');
+  }
+});
+
+exports.equipThrobItem = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const studentNumber = await requireThrobPilot(request);
+  try {
+    return await equipPilotItem(db, studentNumber, request.data || {});
+  } catch (error) {
+    if (['invalid-request', 'item-not-owned', 'invalid-item'].includes(error?.message)) {
+      throw new HttpsError('failed-precondition', '獲得品を確認できませんでした。');
+    }
+    console.error('Throb item equip:', error);
+    throw new HttpsError('internal', '獲得品の選択を保存できませんでした。');
   }
 });
 

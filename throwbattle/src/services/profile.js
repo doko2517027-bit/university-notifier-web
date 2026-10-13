@@ -85,14 +85,18 @@ export function deriveStats(profile) {
   };
 }
 
-export function battleLoadout(profile) {
+export function battleLoadout(profile, pilot = {}) {
+  const stats = deriveStats(profile);
+  stats.maxHp += Number(pilot.maxHp) || 0;
+  stats.walkSpeed += Number(pilot.walkSpeed) || 0;
   return {
-    stats: deriveStats(profile),
+    stats,
     weapons: profile.equipped.weapons.map((id) => {
       const weapon = WEAPONS.find((item) => item.id === id);
-      return { ...weapon, damage: weapon.damage + (profile.inventory.weaponLevels[id] - 1) * PROGRESSION.weaponUpgrade.damagePerLevel };
+      return { ...weapon, damage: weapon.damage + (profile.inventory.weaponLevels[id] - 1) * PROGRESSION.weaponUpgrade.damagePerLevel + (Number(pilot.attack) || 0) };
     }),
-    skills: profile.equipped.skills.map((id) => SKILLS[id]),
+    skills: profile.equipped.skills.map((id) => ({ ...SKILLS[id],
+      cooldown: SKILLS[id].cooldown * (Number(pilot.skillCooldownFactor) || 1) })),
   };
 }
 

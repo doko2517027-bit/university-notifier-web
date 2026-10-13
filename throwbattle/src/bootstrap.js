@@ -31,14 +31,14 @@ if (previewMaintenance || initial === 'maintenance' || initial === 'login') {
   showGate(previewMaintenance ? 'maintenance' : initial);
 } else {
   try {
-    const { connectCareMate } = await import('./integrations/caremate.js?v=2');
+    const { connectCareMate } = await import('./integrations/caremate.js?v=3');
     const connection = await connectCareMate();
     const access = throbAccessState({ loggedIn, localStudentNumber,
       verifiedStudentNumber: connection?.studentNumber || null });
     if (access !== 'allowed') showGate(access);
     else {
       window.__throbConnection = connection;
-      await import('./main.js?v=4');
+      await import('./main.js?v=5');
       document.getElementById('app').style.display = '';
       gate.hidden = true;
     }

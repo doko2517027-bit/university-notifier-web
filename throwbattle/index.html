@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./responsive.css?v=1">
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
-  <link rel="stylesheet" href="./gacha.css?v=2">
+  <link rel="stylesheet" href="./gacha.css?v=3">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -73,16 +73,16 @@
 
     <main id="inventoryScreen" class="screen panel-screen" aria-label="倉庫">
       <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>倉庫</h2></div>
-        <p id="inventoryIntro" class="phase5-muted">試作装備と、ガチャ・ショップで獲得したアイテムを確認できます。テスト用獲得品の装備・出撃反映は開発中です。</p>
+        <p id="inventoryIntro" class="phase5-muted">試作装備と、ガチャ・ショップで獲得したアイテムを確認できます。獲得品は各カテゴリ1個を選択でき、CPU戦に小さな試作ボーナスが反映されます。</p>
         <div id="inventoryGrid" class="phase5-inventory"></div>
-        <section class="phase5-inventory"><h3>ガチャ・ショップの獲得品</h3><div id="inventoryOnline" aria-live="polite">読み込み中…</div></section>
+        <section class="phase5-inventory"><h3>ガチャ・ショップの獲得品</h3><p id="inventoryOnlineStatus" class="phase5-muted">所持・選択状況を確認中…</p><div id="inventoryOnline" aria-live="polite">読み込み中…</div></section>
       </div>
     </main>
 
     <main id="gachaScreen" class="screen panel-screen" aria-label="テスト用ガチャ">
       <div class="panel gacha-panel">
         <div class="panel-heading"><button id="gachaBackButton" class="ghost" type="button">‹ メニュー</button><h2>ガチャ</h2></div>
-        <p class="gacha-explanation">2510044限定のテスト用です。正式な学習ポイントは消費しません。獲得品は専用倉庫に保存され、装備・出撃への反映は次の開発段階です。</p>
+        <p class="gacha-explanation">2510044限定のテスト用です。正式な学習ポイントは消費しません。獲得品は倉庫で選択でき、次のCPU戦に小さな試作ボーナスが反映されます。</p>
         <div class="gacha-balance"><span>テスト用ポイント</span><strong id="gachaBalance">読み込み中…</strong></div>
         <div id="gachaTypes" class="gacha-types"></div>
         <p id="gachaStatus" class="gacha-status" role="status">通信を確認中…</p>
@@ -135,6 +135,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=4"></script>
+  <script type="module" src="./src/bootstrap.js?v=5"></script>
 </body>
 </html>

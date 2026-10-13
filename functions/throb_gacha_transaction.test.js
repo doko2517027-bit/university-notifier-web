@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { PILOT_INITIAL_POINTS, validOperationId, drawPilotGacha, getPilotGachaState, buyPilotShopItem } = require('./throb_gacha_transaction');
+const { PILOT_INITIAL_POINTS, validOperationId, drawPilotGacha, getPilotGachaState, buyPilotShopItem, equipPilotItem } = require('./throb_gacha_transaction');
 const { DEFAULT_CONFIG } = require('./throb_game_config');
 
 function fakeStore() {
@@ -99,4 +99,30 @@ test('updated admin prices are applied inside the purchase transaction', async (
   const state = await getPilotGachaState(db, '2510044');
   assert.equal(state.shopOffers.find((item) => item.offerId === 'gear-n').price, 73);
   assert.equal(state.gachaPrices.accessory[1], 37);
+});
+
+test('only owned items can be equipped and changing the slot clears the previous item', async () => {
+  const db = fakeStore();
+  const first = await buyPilotShopItem(db, '2510044', {
+    offerId: 'gear-n', operationId: '07887ae8-42bb-4331-a629-f3654bdd32fd',
+  });
+  const second = await buyPilotShopItem(db, '2510044', {
+    offerId: 'gear-r', operationId: '58859aa1-cfad-4b45-ad82-b2355aff3565',
+  });
+  const firstId = first.results[0].itemId;
+  const secondId = second.results[0].itemId;
+  await assert.rejects(equipPilotItem(db, '2510001', { itemId: firstId, equip: true }), /pilot-only/);
+  await assert.rejects(equipPilotItem(db, '2510044', {
+    itemId: '46da5968-1d06-4c37-8bdf-c6553a5cb79d', equip: true,
+  }), /item-not-owned/);
+  await equipPilotItem(db, '2510044', { itemId: firstId, equip: true });
+  await equipPilotItem(db, '2510044', { itemId: secondId, equip: true });
+  let state = await getPilotGachaState(db, '2510044');
+  assert.equal(state.equippedItems.gear, secondId);
+  assert.equal(state.inventory.find((item) => item.itemId === firstId).equipped, false);
+  assert.equal(state.inventory.find((item) => item.itemId === secondId).equipped, true);
+  await equipPilotItem(db, '2510044', { itemId: secondId, equip: false });
+  state = await getPilotGachaState(db, '2510044');
+  assert.equal(state.equippedItems.gear, undefined);
+  assert.equal(state.inventory.find((item) => item.itemId === secondId).equipped, false);
 });

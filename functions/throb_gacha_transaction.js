@@ -16,7 +16,8 @@ function validWallet(data) {
 }
 
 function walletView(data) {
-  return { balance: data.balance, spent: data.spent, testCurrency: true };
+  return { balance: data.balance, spent: data.spent,
+    equippedItems: data.equippedItems || {}, testCurrency: true };
 }
 
 function accountRef(db, studentNumber) {
@@ -41,12 +42,23 @@ async function getPilotGachaState(db, studentNumber) {
     getThrobConfig(db),
   ]);
   if (!validWallet(wallet.data())) throw new Error('invalid-wallet');
+  const recentItems = inventory.docs.map((doc) => ({ id: doc.id, data: () => doc.data() }));
+  const seen = new Set(recentItems.map((doc) => doc.id));
+  const olderEquippedIds = Object.values(wallet.data().equippedItems || {}).filter((id) =>
+    typeof id === 'string' && !seen.has(id));
+  const olderEquipped = await Promise.all(olderEquippedIds.map(async (id) => ({
+    id, snapshot: await ref.collection('items').doc(id).get(),
+  })));
+  for (const { id, snapshot } of olderEquipped) {
+    if (snapshot.exists) recentItems.push({ id, data: () => snapshot.data() });
+  }
   return { ...walletView(wallet.data()), gachaPrices: config.gachaPrices,
     rarityBasisPoints: config.rarityBasisPoints,
     shopOffers: Object.values(SHOP_OFFERS).map((offer) => ({ ...offer,
-      price: config.shopPrices[offer.rarity] })), inventory: inventory.docs.map((doc) => ({
+      price: config.shopPrices[offer.rarity] })), inventory: recentItems.map((doc) => ({
     itemId: doc.id, catalogId: doc.data().catalogId, category: doc.data().category,
     rarity: doc.data().rarity, name: doc.data().name, level: doc.data().level,
+    equipped: doc.data().equipped === true,
   })), recent: recent.docs.map((doc) => ({
     operationId: doc.id, type: doc.data().type || 'gacha', category: doc.data().category, count: doc.data().count,
     results: doc.data().results,
@@ -131,5 +143,37 @@ async function buyPilotShopItem(db, studentNumber, { offerId, operationId }) {
   });
 }
 
+async function equipPilotItem(db, studentNumber, { itemId, equip }) {
+  if (studentNumber !== PILOT_STUDENT) throw new Error('pilot-only');
+  if (!validOperationId(itemId) || typeof equip !== 'boolean') throw new Error('invalid-request');
+  const ref = accountRef(db, studentNumber);
+  const itemRef = ref.collection('items').doc(itemId);
+  return db.runTransaction(async (tx) => {
+    const [walletSnapshot, itemSnapshot] = await Promise.all([tx.get(ref), tx.get(itemRef)]);
+    if (!walletSnapshot.exists || !validWallet(walletSnapshot.data()) || !itemSnapshot.exists) {
+      throw new Error('item-not-owned');
+    }
+    const wallet = walletSnapshot.data();
+    const category = itemSnapshot.data().category;
+    if (!['character', 'gear', 'accessory', 'skill'].includes(category)) throw new Error('invalid-item');
+    const current = wallet.equippedItems || {};
+    const previousId = current[category];
+    if (equip && previousId === itemId || !equip && previousId !== itemId) {
+      return { equippedItems: current, itemId, equipped: equip && previousId === itemId };
+    }
+    const previousRef = previousId && previousId !== itemId
+      ? ref.collection('items').doc(previousId) : null;
+    const previousSnapshot = previousRef ? await tx.get(previousRef) : null;
+    if (previousRef && !previousSnapshot.exists) throw new Error('invalid-item');
+    const next = { ...current };
+    if (equip) next[category] = itemId;
+    else delete next[category];
+    tx.update(ref, { equippedItems: next, updatedAt: new Date() });
+    tx.update(itemRef, { equipped: equip });
+    if (previousRef) tx.update(previousRef, { equipped: false });
+    return { equippedItems: next, itemId, equipped: equip };
+  });
+}
+
 module.exports = { PILOT_STUDENT, PILOT_INITIAL_POINTS, validOperationId,
-  getPilotGachaState, drawPilotGacha, buyPilotShopItem };
+  getPilotGachaState, drawPilotGacha, buyPilotShopItem, equipPilotItem };
