@@ -16,5 +16,12 @@
 .gacha-inventory, .gacha-rates { margin-top: 9px; padding: 7px 10px; border-radius: 10px; border: 1px solid #ffffff30; }
 .gacha-inventory summary, .gacha-rates summary { cursor: pointer; font-weight: 800; }
 #gachaInventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
-@media (max-width: 650px) { .gacha-types { grid-template-columns: 1fr; }.gacha-results { grid-template-columns: repeat(2, minmax(0, 1fr)); } #gachaInventory { grid-template-columns: 1fr; } }
+#inventoryOnline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.shop-offers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
+.shop-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 10px; border: 1px solid #ffffff35; border-radius: 12px; background: #ffffff10; }
+.shop-offer strong { min-width: 0; overflow-wrap: anywhere; }
+.shop-offer button { min-width: 92px; min-height: 42px; flex: none; }
+@media (max-width: 650px) { .gacha-types { grid-template-columns: 1fr; }.gacha-results { grid-template-columns: repeat(2, minmax(0, 1fr)); } #gachaInventory, #inventoryOnline { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .shop-offers { grid-template-columns: 1fr; } }
 @media (max-height: 450px) and (min-width: 650px) { .gacha-panel { max-height: 96dvh; padding: 8px 14px; }.gacha-explanation { font-size: .8rem; margin: 4px 0; }.gacha-types { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-top: 5px; }.gacha-type { padding: 5px; gap: 4px; font-size: .85rem; }.gacha-type button { min-height: 34px; }.gacha-status { margin: 4px 0; } }
+@media (max-height: 450px) and (min-width: 650px) { .shop-offers { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }.shop-offer { display: grid; gap: 4px; padding: 6px; }.shop-offer button { min-width: 0; width: 100%; min-height: 34px; } }

@@ -13,4 +13,13 @@ function catalogItem(category, rarity) {
   return { catalogId: `${category}-${rarity.toLowerCase()}`, category, rarity, name };
 }
 
-module.exports = { NAMES, catalogItem };
+// Direct-purchase pilot offers. These prices spend only Throb's test balance.
+const SHOP_OFFERS = Object.freeze(Object.fromEntries(
+  Object.keys(NAMES).flatMap((category) => ['N', 'R'].map((rarity) => {
+    const item = catalogItem(category, rarity);
+    const offerId = item.catalogId;
+    return [offerId, Object.freeze({ ...item, offerId, price: rarity === 'N' ? 60 : 120 })];
+  })),
+));
+
+module.exports = { NAMES, SHOP_OFFERS, catalogItem };

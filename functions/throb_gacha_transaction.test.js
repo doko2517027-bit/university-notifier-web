@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { PILOT_INITIAL_POINTS, validOperationId, drawPilotGacha, getPilotGachaState } = require('./throb_gacha_transaction');
+const { PILOT_INITIAL_POINTS, validOperationId, drawPilotGacha, getPilotGachaState, buyPilotShopItem } = require('./throb_gacha_transaction');
 
 function fakeStore() {
   const docs = new Map();
@@ -59,4 +59,24 @@ test('rejects invalid requests, mismatched retry, non-pilot, and insufficient ba
   await drawPilotGacha(db, '2510044', request);
   await assert.rejects(drawPilotGacha(db, '2510044', { ...request, count: 1 }), /operation-mismatch/);
   await assert.rejects(drawPilotGacha(db, '2510044', { ...request, operationId: 'af6f537a-59fc-4b45-a26b-c70d5dc6c0ed' }), /insufficient-points/);
+});
+
+test('pilot shop purchase grants one N/R item once, with server-owned price', async () => {
+  const db = fakeStore();
+  const initial = await getPilotGachaState(db, '2510044');
+  assert.equal(initial.shopOffers.length, 8);
+  const request = { offerId: 'gear-n', operationId: 'de5749a1-958c-44ab-80d6-2dbbdcc07714', price: -999 };
+  const first = await buyPilotShopItem(db, '2510044', request);
+  const repeated = await buyPilotShopItem(db, '2510044', request);
+  assert.equal(first.cost, 60);
+  assert.equal(first.balance, 440);
+  assert.equal(repeated.balance, 440);
+  assert.equal(repeated.repeated, true);
+  assert.deepEqual(repeated.results, first.results);
+  assert.equal((await getPilotGachaState(db, '2510044')).inventory.length, 1);
+  await assert.rejects(buyPilotShopItem(db, '2510001', request), /pilot-only/);
+  await assert.rejects(buyPilotShopItem(db, '2510044', { ...request, offerId: 'gear-ur' }), /invalid-request/);
+  await assert.rejects(buyPilotShopItem(db, '2510044', { ...request, offerId: 'skill-n' }), /operation-mismatch/);
+  await assert.rejects(drawPilotGacha(db, '2510044', { category: 'gear', count: 1,
+    operationId: request.operationId }), /operation-mismatch/);
 });

@@ -70,6 +70,9 @@ export async function connectCareMate() {
     async draw(payload) {
       return (await functions.httpsCallable(functionsApp, 'drawThrobGacha')(payload)).data;
     },
+    async buy(payload) {
+      return (await functions.httpsCallable(functionsApp, 'buyThrobShopItem')(payload)).data;
+    },
   };
   return { studentNumber: verified, adapter, learningPoints, gacha };
 }

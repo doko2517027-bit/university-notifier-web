@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./responsive.css?v=1">
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
-  <link rel="stylesheet" href="./gacha.css?v=1">
+  <link rel="stylesheet" href="./gacha.css?v=2">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -73,8 +73,9 @@
 
     <main id="inventoryScreen" class="screen panel-screen" aria-label="倉庫">
       <div class="panel phase5-panel"><div class="panel-heading"><button class="ghost phase5-back" type="button">‹ メニュー</button><h2>倉庫</h2></div>
-        <p id="inventoryIntro" class="phase5-muted">現在の所持品。ガチャ・ショップによる追加は後の段階で実装します。</p>
+        <p id="inventoryIntro" class="phase5-muted">試作装備と、ガチャ・ショップで獲得したアイテムを確認できます。テスト用獲得品の装備・出撃反映は開発中です。</p>
         <div id="inventoryGrid" class="phase5-inventory"></div>
+        <section class="phase5-inventory"><h3>ガチャ・ショップの獲得品</h3><div id="inventoryOnline" aria-live="polite">読み込み中…</div></section>
       </div>
     </main>
 
@@ -89,6 +90,18 @@
         <div id="gachaResults" class="gacha-results" aria-live="polite"></div>
         <details class="gacha-inventory"><summary>獲得済みアイテムを見る（最新100件）</summary><div id="gachaInventory"></div></details>
         <details class="gacha-rates"><summary>排出率・保証内容を見る</summary><p>N 40% / R 30% / SR 18% / SSR 9% / UR 2.5% / LR 0.5%</p><p>10連はSR以上を最低1個保証します。保証が必要な場合は最後の1枠をSR以上で再抽選します。</p></details>
+      </div>
+    </main>
+
+    <main id="shopScreen" class="screen panel-screen" aria-label="テスト用ショップ">
+      <div class="panel gacha-panel">
+        <div class="panel-heading"><button id="shopBackButton" class="ghost" type="button">‹ メニュー</button><h2>ショップ</h2></div>
+        <p class="gacha-explanation">2510044限定テスト。低レアリティのアイテムを選んで購入できます。正式な学習ポイントや有償ポイントは消費しません。</p>
+        <div class="gacha-balance"><span>テスト用ポイント</span><strong id="shopBalance">読み込み中…</strong></div>
+        <div id="shopOffers" class="shop-offers"></div>
+        <p id="shopStatus" class="gacha-status" role="status">通信を確認中…</p>
+        <button id="shopRetryButton" class="ghost" type="button" hidden>直前の購入を確認・再試行</button>
+        <div id="shopResults" class="gacha-results" aria-live="polite"></div>
       </div>
     </main>
 
@@ -122,6 +135,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=2"></script>
+  <script type="module" src="./src/bootstrap.js?v=3"></script>
 </body>
 </html>

@@ -23,6 +23,8 @@ let gachaApi = null;
 let gachaBusy = false;
 let gachaState = null;
 const GACHA_PENDING_KEY = 'throb:gacha:pending:v1';
+const SHOP_PENDING_KEY = 'throb:shop:pending:v1';
+let shopBusy = false;
 const GACHA_TYPES = Object.freeze([
   ['character', 'キャラクター', 50, 500],
   ['gear', '武器・防具', 30, 300],
@@ -137,6 +139,96 @@ function createGachaButtons() {
       card.appendChild(button);
     }
     byId('gachaTypes').appendChild(card);
+  }
+}
+
+function pendingShopPurchase() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SHOP_PENDING_KEY) || 'null');
+    return value && typeof value.offerId === 'string' && typeof value.operationId === 'string' ? value : null;
+  } catch { return null; }
+}
+
+function renderShopState() {
+  byId('shopBalance').textContent = gachaState ? `${gachaState.balance} pt` : '未接続';
+  const pending = pendingShopPurchase();
+  byId('shopRetryButton').hidden = !pending;
+  const list = byId('shopOffers');
+  list.replaceChildren();
+  for (const offer of gachaState?.shopOffers || []) {
+    const card = document.createElement('section');
+    card.className = `shop-offer rarity-${offer.rarity}`;
+    const name = document.createElement('strong');
+    name.textContent = `${offer.rarity}　${offer.name}`;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'primary';
+    button.textContent = `${offer.price}ptで購入`;
+    button.disabled = shopBusy || !gachaApi || !!pending || gachaState.balance < offer.price;
+    button.addEventListener('click', () => void buyShopItem(offer.offerId));
+    card.append(name, button);
+    list.appendChild(card);
+  }
+  if (!list.children.length) list.textContent = '商品を読み込めませんでした。';
+}
+
+async function loadShopState() {
+  if (!gachaApi) {
+    byId('shopStatus').textContent = '本人確認またはサーバー接続が完了していません。';
+    renderShopState();
+    return;
+  }
+  byId('shopStatus').textContent = '商品と残高を確認中…';
+  try {
+    gachaState = await gachaApi.state();
+    const pending = pendingShopPurchase();
+    if (pending && gachaState.recent?.some((entry) => entry.operationId === pending.operationId)) {
+      localStorage.removeItem(SHOP_PENDING_KEY);
+      byId('shopStatus').textContent = '直前の購入は保存済みです。倉庫を確認してください。';
+    } else {
+      byId('shopStatus').textContent = pending ? '直前の購入を確認できます。' : '商品を選んでください。';
+    }
+  } catch (error) {
+    console.warn('Throb shop unavailable:', error);
+    gachaState = null;
+    byId('shopStatus').textContent = 'ショップに接続できません。通信を確認してください。';
+  }
+  renderShopState();
+}
+
+async function buyShopItem(offerId, retry = false) {
+  if (shopBusy || !gachaApi) return;
+  const existing = pendingShopPurchase();
+  if (existing && !retry) return;
+  const operation = existing || { offerId, operationId: crypto.randomUUID() };
+  if (!existing) {
+    try { localStorage.setItem(SHOP_PENDING_KEY, JSON.stringify(operation)); }
+    catch { byId('shopStatus').textContent = '受付番号を保存できません。ブラウザの保存設定を確認してください。'; return; }
+  }
+  shopBusy = true;
+  renderShopState();
+  byId('shopStatus').textContent = '購入を確定して保存中…';
+  try {
+    const result = await gachaApi.buy(operation);
+    localStorage.removeItem(SHOP_PENDING_KEY);
+    const resultList = byId('shopResults');
+    resultList.replaceChildren();
+    for (const item of result.results) {
+      const card = document.createElement('div');
+      card.className = `gacha-item rarity-${item.rarity}`;
+      card.textContent = `${item.rarity}　${item.name} を獲得`;
+      resultList.appendChild(card);
+    }
+    byId('shopStatus').textContent = result.repeated ? '保存済みの購入結果を再表示しました。' : '購入したアイテムを倉庫に保存しました。';
+    gachaState = { ...(gachaState || {}), balance: result.balance };
+    try { gachaState = await gachaApi.state(); }
+    catch { byId('shopStatus').textContent += ' 残高の一覧更新は次回開いたときに確認できます。'; }
+  } catch (error) {
+    console.warn('Throb shop purchase unavailable:', error);
+    byId('shopStatus').textContent = '購入結果を確認できません。受付番号を保持しています。「確認・再試行」を押してください。';
+  } finally {
+    shopBusy = false;
+    renderShopState();
   }
 }
 
@@ -307,13 +399,33 @@ function renderInventory() {
     ['スキル', profile.inventory.skills.map((id) => `${SKILLS[id].name}（${SKILLS[id].description}）`)],
   ];
   const grid = byId('inventoryGrid'); grid.replaceChildren();
-  byId('inventoryIntro').textContent = `練習パーツ ${profile.inventory.trainingParts}個 ・ ガチャ・ショップによる追加は後の段階で実装します。`;
+  byId('inventoryIntro').textContent = `練習パーツ ${profile.inventory.trainingParts}個 ・ テスト用獲得品の装備・出撃反映は開発中です。`;
   for (const [title, items] of groups) {
     const section = document.createElement('section');
     const heading = document.createElement('h3'); heading.textContent = title;
     const list = document.createElement('ul');
     for (const name of items) { const item = document.createElement('li'); item.textContent = name; list.appendChild(item); }
     section.append(heading, list); grid.appendChild(section);
+  }
+}
+
+async function loadOnlineInventory() {
+  const list = byId('inventoryOnline');
+  list.textContent = '獲得品を確認中…';
+  if (!gachaApi) { list.textContent = '本人確認またはサーバー接続が完了していません。'; return; }
+  try {
+    gachaState = await gachaApi.state();
+    list.replaceChildren();
+    for (const item of gachaState.inventory || []) {
+      const row = document.createElement('div');
+      row.className = `gacha-item rarity-${item.rarity}`;
+      row.textContent = `${item.rarity}　${item.name}　Lv.${item.level}`;
+      list.appendChild(row);
+    }
+    if (!list.children.length) list.textContent = 'まだ獲得品はありません。';
+  } catch (error) {
+    console.warn('Throb online inventory unavailable:', error);
+    list.textContent = '獲得品を読み込めませんでした。';
   }
 }
 
@@ -324,8 +436,9 @@ function show(name) {
   if (name === 'characterScreen') renderCharacter();
   if (name === 'equipmentScreen') renderEquipment();
   if (name === 'upgradeScreen') renderUpgrade();
-  if (name === 'inventoryScreen') renderInventory();
+  if (name === 'inventoryScreen') { renderInventory(); void loadOnlineInventory(); }
   if (name === 'gachaScreen') void loadGachaState();
+  if (name === 'shopScreen') void loadShopState();
 }
 
 function applyVisualAssets() {
@@ -427,7 +540,7 @@ async function startBattle() {
   }
 }
 
-const menuScreens = { キャラクター: 'characterScreen', 武器: 'equipmentScreen', 倉庫: 'inventoryScreen', ガチャ: 'gachaScreen' };
+const menuScreens = { キャラクター: 'characterScreen', 武器: 'equipmentScreen', 倉庫: 'inventoryScreen', ガチャ: 'gachaScreen', ショップ: 'shopScreen' };
 for (const [name, description] of MENU_ITEMS) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -443,6 +556,11 @@ for (const [name, description] of MENU_ITEMS) {
 }
 document.querySelectorAll('.phase5-back').forEach((button) => button.addEventListener('click', openMenu));
 byId('gachaBackButton').addEventListener('click', openMenu);
+byId('shopBackButton').addEventListener('click', openMenu);
+byId('shopRetryButton').addEventListener('click', () => {
+  const pending = pendingShopPurchase();
+  if (pending) void buyShopItem(pending.offerId, true);
+});
 byId('gachaRetryButton').addEventListener('click', () => {
   const pending = pendingGacha();
   if (pending) void drawGacha(pending.category, pending.count, true);

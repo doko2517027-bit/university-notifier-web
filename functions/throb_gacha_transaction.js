@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const { GACHA_PRICES, validGachaRequest, rollRarities } = require('./throb_gacha_policy');
-const { catalogItem } = require('./throb_gacha_catalog');
+const { SHOP_OFFERS, catalogItem } = require('./throb_gacha_catalog');
 
 const PILOT_STUDENT = '2510044';
 const PILOT_INITIAL_POINTS = 500;
@@ -39,11 +39,11 @@ async function getPilotGachaState(db, studentNumber) {
     ref.collection('items').orderBy('obtainedAt', 'desc').limit(100).get(),
   ]);
   if (!validWallet(wallet.data())) throw new Error('invalid-wallet');
-  return { ...walletView(wallet.data()), inventory: inventory.docs.map((doc) => ({
+  return { ...walletView(wallet.data()), shopOffers: Object.values(SHOP_OFFERS), inventory: inventory.docs.map((doc) => ({
     itemId: doc.id, catalogId: doc.data().catalogId, category: doc.data().category,
     rarity: doc.data().rarity, name: doc.data().name, level: doc.data().level,
   })), recent: recent.docs.map((doc) => ({
-    operationId: doc.id, category: doc.data().category, count: doc.data().count,
+    operationId: doc.id, type: doc.data().type || 'gacha', category: doc.data().category, count: doc.data().count,
     results: doc.data().results,
   })) };
 }
@@ -58,7 +58,7 @@ async function drawPilotGacha(db, studentNumber, { category, count, operationId 
     const [existing, walletSnapshot] = await Promise.all([tx.get(operationRef), tx.get(ref)]);
     if (existing.exists) {
       const previous = existing.data();
-      if (previous.category !== category || previous.count !== count) throw new Error('operation-mismatch');
+      if ((previous.type && previous.type !== 'gacha') || previous.category !== category || previous.count !== count) throw new Error('operation-mismatch');
       return { ...previous.response, repeated: true };
     }
     const wallet = walletSnapshot.exists ? walletSnapshot.data() :
@@ -78,9 +78,45 @@ async function drawPilotGacha(db, studentNumber, { category, count, operationId 
         equipped: false, obtainedAt: now, sourceOperationId: operationId });
     }
     const response = { ...walletView(next), cost: price, results, operationId };
-    tx.create(operationRef, { category, count, price, results, response, createdAt: now });
+    tx.create(operationRef, { type: 'gacha', category, count, price, results, response, createdAt: now });
     return response;
   });
 }
 
-module.exports = { PILOT_STUDENT, PILOT_INITIAL_POINTS, validOperationId, getPilotGachaState, drawPilotGacha };
+async function buyPilotShopItem(db, studentNumber, { offerId, operationId }) {
+  if (studentNumber !== PILOT_STUDENT) throw new Error('pilot-only');
+  if (!validOperationId(operationId) || typeof offerId !== 'string' || !Object.hasOwn(SHOP_OFFERS, offerId)) {
+    throw new Error('invalid-request');
+  }
+  const offer = SHOP_OFFERS[offerId];
+  const ref = accountRef(db, studentNumber);
+  const operationRef = ref.collection('operations').doc(operationId);
+  return db.runTransaction(async (tx) => {
+    const [existing, walletSnapshot] = await Promise.all([tx.get(operationRef), tx.get(ref)]);
+    if (existing.exists) {
+      const previous = existing.data();
+      if (previous.type !== 'shop' || previous.offerId !== offerId) throw new Error('operation-mismatch');
+      return { ...previous.response, repeated: true };
+    }
+    const wallet = walletSnapshot.exists ? walletSnapshot.data() :
+      { version: 1, balance: PILOT_INITIAL_POINTS, spent: 0, initialTestGrant: PILOT_INITIAL_POINTS };
+    if (!validWallet(wallet)) throw new Error('invalid-wallet');
+    if (wallet.balance < offer.price) throw new Error('insufficient-points');
+    const now = new Date();
+    const item = { itemId: crypto.randomUUID(), catalogId: offer.catalogId, category: offer.category,
+      rarity: offer.rarity, name: offer.name };
+    const next = { ...wallet, balance: wallet.balance - offer.price, spent: wallet.spent + offer.price,
+      updatedAt: now };
+    if (walletSnapshot.exists) tx.update(ref, { balance: next.balance, spent: next.spent, updatedAt: now });
+    else tx.create(ref, { ...next, createdAt: now });
+    tx.create(ref.collection('items').doc(item.itemId), { ...item, level: 1,
+      equipped: false, obtainedAt: now, sourceOperationId: operationId });
+    const response = { ...walletView(next), cost: offer.price, results: [item], operationId };
+    tx.create(operationRef, { type: 'shop', offerId, category: offer.category, count: 1,
+      price: offer.price, results: [item], response, createdAt: now });
+    return response;
+  });
+}
+
+module.exports = { PILOT_STUDENT, PILOT_INITIAL_POINTS, validOperationId,
+  getPilotGachaState, drawPilotGacha, buyPilotShopItem };
