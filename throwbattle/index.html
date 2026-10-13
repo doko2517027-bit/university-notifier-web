@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
   <link rel="stylesheet" href="./gacha.css?v=3">
+  <link rel="stylesheet" href="./lobby.css?v=1">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -110,6 +111,25 @@
         <div class="setup-grid"><label>対戦相手<select id="opponentSelect"><option value="cpu">CPU</option></select></label><label>難易度<select id="difficultySelect"><option value="easy">簡単</option><option value="normal" selected>普通</option><option value="hard">難しい</option></select></label><label>ルール<select id="ruleSelect"><option value="elimination">生き残り勝負</option><option value="kills">撃破数勝負</option><option value="capture" disabled>陣地取り（開発中）</option></select></label><label>ステージ<select id="stageSelect"><option value="classroom">教室（屋内）</option></select></label></div>
         <div class="setup-summary"><strong>3機制</strong><span>倒れたら10秒後に復活 / 復活後3秒無敵</span><span>2人戦：制限時間5分</span></div>
         <button id="beginBattleButton" class="primary large" type="button">CPU戦を始める</button>
+        <button id="openLobbyButton" class="ghost" type="button">オンライン待機室を試す</button>
+      </div>
+    </main>
+
+    <main id="lobbyScreen" class="screen panel-screen" aria-label="オンライン待機室">
+      <div class="panel lobby-panel">
+        <div class="panel-heading"><button id="lobbyBackButton" class="ghost" type="button">‹ 対戦設定へ</button><h2>オンライン待機室</h2></div>
+        <p class="lobby-intro">2510044限定の通信テストです。ルーム作成・参加状況の同期を確認できます。オンライン戦闘、勝敗、報酬はまだ利用できません。</p>
+        <p id="lobbyStatus" class="lobby-status" role="status">接続を準備中…</p>
+        <div id="lobbyActions" class="lobby-actions">
+          <button id="createRoomButton" class="primary" type="button" disabled>ルームを作る</button>
+          <label>6桁のルーム番号<input id="joinRoomCode" type="text" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" placeholder="123456"></label>
+          <button id="joinRoomButton" class="ghost" type="button" disabled>参加する</button>
+        </div>
+        <section id="lobbyRoom" class="lobby-room" hidden>
+          <div class="lobby-room-head"><strong id="lobbyCode">ルーム番号</strong><span id="lobbyCount">1 / 8人</span></div>
+          <ul id="lobbyPlayers" class="lobby-players"></ul>
+          <div class="lobby-room-controls"><button id="lobbyReadyButton" class="primary" type="button">準備完了</button><button id="lobbyLeaveButton" class="ghost" type="button">退出する</button></div>
+        </section>
       </div>
     </main>
 
@@ -135,6 +155,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=5"></script>
+  <script type="module" src="./src/bootstrap.js?v=6"></script>
 </body>
 </html>

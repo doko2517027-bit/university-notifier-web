@@ -63,6 +63,7 @@ server.on('upgrade', (request, socket, head) => {
 
 sockets.on('connection', (socket) => {
   console.info('Throb realtime socket connected');
+  send(socket, { type: 'hello', protocol: 1 });
   let identity = null;
   let messages = 0;
   let windowStart = Date.now();

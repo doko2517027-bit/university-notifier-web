@@ -6,6 +6,7 @@ import { GameApp } from './game/GameApp.js';
 import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { pilotBonuses } from './services/pilotBonuses.js';
+import { RealtimeLobbyClient } from './services/realtimeLobby.js';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);
@@ -27,6 +28,8 @@ const GACHA_PENDING_KEY = 'throb:gacha:pending:v1';
 const SHOP_PENDING_KEY = 'throb:shop:pending:v1';
 let shopBusy = false;
 let onlineEquipBusy = false;
+let realtimeLobby = null;
+let realtimeRoom = null;
 const GACHA_TYPES = Object.freeze([
   ['character', 'キャラクター', 50, 500],
   ['gear', '武器・防具', 30, 300],
@@ -479,6 +482,12 @@ async function equipOnlineItem(itemId, equip) {
 }
 
 function show(name) {
+  const previous = document.querySelector('.screen.active')?.id;
+  if (previous === 'lobbyScreen' && name !== 'lobbyScreen') {
+    realtimeLobby?.send('leave-room');
+    realtimeLobby?.disconnect();
+    realtimeRoom = null;
+  }
   for (const screen of Object.values(screens)) screen.classList.toggle('active', screen.id === name);
   if (name === 'menuScreen') { renderMenu(); preview.start().catch(showFatal); }
   else preview.stop();
@@ -488,6 +497,79 @@ function show(name) {
   if (name === 'inventoryScreen') { renderInventory(); void loadOnlineInventory(); }
   if (name === 'gachaScreen') void loadGachaState();
   if (name === 'shopScreen') void loadShopState();
+  if (name === 'lobbyScreen') void openRealtimeLobby();
+}
+
+function renderRealtimeRoom() {
+  byId('lobbyRoom').hidden = !realtimeRoom;
+  byId('lobbyActions').hidden = Boolean(realtimeRoom);
+  if (!realtimeRoom) return;
+  byId('lobbyCode').textContent = `ルーム番号 ${realtimeRoom.code}`;
+  byId('lobbyCount').textContent = `${realtimeRoom.players.length} / ${realtimeRoom.maxPlayers}人`;
+  const list = byId('lobbyPlayers');
+  list.replaceChildren();
+  for (const player of realtimeRoom.players) {
+    const item = document.createElement('li');
+    item.textContent = `${player.name}${player.uid === realtimeRoom.hostUid ? '（ホスト）' : ''} ・ ${player.ready ? '準備完了' : '待機中'}`;
+    list.appendChild(item);
+  }
+  const ownUid = `caremate-${window.__throbConnection?.studentNumber || ''}`;
+  const ownReady = realtimeRoom.players.find((player) => player.uid === ownUid)?.ready === true;
+  byId('lobbyReadyButton').textContent = ownReady ? '準備を取り消す' : '準備完了';
+  byId('lobbyReadyButton').dataset.ready = String(ownReady);
+}
+
+function onRealtimeMessage(message) {
+  if (message.type === 'room') {
+    realtimeRoom = message.room;
+    renderRealtimeRoom();
+    byId('lobbyStatus').textContent = 'ルームに接続中。ほかの参加者を待っています。';
+  } else if (message.type === 'left-room' || message.type === 'room-expired') {
+    realtimeRoom = null;
+    renderRealtimeRoom();
+    byId('lobbyStatus').textContent = message.type === 'room-expired'
+      ? '待機室の時間が終了しました。もう一度作成してください。' : 'ルームから退出しました。';
+  } else if (message.type === 'error') {
+    const errors = {
+      'room-unavailable': 'ルームが見つかりません。番号を確認してください。',
+      'room-full': 'このルームは満員です。',
+      'already-in-room': '同じ学生アカウントで二重参加はできません。',
+      'invalid-code': '6桁のルーム番号を入力してください。',
+    };
+    byId('lobbyStatus').textContent = errors[message.reason] || '操作できませんでした。もう一度お試しください。';
+  }
+}
+
+async function openRealtimeLobby() {
+  const connection = window.__throbConnection;
+  if (!connection?.getIdToken) {
+    byId('lobbyStatus').textContent = 'CareMateの本人確認が必要です。ログインし直してください。';
+    return;
+  }
+  if (!realtimeLobby) {
+    realtimeLobby = new RealtimeLobbyClient({ tokenProvider: connection.getIdToken,
+      onMessage: onRealtimeMessage,
+      onStatus: (state) => {
+        const connected = state === 'connected';
+        byId('createRoomButton').disabled = !connected;
+        byId('joinRoomButton').disabled = !connected;
+        if (state === 'disconnected') {
+          realtimeRoom = null;
+          renderRealtimeRoom();
+          if (document.querySelector('.screen.active')?.id === 'lobbyScreen')
+            byId('lobbyStatus').textContent = '通信が切れました。画面を開き直して再接続してください。';
+        }
+      } });
+  }
+  byId('lobbyStatus').textContent = '待機室に接続中…無料サーバーの起動には1分ほどかかる場合があります。';
+  try {
+    await realtimeLobby.connect();
+    if (document.querySelector('.screen.active')?.id === 'lobbyScreen')
+      byId('lobbyStatus').textContent = realtimeRoom ? 'ルームに接続中。' : '接続しました。ルームを作成できます。';
+  } catch (error) {
+    console.warn('Throb realtime lobby unavailable:', error);
+    byId('lobbyStatus').textContent = '待機室へ接続できません。時間をおいて開き直してください。';
+  }
 }
 
 function applyVisualAssets() {
@@ -644,6 +726,17 @@ byId('finishTutorial').addEventListener('click', finishTutorial);
 byId('menuHelpButton').addEventListener('click', () => { tutorialReturn = 'menuScreen'; show('tutorialScreen'); });
 byId('battleMenuButton').addEventListener('click', () => show('setupScreen'));
 byId('setupBackButton').addEventListener('click', () => show('menuScreen'));
+byId('openLobbyButton').addEventListener('click', () => show('lobbyScreen'));
+byId('lobbyBackButton').addEventListener('click', () => show('setupScreen'));
+byId('createRoomButton').addEventListener('click', () => realtimeLobby?.send('create-room'));
+byId('joinRoomButton').addEventListener('click', () => {
+  const code = byId('joinRoomCode').value.trim();
+  if (!/^\d{6}$/.test(code)) { byId('lobbyStatus').textContent = '6桁のルーム番号を入力してください。'; return; }
+  realtimeLobby?.send('join-room', { code });
+});
+byId('lobbyReadyButton').addEventListener('click', () =>
+  realtimeLobby?.send('ready', { ready: byId('lobbyReadyButton').dataset.ready !== 'true' }));
+byId('lobbyLeaveButton').addEventListener('click', () => realtimeLobby?.send('leave-room'));
 byId('beginBattleButton').addEventListener('click', startBattle);
 byId('pauseButton').addEventListener('click', () => game?.setPaused(!game.paused));
 byId('resumeButton').addEventListener('click', () => game?.setPaused(false));
@@ -660,4 +753,4 @@ void tryCloudInitialization();
 window.addEventListener('online', () => {
   if (!cloudSync || ['offline', 'unavailable'].includes(cloudSync.state)) void tryCloudInitialization();
 });
-window.addEventListener('pagehide', () => { preview.stop(); game?.destroy(); audio.stop(); }, { once: true });
+window.addEventListener('pagehide', () => { preview.stop(); game?.destroy(); realtimeLobby?.disconnect(); audio.stop(); }, { once: true });

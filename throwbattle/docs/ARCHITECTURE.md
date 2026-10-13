@@ -15,6 +15,7 @@
 - `src/game/GameApp.js`：Three.js描画、キャラ移動、CPU、投擲、命中、カメラ。
 - `src/screens/MenuPreview.js`：メニュー専用3Dプレビュー。
 - `src/audio/AudioManager.js`：任意のBGM・効果音パスを再生。
-- `realtime-server/`：Render無料枠・カード未登録の別ワークスペースで動かす予定の、本人認証付きWebSocket待機室。ゲーム本体・Firestoreの公式ポイントとは独立。`/health` 以外のHTTP APIは公開せず、対戦報酬は付与しない。
+- `src/services/realtimeLobby.js`：ブラウザのFirebase本人トークンをWebSocket接続時に送る待機室クライアント。認証応答前は部屋操作不可。
+- `realtime-server/`：Render無料枠・カード未登録の別ワークスペースで動く、本人認証付きWebSocket待機室。ゲーム本体・Firestoreの公式ポイントとは独立。`/health` 以外のHTTP APIは公開せず、対戦報酬は付与しない。
 
 `GameApp.destroy()` は描画ループ・入力・ResizeObserver・3D資源を解放する。ローカル保存は `localStorage` キー `throb:standalone-profile:v1`。認証済み `2510044` だけが `throbPrototypeProfiles/2510044` に同期するルールは公開済み。同期不能なら端末内保存を続ける。変更競合が起きたら自動上書きせず、利用者が記録を選ぶ。クラウド記録はクライアントで編集可能な「非公式試作データ」であり、公式学習ポイント・順位・課金残高へ転用しない。将来の対戦報酬はサーバー側で検証・確定する。

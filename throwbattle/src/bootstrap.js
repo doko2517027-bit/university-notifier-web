@@ -38,7 +38,7 @@ if (previewMaintenance || initial === 'maintenance' || initial === 'login') {
     if (access !== 'allowed') showGate(access);
     else {
       window.__throbConnection = connection;
-      await import('./main.js?v=5');
+      await import('./main.js?v=6');
       document.getElementById('app').style.display = '';
       gate.hidden = true;
     }

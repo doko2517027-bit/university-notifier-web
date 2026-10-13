@@ -77,5 +77,6 @@ export async function connectCareMate() {
       return (await functions.httpsCallable(functionsApp, 'equipThrobItem')(payload)).data;
     },
   };
-  return { studentNumber: verified, adapter, learningPoints, gacha };
+  return { studentNumber: verified, adapter, learningPoints, gacha,
+    getIdToken: () => user.getIdToken() };
 }
