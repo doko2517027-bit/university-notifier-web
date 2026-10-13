@@ -52,14 +52,17 @@ server.on('upgrade', (request, socket, head) => {
   attempts.push(now);
   upgradeAttempts.set(address, attempts);
   if (request.url !== '/realtime' || !allowedOrigins.has(origin) || attempts.length > 30) {
+    console.info('Throb realtime upgrade rejected');
     socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
     socket.destroy();
     return;
   }
+  console.info('Throb realtime upgrade accepted');
   sockets.handleUpgrade(request, socket, head, (client) => sockets.emit('connection', client));
 });
 
 sockets.on('connection', (socket) => {
+  console.info('Throb realtime socket connected');
   let identity = null;
   let messages = 0;
   let windowStart = Date.now();
@@ -71,6 +74,7 @@ sockets.on('connection', (socket) => {
     let request;
     try { request = JSON.parse(String(raw)); }
     catch { reject(socket, 'invalid-message'); return; }
+    console.info(`Throb realtime message: ${String(request?.type || '').slice(0, 32)}`);
     if (!identity) {
       if (request?.type !== 'authenticate' || typeof request.token !== 'string') {
         socket.close(1008, 'authentication-required'); return;
@@ -119,6 +123,7 @@ sockets.on('connection', (socket) => {
     } catch (error) { reject(socket, error.message); }
   });
   socket.on('close', () => {
+    console.info('Throb realtime socket closed');
     clearTimeout(authTimer);
     if (!identity || sessions.get(identity.uid) !== socket) return;
     sessions.delete(identity.uid);
