@@ -42,9 +42,18 @@ function pendingGacha() {
 
 function renderGachaState() {
   byId('gachaBalance').textContent = gachaState ? `${gachaState.balance} pt` : '未接続';
+  const rates = gachaState?.rarityBasisPoints;
+  byId('gachaRatesSummary').textContent = rates
+    ? ['N', 'R', 'SR', 'SSR', 'UR', 'LR'].map((id) => `${id} ${rates[id] / 100}%`).join(' / ')
+    : '排出率を確認中…';
   const pending = pendingGacha();
   byId('gachaRetryButton').hidden = !pending;
   document.querySelectorAll('.gacha-draw').forEach((button) => {
+    const cost = gachaState?.gachaPrices?.[button.dataset.category]?.[button.dataset.count];
+    if (Number.isSafeInteger(cost)) {
+      button.dataset.cost = String(cost);
+      button.textContent = `${button.dataset.count === '1' ? '1回' : '10連'} ${cost}pt`;
+    }
     button.disabled = gachaBusy || !gachaApi || !gachaState || !!pending ||
       gachaState.balance < Number(button.dataset.cost);
   });
@@ -133,6 +142,8 @@ function createGachaButtons() {
       button.type = 'button';
       button.className = 'primary gacha-draw';
       button.dataset.cost = String(cost);
+      button.dataset.category = category;
+      button.dataset.count = String(count);
       button.textContent = `${count === 1 ? '1回' : '10連'} ${cost}pt`;
       button.disabled = true;
       button.addEventListener('click', () => void drawGacha(category, count));

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { PILOT_INITIAL_POINTS, validOperationId, drawPilotGacha, getPilotGachaState, buyPilotShopItem } = require('./throb_gacha_transaction');
+const { DEFAULT_CONFIG } = require('./throb_game_config');
 
 function fakeStore() {
   const docs = new Map();
@@ -79,4 +80,23 @@ test('pilot shop purchase grants one N/R item once, with server-owned price', as
   await assert.rejects(buyPilotShopItem(db, '2510044', { ...request, offerId: 'skill-n' }), /operation-mismatch/);
   await assert.rejects(drawPilotGacha(db, '2510044', { category: 'gear', count: 1,
     operationId: request.operationId }), /operation-mismatch/);
+});
+
+test('updated admin prices are applied inside the purchase transaction', async () => {
+  const db = fakeStore();
+  const config = structuredClone(DEFAULT_CONFIG);
+  config.shopPrices.N = 73;
+  config.gachaPrices.accessory[1] = 37;
+  db.docs.set('throbGameSettings/current', { version: 1, config });
+  const offer = await buyPilotShopItem(db, '2510044', {
+    offerId: 'gear-n', operationId: '46da5968-1d06-4c37-8bdf-c6553a5cb79d',
+  });
+  assert.equal(offer.cost, 73);
+  const draw = await drawPilotGacha(db, '2510044', {
+    category: 'accessory', count: 1, operationId: '78f89434-545f-4448-b62b-cc9ef79c90e1',
+  });
+  assert.equal(draw.cost, 37);
+  const state = await getPilotGachaState(db, '2510044');
+  assert.equal(state.shopOffers.find((item) => item.offerId === 'gear-n').price, 73);
+  assert.equal(state.gachaPrices.accessory[1], 37);
 });

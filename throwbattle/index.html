@@ -89,7 +89,7 @@
         <button id="gachaRetryButton" class="ghost" type="button" hidden>直前の抽選を確認・再試行</button>
         <div id="gachaResults" class="gacha-results" aria-live="polite"></div>
         <details class="gacha-inventory"><summary>獲得済みアイテムを見る（最新100件）</summary><div id="gachaInventory"></div></details>
-        <details class="gacha-rates"><summary>排出率・保証内容を見る</summary><p>N 40% / R 30% / SR 18% / SSR 9% / UR 2.5% / LR 0.5%</p><p>10連はSR以上を最低1個保証します。保証が必要な場合は最後の1枠をSR以上で再抽選します。</p></details>
+        <details class="gacha-rates"><summary>排出率・保証内容を見る</summary><p id="gachaRatesSummary">排出率を確認中…</p><p>10連はSR以上を最低1個保証します。保証が必要な場合は最後の1枠をSR以上で再抽選します。</p></details>
       </div>
     </main>
 
@@ -135,6 +135,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=3"></script>
+  <script type="module" src="./src/bootstrap.js?v=4"></script>
 </body>
 </html>

@@ -213,6 +213,18 @@ if (
     `;
     menu.append(card);
   }
+  if (menu && !document.getElementById('adminThrobSettingsCard')) {
+    const card = document.createElement('div');
+    card.id = 'adminThrobSettingsCard';
+    card.className = 'card setting-card admin-menu-card';
+    card.setAttribute('onclick', "location.href='throb_admin.html'");
+    card.innerHTML = `
+      <div class="admin-menu-icon">🎮</div>
+      <h3>Throb管理</h3>
+      <p>限定テストの抽選確率・価格</p>
+    `;
+    menu.append(card);
+  }
 }
 
 await initializePage([

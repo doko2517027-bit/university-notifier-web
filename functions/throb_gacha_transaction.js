@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
-const { GACHA_PRICES, validGachaRequest, rollRarities } = require('./throb_gacha_policy');
+const { validGachaRequest, rollRarities } = require('./throb_gacha_policy');
 const { SHOP_OFFERS, catalogItem } = require('./throb_gacha_catalog');
+const { RARITY_IDS, configRef, configFromSnapshot, getThrobConfig } = require('./throb_game_config');
 
 const PILOT_STUDENT = '2510044';
 const PILOT_INITIAL_POINTS = 500;
@@ -34,12 +35,16 @@ async function getPilotGachaState(db, studentNumber) {
     tx.create(ref, { version: 1, balance: PILOT_INITIAL_POINTS, spent: 0,
       initialTestGrant: PILOT_INITIAL_POINTS, createdAt: new Date() });
   });
-  const [wallet, recent, inventory] = await Promise.all([
+  const [wallet, recent, inventory, config] = await Promise.all([
     ref.get(), ref.collection('operations').orderBy('createdAt', 'desc').limit(10).get(),
     ref.collection('items').orderBy('obtainedAt', 'desc').limit(100).get(),
+    getThrobConfig(db),
   ]);
   if (!validWallet(wallet.data())) throw new Error('invalid-wallet');
-  return { ...walletView(wallet.data()), shopOffers: Object.values(SHOP_OFFERS), inventory: inventory.docs.map((doc) => ({
+  return { ...walletView(wallet.data()), gachaPrices: config.gachaPrices,
+    rarityBasisPoints: config.rarityBasisPoints,
+    shopOffers: Object.values(SHOP_OFFERS).map((offer) => ({ ...offer,
+      price: config.shopPrices[offer.rarity] })), inventory: inventory.docs.map((doc) => ({
     itemId: doc.id, catalogId: doc.data().catalogId, category: doc.data().category,
     rarity: doc.data().rarity, name: doc.data().name, level: doc.data().level,
   })), recent: recent.docs.map((doc) => ({
@@ -51,11 +56,12 @@ async function getPilotGachaState(db, studentNumber) {
 async function drawPilotGacha(db, studentNumber, { category, count, operationId }) {
   if (studentNumber !== PILOT_STUDENT) throw new Error('pilot-only');
   if (!validGachaRequest(category, count) || !validOperationId(operationId)) throw new Error('invalid-request');
-  const price = GACHA_PRICES[category][count];
   const ref = accountRef(db, studentNumber);
   const operationRef = ref.collection('operations').doc(operationId);
   return db.runTransaction(async (tx) => {
-    const [existing, walletSnapshot] = await Promise.all([tx.get(operationRef), tx.get(ref)]);
+    const [existing, walletSnapshot, settingsSnapshot] = await Promise.all([
+      tx.get(operationRef), tx.get(ref), tx.get(configRef(db)),
+    ]);
     if (existing.exists) {
       const previous = existing.data();
       if ((previous.type && previous.type !== 'gacha') || previous.category !== category || previous.count !== count) throw new Error('operation-mismatch');
@@ -64,9 +70,12 @@ async function drawPilotGacha(db, studentNumber, { category, count, operationId 
     const wallet = walletSnapshot.exists ? walletSnapshot.data() :
       { version: 1, balance: PILOT_INITIAL_POINTS, spent: 0, initialTestGrant: PILOT_INITIAL_POINTS };
     if (!validWallet(wallet)) throw new Error('invalid-wallet');
+    const config = configFromSnapshot(settingsSnapshot);
+    const price = config.gachaPrices[category][count];
     if (wallet.balance < price) throw new Error('insufficient-points');
     const now = new Date();
-    const results = rollRarities(category, count, crypto.randomInt).map((rarity) => ({
+    const rates = RARITY_IDS.map((id) => ({ id, basisPoints: config.rarityBasisPoints[id] }));
+    const results = rollRarities(category, count, crypto.randomInt, rates).map((rarity) => ({
       itemId: crypto.randomUUID(), ...catalogItem(category, rarity),
     }));
     const next = { ...wallet, balance: wallet.balance - price, spent: wallet.spent + price,
@@ -92,7 +101,9 @@ async function buyPilotShopItem(db, studentNumber, { offerId, operationId }) {
   const ref = accountRef(db, studentNumber);
   const operationRef = ref.collection('operations').doc(operationId);
   return db.runTransaction(async (tx) => {
-    const [existing, walletSnapshot] = await Promise.all([tx.get(operationRef), tx.get(ref)]);
+    const [existing, walletSnapshot, settingsSnapshot] = await Promise.all([
+      tx.get(operationRef), tx.get(ref), tx.get(configRef(db)),
+    ]);
     if (existing.exists) {
       const previous = existing.data();
       if (previous.type !== 'shop' || previous.offerId !== offerId) throw new Error('operation-mismatch');
@@ -101,19 +112,21 @@ async function buyPilotShopItem(db, studentNumber, { offerId, operationId }) {
     const wallet = walletSnapshot.exists ? walletSnapshot.data() :
       { version: 1, balance: PILOT_INITIAL_POINTS, spent: 0, initialTestGrant: PILOT_INITIAL_POINTS };
     if (!validWallet(wallet)) throw new Error('invalid-wallet');
-    if (wallet.balance < offer.price) throw new Error('insufficient-points');
+    const config = configFromSnapshot(settingsSnapshot);
+    const price = config.shopPrices[offer.rarity];
+    if (wallet.balance < price) throw new Error('insufficient-points');
     const now = new Date();
     const item = { itemId: crypto.randomUUID(), catalogId: offer.catalogId, category: offer.category,
       rarity: offer.rarity, name: offer.name };
-    const next = { ...wallet, balance: wallet.balance - offer.price, spent: wallet.spent + offer.price,
+    const next = { ...wallet, balance: wallet.balance - price, spent: wallet.spent + price,
       updatedAt: now };
     if (walletSnapshot.exists) tx.update(ref, { balance: next.balance, spent: next.spent, updatedAt: now });
     else tx.create(ref, { ...next, createdAt: now });
     tx.create(ref.collection('items').doc(item.itemId), { ...item, level: 1,
       equipped: false, obtainedAt: now, sourceOperationId: operationId });
-    const response = { ...walletView(next), cost: offer.price, results: [item], operationId };
+    const response = { ...walletView(next), cost: price, results: [item], operationId };
     tx.create(operationRef, { type: 'shop', offerId, category: offer.category, count: 1,
-      price: offer.price, results: [item], response, createdAt: now });
+      price, results: [item], response, createdAt: now });
     return response;
   });
 }

@@ -27,6 +27,7 @@ const crypto = require("node:crypto");
 
 const { hashPassword, matchesPasswordHash, isValidNewPassword } = require("./password_change_policy");
 const { getPilotGachaState, drawPilotGacha, buyPilotShopItem } = require("./throb_gacha_transaction");
+const { getThrobConfig, saveThrobConfig } = require('./throb_game_config');
 
 const { reminderMinutes, isReminderDue, matchesAudience } = require("./calendar_reminders");
 
@@ -398,6 +399,29 @@ exports.buyThrobShopItem = onCall({ region: 'asia-northeast1' }, async (request)
     }
     console.error('Throb shop purchase:', error);
     throw new HttpsError('internal', '購入を確定できませんでした。再試行してください。');
+  }
+});
+
+exports.getThrobAdminConfig = onCall({ region: 'asia-northeast1' }, async (request) => {
+  await requirePrimaryDeviceAuditAdmin(request);
+  try {
+    return { config: await getThrobConfig(db) };
+  } catch (error) {
+    console.error('Throb admin config:', error);
+    throw new HttpsError('internal', 'ゲーム設定を読み込めませんでした。');
+  }
+});
+
+exports.saveThrobAdminConfig = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const studentNumber = await requirePrimaryDeviceAuditAdmin(request);
+  try {
+    return { config: await saveThrobConfig(db, request.data?.config, studentNumber) };
+  } catch (error) {
+    if (error?.message === 'invalid-game-config') {
+      throw new HttpsError('invalid-argument', '確率の合計と価格を確認してください。');
+    }
+    console.error('Throb admin config save:', error);
+    throw new HttpsError('internal', 'ゲーム設定を保存できませんでした。');
   }
 });
 

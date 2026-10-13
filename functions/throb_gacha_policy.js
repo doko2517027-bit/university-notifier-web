@@ -35,11 +35,11 @@ function validGachaRequest(category, count) {
   return Object.hasOwn(GACHA_PRICES, category) && (count === 1 || count === 10);
 }
 
-function rollRarities(category, count, drawInt) {
+function rollRarities(category, count, drawInt, rates = RARITIES) {
   if (!validGachaRequest(category, count)) throw new TypeError('Invalid gacha request');
-  const results = Array.from({ length: count }, () => selectWeighted(RARITIES, drawInt));
+  const results = Array.from({ length: count }, () => selectWeighted(rates, drawInt));
   if (count === 10 && results.every((rarity) => rarity === 'N' || rarity === 'R')) {
-    results[9] = selectWeighted(HIGH_RARITIES, drawInt);
+    results[9] = selectWeighted(rates === RARITIES ? HIGH_RARITIES : rates.slice(2), drawInt);
   }
   return results;
 }

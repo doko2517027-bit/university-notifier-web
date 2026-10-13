@@ -893,6 +893,11 @@ service cloud.firestore {
       }
     }
 
+    /* Throbの確率・価格はCloud Functions経由で総管理者だけが変更する。 */
+    match /throbGameSettings/{settingId} {
+      allow read, write: if false;
+    }
+
   }
 
 }
