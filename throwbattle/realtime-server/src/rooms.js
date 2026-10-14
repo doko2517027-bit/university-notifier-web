@@ -13,15 +13,17 @@ export class RoomRegistry {
   publicRoom(room) {
     return {
       code: room.code,
+      hostId: room.hostId,
       hostUid: room.hostUid,
       status: room.status,
-      players: [...room.players.values()].map(({ uid, name, ready }) => ({ uid, name, ready })),
+      players: [...room.players.values()].map(({ id, uid, name, ready }) => ({ id, uid, name, ready })),
       maxPlayers: MAX_PLAYERS,
     };
   }
 
   create(player) {
-    this.leave(player.uid);
+    const id = player.id || player.uid;
+    this.leave(id);
     let code;
     for (let attempt = 0; attempt < 30; attempt++) {
       code = this.randomCode();
@@ -29,40 +31,49 @@ export class RoomRegistry {
       code = null;
     }
     if (!code) throw new Error('room-code-unavailable');
-    const room = { code, hostUid: player.uid, status: 'waiting', players: new Map(), createdAt: this.now() };
-    room.players.set(player.uid, { ...player, ready: false });
+    const room = { code, hostId: id, hostUid: player.uid, status: 'waiting', players: new Map(), createdAt: this.now() };
+    room.players.set(id, { ...player, id, ready: false });
     this.rooms.set(code, room);
     return this.publicRoom(room);
   }
 
   join(code, player) {
+    const id = player.id || player.uid;
     const room = this.rooms.get(code);
     if (!room || room.status !== 'waiting') throw new Error('room-unavailable');
-    if (room.players.has(player.uid)) throw new Error('already-in-room');
+    if (room.players.has(id)) throw new Error('already-in-room');
     if (room.players.size >= MAX_PLAYERS) throw new Error('room-full');
-    this.leave(player.uid);
-    room.players.set(player.uid, { ...player, ready: false });
+    this.leave(id);
+    room.players.set(id, { ...player, id, ready: false });
     return this.publicRoom(room);
   }
 
-  ready(uid, ready) {
-    const room = this.findByUid(uid);
+  ready(id, ready) {
+    const room = this.findById(id);
     if (!room || room.status !== 'waiting') throw new Error('room-unavailable');
-    room.players.get(uid).ready = ready === true;
+    room.players.get(id).ready = ready === true;
     return this.publicRoom(room);
   }
 
-  leave(uid) {
-    const room = this.findByUid(uid);
+  leave(id) {
+    const room = this.findById(id);
     if (!room) return null;
-    room.players.delete(uid);
+    room.players.delete(id);
     if (!room.players.size) this.rooms.delete(room.code);
-    else if (room.hostUid === uid) room.hostUid = room.players.keys().next().value;
+    else if (room.hostId === id) {
+      room.hostId = room.players.keys().next().value;
+      room.hostUid = room.players.get(room.hostId).uid;
+    }
     return room.players.size ? this.publicRoom(room) : null;
   }
 
+  findById(id) {
+    for (const room of this.rooms.values()) if (room.players.has(id)) return room;
+    return null;
+  }
+
   findByUid(uid) {
-    for (const room of this.rooms.values()) if (room.players.has(uid)) return room;
+    for (const room of this.rooms.values()) if ([...room.players.values()].some((player) => player.uid === uid)) return room;
     return null;
   }
 

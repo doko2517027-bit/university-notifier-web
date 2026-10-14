@@ -35,3 +35,17 @@ test('old rooms expire without awarding anything', () => {
   assert.deepEqual(registry.sweep(), ['123456']);
   assert.equal(registry.get('123456'), null);
 });
+
+test('pilot devices on one verified account are separate room participants', () => {
+  const registry = new RoomRegistry({ randomCode: () => '123456' });
+  const first = { ...player('2510044'), id: 'session-a', name: '端末1' };
+  const second = { ...player('2510044'), id: 'session-b', name: '端末2' };
+  registry.create(first);
+  const joined = registry.join('123456', second);
+  assert.equal(joined.players.length, 2);
+  assert.equal(joined.hostId, 'session-a');
+  assert.equal(registry.ready('session-b', true).players[1].ready, true);
+  assert.equal(registry.leave('session-a').hostId, 'session-b');
+  assert.equal(registry.get('123456').players.length, 1);
+  assert.equal(registry.leave('session-b'), null);
+});

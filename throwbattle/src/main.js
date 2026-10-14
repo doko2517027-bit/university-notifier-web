@@ -30,6 +30,7 @@ let shopBusy = false;
 let onlineEquipBusy = false;
 let realtimeLobby = null;
 let realtimeRoom = null;
+let realtimeParticipantId = null;
 const GACHA_TYPES = Object.freeze([
   ['character', 'キャラクター', 50, 500],
   ['gear', '武器・防具', 30, 300],
@@ -487,6 +488,7 @@ function show(name) {
     realtimeLobby?.send('leave-room');
     realtimeLobby?.disconnect();
     realtimeRoom = null;
+    realtimeParticipantId = null;
   }
   for (const screen of Object.values(screens)) screen.classList.toggle('active', screen.id === name);
   if (name === 'menuScreen') { renderMenu(); preview.start().catch(showFatal); }
@@ -510,17 +512,18 @@ function renderRealtimeRoom() {
   list.replaceChildren();
   for (const player of realtimeRoom.players) {
     const item = document.createElement('li');
-    item.textContent = `${player.name}${player.uid === realtimeRoom.hostUid ? '（ホスト）' : ''} ・ ${player.ready ? '準備完了' : '待機中'}`;
+    item.textContent = `${player.name}${player.id === realtimeRoom.hostId ? '（ホスト）' : ''} ・ ${player.ready ? '準備完了' : '待機中'}`;
     list.appendChild(item);
   }
-  const ownUid = `caremate-${window.__throbConnection?.studentNumber || ''}`;
-  const ownReady = realtimeRoom.players.find((player) => player.uid === ownUid)?.ready === true;
+  const ownReady = realtimeRoom.players.find((player) => player.id === realtimeParticipantId)?.ready === true;
   byId('lobbyReadyButton').textContent = ownReady ? '準備を取り消す' : '準備完了';
   byId('lobbyReadyButton').dataset.ready = String(ownReady);
 }
 
 function onRealtimeMessage(message) {
-  if (message.type === 'room') {
+  if (message.type === 'authenticated') {
+    realtimeParticipantId = message.participantId;
+  } else if (message.type === 'room') {
     realtimeRoom = message.room;
     renderRealtimeRoom();
     byId('lobbyStatus').textContent = 'ルームに接続中。ほかの参加者を待っています。';
@@ -533,7 +536,7 @@ function onRealtimeMessage(message) {
     const errors = {
       'room-unavailable': 'ルームが見つかりません。番号を確認してください。',
       'room-full': 'このルームは満員です。',
-      'already-in-room': '同じ学生アカウントで二重参加はできません。',
+      'already-in-room': 'この端末はすでにルームへ参加しています。',
       'invalid-code': '6桁のルーム番号を入力してください。',
     };
     byId('lobbyStatus').textContent = errors[message.reason] || '操作できませんでした。もう一度お試しください。';
@@ -555,6 +558,7 @@ async function openRealtimeLobby() {
         byId('joinRoomButton').disabled = !connected;
         if (state === 'disconnected') {
           realtimeRoom = null;
+          realtimeParticipantId = null;
           renderRealtimeRoom();
           if (document.querySelector('.screen.active')?.id === 'lobbyScreen')
             byId('lobbyStatus').textContent = '通信が切れました。画面を開き直して再接続してください。';

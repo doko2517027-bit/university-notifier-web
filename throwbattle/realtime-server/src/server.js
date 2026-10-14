@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { randomUUID } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { WebSocket, WebSocketServer } from 'ws';
@@ -15,7 +16,9 @@ const allowedOrigins = new Set([
   ...(process.env.NODE_ENV === 'production' ? [] : ['http://127.0.0.1:4177', 'http://localhost:4177']),
 ]);
 const rooms = new RoomRegistry();
-const sessions = new Map();
+const sessions = new Map(); // Server-issued participant ID -> authenticated connection.
+const PILOT_MULTIDEVICE_UID = 'caremate-2510044';
+const PILOT_DEVICE_LIMIT = 3;
 const upgradeAttempts = new Map();
 const server = http.createServer((request, response) => {
   if (request.url === '/health') {
@@ -37,7 +40,7 @@ function send(socket, payload) {
 function broadcastRoom(code) {
   const room = rooms.get(code);
   if (!room) return;
-  for (const player of room.players) send(sessions.get(player.uid), { type: 'room', room });
+  for (const player of room.players) send(sessions.get(player.id)?.socket, { type: 'room', room });
 }
 
 function reject(socket, reason) {
@@ -65,6 +68,8 @@ sockets.on('connection', (socket) => {
   console.info('Throb realtime socket connected');
   send(socket, { type: 'hello', protocol: 1 });
   let identity = null;
+  let participantId = null;
+  let authenticating = false;
   let messages = 0;
   let windowStart = Date.now();
   const authTimer = setTimeout(() => socket.close(1008, 'authentication-timeout'), 10_000);
@@ -80,42 +85,64 @@ sockets.on('connection', (socket) => {
       if (request?.type !== 'authenticate' || typeof request.token !== 'string') {
         socket.close(1008, 'authentication-required'); return;
       }
+      if (authenticating) return;
+      authenticating = true;
       try {
         const decoded = await auth.verifyIdToken(request.token);
-        identity = authorizedIdentity(decoded, allowedStudents);
-        if (!identity) throw new Error('not-in-pilot');
+        const verified = authorizedIdentity(decoded, allowedStudents);
+        if (!verified || socket.readyState !== WebSocket.OPEN) throw new Error('not-in-pilot');
+        const existing = [...sessions].filter(([, session]) => session.identity.uid === verified.uid);
+        if (verified.uid === PILOT_MULTIDEVICE_UID) {
+          // Only the test account may join from multiple devices. Do not extend this to other users.
+          if (existing.length >= PILOT_DEVICE_LIMIT) throw new Error('device-limit');
+        } else {
+          for (const [id, session] of existing) {
+            sessions.delete(id);
+            const oldCode = rooms.findById(id)?.code;
+            rooms.leave(id);
+            if (oldCode) broadcastRoom(oldCode);
+            session.socket.close(1000, 'new-session');
+          }
+        }
+        identity = verified;
+        participantId = randomUUID();
+        const deviceNumber = verified.uid === PILOT_MULTIDEVICE_UID
+          ? [...Array(PILOT_DEVICE_LIMIT).keys()].map((index) => index + 1)
+            .find((number) => !existing.some(([, session]) => session.deviceNumber === number))
+          : 1;
+        sessions.set(participantId, { socket, identity, deviceNumber });
         clearTimeout(authTimer);
-        const previous = sessions.get(identity.uid);
-        sessions.set(identity.uid, socket);
-        if (previous && previous !== socket) previous.close(1000, 'new-session');
-        send(socket, { type: 'authenticated', studentNumber: identity.studentNumber });
-        const room = rooms.findByUid(identity.uid);
-        if (room) send(socket, { type: 'room', room: rooms.publicRoom(room) });
+        send(socket, { type: 'authenticated', studentNumber: identity.studentNumber, participantId });
       } catch {
         socket.close(1008, 'not-authorized');
+      } finally {
+        authenticating = false;
       }
       return;
     }
-    if (sessions.get(identity.uid) !== socket) { socket.close(1008, 'superseded'); return; }
+    if (sessions.get(participantId)?.socket !== socket) { socket.close(1008, 'superseded'); return; }
+    const player = { ...identity, id: participantId,
+      name: identity.uid === PILOT_MULTIDEVICE_UID
+        ? `${identity.studentNumber}（端末${sessions.get(participantId).deviceNumber}）` : identity.name };
     try {
       if (request?.type === 'create-room') {
-        const prior = rooms.findByUid(identity.uid)?.code;
-        const room = rooms.create(identity);
+        const prior = rooms.findById(participantId)?.code;
+        const room = rooms.create(player);
         if (prior) broadcastRoom(prior);
         broadcastRoom(room.code);
       } else if (request?.type === 'join-room') {
         const code = String(request.code || '');
         if (!/^\d{6}$/.test(code)) throw new Error('invalid-code');
-        const prior = rooms.findByUid(identity.uid)?.code;
-        const room = rooms.join(code, identity);
+        const prior = rooms.findById(participantId)?.code;
+        const room = rooms.join(code, player);
         if (prior) broadcastRoom(prior);
         broadcastRoom(room.code);
       } else if (request?.type === 'ready') {
-        const room = rooms.ready(identity.uid, request.ready);
+        const room = rooms.ready(participantId, request.ready);
         broadcastRoom(room.code);
       } else if (request?.type === 'leave-room') {
-        const code = rooms.findByUid(identity.uid)?.code;
-        rooms.leave(identity.uid);
+        const code = rooms.findById(participantId)?.code;
+        rooms.leave(participantId);
         send(socket, { type: 'left-room' });
         if (code) broadcastRoom(code);
       } else {
@@ -126,10 +153,10 @@ sockets.on('connection', (socket) => {
   socket.on('close', () => {
     console.info('Throb realtime socket closed');
     clearTimeout(authTimer);
-    if (!identity || sessions.get(identity.uid) !== socket) return;
-    sessions.delete(identity.uid);
-    const code = rooms.findByUid(identity.uid)?.code;
-    rooms.leave(identity.uid);
+    if (!participantId || sessions.get(participantId)?.socket !== socket) return;
+    sessions.delete(participantId);
+    const code = rooms.findById(participantId)?.code;
+    rooms.leave(participantId);
     if (code) broadcastRoom(code);
   });
   socket.on('error', () => {});
@@ -138,7 +165,7 @@ sockets.on('connection', (socket) => {
 setInterval(() => {
   const expired = rooms.sweep();
   for (const code of expired) {
-    for (const socket of sessions.values()) send(socket, { type: 'room-expired', code });
+    for (const session of sessions.values()) send(session.socket, { type: 'room-expired', code });
   }
   const cutoff = Date.now() - 60_000;
   for (const [address, attempts] of upgradeAttempts) {

@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
   <link rel="stylesheet" href="./gacha.css?v=3">
-  <link rel="stylesheet" href="./lobby.css?v=1">
+  <link rel="stylesheet" href="./lobby.css?v=2">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -118,7 +118,7 @@
     <main id="lobbyScreen" class="screen panel-screen" aria-label="オンライン待機室">
       <div class="panel lobby-panel">
         <div class="panel-heading"><button id="lobbyBackButton" class="ghost" type="button">‹ 対戦設定へ</button><h2>オンライン待機室</h2></div>
-        <p class="lobby-intro">2510044限定の通信テストです。ルーム作成・参加状況の同期を確認できます。オンライン戦闘、勝敗、報酬はまだ利用できません。</p>
+        <p class="lobby-intro">2510044限定の通信テストです。別端末でも同じアカウントから参加できます（最大3台）。ルーム番号で参加し、準備状態を確認してください。オンライン戦闘、勝敗、報酬はまだ利用できません。</p>
         <p id="lobbyStatus" class="lobby-status" role="status">接続を準備中…</p>
         <div id="lobbyActions" class="lobby-actions">
           <button id="createRoomButton" class="primary" type="button" disabled>ルームを作る</button>
@@ -155,6 +155,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=6"></script>
+  <script type="module" src="./src/bootstrap.js?v=7"></script>
 </body>
 </html>
