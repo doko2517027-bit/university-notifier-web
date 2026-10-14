@@ -43,7 +43,7 @@ export class PilotBattle {
       x: stage.spawns[index % stage.spawns.length].x,
       z: stage.spawns[index % stage.spawns.length].z,
       y: 0, vy: 0, yaw: index % 2 ? Math.PI / 2 : -Math.PI / 2,
-      hp: CONFIG.maxHealth, maxHp: CONFIG.maxHealth, lives: CONFIG.lives,
+      hp: CONFIG.maxHealth, maxHp: CONFIG.maxHealth, lives: CONFIG.lives, connected: true,
       kills: 0, damage: 0, respawnAt: 0, invincibleUntil: 0, lastShot: -10,
       input: ZERO_INPUT, lastInputAt: 0, jumpQueued: false,
     }]));
@@ -66,6 +66,13 @@ export class PilotBattle {
     player.input = ZERO_INPUT;
     player.jumpQueued = false;
     player.lastInputAt = 0;
+  }
+
+  setConnected(id, connected) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.connected = connected === true;
+    if (!player.connected) this.stopInput(id);
   }
 
   tick(delta) {
@@ -149,8 +156,13 @@ export class PilotBattle {
 
   forfeit(id) {
     if (this.result || !this.players.has(id)) return;
-    const remaining = [...this.players.keys()].filter((key) => key !== id);
-    this.finish(remaining.length === 1 ? remaining[0] : null, 'disconnected');
+    const player = this.players.get(id);
+    player.hp = 0;
+    player.lives = 0;
+    player.respawnAt = 0;
+    this.setConnected(id, false);
+    const remaining = [...this.players.values()].filter((entry) => entry.lives > 0);
+    if (remaining.length <= 1) this.finish(remaining[0]?.id || null, 'disconnected');
   }
 
   finish(winner, reason) {
@@ -161,8 +173,8 @@ export class PilotBattle {
 
   snapshot() {
     return { matchId: this.id, countdown: Math.ceil(this.countdown), remaining: Math.ceil(this.remaining),
-      players: [...this.players.values()].map(({ id, name, x, y, z, yaw, hp, maxHp, lives, kills, damage, respawnAt, invincibleUntil }) =>
-        ({ id, name, x, y, z, yaw, hp, maxHp, lives, kills, damage,
+      players: [...this.players.values()].map(({ id, name, x, y, z, yaw, hp, maxHp, lives, kills, damage, connected, respawnAt, invincibleUntil }) =>
+        ({ id, name, x, y, z, yaw, hp, maxHp, lives, kills, damage, connected,
           respawnSeconds: respawnAt ? Math.max(0, Math.ceil(respawnAt - this.elapsed)) : 0,
           invincible: invincibleUntil > this.elapsed })),
       projectiles: this.projectiles.map(({ id, x, y, z, weapon }) => ({ id, x, y, z, weapon })) };

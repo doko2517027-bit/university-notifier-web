@@ -4,6 +4,7 @@ import { loadCharacter, loadVisualModel, animatePlaceholder, playCharacterAction
 import { collidesWithCover, createClassroom, withinStage } from '../stages/classroom.js';
 import { InputController } from '../ui/InputController.js';
 import { SnapshotSmoother } from './snapshotSmoothing.js';
+import { opponentRows } from './onlineHud.js';
 
 // Server snapshots own the rules; local position prediction only makes input feel immediate.
 export class OnlineBattleApp {
@@ -32,6 +33,7 @@ export class OnlineBattleApp {
     this.lastInputSent = 0;
     this.connectionReady = true;
     this.running = false;
+    this.opponentElements = new Map();
   }
 
   setConnected(connected) {
@@ -79,6 +81,45 @@ export class OnlineBattleApp {
     });
   }
 
+  renderOpponents(players) {
+    const list = document.getElementById('onlineOpponentList');
+    const rows = opponentRows(players, this.participantId);
+    const active = new Set(rows.map((row) => row.id));
+    for (const [id, element] of this.opponentElements) if (!active.has(id)) {
+      element.root.remove();
+      this.opponentElements.delete(id);
+    }
+    for (const row of rows) {
+      let element = this.opponentElements.get(row.id);
+      if (!element) {
+        const root = document.createElement('div');
+        root.className = 'online-opponent';
+        const heading = document.createElement('div');
+        heading.className = 'online-opponent-heading';
+        const name = document.createElement('strong');
+        const state = document.createElement('span');
+        const track = document.createElement('div');
+        track.className = 'hp-track';
+        const bar = document.createElement('i');
+        track.appendChild(bar);
+        const detail = document.createElement('span');
+        detail.className = 'online-opponent-detail';
+        heading.append(name, state);
+        root.append(heading, track, detail);
+        list.appendChild(root);
+        element = { root, name, state, bar, detail };
+        this.opponentElements.set(row.id, element);
+      }
+      element.name.textContent = row.name;
+      element.state.textContent = row.status;
+      element.bar.style.width = `${row.hpPercent}%`;
+      element.detail.textContent = `${row.hp} HP・残機${row.lives}`;
+      element.root.classList.toggle('is-out', row.lives === 0);
+      element.root.classList.toggle('is-disconnected', row.status === '再接続待ち');
+    }
+    document.getElementById('onlineOpponentCount').textContent = `対戦相手 ${rows.length}人`;
+  }
+
   resize() {
     if (!this.renderer) return;
     const width = Math.max(1, this.container.clientWidth);
@@ -124,7 +165,6 @@ export class OnlineBattleApp {
     const delta = this.lastFrame ? Math.min(.05, Math.max(0, (now - this.lastFrame) / 1000)) : 0;
     this.lastFrame = now;
     const own = state.players.find((player) => player.id === this.participantId);
-    const enemy = state.players.find((player) => player.id !== this.participantId);
     const look = this.input.consumeLook();
     this.yaw -= look.x * CONFIG.cameraSensitivity;
     this.pitch = THREE.MathUtils.clamp(this.pitch - look.y * CONFIG.cameraSensitivity, -1.1, 1.1);
@@ -211,15 +251,11 @@ export class OnlineBattleApp {
         document.getElementById('playerHpBar').style.width = `${Math.max(0, own.hp / own.maxHp * 100)}%`;
         document.getElementById('playerHudText').textContent = `${own.hp} HP・残機${own.lives}${own.respawnSeconds ? `・復活まで${own.respawnSeconds}秒` : ''}`;
       }
-      if (enemy) {
-        document.getElementById('enemyHpBar').style.width = `${Math.max(0, enemy.hp / enemy.maxHp * 100)}%`;
-        document.getElementById('enemyHudText').textContent = `${enemy.hp} HP・残機${enemy.lives}`;
-      }
-      document.querySelector('#battleHud .enemy strong').textContent = enemy?.name || '対戦相手';
+      this.renderOpponents(state.players);
       const remaining = state.remaining;
       document.getElementById('battleTime').textContent = state.countdown ? `開始まで ${state.countdown}`
         : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
-      document.getElementById('battleScore').textContent = `${own?.kills || 0} - ${enemy?.kills || 0}`;
+      document.getElementById('battleScore').textContent = `撃破 ${own?.kills || 0}・参加${state.players.length}人`;
     }
     this.renderer.render(this.scene, this.camera);
   }
@@ -233,6 +269,8 @@ export class OnlineBattleApp {
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
     document.getElementById('weaponHud').replaceChildren();
+    document.getElementById('onlineOpponentList').replaceChildren();
+    this.opponentElements.clear();
     this.actors.clear(); this.shots.clear();
   }
 }

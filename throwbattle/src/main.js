@@ -7,7 +7,7 @@ import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { pilotBonuses } from './services/pilotBonuses.js';
 import { RealtimeLobbyClient } from './services/realtimeLobby.js?v=2';
-import { OnlineBattleApp } from './game/OnlineBattleApp.js?v=3';
+import { OnlineBattleApp } from './game/OnlineBattleApp.js?v=4';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);

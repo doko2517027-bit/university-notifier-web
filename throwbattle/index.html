@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
   <link rel="stylesheet" href="./gacha.css?v=3">
-  <link rel="stylesheet" href="./lobby.css?v=3">
+  <link rel="stylesheet" href="./lobby.css?v=4">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -136,7 +136,7 @@
     <main id="battleScreen" class="screen battle-screen" aria-label="対戦画面">
       <div id="game" aria-label="3D対戦ステージ"></div>
       <div id="crosshair" aria-hidden="true"></div>
-      <div id="battleHud"><div class="hud-player"><strong>YOU</strong><div class="hp-track"><i id="playerHpBar"></i></div><span id="playerHudText">100 HP・残機3</span></div><div class="hud-center"><span id="battleTime">05:00</span><span id="battleScore">0 - 0</span></div><div class="hud-player enemy"><strong>CPU</strong><div class="hp-track"><i id="enemyHpBar"></i></div><span id="enemyHudText">100 HP・残機3</span></div></div>
+      <div id="battleHud"><div class="hud-player"><strong>YOU</strong><div class="hp-track"><i id="playerHpBar"></i></div><span id="playerHudText">100 HP・残機3</span></div><div class="hud-center"><span id="battleTime">05:00</span><span id="battleScore">0 - 0</span></div><div class="hud-player enemy"><strong>CPU</strong><div class="hp-track"><i id="enemyHpBar"></i></div><span id="enemyHudText">100 HP・残機3</span><div id="onlineOpponentPanel"><strong id="onlineOpponentCount">対戦相手</strong><div id="onlineOpponentList" aria-label="対戦相手の状態"></div></div></div></div>
       <div id="battleNotice" role="status" aria-live="polite"></div>
       <div id="weaponHud" aria-label="武器選択"></div>
       <div id="skillHud" aria-label="スキル"><button id="skill1Button" type="button">Q 応急手当</button><button id="skill2Button" type="button">E 防壁</button></div>
@@ -155,6 +155,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=11"></script>
+  <script type="module" src="./src/bootstrap.js?v=12"></script>
 </body>
 </html>

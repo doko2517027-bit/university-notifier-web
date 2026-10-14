@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { opponentRows } from './onlineHud.js';
+
+test('opponent HUD lists every rival and excludes the local fighter', () => {
+  const rows = opponentRows([
+    { id: 'a', name: '自分', hp: 100, maxHp: 100, lives: 3 },
+    { id: 'b', name: '端末2', hp: 47, maxHp: 100, lives: 2 },
+    { id: 'c', name: '端末3', hp: 0, maxHp: 100, lives: 1, respawnSeconds: 4 },
+  ], 'a');
+  assert.deepEqual(rows.map((row) => row.name), ['端末2', '端末3']);
+  assert.equal(rows[0].hpPercent, 47);
+  assert.equal(rows[1].status, '復活まで4秒');
+});
+
+test('opponent HUD distinguishes reconnection and elimination', () => {
+  const rows = opponentRows([
+    { id: 'b', hp: 70, maxHp: 100, lives: 1, connected: false },
+    { id: 'c', hp: 0, maxHp: 100, lives: 0, connected: false },
+  ], 'a');
+  assert.equal(rows[0].status, '再接続待ち');
+  assert.equal(rows[1].status, '脱落');
+});

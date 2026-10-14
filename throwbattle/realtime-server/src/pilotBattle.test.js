@@ -50,6 +50,17 @@ test('a disconnected fighter immediately stops moving and firing', () => {
   assert.equal(battle.projectiles.length, 0);
 });
 
+test('server snapshot reports connection loss and recovery without losing the fighter', () => {
+  const battle = readyBattle();
+  battle.setInput('device-a', { forward: 1, fire: true });
+  battle.setConnected('device-a', false);
+  assert.equal(battle.snapshot().players[0].connected, false);
+  assert.equal(battle.players.get('device-a').input.fire, false);
+  battle.setConnected('device-a', true);
+  assert.equal(battle.snapshot().players[0].connected, true);
+  assert.equal(battle.result, null);
+});
+
 test('server-owned projectiles determine HP and never accept client damage', () => {
   const battle = readyBattle();
   const first = battle.players.get('device-a');
@@ -70,4 +81,14 @@ test('a disconnect ends pilot match once without awarding game currency', () => 
   assert.equal(battle.result.reason, 'disconnected');
   assert.equal('reward' in battle.result, false);
   assert.equal('points' in battle.result, false);
+});
+
+test('one departure does not end a three-player match', () => {
+  const battle = new PilotBattle([...players, { id: 'device-c', name: '端末3' }], { now: () => 1000 });
+  battle.forfeit('device-a');
+  assert.equal(battle.result, null);
+  assert.equal(battle.snapshot().players[0].lives, 0);
+  battle.forfeit('device-b');
+  assert.equal(battle.result.winner, 'device-c');
+  assert.equal(battle.result.reason, 'disconnected');
 });

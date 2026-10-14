@@ -148,6 +148,8 @@ sockets.on('connection', (socket) => {
           identity = verified;
           participantId = restored.id;
           rooms.setConnected(participantId, true);
+          const resumedRoom = rooms.findById(participantId);
+          if (resumedRoom) matches.get(resumedRoom.code)?.setConnected(participantId, true);
           oldSocket?.close(1000, 'replaced');
           clearTimeout(authTimer);
           send(socket, { type: 'authenticated', studentNumber: identity.studentNumber,
@@ -242,7 +244,7 @@ sockets.on('connection', (socket) => {
     session.disconnectedAt = Date.now();
     const room = rooms.findById(participantId);
     if (room) {
-      matches.get(room.code)?.stopInput(participantId);
+      matches.get(room.code)?.setConnected(participantId, false);
       rooms.setConnected(participantId, false);
       broadcastRoom(room.code);
     }
