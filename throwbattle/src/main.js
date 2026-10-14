@@ -7,6 +7,7 @@ import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { pilotBonuses } from './services/pilotBonuses.js';
 import { RealtimeLobbyClient } from './services/realtimeLobby.js';
+import { OnlineBattleApp } from './game/OnlineBattleApp.js';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);
@@ -31,6 +32,10 @@ let onlineEquipBusy = false;
 let realtimeLobby = null;
 let realtimeRoom = null;
 let realtimeParticipantId = null;
+let onlineBattle = null;
+let onlineBattleLoading = false;
+let pendingBattleState = null;
+let onlineResult = false;
 const GACHA_TYPES = Object.freeze([
   ['character', 'キャラクター', 50, 500],
   ['gear', '武器・防具', 30, 300],
@@ -484,7 +489,7 @@ async function equipOnlineItem(itemId, equip) {
 
 function show(name) {
   const previous = document.querySelector('.screen.active')?.id;
-  if (previous === 'lobbyScreen' && name !== 'lobbyScreen') {
+  if (previous === 'lobbyScreen' && name !== 'lobbyScreen' && name !== 'battleScreen') {
     realtimeLobby?.send('leave-room');
     realtimeLobby?.disconnect();
     realtimeRoom = null;
@@ -518,6 +523,56 @@ function renderRealtimeRoom() {
   const ownReady = realtimeRoom.players.find((player) => player.id === realtimeParticipantId)?.ready === true;
   byId('lobbyReadyButton').textContent = ownReady ? '準備を取り消す' : '準備完了';
   byId('lobbyReadyButton').dataset.ready = String(ownReady);
+  byId('lobbyStartButton').hidden = realtimeRoom.hostId !== realtimeParticipantId;
+  byId('lobbyStartButton').disabled = realtimeRoom.status !== 'waiting' ||
+    realtimeRoom.players.length < 2 || !realtimeRoom.players.every((player) => player.ready);
+}
+
+async function startOnlineBattle() {
+  if (onlineBattle || onlineBattleLoading || !pendingBattleState || !realtimeParticipantId) return;
+  onlineBattleLoading = true;
+  onlineResult = false;
+  game?.destroy(); game = null;
+  preview.stop();
+  show('battleScreen');
+  byId('battleScreen').classList.add('online-battle');
+  byId('battleNotice').textContent = 'オンライン対戦を準備中…';
+  byId('pauseOverlay').hidden = true;
+  try {
+    const battle = new OnlineBattleApp({ container: byId('game'), participantId: realtimeParticipantId,
+      sendInput: (input) => realtimeLobby?.send('battle-input', { input }), onNotice: notice });
+    onlineBattle = battle;
+    await battle.start();
+    if (onlineBattle !== battle) { battle.destroy(); return; }
+    if (pendingBattleState) battle.receive(pendingBattleState);
+    notice('相手に狙いを定めて投げよう！');
+  } catch (error) {
+    console.error('Throb online battle failed:', error);
+    onlineBattle?.destroy(); onlineBattle = null;
+    realtimeLobby?.send('leave-room');
+    byId('battleScreen').classList.remove('online-battle');
+    show('lobbyScreen');
+    byId('lobbyStatus').textContent = '対戦画面を読み込めませんでした。もう一度お試しください。';
+  } finally { onlineBattleLoading = false; }
+}
+
+function showOnlineResult(result) {
+  if (!onlineBattle && !onlineBattleLoading) return;
+  onlineBattle?.destroy(); onlineBattle = null;
+  pendingBattleState = null;
+  onlineResult = true;
+  byId('battleScreen').classList.remove('online-battle');
+  byId('pauseOverlay').hidden = true;
+  const own = result.players.find((player) => player.id === realtimeParticipantId);
+  byId('resultTitle').textContent = result.winner === realtimeParticipantId ? 'WIN' : result.winner ? 'LOSE' : 'DRAW';
+  byId('resultReason').textContent = result.reason === 'disconnected' ? '相手または自分が通信を終了しました'
+    : result.reason === 'timeup' ? '制限時間で決着しました' : '残機で勝負が決まりました';
+  byId('resultKills').textContent = String(own?.kills || 0);
+  byId('resultDamage').textContent = String(own?.damage || 0);
+  byId('resultLives').textContent = String(own?.lives || 0);
+  byId('resultReward').textContent = '2510044限定の通信テスト：公式EXP・ポイント・戦績は付与しません';
+  byId('rematchButton').textContent = '待機室へ戻る';
+  show('resultScreen');
 }
 
 function onRealtimeMessage(message) {
@@ -526,7 +581,14 @@ function onRealtimeMessage(message) {
   } else if (message.type === 'room') {
     realtimeRoom = message.room;
     renderRealtimeRoom();
-    byId('lobbyStatus').textContent = 'ルームに接続中。ほかの参加者を待っています。';
+    byId('lobbyStatus').textContent = realtimeRoom.status === 'playing'
+      ? '対戦を準備しています…' : 'ルームに接続中。ほかの参加者を待っています。';
+  } else if (message.type === 'battle-state') {
+    pendingBattleState = message.state;
+    if (onlineBattle) onlineBattle.receive(message.state);
+    else void startOnlineBattle();
+  } else if (message.type === 'battle-result') {
+    showOnlineResult(message.result);
   } else if (message.type === 'left-room' || message.type === 'room-expired') {
     realtimeRoom = null;
     renderRealtimeRoom();
@@ -538,6 +600,9 @@ function onRealtimeMessage(message) {
       'room-full': 'このルームは満員です。',
       'already-in-room': 'この端末はすでにルームへ参加しています。',
       'invalid-code': '6桁のルーム番号を入力してください。',
+      'not-all-ready': '2人以上が参加し、全員が準備完了になると開始できます。',
+      'host-only': '対戦を開始できるのはホストだけです。',
+      'battle-in-progress': '対戦中です。終了してから操作してください。',
     };
     byId('lobbyStatus').textContent = errors[message.reason] || '操作できませんでした。もう一度お試しください。';
   }
@@ -557,6 +622,11 @@ async function openRealtimeLobby() {
         byId('createRoomButton').disabled = !connected;
         byId('joinRoomButton').disabled = !connected;
         if (state === 'disconnected') {
+          if (onlineBattle) {
+            onlineBattle.destroy(); onlineBattle = null;
+            byId('battleScreen').classList.remove('online-battle');
+            show('lobbyScreen');
+          }
           realtimeRoom = null;
           realtimeParticipantId = null;
           renderRealtimeRoom();
@@ -619,6 +689,10 @@ function notice(message) {
 function openMenu() {
   game?.destroy();
   game = null;
+  onlineBattle?.destroy(); onlineBattle = null;
+  if (realtimeLobby?.connected) { realtimeLobby.send('leave-room'); realtimeLobby.disconnect(); }
+  onlineResult = false;
+  byId('battleScreen').classList.remove('online-battle');
   byId('pauseOverlay').hidden = true;
   show('menuScreen');
 }
@@ -647,6 +721,9 @@ function showResult(result) {
 }
 
 async function startBattle() {
+  onlineResult = false;
+  byId('rematchButton').textContent = 'もう一度';
+  document.querySelector('#battleHud .enemy strong').textContent = 'CPU';
   preview.stop();
   game?.destroy();
   game = null;
@@ -740,12 +817,21 @@ byId('joinRoomButton').addEventListener('click', () => {
 });
 byId('lobbyReadyButton').addEventListener('click', () =>
   realtimeLobby?.send('ready', { ready: byId('lobbyReadyButton').dataset.ready !== 'true' }));
+byId('lobbyStartButton').addEventListener('click', () => realtimeLobby?.send('start-match'));
 byId('lobbyLeaveButton').addEventListener('click', () => realtimeLobby?.send('leave-room'));
 byId('beginBattleButton').addEventListener('click', startBattle);
-byId('pauseButton').addEventListener('click', () => game?.setPaused(!game.paused));
-byId('resumeButton').addEventListener('click', () => game?.setPaused(false));
-byId('leaveBattleButton').addEventListener('click', () => game?.leave());
-byId('rematchButton').addEventListener('click', () => { byId('difficultySelect').value = lastSettings.difficulty; byId('ruleSelect').value = lastSettings.rule; startBattle(); });
+byId('pauseButton').addEventListener('click', () => {
+  if (onlineBattle) {
+    byId('pauseOverlay').querySelector('p').textContent = 'オンライン対戦は一時停止できません。退出すると敗北扱いになります。';
+    byId('pauseOverlay').hidden = false;
+  } else game?.setPaused(!game.paused);
+});
+byId('resumeButton').addEventListener('click', () => { if (onlineBattle) byId('pauseOverlay').hidden = true; else game?.setPaused(false); });
+byId('leaveBattleButton').addEventListener('click', () => { if (onlineBattle) realtimeLobby?.send('leave-room'); else game?.leave(); });
+byId('rematchButton').addEventListener('click', () => {
+  if (onlineResult) { onlineResult = false; show('lobbyScreen'); return; }
+  byId('difficultySelect').value = lastSettings.difficulty; byId('ruleSelect').value = lastSettings.rule; startBattle();
+});
 byId('resultMenuButton').addEventListener('click', openMenu);
 
 byId('startButton').disabled = false;

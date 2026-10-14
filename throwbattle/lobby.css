@@ -13,6 +13,9 @@
 .lobby-players { display: grid; gap: .45rem; padding: 0; margin: 0; list-style: none; }
 .lobby-players li { padding: .65rem .8rem; background: rgba(255,255,255,.08); border-radius: 9px; }
 .lobby-room-controls { display: flex; gap: .6rem; flex-wrap: wrap; }
+.lobby-room-controls button[hidden] { display: none; }
+.lobby-room-controls button:disabled { opacity: .48; cursor: not-allowed; }
+.online-battle #skillHud { display: none; }
 @media (max-width: 600px) { .lobby-panel { padding: 1rem; } .lobby-actions button, .lobby-room-controls button { flex: 1 1 auto; } }
 @media (max-height: 530px) and (orientation: landscape) {
   .lobby-panel { padding: .7rem 1rem; }

@@ -49,3 +49,16 @@ test('pilot devices on one verified account are separate room participants', () 
   assert.equal(registry.get('123456').players.length, 1);
   assert.equal(registry.leave('session-b'), null);
 });
+
+test('only ready host can start a room and finished rooms reset readiness', () => {
+  const registry = new RoomRegistry({ randomCode: () => '123456' });
+  registry.create(player('1'));
+  registry.join('123456', player('2'));
+  assert.throws(() => registry.start('caremate-1'), /not-all-ready/);
+  registry.ready('caremate-1', true);
+  registry.ready('caremate-2', true);
+  assert.throws(() => registry.start('caremate-2'), /host-only/);
+  assert.equal(registry.start('caremate-1').status, 'playing');
+  assert.throws(() => registry.join('123456', player('3')), /room-unavailable/);
+  assert.equal(registry.finish('123456').players.every((entry) => !entry.ready), true);
+});

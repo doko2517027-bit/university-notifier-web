@@ -55,6 +55,24 @@ export class RoomRegistry {
     return this.publicRoom(room);
   }
 
+  start(id) {
+    const room = this.findById(id);
+    if (!room || room.status !== 'waiting') throw new Error('room-unavailable');
+    if (room.hostId !== id) throw new Error('host-only');
+    if (room.players.size < 2 || [...room.players.values()].some((player) => !player.ready)) throw new Error('not-all-ready');
+    room.status = 'playing';
+    return this.publicRoom(room);
+  }
+
+  finish(code) {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    room.status = 'waiting';
+    for (const player of room.players.values()) player.ready = false;
+    room.createdAt = this.now();
+    return this.publicRoom(room);
+  }
+
   leave(id) {
     const room = this.findById(id);
     if (!room) return null;
