@@ -29,6 +29,16 @@ test('only server time moves fighters, and cover blocks motion', () => {
   assert.equal(battle.setInput('unknown', { forward: 1 }), false);
 });
 
+test('a brief jump press survives a newer input packet before the next server tick', () => {
+  const battle = readyBattle();
+  const first = battle.players.get('device-a');
+  battle.setInput('device-a', { jump: true });
+  battle.setInput('device-a', { jump: false });
+  battle.tick(.05);
+  assert.ok(first.y > 0);
+  assert.equal(first.jumpQueued, false);
+});
+
 test('server-owned projectiles determine HP and never accept client damage', () => {
   const battle = readyBattle();
   const first = battle.players.get('device-a');

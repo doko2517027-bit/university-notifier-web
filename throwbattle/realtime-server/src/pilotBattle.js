@@ -45,7 +45,7 @@ export class PilotBattle {
       y: 0, vy: 0, yaw: index % 2 ? Math.PI / 2 : -Math.PI / 2,
       hp: CONFIG.maxHealth, maxHp: CONFIG.maxHealth, lives: CONFIG.lives,
       kills: 0, damage: 0, respawnAt: 0, invincibleUntil: 0, lastShot: -10,
-      input: ZERO_INPUT, lastInputAt: 0,
+      input: ZERO_INPUT, lastInputAt: 0, jumpQueued: false,
     }]));
     this.projectiles = [];
     this.result = null;
@@ -55,6 +55,7 @@ export class PilotBattle {
     const player = this.players.get(id);
     if (!player || this.result) return false;
     player.input = sanitizeBattleInput(raw);
+    player.jumpQueued ||= player.input.jump;
     player.lastInputAt = this.now();
     return true;
   }
@@ -80,7 +81,8 @@ export class PilotBattle {
       const dz = (-Math.cos(input.yaw) * input.forward - Math.sin(input.yaw) * input.right) * speed * dt;
       if (!blocked(player.x + dx, player.z, player.y)) player.x += dx;
       if (!blocked(player.x, player.z + dz, player.y)) player.z += dz;
-      if (input.jump && player.y <= 0) player.vy = CONFIG.jumpVelocity;
+      if (player.jumpQueued && player.y <= 0) player.vy = CONFIG.jumpVelocity;
+      player.jumpQueued = false;
       player.vy -= CONFIG.gravity * dt;
       player.y = Math.max(0, player.y + player.vy * dt);
       if (player.y === 0) player.vy = 0;

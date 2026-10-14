@@ -99,11 +99,11 @@ sockets.on('connection', (socket) => {
   socket.on('message', async (raw) => {
     const now = Date.now();
     if (now - windowStart > 1000) { windowStart = now; messages = 0; }
-    if (++messages > 20) { socket.close(1008, 'rate-limit'); return; }
+    if (++messages > 40) { socket.close(1008, 'rate-limit'); return; }
     let request;
     try { request = JSON.parse(String(raw)); }
     catch { reject(socket, 'invalid-message'); return; }
-    console.info(`Throb realtime message: ${String(request?.type || '').slice(0, 32)}`);
+    if (request?.type !== 'battle-input') console.info(`Throb realtime message: ${String(request?.type || '').slice(0, 32)}`);
     if (!identity) {
       if (request?.type !== 'authenticate' || typeof request.token !== 'string') {
         socket.close(1008, 'authentication-required'); return;
@@ -225,7 +225,7 @@ setInterval(() => {
     if (match.result) finishMatch(code);
     else broadcastMatch(code, { type: 'battle-state', state: match.snapshot() });
   }
-}, 100).unref();
+}, 50).unref();
 
 server.listen(Number(process.env.PORT) || 10000, '0.0.0.0', () => {
   console.info(`Throb pilot realtime listening on ${server.address().port}`);
