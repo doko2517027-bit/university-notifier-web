@@ -6,8 +6,8 @@ import { GameApp } from './game/GameApp.js';
 import { MenuPreview } from './screens/MenuPreview.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { pilotBonuses } from './services/pilotBonuses.js';
-import { RealtimeLobbyClient } from './services/realtimeLobby.js';
-import { OnlineBattleApp } from './game/OnlineBattleApp.js?v=2';
+import { RealtimeLobbyClient } from './services/realtimeLobby.js?v=2';
+import { OnlineBattleApp } from './game/OnlineBattleApp.js?v=3';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);
@@ -489,7 +489,7 @@ async function equipOnlineItem(itemId, equip) {
 
 function show(name) {
   const previous = document.querySelector('.screen.active')?.id;
-  if (previous === 'lobbyScreen' && name !== 'lobbyScreen' && name !== 'battleScreen') {
+  if (previous === 'lobbyScreen' && !['lobbyScreen', 'battleScreen', 'resultScreen'].includes(name)) {
     realtimeLobby?.send('leave-room');
     realtimeLobby?.disconnect();
     realtimeRoom = null;
@@ -517,7 +517,7 @@ function renderRealtimeRoom() {
   list.replaceChildren();
   for (const player of realtimeRoom.players) {
     const item = document.createElement('li');
-    item.textContent = `${player.name}${player.id === realtimeRoom.hostId ? '（ホスト）' : ''} ・ ${player.ready ? '準備完了' : '待機中'}`;
+    item.textContent = `${player.name}${player.id === realtimeRoom.hostId ? '（ホスト）' : ''} ・ ${player.connected === false ? '再接続待ち' : player.ready ? '準備完了' : '待機中'}`;
     list.appendChild(item);
   }
   const ownReady = realtimeRoom.players.find((player) => player.id === realtimeParticipantId)?.ready === true;
@@ -525,7 +525,7 @@ function renderRealtimeRoom() {
   byId('lobbyReadyButton').dataset.ready = String(ownReady);
   byId('lobbyStartButton').hidden = realtimeRoom.hostId !== realtimeParticipantId;
   byId('lobbyStartButton').disabled = realtimeRoom.status !== 'waiting' ||
-    realtimeRoom.players.length < 2 || !realtimeRoom.players.every((player) => player.ready);
+    realtimeRoom.players.length < 2 || !realtimeRoom.players.every((player) => player.ready && player.connected !== false);
 }
 
 async function startOnlineBattle() {
@@ -557,7 +557,7 @@ async function startOnlineBattle() {
 }
 
 function showOnlineResult(result) {
-  if (!onlineBattle && !onlineBattleLoading) return;
+  if (!result?.players?.some((player) => player.id === realtimeParticipantId)) return;
   onlineBattle?.destroy(); onlineBattle = null;
   pendingBattleState = null;
   onlineResult = true;
@@ -577,6 +577,13 @@ function showOnlineResult(result) {
 
 function onRealtimeMessage(message) {
   if (message.type === 'authenticated') {
+    if (onlineBattle && message.resumed !== true) {
+      onlineBattle.destroy(); onlineBattle = null;
+      pendingBattleState = null;
+      byId('battleScreen').classList.remove('online-battle');
+      show('lobbyScreen');
+      byId('lobbyStatus').textContent = '以前の試合は終了しました。新しいルームを作成してください。';
+    }
     realtimeParticipantId = message.participantId;
   } else if (message.type === 'room') {
     realtimeRoom = message.room;
@@ -621,6 +628,18 @@ async function openRealtimeLobby() {
         const connected = state === 'connected';
         byId('createRoomButton').disabled = !connected;
         byId('joinRoomButton').disabled = !connected;
+        if (state === 'reconnecting') {
+          onlineBattle?.setConnected(false);
+          if (onlineBattle) {
+            clearTimeout(noticeTimer);
+            byId('battleNotice').textContent = '通信を復旧中… 操作を一時停止しています';
+          } else if (document.querySelector('.screen.active')?.id === 'lobbyScreen')
+            byId('lobbyStatus').textContent = '通信を復旧中… 最大60秒間、自動で再接続します。';
+        }
+        if (connected && onlineBattle) {
+          onlineBattle.setConnected(true);
+          notice('通信を復旧しました');
+        }
         if (state === 'disconnected') {
           if (onlineBattle) {
             onlineBattle.destroy(); onlineBattle = null;
@@ -631,7 +650,7 @@ async function openRealtimeLobby() {
           realtimeParticipantId = null;
           renderRealtimeRoom();
           if (document.querySelector('.screen.active')?.id === 'lobbyScreen')
-            byId('lobbyStatus').textContent = '通信が切れました。画面を開き直して再接続してください。';
+            byId('lobbyStatus').textContent = '通信が切れました。再接続するには待機室を開き直してください。';
         }
       } });
   }

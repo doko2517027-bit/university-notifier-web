@@ -6,6 +6,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { RoomRegistry } from './rooms.js';
 import { PilotBattle } from './pilotBattle.js';
 import { authorizedIdentity, DEFAULT_ALLOWED_STUDENTS } from './identity.js';
+import { resumableSession, sessionExpired } from './resume.js';
 
 const projectId = process.env.FIREBASE_PROJECT_ID || 'universitynotifier-67517';
 const auth = getAuth(initializeApp({ projectId }));
@@ -18,6 +19,7 @@ const allowedOrigins = new Set([
 ]);
 const rooms = new RoomRegistry();
 const matches = new Map(); // Volatile pilot matches: no official XP, points or ranking writes.
+const recentResults = new Map(); // Briefly retained so a returning participant sees the result.
 const sessions = new Map(); // Server-issued participant ID -> authenticated connection.
 const PILOT_MULTIDEVICE_UID = 'caremate-2510044';
 const PILOT_DEVICE_LIMIT = 3;
@@ -54,6 +56,9 @@ function broadcastMatch(code, payload) {
 function finishMatch(code) {
   const match = matches.get(code);
   if (!match?.result) return;
+  for (const player of match.result.players) recentResults.set(player.id, {
+    result: match.result, expiresAt: Date.now() + 60_000,
+  });
   broadcastMatch(code, { type: 'battle-result', result: match.result });
   matches.delete(code);
   rooms.finish(code);
@@ -64,6 +69,26 @@ function forfeitIfPlaying(id) {
   const code = rooms.findById(id)?.code;
   const match = code && matches.get(code);
   if (match) { match.forfeit(id); finishMatch(code); }
+}
+
+function releaseParticipant(id) {
+  forfeitIfPlaying(id);
+  sessions.delete(id);
+  const code = rooms.findById(id)?.code;
+  rooms.leave(id);
+  if (code) broadcastRoom(code);
+}
+
+function sendRestoredState(id, socket) {
+  const room = rooms.findById(id);
+  if (!room) return;
+  send(socket, { type: 'room', room: rooms.get(room.code) });
+  const match = matches.get(room.code);
+  if (match) send(socket, { type: 'battle-state', state: match.snapshot() });
+  else {
+    const recent = recentResults.get(id);
+    if (recent && recent.expiresAt > Date.now()) send(socket, { type: 'battle-result', result: recent.result });
+  }
 }
 
 function reject(socket, reason) {
@@ -114,18 +139,31 @@ sockets.on('connection', (socket) => {
         const decoded = await auth.verifyIdToken(request.token);
         const verified = authorizedIdentity(decoded, allowedStudents);
         if (!verified || socket.readyState !== WebSocket.OPEN) throw new Error('not-in-pilot');
+        const restored = resumableSession(sessions, request.resumeToken, verified.uid);
+        if (restored) {
+          const oldSocket = restored.session.socket;
+          restored.session.socket = socket;
+          restored.session.disconnectedAt = 0;
+          restored.session.identity = verified;
+          identity = verified;
+          participantId = restored.id;
+          rooms.setConnected(participantId, true);
+          oldSocket?.close(1000, 'replaced');
+          clearTimeout(authTimer);
+          send(socket, { type: 'authenticated', studentNumber: identity.studentNumber,
+            participantId, resumeToken: restored.session.resumeToken, resumed: true });
+          sendRestoredState(participantId, socket);
+          if (rooms.findById(participantId)) broadcastRoom(rooms.findById(participantId).code);
+          return;
+        }
         const existing = [...sessions].filter(([, session]) => session.identity.uid === verified.uid);
         if (verified.uid === PILOT_MULTIDEVICE_UID) {
           // Only the test account may join from multiple devices. Do not extend this to other users.
           if (existing.length >= PILOT_DEVICE_LIMIT) throw new Error('device-limit');
         } else {
           for (const [id, session] of existing) {
-            forfeitIfPlaying(id);
-            sessions.delete(id);
-            const oldCode = rooms.findById(id)?.code;
-            rooms.leave(id);
-            if (oldCode) broadcastRoom(oldCode);
-            session.socket.close(1000, 'new-session');
+            releaseParticipant(id);
+            session.socket?.close(1000, 'new-session');
           }
         }
         identity = verified;
@@ -134,9 +172,11 @@ sockets.on('connection', (socket) => {
           ? [...Array(PILOT_DEVICE_LIMIT).keys()].map((index) => index + 1)
             .find((number) => !existing.some(([, session]) => session.deviceNumber === number))
           : 1;
-        sessions.set(participantId, { socket, identity, deviceNumber });
+        const resumeToken = randomUUID();
+        sessions.set(participantId, { socket, identity, deviceNumber, resumeToken, disconnectedAt: 0 });
         clearTimeout(authTimer);
-        send(socket, { type: 'authenticated', studentNumber: identity.studentNumber, participantId });
+        send(socket, { type: 'authenticated', studentNumber: identity.studentNumber, participantId,
+          resumeToken, resumed: false });
       } catch {
         socket.close(1008, 'not-authorized');
       } finally {
@@ -189,18 +229,32 @@ sockets.on('connection', (socket) => {
       }
     } catch (error) { reject(socket, error.message); }
   });
-  socket.on('close', () => {
+  socket.on('close', (code, reason) => {
     console.info('Throb realtime socket closed');
     clearTimeout(authTimer);
     if (!participantId || sessions.get(participantId)?.socket !== socket) return;
-    forfeitIfPlaying(participantId);
-    sessions.delete(participantId);
-    const code = rooms.findById(participantId)?.code;
-    rooms.leave(participantId);
-    if (code) broadcastRoom(code);
+    if (code === 1000 && String(reason) === 'client-exit') {
+      releaseParticipant(participantId);
+      return;
+    }
+    const session = sessions.get(participantId);
+    session.socket = null;
+    session.disconnectedAt = Date.now();
+    const room = rooms.findById(participantId);
+    if (room) {
+      matches.get(room.code)?.stopInput(participantId);
+      rooms.setConnected(participantId, false);
+      broadcastRoom(room.code);
+    }
   });
   socket.on('error', () => {});
 });
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of sessions) if (sessionExpired(session, now)) releaseParticipant(id);
+  for (const [id, recent] of recentResults) if (recent.expiresAt <= now) recentResults.delete(id);
+}, 1000).unref();
 
 setInterval(() => {
   const expired = rooms.sweep();

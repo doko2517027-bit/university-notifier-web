@@ -60,6 +60,14 @@ export class PilotBattle {
     return true;
   }
 
+  stopInput(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.input = ZERO_INPUT;
+    player.jumpQueued = false;
+    player.lastInputAt = 0;
+  }
+
   tick(delta) {
     if (this.result) return;
     const dt = clamp(finite(delta), 0, .1);

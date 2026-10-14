@@ -39,6 +39,17 @@ test('a brief jump press survives a newer input packet before the next server ti
   assert.equal(first.jumpQueued, false);
 });
 
+test('a disconnected fighter immediately stops moving and firing', () => {
+  const battle = readyBattle();
+  const first = battle.players.get('device-a');
+  battle.setInput('device-a', { forward: 1, fire: true });
+  battle.stopInput('device-a');
+  const before = { x: first.x, z: first.z };
+  battle.tick(.05);
+  assert.deepEqual({ x: first.x, z: first.z }, before);
+  assert.equal(battle.projectiles.length, 0);
+});
+
 test('server-owned projectiles determine HP and never accept client damage', () => {
   const battle = readyBattle();
   const first = battle.players.get('device-a');

@@ -30,7 +30,19 @@ export class OnlineBattleApp {
     this.pitch = 0;
     this.firstPerson = false;
     this.lastInputSent = 0;
+    this.connectionReady = true;
     this.running = false;
+  }
+
+  setConnected(connected) {
+    if (this.connectionReady === connected) return;
+    this.connectionReady = connected;
+    this.pendingJump = false;
+    if (connected) {
+      this.predictedPosition = null;
+      this.smoother = new SnapshotSmoother();
+      this.lastFrame = 0;
+    }
   }
 
   async start() {
@@ -93,7 +105,7 @@ export class OnlineBattleApp {
     if (own && !this.predictedPosition) {
       this.predictedPosition = new THREE.Vector3(own.x, own.y, own.z);
       const enemy = state.players.find((player) => player.id !== this.participantId);
-      if (enemy) this.yaw = Math.atan2(-(enemy.x - own.x), -(enemy.z - own.z));
+      if (enemy && this.lastOwnLives === null) this.yaw = Math.atan2(-(enemy.x - own.x), -(enemy.z - own.z));
     }
     state.players.forEach((player, index) => {
       if (!this.actors.has(player.id)) {
@@ -122,7 +134,7 @@ export class OnlineBattleApp {
     this.pendingJump ||= jumpPressed;
     const movement = this.input.movement;
     const dashing = this.input.keys.has('ShiftLeft') || this.input.keys.has('ShiftRight');
-    if (now - this.lastInputSent >= 50 && state.countdown === 0) {
+    if (this.connectionReady && now - this.lastInputSent >= 50 && state.countdown === 0) {
       this.lastInputSent = now;
       this.sendInput({ ...movement, yaw: this.yaw, pitch: this.pitch,
         dash: dashing, jump: this.pendingJump,
@@ -134,7 +146,7 @@ export class OnlineBattleApp {
       if ((this.lastOwnLives !== null && this.lastOwnLives !== own.lives) || own.respawnSeconds > 0) {
         predicted.set(own.x, own.y, own.z);
         this.selfVy = 0;
-      } else if (state.countdown === 0 && own.lives > 0) {
+      } else if (this.connectionReady && state.countdown === 0 && own.lives > 0) {
         const speed = CONFIG.walkSpeed * (dashing ? CONFIG.dashMultiplier : 1);
         const dx = (-Math.sin(this.yaw) * movement.forward + Math.cos(this.yaw) * movement.right) * speed * delta;
         const dz = (-Math.cos(this.yaw) * movement.forward - Math.sin(this.yaw) * movement.right) * speed * delta;

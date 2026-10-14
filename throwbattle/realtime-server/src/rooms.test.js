@@ -50,6 +50,19 @@ test('pilot devices on one verified account are separate room participants', () 
   assert.equal(registry.leave('session-b'), null);
 });
 
+test('a dropped participant keeps the same room slot during reconnect grace', () => {
+  const registry = new RoomRegistry({ randomCode: () => '123456' });
+  registry.create({ ...player('2510044'), id: 'session-a' });
+  registry.join('123456', { ...player('2510044'), id: 'session-b' });
+  assert.equal(registry.setConnected('session-a', false).players[0].connected, false);
+  assert.equal(registry.get('123456').players.length, 2);
+  registry.ready('session-a', true);
+  registry.ready('session-b', true);
+  assert.throws(() => registry.start('session-a'), /not-all-ready/);
+  assert.equal(registry.setConnected('session-a', true).players[0].connected, true);
+  assert.equal(registry.start('session-a').status, 'playing');
+});
+
 test('only ready host can start a room and finished rooms reset readiness', () => {
   const registry = new RoomRegistry({ randomCode: () => '123456' });
   registry.create(player('1'));

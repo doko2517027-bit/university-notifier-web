@@ -16,7 +16,7 @@ export class RoomRegistry {
       hostId: room.hostId,
       hostUid: room.hostUid,
       status: room.status,
-      players: [...room.players.values()].map(({ id, uid, name, ready }) => ({ id, uid, name, ready })),
+      players: [...room.players.values()].map(({ id, uid, name, ready, connected }) => ({ id, uid, name, ready, connected: connected !== false })),
       maxPlayers: MAX_PLAYERS,
     };
   }
@@ -32,7 +32,7 @@ export class RoomRegistry {
     }
     if (!code) throw new Error('room-code-unavailable');
     const room = { code, hostId: id, hostUid: player.uid, status: 'waiting', players: new Map(), createdAt: this.now() };
-    room.players.set(id, { ...player, id, ready: false });
+    room.players.set(id, { ...player, id, ready: false, connected: true });
     this.rooms.set(code, room);
     return this.publicRoom(room);
   }
@@ -44,7 +44,7 @@ export class RoomRegistry {
     if (room.players.has(id)) throw new Error('already-in-room');
     if (room.players.size >= MAX_PLAYERS) throw new Error('room-full');
     this.leave(id);
-    room.players.set(id, { ...player, id, ready: false });
+    room.players.set(id, { ...player, id, ready: false, connected: true });
     return this.publicRoom(room);
   }
 
@@ -55,11 +55,18 @@ export class RoomRegistry {
     return this.publicRoom(room);
   }
 
+  setConnected(id, connected) {
+    const room = this.findById(id);
+    if (!room) return null;
+    room.players.get(id).connected = connected === true;
+    return this.publicRoom(room);
+  }
+
   start(id) {
     const room = this.findById(id);
     if (!room || room.status !== 'waiting') throw new Error('room-unavailable');
     if (room.hostId !== id) throw new Error('host-only');
-    if (room.players.size < 2 || [...room.players.values()].some((player) => !player.ready)) throw new Error('not-all-ready');
+    if (room.players.size < 2 || [...room.players.values()].some((player) => !player.ready || !player.connected)) throw new Error('not-all-ready');
     room.status = 'playing';
     return this.publicRoom(room);
   }
