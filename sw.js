@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v140";
+const STATIC_CACHE = "caremate-static-v141";
 
-const RUNTIME_CACHE = "caremate-runtime-v140";
+const RUNTIME_CACHE = "caremate-runtime-v141";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -58,7 +58,6 @@ const CORE_ASSETS = [
 
   "common.js",
 
-  "throb_nav.mjs",
 
   "presence_devices.mjs?v=20261001-2",
 
@@ -299,26 +298,9 @@ self.addEventListener("fetch", (event) => {
         裏で最新版を取得する。
         */
   if (isStaticAsset(request, url)) {
-    // Game modules must be fresh on the first reload after deployment; stale
-    // JavaScript mixes old movement code with a newly deployed battle server.
-    event.respondWith(url.pathname.includes("/throwbattle/")
-      ? handleGameStaticRequest(request)
-      : handleStaticRequest(request));
+    event.respondWith(handleStaticRequest(request));
   }
 });
-
-async function handleGameStaticRequest(request) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const response = await fetch(request);
-    if (response?.ok) await cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    throw error;
-  }
-}
 
 /*
 HTMLは

@@ -859,45 +859,6 @@ service cloud.firestore {
       }
     }
 
-    /* Throb単独試作の端末間同期。公式ポイント・順位の根拠にしない。 */
-    match /throbPrototypeProfiles/{studentId} {
-      function isThrobPilotOwner() {
-        return studentId == '2510044' &&
-          request.auth != null &&
-          request.auth.uid == 'caremate-' + studentId &&
-          request.auth.token.studentNumber == studentId;
-      }
-      function validPrototypeRecord() {
-        return request.resource.data.keys().hasOnly(['version', 'revision', 'profileJson', 'updatedAt']) &&
-          request.resource.data.keys().hasAll(['version', 'revision', 'profileJson', 'updatedAt']) &&
-          request.resource.data.version == 1 &&
-          request.resource.data.revision is int &&
-          request.resource.data.profileJson is string &&
-          request.resource.data.profileJson.size() > 0 &&
-          request.resource.data.profileJson.size() <= 100000 &&
-          request.resource.data.updatedAt == request.time;
-      }
-      allow get: if isThrobPilotOwner();
-      allow list, delete: if false;
-      allow create: if isThrobPilotOwner() && validPrototypeRecord() &&
-        request.resource.data.revision == 1;
-      allow update: if isThrobPilotOwner() && validPrototypeRecord() &&
-        request.resource.data.revision == resource.data.revision + 1;
-    }
-
-    /* ガチャ通貨・抽選結果はCloud Functionsだけが書き込む。 */
-    match /throbGachaAccounts/{studentId} {
-      allow read, write: if false;
-      match /{document=**} {
-        allow read, write: if false;
-      }
-    }
-
-    /* Throbの確率・価格はCloud Functions経由で総管理者だけが変更する。 */
-    match /throbGameSettings/{settingId} {
-      allow read, write: if false;
-    }
-
   }
 
 }

@@ -1,8 +1,0 @@
-{
-  "name": "throb-prototype",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test src/battle/*.test.mjs src/services/*.test.mjs src/integrations/*.test.mjs src/game/*.test.mjs"
-  }
-}

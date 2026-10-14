@@ -26,8 +26,6 @@ const webpush = require("web-push");
 const crypto = require("node:crypto");
 
 const { hashPassword, matchesPasswordHash, isValidNewPassword } = require("./password_change_policy");
-const { getPilotGachaState, drawPilotGacha, buyPilotShopItem, equipPilotItem } = require("./throb_gacha_transaction");
-const { getThrobConfig, saveThrobConfig } = require('./throb_game_config');
 
 const { reminderMinutes, isReminderDue, matchesAudience } = require("./calendar_reminders");
 
@@ -345,98 +343,6 @@ function requireAuthenticatedCareMateStudent(request) {
 
   return studentNumber;
 }
-
-async function requireThrobPilot(request) {
-  const studentNumber = requireAuthenticatedCareMateStudent(request);
-  if (studentNumber !== '2510044') {
-    throw new HttpsError('permission-denied', '現在は限定テスト中です。');
-  }
-  const user = await db.collection('users').doc(studentNumber).get();
-  if (!user.exists || String(user.data()?.studentNumber || studentNumber) !== studentNumber) {
-    throw new HttpsError('permission-denied', 'CareMateの登録情報を確認できません。');
-  }
-  return studentNumber;
-}
-
-exports.getThrobGachaState = onCall({ region: 'asia-northeast1' }, async (request) => {
-  const studentNumber = await requireThrobPilot(request);
-  try {
-    return await getPilotGachaState(db, studentNumber);
-  } catch (error) {
-    console.error('Throb gacha state:', error);
-    throw new HttpsError('internal', 'ガチャの記録を読み込めませんでした。');
-  }
-});
-
-exports.drawThrobGacha = onCall({ region: 'asia-northeast1' }, async (request) => {
-  const studentNumber = await requireThrobPilot(request);
-  try {
-    return await drawPilotGacha(db, studentNumber, request.data || {});
-  } catch (error) {
-    const code = error?.message;
-    if (code === 'invalid-request' || code === 'operation-mismatch') {
-      throw new HttpsError('invalid-argument', '抽選内容を確認してください。');
-    }
-    if (code === 'insufficient-points') {
-      throw new HttpsError('failed-precondition', 'テスト用ポイントが不足しています。');
-    }
-    console.error('Throb gacha draw:', error);
-    throw new HttpsError('internal', '抽選を確定できませんでした。再試行してください。');
-  }
-});
-
-exports.buyThrobShopItem = onCall({ region: 'asia-northeast1' }, async (request) => {
-  const studentNumber = await requireThrobPilot(request);
-  try {
-    return await buyPilotShopItem(db, studentNumber, request.data || {});
-  } catch (error) {
-    const code = error?.message;
-    if (code === 'invalid-request' || code === 'operation-mismatch') {
-      throw new HttpsError('invalid-argument', '購入内容を確認してください。');
-    }
-    if (code === 'insufficient-points') {
-      throw new HttpsError('failed-precondition', 'テスト用ポイントが不足しています。');
-    }
-    console.error('Throb shop purchase:', error);
-    throw new HttpsError('internal', '購入を確定できませんでした。再試行してください。');
-  }
-});
-
-exports.equipThrobItem = onCall({ region: 'asia-northeast1' }, async (request) => {
-  const studentNumber = await requireThrobPilot(request);
-  try {
-    return await equipPilotItem(db, studentNumber, request.data || {});
-  } catch (error) {
-    if (['invalid-request', 'item-not-owned', 'invalid-item'].includes(error?.message)) {
-      throw new HttpsError('failed-precondition', '獲得品を確認できませんでした。');
-    }
-    console.error('Throb item equip:', error);
-    throw new HttpsError('internal', '獲得品の選択を保存できませんでした。');
-  }
-});
-
-exports.getThrobAdminConfig = onCall({ region: 'asia-northeast1' }, async (request) => {
-  await requirePrimaryDeviceAuditAdmin(request);
-  try {
-    return { config: await getThrobConfig(db) };
-  } catch (error) {
-    console.error('Throb admin config:', error);
-    throw new HttpsError('internal', 'ゲーム設定を読み込めませんでした。');
-  }
-});
-
-exports.saveThrobAdminConfig = onCall({ region: 'asia-northeast1' }, async (request) => {
-  const studentNumber = await requirePrimaryDeviceAuditAdmin(request);
-  try {
-    return { config: await saveThrobConfig(db, request.data?.config, studentNumber) };
-  } catch (error) {
-    if (error?.message === 'invalid-game-config') {
-      throw new HttpsError('invalid-argument', '確率の合計と価格を確認してください。');
-    }
-    console.error('Throb admin config save:', error);
-    throw new HttpsError('internal', 'ゲーム設定を保存できませんでした。');
-  }
-});
 
 exports.changeCareMatePassword = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },

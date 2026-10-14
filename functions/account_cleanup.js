@@ -41,7 +41,6 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
     "referralAccounts", "referralPrivateRewards",
-    "throbPrototypeProfiles", "throbGachaAccounts",
   ];
   await Promise.all(directCollections.map((name) =>
     removeDocument(db.collection(name).doc(target))));

@@ -38,7 +38,6 @@ async function deleteUserData(target) {
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
     "referralAccounts", "referralPrivateRewards",
-    "throbPrototypeProfiles", "throbGachaAccounts",
   ];
   await Promise.all(directCollections.map((name) => removeDocument(db.collection(name).doc(target))));
   const [contacts, featureRequests, calendarEvents, reports, calendarDispatches, referralCodes] = await Promise.all([
