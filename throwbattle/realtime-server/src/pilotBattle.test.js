@@ -92,3 +92,15 @@ test('one departure does not end a three-player match', () => {
   assert.equal(battle.result.winner, 'device-c');
   assert.equal(battle.result.reason, 'disconnected');
 });
+
+test('a departed fighter cannot win a three-player time limit by prior kills', () => {
+  const battle = new PilotBattle([...players, { id: 'device-c', name: '端末3' }], { now: () => 1000 });
+  for (let i = 0; i < 31; i++) battle.tick(.1);
+  battle.players.get('device-a').kills = 8;
+  battle.players.get('device-b').kills = 2;
+  battle.forfeit('device-a');
+  battle.remaining = .01;
+  battle.tick(.05);
+  assert.equal(battle.result.winner, 'device-b');
+  assert.equal(battle.result.players.find((player) => player.id === 'device-a').forfeited, true);
+});

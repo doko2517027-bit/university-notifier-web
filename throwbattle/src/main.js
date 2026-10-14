@@ -8,6 +8,7 @@ import { AudioManager } from './audio/AudioManager.js';
 import { pilotBonuses } from './services/pilotBonuses.js';
 import { RealtimeLobbyClient } from './services/realtimeLobby.js?v=2';
 import { OnlineBattleApp } from './game/OnlineBattleApp.js?v=4';
+import { rankedMatchPlayers } from './game/onlineHud.js';
 
 const screens = Object.fromEntries([...document.querySelectorAll('.screen')].map((screen) => [screen.id, screen]));
 const byId = (id) => document.getElementById(id);
@@ -564,12 +565,30 @@ function showOnlineResult(result) {
   byId('battleScreen').classList.remove('online-battle');
   byId('pauseOverlay').hidden = true;
   const own = result.players.find((player) => player.id === realtimeParticipantId);
-  byId('resultTitle').textContent = result.winner === realtimeParticipantId ? 'WIN' : result.winner ? 'LOSE' : 'DRAW';
-  byId('resultReason').textContent = result.reason === 'disconnected' ? '相手または自分が通信を終了しました'
+  const ranked = rankedMatchPlayers(result);
+  const ownResult = ranked.find((player) => player.id === realtimeParticipantId);
+  byId('resultTitle').textContent = ownResult?.outcome === '勝利' ? 'WIN'
+    : ownResult?.outcome === '引き分け' ? 'DRAW' : 'LOSE';
+  const reason = result.reason === 'disconnected' ? '通信の終了で決着しました'
     : result.reason === 'timeup' ? '制限時間で決着しました' : '残機で勝負が決まりました';
+  byId('resultReason').textContent = `全${ranked.length}人中${ownResult?.rank || '-'}位 ・ ${reason}`;
   byId('resultKills').textContent = String(own?.kills || 0);
   byId('resultDamage').textContent = String(own?.damage || 0);
   byId('resultLives').textContent = String(own?.lives || 0);
+  const board = byId('onlineResultPlayers');
+  board.replaceChildren();
+  for (const player of ranked) {
+    const row = document.createElement('div');
+    row.className = `online-result-row${player.id === realtimeParticipantId ? ' is-self' : ''}`;
+    const name = document.createElement('strong');
+    name.textContent = `${player.rank}位 ${player.name}`;
+    const record = document.createElement('span');
+    record.textContent = `${player.outcome} ・ 撃破${player.kills} ・ 残機${player.lives}`;
+    row.append(name, record);
+    board.appendChild(row);
+  }
+  byId('onlineResultBoard').hidden = false;
+  byId('resultScreen').classList.add('online-result');
   byId('resultReward').textContent = '2510044限定の通信テスト：公式EXP・ポイント・戦績は付与しません';
   byId('rematchButton').textContent = '待機室へ戻る';
   show('resultScreen');
@@ -728,6 +747,8 @@ function showResult(result) {
   recordResult(result);
   game?.destroy();
   game = null;
+  byId('onlineResultBoard').hidden = true;
+  byId('resultScreen').classList.remove('online-result');
   byId('pauseOverlay').hidden = true;
   byId('resultTitle').textContent = result.winner === 'player' ? 'WIN' : result.winner === 'cpu' ? 'LOSE' : 'DRAW';
   byId('resultReason').textContent = result.reason === 'left' ? '対戦を終了しました' : result.reason === 'timeup' ? '制限時間で決着' : result.reason === 'sudden-death-timeout' ? 'サドンデスも引き分け' : result.winner === 'player' ? 'CPUに勝利しました！' : 'CPUに敗れました';

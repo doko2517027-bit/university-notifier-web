@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./phase5.css?v=1">
   <link rel="stylesheet" href="./access.css?v=1">
   <link rel="stylesheet" href="./gacha.css?v=3">
-  <link rel="stylesheet" href="./lobby.css?v=4">
+  <link rel="stylesheet" href="./lobby.css?v=5">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
@@ -145,7 +145,7 @@
       <div id="pauseOverlay" class="overlay" hidden><div class="overlay-card"><h2>一時停止</h2><p>準備ができたら再開してください。</p><button id="resumeButton" class="primary" type="button">再開</button><button id="leaveBattleButton" class="ghost" type="button">対戦をやめる</button></div></div>
     </main>
 
-    <main id="resultScreen" class="screen panel-screen" aria-label="結果画面"><div class="panel result-panel"><p class="eyebrow">MATCH RESULT</p><h2 id="resultTitle">WIN</h2><p id="resultReason"></p><div class="result-stats"><div><span>撃破数</span><strong id="resultKills">0</strong></div><div><span>与ダメージ</span><strong id="resultDamage">0</strong></div><div><span>残機</span><strong id="resultLives">0</strong></div></div><p id="resultReward" class="phase5-reward">獲得EXP +0</p><div class="row"><button id="rematchButton" class="primary" type="button">もう一度</button><button id="resultMenuButton" class="ghost" type="button">メニューへ</button></div></div></main>
+    <main id="resultScreen" class="screen panel-screen" aria-label="結果画面"><div class="panel result-panel"><p class="eyebrow">MATCH RESULT</p><h2 id="resultTitle">WIN</h2><p id="resultReason"></p><div class="result-stats"><div><span>撃破数</span><strong id="resultKills">0</strong></div><div><span>与ダメージ</span><strong id="resultDamage">0</strong></div><div><span>残機</span><strong id="resultLives">0</strong></div></div><div id="onlineResultBoard" hidden><strong>対戦結果</strong><div id="onlineResultPlayers"></div></div><p id="resultReward" class="phase5-reward">獲得EXP +0</p><div class="row"><button id="rematchButton" class="primary" type="button">もう一度</button><button id="resultMenuButton" class="ghost" type="button">メニューへ</button></div></div></main>
     <div id="rotateMessage" aria-live="polite"><div><span>↻</span><strong>スマホは横画面でプレイ</strong><p>端末を横に向けてください</p></div></div>
   </div>
   <script>
@@ -155,6 +155,6 @@
       document.getElementById('startButton').textContent = '読み込み失敗';
     }, 12000);
   </script>
-  <script type="module" src="./src/bootstrap.js?v=12"></script>
+  <script type="module" src="./src/bootstrap.js?v=13"></script>
 </body>
 </html>

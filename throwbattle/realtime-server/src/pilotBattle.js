@@ -43,7 +43,7 @@ export class PilotBattle {
       x: stage.spawns[index % stage.spawns.length].x,
       z: stage.spawns[index % stage.spawns.length].z,
       y: 0, vy: 0, yaw: index % 2 ? Math.PI / 2 : -Math.PI / 2,
-      hp: CONFIG.maxHealth, maxHp: CONFIG.maxHealth, lives: CONFIG.lives, connected: true,
+      hp: CONFIG.maxHealth, maxHp: CONFIG.maxHealth, lives: CONFIG.lives, connected: true, forfeited: false,
       kills: 0, damage: 0, respawnAt: 0, invincibleUntil: 0, lastShot: -10,
       input: ZERO_INPUT, lastInputAt: 0, jumpQueued: false,
     }]));
@@ -107,7 +107,8 @@ export class PilotBattle {
     const alive = [...this.players.values()].filter((player) => player.lives > 0);
     if (alive.length <= 1) this.finish(alive[0]?.id || null, 'eliminated');
     else if (this.remaining === 0) {
-      const sorted = [...this.players.values()].sort((a, b) => b.kills - a.kills || b.lives - a.lives || b.damage - a.damage);
+      const sorted = [...this.players.values()].filter((player) => !player.forfeited)
+        .sort((a, b) => b.kills - a.kills || b.lives - a.lives || b.damage - a.damage);
       this.finish(sorted[0].kills === sorted[1].kills && sorted[0].lives === sorted[1].lives && sorted[0].damage === sorted[1].damage ? null : sorted[0].id, 'timeup');
     }
   }
@@ -160,6 +161,7 @@ export class PilotBattle {
     player.hp = 0;
     player.lives = 0;
     player.respawnAt = 0;
+    player.forfeited = true;
     this.setConnected(id, false);
     const remaining = [...this.players.values()].filter((entry) => entry.lives > 0);
     if (remaining.length <= 1) this.finish(remaining[0]?.id || null, 'disconnected');
@@ -168,7 +170,8 @@ export class PilotBattle {
   finish(winner, reason) {
     if (this.result) return;
     this.result = { winner, reason, matchId: this.id,
-      players: [...this.players.values()].map(({ id, name, kills, damage, lives }) => ({ id, name, kills, damage, lives })) };
+      players: [...this.players.values()].map(({ id, name, kills, damage, lives, forfeited }) =>
+        ({ id, name, kills, damage, lives, forfeited })) };
   }
 
   snapshot() {

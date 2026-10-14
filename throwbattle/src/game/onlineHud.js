@@ -9,3 +9,23 @@ export function opponentRows(players, ownId) {
       hpPercent: Math.min(100, Math.round(hp / maxHp * 100)), status };
   });
 }
+
+export function rankedMatchPlayers(result) {
+  const players = [...(result?.players || [])];
+  players.sort((a, b) => Number(a.forfeited === true) - Number(b.forfeited === true)
+    || Number(b.id === result.winner) - Number(a.id === result.winner)
+    || (b.kills || 0) - (a.kills || 0)
+    || (b.lives || 0) - (a.lives || 0)
+    || (b.damage || 0) - (a.damage || 0));
+  return players.reduce((rows, player, index) => {
+    const previous = rows.at(-1);
+    const sameScore = !result.winner && previous && Boolean(previous.forfeited) === Boolean(player.forfeited)
+      && (previous.kills || 0) === (player.kills || 0)
+      && (previous.lives || 0) === (player.lives || 0)
+      && (previous.damage || 0) === (player.damage || 0);
+    const rank = sameScore ? previous.rank : index + 1;
+    rows.push({ ...player, rank, outcome: player.forfeited ? '退出'
+      : player.id === result.winner ? '勝利' : result.winner || rank > 1 ? '敗北' : '引き分け' });
+    return rows;
+  }, []);
+}
