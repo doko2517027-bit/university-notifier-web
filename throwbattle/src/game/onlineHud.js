@@ -29,3 +29,10 @@ export function rankedMatchPlayers(result) {
     return rows;
   }, []);
 }
+
+export function spectatorTarget(players, ownId, currentId = null, advance = false) {
+  const available = players.filter((player) => player.id !== ownId && player.lives > 0);
+  if (!available.length) return null;
+  const index = available.findIndex((player) => player.id === currentId);
+  return available[index < 0 ? 0 : advance ? (index + 1) % available.length : index];
+}

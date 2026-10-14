@@ -43,6 +43,12 @@
 .online-result .result-stats { margin: .45rem 0; }
 .online-result .result-stats > div { padding: .4rem; }
 .online-result .result-panel { max-height: calc(100dvh - 1rem); }
+#spectatorControls[hidden] { display: none; }
+#spectatorControls { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 9; display: flex; align-items: center; gap: .6rem; max-width: min(92vw, 460px); padding: .45rem .65rem; border-radius: 12px; background: rgba(10, 19, 42, .9); color: #fff; font-weight: 800; }
+#spectatorName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#spectatorNextButton { flex: none; min-height: 40px; padding: .4rem .7rem; border: 1px solid #d4e3ff; border-radius: 9px; color: #fff; background: #314d80; font: inherit; }
+#spectatorNextButton:disabled { opacity: .5; }
+.spectating #weaponHud, .spectating #mobileControls { display: none; }
 @media (max-height: 530px) and (orientation: landscape) {
   .online-battle #onlineOpponentPanel { width: min(220px, 29vw); }
   #onlineOpponentList { max-height: 33vh; }

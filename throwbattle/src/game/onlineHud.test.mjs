@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { opponentRows, rankedMatchPlayers } from './onlineHud.js';
+import { opponentRows, rankedMatchPlayers, spectatorTarget } from './onlineHud.js';
 
 test('opponent HUD lists every rival and excludes the local fighter', () => {
   const rows = opponentRows([
@@ -40,4 +40,14 @@ test('a drawn top score shares first place while a lower score loses', () => {
   ] });
   assert.deepEqual(rows.map((row) => [row.rank, row.outcome]),
     [[1, '引き分け'], [1, '引き分け'], [3, '敗北']]);
+});
+
+test('spectating follows a living rival and can cycle to another', () => {
+  const players = [
+    { id: 'a', lives: 0 }, { id: 'b', lives: 2 }, { id: 'c', lives: 1 },
+  ];
+  assert.equal(spectatorTarget(players, 'a')?.id, 'b');
+  assert.equal(spectatorTarget(players, 'a', 'b', true)?.id, 'c');
+  assert.equal(spectatorTarget(players, 'a', 'c', true)?.id, 'b');
+  assert.equal(spectatorTarget([{ id: 'a', lives: 0 }, { id: 'b', lives: 0 }], 'a'), null);
 });

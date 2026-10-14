@@ -4,7 +4,7 @@ import { loadCharacter, loadVisualModel, animatePlaceholder, playCharacterAction
 import { collidesWithCover, createClassroom, withinStage } from '../stages/classroom.js';
 import { InputController } from '../ui/InputController.js';
 import { SnapshotSmoother } from './snapshotSmoothing.js';
-import { opponentRows } from './onlineHud.js';
+import { opponentRows, spectatorTarget } from './onlineHud.js';
 
 // Server snapshots own the rules; local position prediction only makes input feel immediate.
 export class OnlineBattleApp {
@@ -34,6 +34,7 @@ export class OnlineBattleApp {
     this.connectionReady = true;
     this.running = false;
     this.opponentElements = new Map();
+    this.spectatorId = null;
   }
 
   setConnected(connected) {
@@ -65,6 +66,11 @@ export class OnlineBattleApp {
     this.resizeObserver.observe(this.container);
     this.resize();
     this.buildWeaponHud();
+    this.onNextSpectator = () => {
+      this.spectatorId = spectatorTarget(this.state?.players || [], this.participantId, this.spectatorId, true)?.id || null;
+      this.renderSpectator();
+    };
+    document.getElementById('spectatorNextButton').addEventListener('click', this.onNextSpectator);
     this.running = true;
     this.frame = requestAnimationFrame(() => this.update());
   }
@@ -118,6 +124,20 @@ export class OnlineBattleApp {
       element.root.classList.toggle('is-disconnected', row.status === '再接続待ち');
     }
     document.getElementById('onlineOpponentCount').textContent = `対戦相手 ${rows.length}人`;
+  }
+
+  renderSpectator() {
+    const own = this.state?.players.find((player) => player.id === this.participantId);
+    const target = own?.lives <= 0
+      ? spectatorTarget(this.state.players, this.participantId, this.spectatorId) : null;
+    this.spectatorId = target?.id || null;
+    this.container.closest('#battleScreen')?.classList.toggle('spectating', Boolean(target));
+    const controls = document.getElementById('spectatorControls');
+    controls.hidden = !target;
+    if (!target) return;
+    document.getElementById('spectatorName').textContent = `観戦中：${target.name}`;
+    document.getElementById('spectatorNextButton').disabled =
+      this.state.players.filter((player) => player.id !== this.participantId && player.lives > 0).length < 2;
   }
 
   resize() {
@@ -174,7 +194,7 @@ export class OnlineBattleApp {
     this.pendingJump ||= jumpPressed;
     const movement = this.input.movement;
     const dashing = this.input.keys.has('ShiftLeft') || this.input.keys.has('ShiftRight');
-    if (this.connectionReady && now - this.lastInputSent >= 50 && state.countdown === 0) {
+    if (this.connectionReady && own?.lives > 0 && now - this.lastInputSent >= 50 && state.countdown === 0) {
       this.lastInputSent = now;
       this.sendInput({ ...movement, yaw: this.yaw, pitch: this.pitch,
         dash: dashing, jump: this.pendingJump,
@@ -232,13 +252,17 @@ export class OnlineBattleApp {
     for (const [id, mesh] of this.shots) if (!activeShots.has(id)) {
       this.scene.remove(mesh); disposeObject(mesh); this.shots.delete(id);
     }
-    if (own) {
-      const position = this.predictedPosition || own;
+    const watched = own?.lives > 0 ? own : spectatorTarget(state.players, this.participantId, this.spectatorId);
+    if (watched) {
+      const position = watched.id === this.participantId ? this.predictedPosition || watched : watched;
+      const viewYaw = watched.id === this.participantId ? this.yaw : watched.yaw;
+      const viewPitch = watched.id === this.participantId ? this.pitch : 0;
+      const firstPerson = watched.id === this.participantId && this.firstPerson;
       const target = new THREE.Vector3(position.x, position.y + 1.65, position.z);
-      const direction = new THREE.Vector3(-Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.cos(this.yaw) * Math.cos(this.pitch));
-      if (this.firstPerson) this.camera.position.copy(target);
+      const direction = new THREE.Vector3(-Math.sin(viewYaw) * Math.cos(viewPitch), Math.sin(viewPitch), -Math.cos(viewYaw) * Math.cos(viewPitch));
+      if (firstPerson) this.camera.position.copy(target);
       else this.camera.position.copy(target).addScaledVector(direction, -5)
-        .addScaledVector(new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw)), 1.35).add(new THREE.Vector3(0, 1.1, 0));
+        .addScaledVector(new THREE.Vector3(Math.cos(viewYaw), 0, -Math.sin(viewYaw)), 1.35).add(new THREE.Vector3(0, 1.1, 0));
       this.camera.lookAt(target.clone().addScaledVector(direction, 8));
     }
     if (this.lastWeaponIndex !== this.input.selectedWeapon) {
@@ -252,6 +276,7 @@ export class OnlineBattleApp {
         document.getElementById('playerHudText').textContent = `${own.hp} HP・残機${own.lives}${own.respawnSeconds ? `・復活まで${own.respawnSeconds}秒` : ''}`;
       }
       this.renderOpponents(state.players);
+      this.renderSpectator();
       const remaining = state.remaining;
       document.getElementById('battleTime').textContent = state.countdown ? `開始まで ${state.countdown}`
         : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
@@ -265,6 +290,9 @@ export class OnlineBattleApp {
     cancelAnimationFrame(this.frame);
     this.resizeObserver?.disconnect();
     this.input?.destroy();
+    document.getElementById('spectatorNextButton').removeEventListener('click', this.onNextSpectator);
+    document.getElementById('spectatorControls').hidden = true;
+    this.container.closest('#battleScreen')?.classList.remove('spectating');
     disposeObject(this.scene);
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
