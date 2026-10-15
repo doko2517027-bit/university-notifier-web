@@ -8,7 +8,6 @@ import {
 
 export const CLASS_SELECTION_NONE = "__NONE__";
 export const CLASS_SELECTION_RESET_VERSION = "2026-09-29-v4";
-const CLASS_SELECTION_RESET_DATE = "2026-09-29";
 
 let classSelectionSchedule = [];
 let classSelectionInertElements = [];
@@ -509,17 +508,9 @@ export function getSelectedClassForLecture(selections, item) {
 export function effectiveClassSelections(userData = {}) {
   const selections = userData?.classSelections;
   if (!selections || typeof selections !== "object") return {};
-  if (userData.classSelectionResetVersion === CLASS_SELECTION_RESET_VERSION) {
-    return selections;
-  }
-
-  // リセット前の日付別選択は履歴用に維持し、今日以降だけ再選択する。
-  return Object.fromEntries(
-    Object.entries(selections).filter(([key]) => {
-      const date = normalizeDate(String(key).match(/20\d{2}[-/]\d{1,2}[-/]\d{1,2}/)?.[0]);
-      return date && date < CLASS_SELECTION_RESET_DATE;
-    }),
-  );
+  // 選択済みの日付は履歴として永久に維持する。移行バージョンが古くても、
+  // 過去日のA/B両方を再表示させない。
+  return selections;
 }
 
 // カレンダー・個人時間割では、保存済みの日付別選択だけを反映する。

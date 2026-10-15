@@ -14410,6 +14410,26 @@ body:has(#weatherCard)
         );
 }
 
+.attendance-subject-card.is-eligibility-at-risk{
+    border-color:rgba(245,158,11,.52);
+    background:rgba(254,243,199,.58);
+}
+
+.attendance-subject-card.is-eligibility-lost{
+    border-color:rgba(239,68,68,.48);
+    background:rgba(254,226,226,.64);
+}
+
+.dark .attendance-subject-card.is-eligibility-at-risk{
+    border-color:rgba(245,158,11,.46);
+    background:rgba(120,53,15,.2);
+}
+
+.dark .attendance-subject-card.is-eligibility-lost{
+    border-color:rgba(248,113,113,.48);
+    background:rgba(127,29,29,.22);
+}
+
 .attendance-subject-limit{
     width:max-content;
     max-width:100%;
@@ -14425,6 +14445,15 @@ body:has(#weatherCard)
 
 .dark .attendance-subject-limit{
     color:#fde68a;
+}
+
+.attendance-subject-limit.is-lost{
+    background:rgba(239,68,68,.14);
+    color:#b91c1c;
+}
+
+.dark .attendance-subject-limit.is-lost{
+    color:#fecaca;
 }
 
 .attendance-date-status[data-edit-attendance]{

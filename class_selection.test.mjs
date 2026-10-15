@@ -69,7 +69,7 @@ test("その日にBクラスだけならBとクラスなしを選べる", () => 
   });
 });
 
-test("前バージョンで選択済みの学生も今日以降は再選択する", () => {
+test("前バージョンで選択済みのクラスも過去分を含めて維持する", () => {
   const selections = {
     "社会福祉論_2026-09-28_3": "A",
     "社会福祉論_2026-09-29_3": "B",
@@ -77,9 +77,35 @@ test("前バージョンで選択済みの学生も今日以降は再選択す�
   assert.deepEqual(selection.effectiveClassSelections({
     classSelections: selections,
     classSelectionResetVersion: "2026-09-29-v3",
-  }), { "社会福祉論_2026-09-28_3": "A" });
+  }), selections);
   assert.deepEqual(selection.effectiveClassSelections({
     classSelections: selections,
     classSelectionResetVersion: selection.CLASS_SELECTION_RESET_VERSION,
   }), selections);
+});
+
+test("過去時間割はその日に選択したクラスだけを表示する", () => {
+  const entries = [
+    {
+      date: "2026-09-29",
+      subject: "社会福祉論",
+      scheduleSubject: "社会福祉論",
+      period: "3限",
+      classGroup: "Aクラス",
+    },
+    {
+      date: "2026-09-29",
+      subject: "社会福祉論",
+      scheduleSubject: "社会福祉論",
+      period: "3限",
+      classGroup: "Bクラス",
+    },
+  ];
+
+  assert.deepEqual(
+    selection.filterSelectedClassEntries(entries, {
+      "社会福祉論_2026-09-29_3": "B",
+    }),
+    [entries[1]],
+  );
 });

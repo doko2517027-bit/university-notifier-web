@@ -16,6 +16,7 @@ import {
   normalizeCourseName,
 } from "./personal_timetable_data.js?v=20260929-4";
 import { effectiveClassSelections } from "./class_selection.js?v=20260929-4";
+import { calculateAttendanceEligibility } from "./attendance_eligibility.mjs?v=20261015-1";
 
 import {
   doc,
@@ -2680,9 +2681,10 @@ function calculateSubjectAttendance(subject, termRecords) {
    * 評価資格の残り欠席回数は、実施済み講義だけではなく
    * 時間割に登録された全講義を出席した場合を基準にする。
    */
-  const eligibilityAttendanceCount = Math.max(
-    0,
-    displayTotalLectures - totalAbsent,
+  const eligibility = calculateAttendanceEligibility(
+    displayTotalLectures,
+    totalAbsent,
+    subject.isPractical,
   );
 
   const attendanceRate =
@@ -2697,11 +2699,9 @@ function calculateSubjectAttendance(subject, termRecords) {
 
     present,
 
-    possibleAbsentCount: calculatePossibleAbsentCount(
-      displayTotalLectures,
-      eligibilityAttendanceCount,
-      subject.isPractical,
-    ),
+    possibleAbsentCount: eligibility?.remainingAbsences ?? null,
+
+    eligibility,
 
     late,
 
@@ -2870,8 +2870,8 @@ function renderSubjectAttendanceCard(stats) {
       ? "--%"
       : `${formatRate(stats.attendanceRate)}%`;
 
-  const thresholdWarning =
-    stats.registeredLectures > 0 && stats.attended * 3 < stats.registeredLectures * 2;
+  const eligibilityLost = Boolean(stats.eligibility?.isDisqualified);
+  const eligibilityAtRisk = Boolean(stats.eligibility?.isAtRisk);
 
   const conversionText =
     stats.conversionRemainder === 0
@@ -2882,7 +2882,13 @@ function renderSubjectAttendanceCard(stats) {
 
   return `
         <details
-            class="card setting-card attendance-subject-card">
+            class="card setting-card attendance-subject-card ${
+              eligibilityLost
+                ? "is-eligibility-lost"
+                : eligibilityAtRisk
+                  ? "is-eligibility-at-risk"
+                  : ""
+            }">
 
             <summary
                 class="attendance-subject-summary">
@@ -2894,12 +2900,15 @@ function renderSubjectAttendanceCard(stats) {
                       stats.possibleAbsentCount !== null
                         ? `
 
-                    <p class="attendance-subject-limit">
+                    <p class="attendance-subject-limit ${
+                      eligibilityLost ? "is-lost" : ""
+                    }">
 
-                    あと
-                    ${stats.possibleAbsentCount}
-                    回欠席すると
-                    評価資格なし
+                    ${
+                      eligibilityLost
+                        ? "評価資格なし"
+                        : `あと ${stats.possibleAbsentCount} 回欠席すると 評価資格なし`
+                    }
 
                     </p>
 
@@ -2926,7 +2935,7 @@ function renderSubjectAttendanceCard(stats) {
 
                 <div
                     class="attendance-subject-rate-block ${
-                      thresholdWarning ? "is-warning" : ""
+                      eligibilityLost ? "is-warning" : ""
                     }">
 
                     <strong>
@@ -2990,12 +2999,16 @@ function renderSubjectAttendanceCard(stats) {
 
 
                 ${
-                  thresholdWarning
+                  eligibilityLost || eligibilityAtRisk
                     ? `
                             <p
                                 class="attendance-subject-warning">
 
-                                現在の出席率が3分の2未満です。
+                                ${
+                                  eligibilityLost
+                                    ? "出席回数が基準を下回り、評価資格なしです。"
+                                    : "次に欠席すると評価資格なしになります。"
+                                }
 
                             </p>
                         `
@@ -4454,38 +4467,6 @@ function statusToEditValue(status) {
     default:
       return "";
   }
-}
-
-function calculatePossibleAbsentCount(
-  totalLectures,
-  attendedCount,
-  isPractical,
-) {
-  if (!totalLectures || totalLectures <= 0) {
-    return null;
-  }
-
-  const requiredRate = isPractical ? 0.8 : 2 / 3;
-
-  let possible = 0;
-
-  while (true) {
-    const futureAttendance = attendedCount - possible;
-
-    const rate = futureAttendance / totalLectures;
-
-    if (rate < requiredRate) {
-      break;
-    }
-
-    possible++;
-
-    if (possible > totalLectures) {
-      break;
-    }
-  }
-
-  return Math.max(0, possible - 1);
 }
 
 document.addEventListener("click", (event) => {

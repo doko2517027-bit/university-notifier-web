@@ -23,23 +23,21 @@ test("単一・複数クラス表記を科目照合から除外して表示対�
   assert.equal(normalizeCourseName("社会福祉論（A・Bクラス）"), expected);
 });
 
-test("クラス選択の更新前データは今日以降だけ再選択し、過去を残す", () => {
+test("クラス選択は更新バージョンに関係なく日付別の履歴を残す", () => {
   const old = {
     "看護学_2026-09-28_1": "A",
     "看護学_2026-09-29_1": "B",
     "看護学_2026-10-01_1": "C",
   };
-  assert.deepEqual(effectiveClassSelections({ classSelections: old }), {
-    "看護学_2026-09-28_1": "A",
-  });
+  assert.deepEqual(effectiveClassSelections({ classSelections: old }), old);
   assert.deepEqual(effectiveClassSelections({
     classSelections: old,
     classSelectionResetVersion: "2026-09-29-v2",
-  }), { "看護学_2026-09-28_1": "A" });
+  }), old);
   assert.deepEqual(effectiveClassSelections({
     classSelections: old,
     classSelectionResetVersion: "2026-09-29-v3",
-  }), { "看護学_2026-09-28_1": "A" });
+  }), old);
   assert.deepEqual(effectiveClassSelections({
     classSelections: old,
     classSelectionResetVersion: "2026-09-29-v4",
