@@ -1,0 +1,51 @@
+{
+  "id": "haruto",
+  "name": "ハルト",
+  "type": "human",
+  "status": "animation-first-pass",
+  "description": "ハルトの全動作を4コマずつ導入した初稿です。正式品質の最終確認とコマ数の追加は継続中です。",
+  "designReference": "docs/reference/haruto_design.png",
+  "maxHp": 104,
+  "moveSpeed": 350,
+  "jumpPower": 730,
+  "weight": 1,
+  "attackMultiplier": 1.04,
+  "defense": 1,
+  "weaponId": "haruto_laptop",
+  "equippedArmorIds": [],
+  "skillId": "power_throw",
+  "hitbox": { "width": 58, "height": 112 },
+  "sprite": {
+    "preview": "animations/idle_01.png",
+    "fallback": "animations/idle_01.png",
+    "width": 135,
+    "height": 180,
+    "origin": { "x": 0.5, "y": 0.953125 },
+    "animations": {
+      "idle": { "frames": ["animations/idle_01.png", "animations/idle_02.png", "animations/idle_03.png", "animations/idle_04.png"], "fps": 8, "loop": true, "available": true },
+      "run": { "frames": ["animations/run_01.png", "animations/run_02.png", "animations/run_03.png", "animations/run_04.png"], "fps": 12, "loop": true, "available": true },
+      "jump": { "frames": ["animations/jump_01.png", "animations/jump_02.png", "animations/jump_03.png", "animations/jump_04.png"], "fps": 8, "loop": false, "available": true },
+      "fall": { "frames": ["animations/fall_01.png", "animations/fall_02.png", "animations/fall_03.png", "animations/fall_04.png"], "fps": 8, "loop": false, "available": true },
+      "attack": { "frames": ["animations/attack_01.png", "animations/attack_02.png", "animations/attack_03.png", "animations/attack_04.png"], "fps": 12, "loop": false, "available": true, "releaseFrame": 2 },
+      "skill": { "frames": ["animations/skill_01.png", "animations/skill_02.png", "animations/skill_03.png", "animations/skill_04.png"], "fps": 12, "loop": false, "available": true },
+      "dodge": { "frames": ["animations/dodge_01.png", "animations/dodge_02.png", "animations/dodge_03.png", "animations/dodge_04.png"], "fps": 12, "loop": false, "available": true },
+      "hit": { "frames": ["animations/hit_01.png", "animations/hit_02.png", "animations/hit_03.png", "animations/hit_04.png"], "fps": 10, "loop": false, "available": true },
+      "death": { "frames": ["animations/death_01.png", "animations/death_02.png", "animations/death_03.png", "animations/death_04.png"], "fps": 10, "loop": false, "available": true },
+      "respawn": { "frames": ["animations/respawn_01.png", "animations/respawn_02.png", "animations/respawn_03.png", "animations/respawn_04.png"], "fps": 10, "loop": false, "available": true },
+      "victory": { "frames": ["animations/victory_01.png", "animations/victory_02.png", "animations/victory_03.png", "animations/victory_04.png"], "fps": 10, "loop": false, "available": true }
+    },
+    "anchors": {
+      "default": {
+        "hand": { "x": 42, "y": -94 },
+        "head": { "x": 0, "y": -160 },
+        "back": { "x": -36, "y": -103 },
+        "body": { "x": 0, "y": -91 }
+      },
+      "attack": {
+        "animations/attack_01.png": { "hand": { "x": -33, "y": -91 } },
+        "animations/attack_02.png": { "hand": { "x": -34, "y": -87 } },
+        "animations/attack_03.png": { "hand": { "x": 44, "y": -100 } }
+      }
+    }
+  }
+}

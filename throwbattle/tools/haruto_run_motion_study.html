@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Throb・ハルト走行方式の比較検証</title>
+  <style>
+    :root { font: 16px/1.5 system-ui,sans-serif; color:#172638; background:#eaf0f5; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    main { max-width:1500px; margin:auto; padding:20px; }
+    h1 { font-size:clamp(23px,3vw,32px); margin:0 0 8px; }
+    p { margin:0 0 14px; }
+    .warning { background:#fff1d3; border-left:5px solid #cc8200; border-radius:6px; padding:10px 14px; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    figure { margin:0; min-width:0; padding:12px; background:white; border-radius:16px; box-shadow:0 6px 20px #24394815; }
+    figcaption { font-weight:750; min-height:3em; }
+    canvas { display:block; width:100%; aspect-ratio:1; border:1px solid #c3d2dc; border-radius:9px; background-color:#e2eaf0; background-image:linear-gradient(45deg,#cbd6de 25%,transparent 25%),linear-gradient(-45deg,#cbd6de 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#cbd6de 75%),linear-gradient(-45deg,transparent 75%,#cbd6de 75%); background-position:0 0,0 16px,16px -16px,-16px 0; background-size:32px 32px; }
+    .description { margin:8px 0 0; font-size:14px; min-height:5em; }
+    .controls { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; background:white; border-radius:12px; padding:12px; margin-top:15px; }
+    button,input { font:inherit; }
+    button { cursor:pointer; border:1px solid #8fa9bc; border-radius:8px; padding:8px 13px; background:#f6f9fc; color:#172638; }
+    input[type=range] { width:min(210px,40vw); }
+    label { display:inline-flex; align-items:center; gap:6px; }
+    .legend { background:white; border-radius:12px; padding:12px 16px; margin-top:14px; }
+    .legend ul { margin-bottom:0; }
+    .contact { margin-top:14px; background:white; border-radius:12px; padding:14px; }
+    .contact h2 { font-size:20px; margin:0 0 4px; }
+    .strip { display:grid; grid-template-columns:repeat(8,minmax(115px,1fr)); gap:7px; overflow-x:auto; padding-bottom:6px; }
+    .strip > div { min-width:115px; text-align:center; border:1px solid #d4e0e8; border-radius:8px; padding:5px; }
+    .strip canvas { border:0; }
+    .strip span { display:block; font-size:13px; font-weight:700; }
+    .strip-note { margin:12px 0 5px; font-weight:700; }
+    select { font:inherit; min-height:42px; padding:6px 10px; border:1px solid #8fa9bc; border-radius:8px; background:white; }
+    @media(max-width:930px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } figure:last-child { grid-column:1/-1; max-width:480px; justify-self:center; } }
+    @media(max-width:620px) { .grid { grid-template-columns:1fr; } figure:last-child { grid-column:auto; max-width:none; } figcaption,.description { min-height:0; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>ハルト走行・制作方式の比較</h1>
+  <p class="warning">正式ゲーム素材への差し替えは行っていません。右は体の動きだけを調べる骨格図で、ハルトの新デザインや完成画像ではありません。</p>
+  <div class="grid">
+    <figure>
+      <figcaption>現行：全身4コマ</figcaption>
+      <canvas id="original" width="512" height="512" aria-label="現行のハルト走行"></canvas>
+      <p class="description">顔・服装は保てますが、前に出る脚がほぼ同じままです。</p>
+    </figure>
+    <figure>
+      <figcaption>改善試作：全身絵＋重心・前傾・接地補正</figcaption>
+      <canvas id="whole" width="512" height="512" aria-label="全身を連動させたハルト走行試作"></canvas>
+      <p class="description">元の4枚を壊さず、全身の上下・前傾と足元の補正を追加。見た目は少し改善しますが、脚の交互接地は画像不足で未達です。</p>
+    </figure>
+    <figure>
+      <figcaption>運動設計図：8姿勢の正しい接地順</figcaption>
+      <canvas id="motion" width="512" height="512" aria-label="交互接地と全身連動の骨格図"></canvas>
+      <p class="description">右接地→沈む→蹴る→空中→左接地→沈む→蹴る→空中。足が地面の目印と同じ速度で動く運動図です。ハルトの絵には適用していません。</p>
+    </figure>
+  </div>
+  <div class="controls">
+    <button id="play" type="button">一時停止</button>
+    <button id="previous" type="button">前の姿勢</button>
+    <button id="next" type="button">次の姿勢</button>
+    <label>再生速度 <select id="fps"><option value="8">8 FPS</option><option value="12" selected>12 FPS（ゲーム設定）</option><option value="16">16 FPS</option></select></label>
+    <label><input id="guides" type="checkbox"> 足元・重心のガイド</label>
+    <strong id="status" role="status">読み込み中</strong>
+  </div>
+  <div class="contact">
+    <h2>8フレームを横並びで確認</h2>
+    <p id="metrics">画像を調べています…</p>
+    <div class="strip-note">現在のハルト：実際は4枚。8枠に置くと同じ画像の繰り返し</div>
+    <div id="sourceStrip" class="strip"></div>
+    <div class="strip-note">必要な8姿勢：運動設計図（ハルトの画像ではありません）</div>
+    <div id="motionStrip" class="strip"></div>
+  </div>
+  <div class="legend">
+    <strong>判定のポイント</strong>
+    <ul>
+      <li>中：胴体・頭・腰が一緒に動くため、前回の「体幹静止」の欠点を軽減。ただし全身一枚絵なので、頭の遅れや肘・膝を独立して変えることはできません。</li>
+      <li>右：交互接地の運動を計算できても、それをハルトの正式画像へ移すには、全身の新しい連続コマか、関節の裏面を含む専用のレイヤー画像が必要です。</li>
+    </ul>
+  </div>
+</main>
+<script type="module">
+  const $=id=>document.getElementById(id);
+  const ctxs=Object.fromEntries(['original','whole','motion'].map(id=>[id,$(id).getContext('2d')]));
+  const paths=[1,2,3,4].map(n=>`../assets/characters/haruto/animations/run_0${n}.png`);
+  const load=path=>new Promise((resolve,reject)=>{ const image=new Image(); image.onload=()=>resolve(image); image.onerror=()=>reject(new Error(`画像を読み込めません: ${path}`)); image.src=path; });
+  const TAU=Math.PI*2, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const ground=488, hip=[256,355];
+  const STEPS=8;
+  const GAIT=[
+    {label:'右足接地',hipY:348,lean:0.09,headLag:-4,arm:0.55,right:[310,ground],left:[206,454]},
+    {label:'右足・沈み込み',hipY:359,lean:0.12,headLag:-2,arm:0.20,right:[280,ground],left:[238,451]},
+    {label:'右足・蹴り出し',hipY:344,lean:0.14,headLag:1,arm:-0.25,right:[250,ground],left:[282,459]},
+    {label:'空中・左足を前へ',hipY:331,lean:0.11,headLag:4,arm:-0.58,right:[217,470],left:[318,466]},
+    {label:'左足接地',hipY:348,lean:0.09,headLag:4,arm:-0.55,right:[206,454],left:[310,ground]},
+    {label:'左足・沈み込み',hipY:359,lean:0.12,headLag:2,arm:-0.20,right:[238,451],left:[280,ground]},
+    {label:'左足・蹴り出し',hipY:344,lean:0.14,headLag:-1,arm:0.25,right:[282,459],left:[250,ground]},
+    {label:'空中・右足を前へ',hipY:331,lean:0.11,headLag:-4,arm:0.58,right:[318,466],left:[217,470]}
+  ];
+  let frames, playing=true, elapsed=0, last=0, step=0;
+  function clear(ctx){ctx.clearRect(0,0,512,512);}
+  function guides(ctx,centerX,centerY,footX){
+    if(!$('guides').checked)return;
+    ctx.save(); ctx.lineWidth=2; ctx.strokeStyle='#009177'; ctx.setLineDash([8,5]);
+    ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(512,ground);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#e34459'; ctx.beginPath();ctx.arc(centerX,centerY,5,0,TAU);ctx.fill();
+    if(footX!==undefined){ctx.fillStyle='#087bca';ctx.beginPath();ctx.arc(footX,ground,5,0,TAU);ctx.fill();}
+    ctx.restore();
+  }
+  function original(frame){
+    const ctx=ctxs.original; clear(ctx);
+    ctx.drawImage(frames[frame],0,0);
+    guides(ctx,hip[0],hip[1]);
+  }
+  function whole(frame,t){
+    const ctx=ctxs.whole; clear(ctx);
+    // Measured front-sole centers of the existing four complete sprites.
+    // The same foot leads in all four: this is only a temporary contact lock.
+    const soles=[[351,483],[344,484],[364,484],[346,484]];
+    const [soleX,soleY]=soles[frame];
+    const lean=0.025+0.015*Math.sin(t-0.3);
+    const rise=7*Math.pow(Math.sin(t),2);
+    const breath=1+0.006*Math.cos(2*t);
+    // Transform around the hip: the torso, head, hair and clothes move as a
+    // coherent whole instead of leaving the core stationary as in the old rig.
+    const transformed=(x,y)=>{
+      const dx=x-hip[0],dy=(y-hip[1])*breath;
+      return [hip[0]+dx*Math.cos(lean)-dy*Math.sin(lean),hip[1]+dx*Math.sin(lean)+dy*Math.cos(lean)];
+    };
+    const [soleTx,soleTy]=transformed(soleX,soleY);
+    const lockX=frame===1||frame===2?350:352;
+    const tx=clamp(lockX-soleTx,-15,15);
+    const ty=ground-soleTy-rise;
+    ctx.save();ctx.translate(tx,ty);ctx.translate(hip[0],hip[1]);ctx.rotate(lean);ctx.scale(1,breath);ctx.translate(-hip[0],-hip[1]);
+    ctx.drawImage(frames[frame],0,0);ctx.restore();
+    guides(ctx,hip[0]+tx,hip[1]+ty,lockX);
+  }
+  function knee(a,b,length1,length2,forward){
+    const dx=b.x-a.x,dy=b.y-a.y,d=clamp(Math.hypot(dx,dy),0.001,length1+length2-0.001);
+    const along=(length1*length1-length2*length2+d*d)/(2*d);
+    const across=Math.sqrt(Math.max(0,length1*length1-along*along));
+    return {x:a.x+along*dx/d-forward*across*dy/d,y:a.y+along*dy/d+forward*across*dx/d};
+  }
+  function line(ctx,a,b,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  function dot(ctx,p,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.fill();}
+  function drawMotion(ctx,index,showGuides){
+    clear(ctx);
+    const pose=GAIT[index], left={x:pose.left[0],y:pose.left[1]}, right={x:pose.right[0],y:pose.right[1]};
+    const hips={x:256,y:pose.hipY};
+    const shoulder={x:hips.x+18+pose.lean*72,y:hips.y-112};
+    const head={x:shoulder.x+6+pose.headLag,y:shoulder.y-38};
+    const legs=[{foot:left,hip:{x:hips.x-10,y:hips.y},color:'#436390'},{foot:right,hip:{x:hips.x+10,y:hips.y},color:'#d75945'}];
+    for(const leg of legs){const k=knee(leg.hip,leg.foot,72,77,-1);line(ctx,leg.hip,k,leg.color,12);line(ctx,k,leg.foot,leg.color,11);line(ctx,{x:leg.foot.x-14,y:leg.foot.y},{x:leg.foot.x+15,y:leg.foot.y},leg.color,7);dot(ctx,k,6,leg.color);}
+    line(ctx,hips,shoulder,'#475267',26);dot(ctx,hips,15,'#28364a');dot(ctx,head,28,'#ff6b60');
+    line(ctx,{x:head.x-12,y:head.y-24},{x:head.x+4+pose.headLag/2,y:head.y-32},'#d52f36',8);
+    for(const side of [-1,1]){
+      const s={x:shoulder.x+side*12,y:shoulder.y+5};
+      const elbow={x:s.x+side*8+pose.arm*side*20,y:s.y+34};
+      const hand={x:elbow.x+side*9+pose.arm*side*17,y:elbow.y+27};
+      line(ctx,s,elbow,side<0?'#61758b':'#d64b50',10);line(ctx,elbow,hand,side<0?'#61758b':'#d64b50',9);dot(ctx,elbow,5,'#f6c6aa');
+    }
+    if(showGuides){
+      ctx.strokeStyle='#009177';ctx.setLineDash([8,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(512,ground);ctx.stroke();ctx.setLineDash([]);
+      const scroll=30*index;
+      ctx.strokeStyle='#527c81';ctx.lineWidth=3;
+      for(let i=-5;i<16;i++){const x=i*40-scroll;ctx.beginPath();ctx.moveTo(x,ground+2);ctx.lineTo(x-7,ground+13);ctx.stroke();}
+      dot(ctx,hips,5,'#e34459');for(const f of [left,right])if(f.y===ground)dot(ctx,f,5,'#087bca');
+    }
+    ctx.fillStyle='#172638';ctx.font='bold 17px system-ui';ctx.fillText(`${index+1}. ${pose.label}`,16,30);
+  }
+  function imageHash(image){
+    const c=document.createElement('canvas');c.width=512;c.height=512;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);
+    const pixels=ctx.getImageData(0,0,512,512).data;let h=2166136261;
+    for(let i=0;i<pixels.length;i+=4){h=Math.imul(h^pixels[i],16777619);h=Math.imul(h^pixels[i+1],16777619);h=Math.imul(h^pixels[i+2],16777619);h=Math.imul(h^pixels[i+3],16777619);}
+    return h>>>0;
+  }
+  function buildStrip(){
+    const source=$('sourceStrip'),target=$('motionStrip');
+    for(let i=0;i<STEPS;i++){
+      const a=document.createElement('div'),ca=document.createElement('canvas');ca.width=512;ca.height=512;a.append(ca);
+      const label=document.createElement('span');label.textContent=`${i+1}: run_0${i%4+1}${i>=4?'（再使用）':''}`;a.append(label);source.append(a);ca.getContext('2d').drawImage(frames[i%4],0,0);
+      const b=document.createElement('div'),cb=document.createElement('canvas');cb.width=512;cb.height=512;b.append(cb);
+      const poseLabel=document.createElement('span');poseLabel.textContent=`${i+1}: ${GAIT[i].label}`;b.append(poseLabel);target.append(b);drawMotion(cb.getContext('2d'),i,false);
+    }
+    const unique=new Set(frames.map(imageHash)).size;
+    $('metrics').textContent=`現行素材：実ファイル${frames.length}枚／画素が異なる画像${unique}枚／交互接地を含む完成した走行周期0組。ゲーム設定：12 FPS・移動速度350 px/秒。現行4枚は約0.33秒/周期、移動距離約117 px。8枚なら12 FPSで約0.67秒/周期、移動距離約233 px。`;
+  }
+  function render(){
+    if(!frames)return;
+    const frame=step%frames.length,t=step/STEPS*TAU;
+    original(frame);whole(frame,t);drawMotion(ctxs.motion,step,$('guides').checked);
+    $('status').textContent=`姿勢 ${step+1}/${STEPS}：${GAIT[step].label} ／ 再生 ${$('fps').value} FPS ／ 現行画像 run_0${frame+1}`;
+  }
+  function tick(now){
+    const dt=Math.min((now-(last||now))/1000,0.1);last=now;
+    if(playing){elapsed+=dt;const next=Math.floor(elapsed*Number($('fps').value))%STEPS;if(next!==step){step=next;render();}}
+    requestAnimationFrame(tick);
+  }
+  $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'一時停止':'再生';};
+  for(const [id,dir] of [['previous',-1],['next',1]])$(id).onclick=()=>{playing=false;$('play').textContent='再生';step=(step+dir+STEPS)%STEPS;elapsed=step/Number($('fps').value);render();};
+  $('fps').onchange=()=>{elapsed=step/Number($('fps').value);render();};
+  $('guides').onchange=render;
+  try{frames=await Promise.all(paths.map(load));buildStrip();render();requestAnimationFrame(tick);}catch(error){$('status').textContent=error.message;}
+</script>
+</body>
+</html>

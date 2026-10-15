@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Throb アニメーション確認</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.45 system-ui, sans-serif; }
+    body { margin: 0; background: #e9eef3; color: #182739; }
+    main { max-width: 1100px; margin: auto; padding: 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 30px); }
+    p { margin: 0 0 16px; }
+    .layout { display: grid; grid-template-columns: minmax(280px, 512px) minmax(260px, 1fr); gap: 20px; }
+    .stage { width: 100%; aspect-ratio: 1; border-radius: 18px; border: 1px solid #a6b7c9; overflow: hidden; background-color: #dfe6ed; background-image: linear-gradient(45deg, #c5d0db 25%, transparent 25%), linear-gradient(-45deg, #c5d0db 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c5d0db 75%), linear-gradient(-45deg, transparent 75%, #c5d0db 75%); background-position: 0 0, 0 18px, 18px -18px, -18px 0; background-size: 36px 36px; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .panel { padding: 18px; border-radius: 18px; background: white; box-shadow: 0 8px 30px #24344813; }
+    label { display: grid; gap: 5px; font-weight: 700; margin-bottom: 12px; }
+    select, input[type=number], input[type=color] { font: inherit; min-height: 40px; border: 1px solid #9aafc2; border-radius: 8px; padding: 4px 8px; }
+    input[type=color] { width: 72px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    button { border: 1px solid #8fa8c2; background: #f4f7fa; color: #14304b; font: 700 16px system-ui; padding: 9px 13px; min-height: 42px; border-radius: 9px; cursor: pointer; }
+    button:hover { background: #deebf5; }
+    .checks { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 12px; }
+    .checks label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 500; }
+    #status { min-height: 3em; margin-top: 12px; overflow-wrap: anywhere; }
+    #error { color: #a5162b; font-weight: 700; }
+    .note { font-size: 14px; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Throb・スプライト確認</h1>
+    <p>再生・コマ送りで輪郭、足元、当たり判定、装備アンカーを確認できます。</p>
+    <div class="layout">
+      <div class="stage" id="stage"><canvas id="preview" width="512" height="512" aria-label="選択したアニメーションのプレビュー"></canvas></div>
+      <div class="panel">
+        <label>キャラクター <select id="character"></select></label>
+        <label>アニメーション <select id="animation"></select></label>
+        <label>再生速度（FPS） <input id="fps" type="number" min="1" max="30" value="8"></label>
+        <div class="actions">
+          <button id="play">一時停止</button><button id="previous">前のコマ</button><button id="next">次のコマ</button>
+        </div>
+        <label>背景色 <input id="backgroundColor" type="color" value="#dfe6ed"></label>
+        <div class="checks">
+          <label><input id="checker" type="checkbox" checked>チェック柄</label>
+          <label><input id="foot" type="checkbox" checked>足元基準線</label>
+          <label><input id="hitbox" type="checkbox">当たり判定</label>
+          <label><input id="anchors" type="checkbox">装備アンカー</label>
+          <label><input id="weapon" type="checkbox" checked>攻撃前の武器</label>
+        </div>
+        <div id="status" role="status"></div><div id="error" role="alert"></div>
+        <p class="note">画像や設定の読み込みにはローカルWebサーバーが必要です。file://で直接開いた場合は動作しません。未提供画像は「未完成」と表示します。</p>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { WEAPONS } from '../js/data.js';
+    const $ = (id) => document.getElementById(id);
+    const canvas = $('preview'); const ctx = canvas.getContext('2d');
+    const state = { characters: [], character: null, animation: null, frame: 0, elapsed: 0, last: 0, playing: true, images: new Map() };
+    const actionNames = { idle:'待機', run:'走行', jump:'ジャンプ', fall:'落下', attack:'通常攻撃', skill:'スキル', dodge:'回避', hit:'被弾', death:'死亡', respawn:'復活', victory:'勝利' };
+    function loadImage(path) {
+      if (!state.images.has(path)) { const image = new Image(); image.src = path; state.images.set(path, image); }
+      return state.images.get(path);
+    }
+    function selectCharacter() {
+      state.character = state.characters.find((item) => item.id === $('character').value) || state.characters[0];
+      $('animation').replaceChildren(...Object.keys(state.character.sprite.animations).map((name) => {
+        const option = document.createElement('option'); option.value = name; option.textContent = `${actionNames[name] || name} (${name})`; return option;
+      }));
+      $('animation').value = 'idle'; selectAnimation();
+    }
+    function selectAnimation() {
+      state.animation = state.character.sprite.animations[$('animation').value];
+      $('fps').value = state.animation.fps || 8;
+      state.frame = 0; state.elapsed = 0;
+    }
+    function framePath() {
+      if (!state.character || !state.animation) return null;
+      if (state.animation.available === false) return state.character.assetBase + state.character.sprite.fallback;
+      return state.character.assetBase + (state.animation.frames?.[state.frame] || state.character.sprite.fallback);
+    }
+    function drawGuides() {
+      const character = state.character;
+      const sprite = character.sprite;
+      const footY = Math.round((sprite.origin?.y ?? 1) * 512);
+      if ($('foot').checked) {
+        ctx.strokeStyle = '#00a882'; ctx.lineWidth = 2; ctx.setLineDash([8,5]);
+        ctx.beginPath(); ctx.moveTo(0,footY); ctx.lineTo(512,footY); ctx.stroke(); ctx.setLineDash([]);
+      }
+      if ($('hitbox').checked) {
+        const w = character.hitbox.width * 512 / sprite.width;
+        const h = character.hitbox.height * 512 / sprite.height;
+        ctx.strokeStyle = '#ef4a61'; ctx.lineWidth = 2; ctx.strokeRect(256-w/2,footY-h,w,h);
+      }
+      if ($('anchors').checked) {
+        const frameName = state.animation.frames?.[state.frame];
+        const poseAnchors = sprite.anchors?.[$('animation').value];
+        const anchors = { ...(sprite.anchors?.default || {}), ...(poseAnchors?.default || {}), ...(poseAnchors?.[frameName] || {}) };
+        for (const [name, point] of Object.entries(anchors)) {
+          const x = 256 + point.x * 512 / sprite.width;
+          const y = footY + point.y * 512 / sprite.height;
+          ctx.fillStyle = '#2755e5'; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#14304b'; ctx.font = 'bold 15px system-ui'; ctx.fillText(name,x+8,y-8);
+        }
+      }
+    }
+    function drawHeldWeapon() {
+      if (!$('weapon').checked || $('animation').value !== 'attack') return;
+      const character = state.character;
+      const animation = state.animation;
+      if (state.frame >= (animation.releaseFrame ?? 0)) return;
+      const weapon = WEAPONS[character.weaponId];
+      if (!weapon) return;
+      const image = loadImage('../' + weapon.image);
+      if (!image.complete || !image.naturalWidth) return;
+      const sprite = character.sprite;
+      const frame = animation.frames[state.frame];
+      const anchors = { ...(sprite.anchors?.default || {}), ...(sprite.anchors?.attack?.default || {}), ...(sprite.anchors?.attack?.[frame] || {}) };
+      const hand = anchors.hand;
+      if (!hand) return;
+      const x = 256 + hand.x * 512 / sprite.width;
+      const y = (sprite.origin?.y ?? 1) * 512 + hand.y * 512 / sprite.height;
+      ctx.drawImage(image, x - 21 * 512 / sprite.width, y - 21 * 512 / sprite.height, 42 * 512 / sprite.width, 42 * 512 / sprite.height);
+    }
+    function render() {
+      ctx.clearRect(0,0,512,512);
+      if (!state.character || !state.animation) return;
+      const path = framePath(); const image = loadImage(path);
+      if (image.complete && image.naturalWidth) ctx.drawImage(image,0,0,512,512);
+      drawHeldWeapon();
+      drawGuides();
+      const total = state.animation.frames?.length || 0;
+      $('status').textContent = `${state.character.name} ／ ${actionNames[$('animation').value] || $('animation').value} ／ ${state.frame+1} / ${total} コマ ／ ${$('fps').value} FPS${state.animation.available === false ? ' ／ 画像未完成・代替表示' : ''}${$('animation').value === 'attack' && state.frame === (state.animation.releaseFrame ?? -1) ? ' ／ このコマで投擲' : ''}\n${path}`;
+      $('error').textContent = image.complete && !image.naturalWidth ? `画像を読み込めません: ${path}` : '';
+    }
+    function loop(now) {
+      const dt = Math.min(0.1,(now - (state.last || now))/1000); state.last = now;
+      if (state.playing && state.animation) {
+        const count = state.animation.frames?.length || 1;
+        state.elapsed += dt;
+        const next = Math.floor(state.elapsed * Number($('fps').value || 8));
+        state.frame = state.animation.loop === false ? Math.min(count-1,next) : next % count;
+      }
+      render(); requestAnimationFrame(loop);
+    }
+    $('character').addEventListener('change',selectCharacter);
+    $('animation').addEventListener('change',selectAnimation);
+    $('play').addEventListener('click',() => { state.playing = !state.playing; $('play').textContent = state.playing ? '一時停止' : '再生'; state.last = performance.now(); });
+    for (const [id,delta] of [['previous',-1],['next',1]]) $(id).addEventListener('click',() => {
+      state.playing = false; $('play').textContent = '再生';
+      const count = state.animation?.frames?.length || 1;
+      state.frame = (state.frame+delta+count)%count;
+      state.elapsed = state.frame / Number($('fps').value || 8);
+    });
+    $('checker').addEventListener('change',() => { $('stage').style.backgroundImage = $('checker').checked ? '' : 'none'; });
+    $('backgroundColor').addEventListener('input',() => { $('stage').style.backgroundColor = $('backgroundColor').value; });
+    try {
+      const manifest = await fetch('../assets/characters/manifest.json', { cache: 'no-store' }).then((response) => response.json());
+      state.characters = await Promise.all(manifest.characters.map(async (file) => {
+        const data = await fetch(`../assets/characters/${file}`, { cache: 'no-store' }).then((response) => response.json());
+        return { ...data, assetBase:`../assets/characters/${file.slice(0,file.lastIndexOf('/')+1)}` };
+      }));
+      $('character').replaceChildren(...state.characters.map((character) => { const option = document.createElement('option'); option.value = character.id; option.textContent = character.name; return option; }));
+      selectCharacter(); requestAnimationFrame(loop);
+    } catch (error) { $('error').textContent = `設定を読み込めません。Webサーバー経由で開いてください。(${error.message})`; }
+  </script>
+</body>
+</html>
