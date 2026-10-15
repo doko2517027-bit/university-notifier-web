@@ -5,7 +5,7 @@ import {
   setupTheme,
   loadProfileImage,
 } from "./common.js";
-import { effectiveClassSelections } from "./class_selection.js?v=20260929-4";
+import { effectiveClassSelections } from "./class_selection.js?v=20261015-1";
 
 import {
   doc,

@@ -34,7 +34,7 @@ import {
   setClassSelectionSchedule,
   applyClassSelections,
   effectiveClassSelections,
-} from "./class_selection.js?v=20260929-4";
+} from "./class_selection.js?v=20261015-1";
 import { startHomeToday, setHomeTodaySchedule } from "./home_today.js?v=20261001-3";
 import { formatClassGroupLabel, normalizeScheduleClassData } from "./class_group_label.mjs";
 import { resolveCourseLink } from "./course_link_resolver.mjs";
