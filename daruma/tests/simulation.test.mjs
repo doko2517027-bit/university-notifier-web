@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DarumaMatch } from '../js/simulation.js';
+import { DarumaMatch, facingForMovement } from '../js/simulation.js';
 import { RULES } from '../js/config.js';
 
 function advance(match, seconds, input = { x: 0, z: 0 }) {
@@ -72,6 +72,25 @@ test('camera-only change does not change movement state', () => {
   const actor = match.player;
   match.move(actor, { x: 0, z: 0 }, .05);
   assert.equal(actor.speed, 0);
+});
+
+test('character faces the actual left/right direction without changing controls', () => {
+  const match = new DarumaMatch({ role: 'runner' });
+  const actor = match.player;
+  match.move(actor, { x: 1, z: 0 }, .05);
+  assert.ok(actor.x > -12);
+  assert.ok(actor.facing < 0);
+  assert.ok(Math.sin(actor.facing) < 0); // Local -Z rotated right in Three.js.
+  actor.vx = actor.vz = 0;
+  match.move(actor, { x: -1, z: 0 }, .05);
+  assert.ok(actor.facing > 0);
+  assert.ok(Math.abs(facingForMovement(0, -1)) < 1e-9);
+});
+
+test('walk and dash speeds are reduced while dash remains faster', () => {
+  assert.equal(RULES.walkSpeed, 3.4);
+  assert.equal(RULES.dashSpeed, 5.8);
+  assert.ok(RULES.dashSpeed > RULES.walkSpeed);
 });
 
 test('incorrect accusations end after three; next round resets elimination and lives', () => {

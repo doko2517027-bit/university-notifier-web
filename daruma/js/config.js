@@ -1,8 +1,8 @@
 export const RULES = Object.freeze({
   minPlayers: 4,
   maxPlayers: 10,
-  walkSpeed: 4.2,
-  dashSpeed: 7.2,
+  walkSpeed: 3.4,
+  dashSpeed: 5.8,
   acceleration: 20,
   normalFriction: 16,
   iceFriction: 2.2,

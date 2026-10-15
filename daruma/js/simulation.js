@@ -5,6 +5,11 @@ const length = (x, z) => Math.hypot(x, z);
 const inRect = (x, z, r) => x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
+// Three.jsのモデルはローカル-Zが正面。Y軸回転は画面上の左右と符号が逆になる。
+export function facingForMovement(dx, dz) {
+  return -Math.atan2(dx, -dz);
+}
+
 export function segmentIntersectsBox(a, b, box, pad = 0) {
   let near = 0;
   let far = 1;
@@ -195,7 +200,7 @@ export class DarumaMatch {
     else actor.vz = 0;
     actor.speed = length(actor.x - oldX, actor.z - oldZ) / dt;
     actor.moving = actor.speed > RULES.movementThreshold;
-    if (actor.moving) actor.facing = Math.atan2(actor.x - oldX, -(actor.z - oldZ));
+    if (actor.moving) actor.facing = facingForMovement(actor.x - oldX, actor.z - oldZ);
   }
 
   cpuRunnerInput(actor) {
