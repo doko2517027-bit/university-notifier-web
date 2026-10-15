@@ -58,7 +58,6 @@ const { buildOrphanedPresenceUpdates } = require("./presence_cleanup.js");
 const { manualUpdateDecision } = require("./manual_update_policy.js");
 const {
   targetedSystemNewsMatchesStudent,
-  targetedSystemNewsPredatesRegistration,
   targetedSystemNewsCopy,
   targetedSystemNewsContentSignature,
 } = require("./system_news_audience.js");
@@ -4585,10 +4584,7 @@ async function syncTargetedSystemNewsForStudent(studentNumber, user = null) {
 
   newsSnapshot.docs.forEach((newsDocument) => {
     const news = newsDocument.data() || {};
-    if (
-      !targetedSystemNewsMatchesStudent(news, studentNumber, userData) &&
-      !targetedSystemNewsPredatesRegistration(news, userData)
-    ) return;
+    if (!targetedSystemNewsMatchesStudent(news, studentNumber, userData)) return;
     matchedIds.add(newsDocument.id);
     if (!existingIds.has(newsDocument.id)) {
       writes.push(
@@ -4716,13 +4712,11 @@ exports.syncUpdatedTargetedSystemNews = onDocumentUpdated(
         .collection("targetedSystemNews")
         .doc(event.params.newsId);
       const userData = userDocument.data() || {};
-      if (
-        targetedSystemNewsMatchesStudent(
-          after,
-          userDocument.id,
-          userData,
-        ) || targetedSystemNewsPredatesRegistration(after, userData)
-      ) {
+      if (targetedSystemNewsMatchesStudent(
+        after,
+        userDocument.id,
+        userData,
+      )) {
         await destination.set(
           targetedSystemNewsCopy(after, event.params.newsId),
           { merge: true },

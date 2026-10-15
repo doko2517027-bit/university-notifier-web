@@ -49,7 +49,8 @@ test("編集画面から対象学生と通知有無を変更できる", () => {
   assert.match(functionsJs, /targeted-system-news-update-/);
 });
 
-test("新規登録前からあるCareMateお知らせを初回受信箱へ同期する", () => {
-  assert.match(functionsJs, /targetedSystemNewsPredatesRegistration/);
+test("限定お知らせは登録日時に関係なく対象学生だけへ同期する", () => {
+  assert.doesNotMatch(functionsJs, /targetedSystemNewsPredatesRegistration/);
   assert.match(functionsJs, /syncTargetedSystemNewsForStudent/);
+  assert.match(functionsJs, /if \(!targetedSystemNewsMatchesStudent/);
 });

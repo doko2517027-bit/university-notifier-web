@@ -2,7 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   targetedSystemNewsMatchesStudent,
-  targetedSystemNewsPredatesRegistration,
   targetedSystemNewsCopy,
   targetedSystemNewsContentSignature,
 } = require("./system_news_audience");
@@ -25,7 +24,7 @@ test("除外指定は新規登録者も除外一覧になければ一致する",
   assert.equal(targetedSystemNewsMatchesStudent(news, "2510099", {}), true);
 });
 
-test("新規登録前から存在するお知らせは対象条件外でも初回表示できる", () => {
+test("登録前の限定お知らせでも対象外の学生には一致しない", () => {
   const news = {
     audienceMode: "only",
     targetStudentNumbers: ["2510001"],
@@ -35,15 +34,9 @@ test("新規登録前から存在するお知らせは対象条件外でも初�
     studentPageVerifiedAt: "2026-10-08T00:00:00Z",
   };
   assert.equal(
-    targetedSystemNewsPredatesRegistration(news, newlyRegisteredUser),
-    true,
+    targetedSystemNewsMatchesStudent(news, "2510002", newlyRegisteredUser),
+    false,
   );
-});
-
-test("登録後に投稿された対象外のお知らせは新規登録者にも表示しない", () => {
-  const news = { createdAt: new Date("2026-10-08T00:00:00Z") };
-  const user = { createdAt: new Date("2026-10-01T00:00:00Z") };
-  assert.equal(targetedSystemNewsPredatesRegistration(news, user), false);
 });
 
 test("学生用コピーには装飾本文も保持する", () => {
