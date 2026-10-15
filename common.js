@@ -1444,6 +1444,7 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
+  ensureThrobPilotNavTab();
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1474,12 +1475,49 @@ function ensureCalendarNavTab() {
   }
 }
 
+let throbPilotNavCheck;
+
+function ensureThrobPilotNavTab() {
+  if (studentNumber !== "2510044") return;
+  const links = [...document.querySelectorAll('.bottom-nav a[href="requests.html"]')];
+  if (!links.length) return;
+  for (const link of links) link.style.display = "none";
+
+  throbPilotNavCheck ||= (async () => {
+    try {
+      await auth.authStateReady();
+      const user = auth.currentUser;
+      if (user?.uid !== "caremate-2510044") return false;
+      const token = await getIdTokenResult(user);
+      if (String(token.claims?.studentNumber || "") !== "2510044") return false;
+      const profile = await getDoc(doc(db, "users", "2510044"));
+      return profile.exists() && String(profile.data()?.studentNumber || profile.id) === "2510044";
+    } catch (error) {
+      console.warn("Throbの入口を確認できませんでした。", error);
+      return false;
+    }
+  })();
+
+  void throbPilotNavCheck.then((allowed) => {
+    for (const link of links) {
+      if (allowed) {
+        link.href = "throwbattle/";
+        link.setAttribute("aria-label", "Throbを開く");
+        link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">🎯</span></span><span>Throb</span>';
+      }
+      link.style.removeProperty("display");
+    }
+  });
+}
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     ensureCalendarNavTab();
+    ensureThrobPilotNavTab();
   }, { once: true });
 } else {
   ensureCalendarNavTab();
+  ensureThrobPilotNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {
