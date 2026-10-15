@@ -147,102 +147,6 @@ async function dispatchStudentRefreshWorkflow(studentNumber, requestId) {
   }
 }
 
-// 学生専用機能リクエスト。累計ポイントに応じた最大3枠をサーバー側で保証する。
-exports.submitFeatureRequest = onCall(
-  { region: "asia-northeast1" },
-  async (request) => {
-    const studentNumber = String(request.auth?.token?.studentNumber || "");
-    if (!studentNumber) {
-      throw new HttpsError("unauthenticated", "ログインが必要です。");
-    }
-
-    const title = String(request.data?.title || "")
-      .trim()
-      .slice(0, 100);
-    const description = String(request.data?.description || "")
-      .trim()
-      .slice(0, 2000);
-    const useCase = String(request.data?.useCase || "")
-      .trim()
-      .slice(0, 1000);
-    if (!title || !description) {
-      throw new HttpsError(
-        "invalid-argument",
-        "機能名と内容を入力してください。",
-      );
-    }
-
-    const [rankingSnapshot, existingSnapshot] = await Promise.all([
-      db.collection("totalRanking").doc(studentNumber).get(),
-      db
-        .collection("featureRequests")
-        .where("studentNumber", "==", studentNumber)
-        .get(),
-    ]);
-    const totalPoints = Number(rankingSnapshot.data()?.point || 0);
-    const unlockedSlots = totalPoints >= 5000 ? 3 : totalPoints >= 800 ? 2 : 1;
-    const usedSlots = existingSnapshot.docs.filter((item) =>
-      ["submitted", "reviewing", "developing", "implemented"].includes(
-        item.data().status || "submitted",
-      ),
-    ).length;
-    if (usedSlots >= unlockedSlots) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "利用できるリクエスト枠がありません。",
-      );
-    }
-
-    const created = await db.collection("featureRequests").add({
-      studentNumber,
-      title,
-      description,
-      useCase,
-      status: "submitted",
-      slotIndex: usedSlots,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    return { id: created.id, unlockedSlots };
-  },
-);
-
-// 学生本人は送信済みの間だけ取り下げられる。検討中以降と実装済みは枠を保持する。
-exports.withdrawFeatureRequest = onCall(
-  { region: "asia-northeast1" },
-  async (request) => {
-    const studentNumber = String(request.auth?.token?.studentNumber || "");
-    const requestId = String(request.data?.requestId || "").trim();
-    if (!studentNumber)
-      throw new HttpsError("unauthenticated", "ログインが必要です。");
-    if (!requestId)
-      throw new HttpsError(
-        "invalid-argument",
-        "リクエストを指定してください。",
-      );
-    const reference = db.collection("featureRequests").doc(requestId);
-    const snapshot = await reference.get();
-    if (!snapshot.exists || snapshot.data().studentNumber !== studentNumber) {
-      throw new HttpsError(
-        "permission-denied",
-        "このリクエストは操作できません。",
-      );
-    }
-    if ((snapshot.data().status || "submitted") !== "submitted") {
-      throw new HttpsError(
-        "failed-precondition",
-        "送信済み以外のリクエストは取り下げできません。",
-      );
-    }
-    await reference.update({
-      status: "withdrawn",
-      withdrawnAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    return { ok: true };
-  },
-);
-
 /*
  * 登録テスト専用の照合値。
  * 値そのものはコード・Firestore・ブラウザへ保存しない。
@@ -864,15 +768,12 @@ exports.prepareReferralRegistration = onCall(
   {
     region: "asia-northeast1",
     cors: [SITE_ORIGIN],
-    timeoutSeconds: 60,
-    memory: "1GiB",
+    timeoutSeconds: 30,
+    memory: "256MiB",
   },
   async (request) => {
     const studentNumber = String(request.data?.studentNumber || "").trim();
     const code = normalizeReferralCode(request.data?.referralCode);
-    const activeMailPassword = String(
-      request.data?.activeMailPassword || "",
-    );
     const studentPageProofToken = String(
       request.data?.studentPageVerificationToken || "",
     );
@@ -929,39 +830,6 @@ exports.prepareReferralRegistration = onCall(
         "この招待コードは受付上限に達しています。",
       );
     }
-    if (!activeMailPassword) {
-      throw new HttpsError(
-        "invalid-argument",
-        "招待制度を利用する場合は大学メールのパスワードが必要です。",
-      );
-    }
-
-    let browser;
-    try {
-      const chromium = require("@sparticuz/chromium");
-      const { chromium: playwrightChromium } = require("playwright-core");
-      const { verifyActiveMailPassword } = require("./external_auth_check.js");
-      browser = await playwrightChromium.launch({
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      });
-      const result = await verifyActiveMailPassword({
-        browser,
-        studentNumber,
-        password: activeMailPassword,
-        updateProgress: async () => {},
-      });
-      if (!result.verified) {
-        throw new HttpsError(
-          "permission-denied",
-          `${studentNumber}@sums.ac.jp の本人確認に失敗しました。`,
-        );
-      }
-    } finally {
-      if (browser) await browser.close();
-    }
-
     const proofToken = createProofToken();
     await db
       .collection("referralRegistrationProofs")
@@ -970,8 +838,7 @@ exports.prepareReferralRegistration = onCall(
         studentNumber,
         codeHash: codeSnapshot.id,
         inviterStudentNumber: codeData.inviterStudentNumber,
-        universityEmail: `${studentNumber}@sums.ac.jp`,
-        universityEmailVerifiedAt: new Date(),
+        studentPageVerifiedAt: new Date(),
         userExistedAtVerification: false,
         identityExistedAtVerification: false,
         createdAt: new Date(),

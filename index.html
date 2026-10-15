@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20261009-1" />
+    <link rel="modulepreload" href="app.js?v=20261015-1" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20260929-4" />
 
-    <link rel="stylesheet" href="style.css?v=20261009-3" />
+    <link rel="stylesheet" href="style.css?v=20261015-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -216,6 +216,12 @@
         </button>
       </div>
     </div>
+
+    <button id="homeEnrollmentNotice" class="home-enrollment-notice" type="button" hidden>
+      <span aria-hidden="true">📘</span>
+      <span><strong>履修登録がまだ完了していません</strong><small>時間割・出席管理を使うには履修登録が必要です</small></span>
+      <b>登録へ →</b>
+    </button>
 
     <button
       id="courseRegistrationBanner"
@@ -524,15 +530,6 @@
         <span>課題</span>
       </a>
 
-      <a href="requests.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">💡</span>
-
-        </span>
-
-        <span>リクエスト</span>
-      </a>
-
       <a href="news.html">
         <span class="nav-icon-wrap">
           <span class="nav-icon">📢</span>
@@ -568,6 +565,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261009-1"></script>
+    <script type="module" src="app.js?v=20261015-1"></script>
   </body>
 </html>

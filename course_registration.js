@@ -68,6 +68,7 @@ const elements = {
   unavailableBack: document.getElementById("unavailableBackButton"),
 
   guide: document.getElementById("registrationGuide"),
+  stepNotice: document.getElementById("registrationStepNotice"),
 
   mainLayout: document.getElementById("registrationMainLayout"),
 
@@ -273,6 +274,7 @@ let enrolledDocs = new Map();
 let pastCourseRecords = new Map();
 
 let courseHistoryDirty = false;
+let pastHistoryInitialized = false;
 
 let retakeSubjectIds = new Set();
 
@@ -354,6 +356,23 @@ function setupEvents() {
   );
 
   elements.progressToggle?.addEventListener("click", toggleProgressEditor);
+
+  elements.stepNotice?.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-registration-step]")?.dataset.registrationStep;
+    if (action === "past") {
+      if (elements.progressEditor.hidden) toggleProgressEditor();
+      elements.progressCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (action === "current") {
+      document.getElementById("courseFilterCard")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  });
+
+  if (window.matchMedia("(max-width: 650px)").matches && !elements.graduationContent.hidden) {
+    toggleGraduationProgress();
+  }
 
   elements.progressSave?.addEventListener("click", saveCourseProgress);
 
@@ -437,6 +456,20 @@ function setupEvents() {
     }
 
     courseHistoryDirty = true;
+  });
+
+  elements.progressEditor?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-bulk-history-status]");
+    if (!button) return;
+    const status = button.dataset.bulkHistoryStatus;
+    if (!["earned", "not_earned", "not_taken"].includes(status)) return;
+    const period = button.closest("[data-history-period]");
+    const fields = period
+      ? period.querySelectorAll(".course-history-status")
+      : elements.progressYearFields.querySelectorAll(".course-history-status");
+    fields.forEach((field) => { field.value = status; });
+    courseHistoryDirty = fields.length > 0;
+    showToast(`${fields.length}科目を一括設定しました。保存前に内容を確認してください。`);
   });
 }
 
@@ -686,6 +719,7 @@ async function loadRegistrationData() {
       userData.courseHistoryInitialized === true
         ? {}
         : userData.courseProgress || {};
+    pastHistoryInitialized = userData.courseHistoryInitialized === true;
 
     progress = buildProgress(storedProgressForBuild, combinedCreditRecords);
 
@@ -778,6 +812,7 @@ function renderPage() {
   renderPhase();
 
   renderProgress();
+  renderRegistrationSteps();
 
   updateCategoryFilter();
 
@@ -1883,6 +1918,25 @@ function renderProgress() {
     .join("");
 }
 
+function renderRegistrationSteps() {
+  if (!elements.stepNotice) return;
+  const hasPast = hasPastCourseEntry();
+  elements.stepNotice.innerHTML = hasPast
+    ? `<strong>履修登録は2つの保存が必要です</strong>
+       <span>① 過去の履修結果を入力・保存 <b>${pastHistoryInitialized ? "保存済み" : "先に保存"}</b></span>
+       <span>② 今学期の科目を選択・保存 <b>${originalSelectedIds.size > 0 ? "登録済み" : "未登録"}</b></span>
+       <div class="registration-step-actions"><button type="button" class="btn" data-registration-step="past">過去分を入力 →</button><button type="button" class="btn btn-primary" data-registration-step="current">今学期の科目へ →</button></div>`
+    : `<strong>今学期の科目を選んで保存してください</strong>
+       <span>必修科目も選択が必要です。科目を選んだら、画面下の「内容確認」を押します。</span>
+       <div class="registration-step-actions"><button type="button" class="btn btn-primary" data-registration-step="current">今学期の科目へ →</button></div>`;
+}
+
+function hasPastCourseEntry() {
+  return getPastAcademicPeriods().some((period) =>
+    getHistoricalSubjectsForPeriod(period.grade, period.semester).length > 0
+  );
+}
+
 function createPastSemesterSection(period) {
   const semesterLabel =
     {
@@ -1908,7 +1962,7 @@ function createPastSemesterSection(period) {
   return `
 
         <div
-            class="course-history-semester">
+            class="course-history-semester" data-history-period>
 
             <div
                 class="
@@ -1946,6 +2000,12 @@ function createPastSemesterSection(period) {
 
                 </span>
 
+            </div>
+
+            <div class="course-history-bulk-actions" role="group" aria-label="${period.grade}年次${period.semester}の一括設定">
+                <button type="button" class="btn" data-bulk-history-status="earned">この学期を全て修得</button>
+                <button type="button" class="btn" data-bulk-history-status="not_earned">全て未修得</button>
+                <button type="button" class="btn" data-bulk-history-status="not_taken">全て未履修</button>
             </div>
 
 
@@ -2296,6 +2356,7 @@ async function saveCourseProgress() {
     await batch.commit();
 
     courseHistoryDirty = false;
+    pastHistoryInitialized = true;
 
     showToast("過去の履修結果を保存しました");
 
@@ -3844,6 +3905,13 @@ function updateSpecialRequirementProgress(summary) {
 
 function buildWarnings(summary) {
   const warnings = [];
+
+  if (hasPastCourseEntry() && !pastHistoryInitialized) {
+    warnings.push({
+      level: "error",
+      message: "先に過去の履修結果を保存してください。過去科目は学期ごと・全件の一括選択もできます。",
+    });
+  }
 
   const semesterLimit = config.semesterCreditLimit;
 

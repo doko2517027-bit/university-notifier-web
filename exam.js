@@ -168,6 +168,12 @@ let selectedGroupId = localStorage.getItem(selectedPeriodStorageKey) || "";
 
 setupTheme(elements.themeButton);
 
+if (window.matchMedia("(max-width: 650px)").matches) {
+  document.querySelectorAll("[data-mobile-collapsible]").forEach((panel) => {
+    panel.open = false;
+  });
+}
+
 setupEvents();
 
 await initializePage([
@@ -1831,7 +1837,7 @@ function createFormatHtml(format) {
 
             <span class="exam-format-arrow">
 
-                →
+                開く →
 
             </span>
 

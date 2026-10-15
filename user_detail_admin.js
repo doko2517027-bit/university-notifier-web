@@ -1902,7 +1902,6 @@ function formatPageName(page) {
     "assignments.html": "課題一覧",
     "assignment.html": "課題詳細",
     "news.html": "お知らせ",
-    "requests.html": "機能リクエスト",
     "profile.html": "プロフィール",
     "settings.html": "設定",
     "exam.html": "テスト対策",

@@ -10,7 +10,7 @@
 
     <title>履修登録 | CareMateApp</title>
 
-    <link rel="stylesheet" href="style.css?v=20261002-1" />
+    <link rel="stylesheet" href="style.css?v=20261015-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -209,6 +209,11 @@
         </div>
       </section>
 
+      <div id="registrationStepNotice" class="registration-step-notice" role="status">
+        <strong>登録は2ステップです</strong>
+        <span>① 過去に履修した科目の結果を入力・保存（該当する方） → ② 今学期の科目を選んで保存</span>
+      </div>
+
       <!-- ========================================
          PC：本文＋追従サマリー
     ======================================== -->
@@ -351,6 +356,12 @@
             </div>
 
             <div id="progressEditor" class="course-progress-editor" hidden>
+              <p class="course-history-bulk-help">過去に実際に履修した科目だけ設定してください。ここでの一括選択は保存ボタンを押すまで反映されません。</p>
+              <div class="course-history-bulk-actions" role="group" aria-label="過去の全科目を一括設定">
+                <button type="button" class="btn" data-bulk-history-status="earned">全て修得</button>
+                <button type="button" class="btn" data-bulk-history-status="not_earned">全て未修得</button>
+                <button type="button" class="btn" data-bulk-history-status="not_taken">全て未履修</button>
+              </div>
               <div class="course-progress-lock-note">
                 <span> 🔐 </span>
 
@@ -379,7 +390,7 @@
                  検索・絞り込み
             ================================= -->
 
-          <section class="card setting-card course-filter-card">
+          <section id="courseFilterCard" class="card setting-card course-filter-card">
             <div class="course-section-heading">
               <div>
                 <h2>🔍 科目を探す</h2>
@@ -899,15 +910,6 @@
         <span> 課題 </span>
       </a>
 
-      <a href="requests.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon"> 💡 </span>
-
-        </span>
-
-        <span> リクエスト </span>
-      </a>
-
       <a href="news.html">
         <span class="nav-icon-wrap">
           <span class="nav-icon"> 📢 </span>
@@ -928,6 +930,6 @@
       </a>
     </nav>
 
-    <script type="module" src="course_registration.js?v=20261006-1"></script>
+    <script type="module" src="course_registration.js?v=20261015-1"></script>
   </body>
 </html>

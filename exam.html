@@ -10,7 +10,7 @@
 
     <title>テスト対策 | CareMate</title>
 
-    <link rel="stylesheet" href="style.css?v=20261009-3" />
+    <link rel="stylesheet" href="style.css?v=20261015-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -108,6 +108,8 @@
          全体達成度
     ======================================== -->
 
+      <details class="exam-compact-panel" data-mobile-collapsible open>
+        <summary>全体の達成度を確認 <span aria-hidden="true">⌄</span></summary>
       <section class="card setting-card exam-overall-card">
         <div class="exam-section-heading">
           <div>
@@ -175,6 +177,7 @@
           </div>
         </div>
       </section>
+      </details>
 
       <!-- ========================================
          続きから
@@ -221,6 +224,8 @@
          今日の学習状況
     ======================================== -->
 
+      <details class="exam-compact-panel" data-mobile-collapsible open>
+        <summary>今日の1問の進み具合 <span aria-hidden="true">⌄</span></summary>
       <section class="card setting-card exam-today-card">
         <div class="exam-section-heading">
           <div>
@@ -238,6 +243,7 @@
 
         <p id="todayDailyMessage">今日の達成状況を確認しています。</p>
       </section>
+      </details>
 
       <!-- ========================================
          検索・絞り込み
@@ -473,15 +479,6 @@
         <span> 課題 </span>
       </a>
 
-      <a href="requests.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon"> 💡 </span>
-
-        </span>
-
-        <span> リクエスト </span>
-      </a>
-
       <a href="news.html">
         <span class="nav-icon-wrap">
           <span class="nav-icon"> 📢 </span>
@@ -511,6 +508,6 @@
       </a>
     </nav>
 
-    <script type="module" src="exam.js?v=20261008-4"></script>
+    <script type="module" src="exam.js?v=20261015-1"></script>
   </body>
 </html>

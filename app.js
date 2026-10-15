@@ -91,6 +91,7 @@ const attendanceCard = document.getElementById("attendanceCard");
 const courseRegistrationBanner = document.getElementById(
   "courseRegistrationBanner",
 );
+const homeEnrollmentNotice = document.getElementById("homeEnrollmentNotice");
 const courseRegistrationBannerText = document.getElementById(
   "courseRegistrationBannerText",
 );
@@ -507,6 +508,7 @@ async function startApp() {
     }
 
     currentHomeUser = user;
+    void updateHomeEnrollmentNotice(user);
     setupHomeReferral();
     if (user.grade) localStorage.setItem("grade", String(user.grade));
     if (resumeStudySlide) resumeStudySlide.hidden = !isLeaveActive(user);
@@ -627,6 +629,38 @@ async function startApp() {
     });
   });
 }
+
+async function updateHomeEnrollmentNotice(user) {
+  if (!homeEnrollmentNotice) return;
+  homeEnrollmentNotice.hidden = true;
+  if (["graduated", "withdrawn", "leave"].includes(String(user?.academicStatus || ""))) return;
+  try {
+    const [enrolled, configSnap] = await Promise.all([
+      getDocs(collection(db, "users", studentNumber, "enrolledSubjects")),
+      getDoc(doc(db, "system", "courseRegistration")),
+    ]);
+    const config = configSnap.exists() ? configSnap.data() : null;
+    const currentYear = Number(config?.academicYear);
+    const currentSemester = String(config?.semester || "");
+    const hasCurrentPeriod = Number.isInteger(currentYear) && currentYear > 0 && currentSemester;
+    const registered = enrolled.docs.some((item) => {
+      const enrollment = item.data();
+      if (enrollment.status === "removed") return false;
+      if (!hasCurrentPeriod) return true;
+      const semester = String(enrollment.registeredSemester || enrollment.semester || "");
+      return Number(enrollment.academicYear) === currentYear &&
+        (semester === currentSemester || semester === "通年" || semester === "通期");
+    });
+    homeEnrollmentNotice.hidden = registered;
+  } catch (error) {
+    // 判定できないときに、登録済み学生へ未登録と誤表示しない。
+    console.warn("履修登録状況を確認できませんでした:", error);
+  }
+}
+
+homeEnrollmentNotice?.addEventListener("click", () => {
+  location.href = "course_registration.html";
+});
 
 function setupHomeReferral() {
   if (!homeReferralCard) return;

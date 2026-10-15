@@ -1478,10 +1478,11 @@ function ensureCalendarNavTab() {
 let throbPilotNavCheck;
 
 function ensureThrobPilotNavTab() {
-  if (studentNumber !== "2510044") return;
   const links = [...document.querySelectorAll('.bottom-nav a[href="requests.html"]')];
-  if (!links.length) return;
-  for (const link of links) link.style.display = "none";
+  for (const link of links) link.remove();
+  if (studentNumber !== "2510044") return;
+  const navs = [...document.querySelectorAll(".bottom-nav")];
+  if (!navs.length) return;
 
   throbPilotNavCheck ||= (async () => {
     try {
@@ -1499,13 +1500,16 @@ function ensureThrobPilotNavTab() {
   })();
 
   void throbPilotNavCheck.then((allowed) => {
-    for (const link of links) {
-      if (allowed) {
-        link.href = "daruma/";
-        link.setAttribute("aria-label", "だるまさんがころんだを開く");
-        link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👁️</span></span><span>だるま</span>';
-      }
-      link.style.removeProperty("display");
+    if (!allowed) return;
+    for (const nav of navs) {
+      if (nav.querySelector('a[href="daruma/"]')) continue;
+      const game = document.createElement("a");
+      game.href = "daruma/";
+      game.setAttribute("aria-label", "だるまさんがころんだを開く");
+      game.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👁️</span></span><span>だるま</span>';
+      const assignments = nav.querySelector('a[href="assignments.html"]');
+      if (assignments) assignments.insertAdjacentElement("afterend", game);
+      else nav.append(game);
     }
   });
 }
@@ -2157,7 +2161,6 @@ const presencePageNames = {
   "index.html": "ホーム画面",
   "calendar.html": "カレンダー",
   "news.html": "お知らせ",
-  "requests.html": "機能リクエスト",
   "profile.html": "プロフィール",
   "settings.html": "設定画面",
   "assignment.html": "課題画面",

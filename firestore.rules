@@ -826,22 +826,6 @@ service cloud.firestore {
 
 
     /* ========================================
-       学生専用の機能リクエスト
-       一般学生は自分の分だけ、2510044だけが全件を管理する。
-    ======================================== */
-
-    match /featureRequests/{requestId} {
-      allow create: if request.auth != null
-        && request.resource.data.studentNumber == request.auth.token.studentNumber;
-      allow read: if request.auth != null
-        && (resource.data.studentNumber == request.auth.token.studentNumber
-          || request.auth.token.studentNumber == "2510044");
-      allow update: if request.auth != null
-        && request.auth.token.studentNumber == "2510044";
-      allow delete: if false;
-    }
-
-    /* ========================================
        対象ユーザー専用 AIデジタルノート
        各学生は自分のノートと問題だけを利用できる。
     ======================================== */

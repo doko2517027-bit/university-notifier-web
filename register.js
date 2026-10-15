@@ -186,13 +186,6 @@ button.addEventListener("click", async () => {
     return;
   }
 
-  if (referralCodeValue && !activeMailPassword.value.trim()) {
-    alert(
-      "招待制度の本人確認には大学メール（学籍番号@sums.ac.jp）のパスワードが必要です。Active!Mailパスワードを入力してください。",
-    );
-    return;
-  }
-
   const departmentCode = value.substring(2, 4);
   const number = parseInt(value.substring(4));
 
@@ -253,7 +246,8 @@ button.addEventListener("click", async () => {
     }
   } catch (error) {
     console.warn("Push通知の初期登録に失敗しました:", error);
-    alert("通知は登録できませんでしたが、CareMateの登録は続行します。");
+    // 端末の通知許可と購読先の保存は別の状態。許可済みを失敗と表示しない。
+    // 保存が未完了でも登録を続け、ログイン後のホームで再登録する。
   }
 
   const code = studentNumber.value.substring(2, 4);
@@ -355,7 +349,6 @@ button.addEventListener("click", async () => {
       const prepared = await prepareReferral({
         studentNumber: value,
         referralCode: referralCodeValue,
-        activeMailPassword: activeMailPassword.value,
         studentPageVerificationToken,
       });
       referralPreviouslyRegistered =
@@ -376,7 +369,7 @@ button.addEventListener("click", async () => {
       console.error("招待コード確認エラー:", error);
       alert(
         error?.message?.replace(/^FirebaseError:\s*/, "") ||
-          "招待コードまたは大学メールを確認できませんでした。",
+          "招待コードを確認できませんでした。",
       );
       button.disabled = false;
       return;
@@ -419,16 +412,15 @@ button.addEventListener("click", async () => {
         studentPageVerifiedAt: new Date().toISOString(),
       });
 
-      if (subscription) {
-        await savePushSubscription(
-          db,
-          studentNumber.value,
-          subscription,
-          "register",
-        );
-      }
-
       await signInCareMateAuth(studentNumber.value, appPassword.value);
+
+      if (subscription) {
+        try {
+          await savePushSubscription(db, value, subscription, "register");
+        } catch (error) {
+          console.warn("Push通知先の保存はログイン後に再試行します:", error);
+        }
+      }
 
       await refreshAdminClaim();
 
@@ -448,7 +440,7 @@ button.addEventListener("click", async () => {
       localStorage.setItem("migrated", "true");
       localStorage.setItem("loggedIn", "true");
 
-      alert("通知情報を更新しました。");
+      alert("登録情報を更新しました。");
       location.href = "index.html";
 
       return;
@@ -506,16 +498,15 @@ button.addEventListener("click", async () => {
       manabaResetRequired: false,
     });
 
-    if (subscription) {
-      await savePushSubscription(
-        db,
-        studentNumber.value,
-        subscription,
-        "register",
-      );
-    }
-
     await signInCareMateAuth(studentNumber.value, appPassword.value);
+
+    if (subscription) {
+      try {
+        await savePushSubscription(db, value, subscription, "register");
+      } catch (error) {
+        console.warn("Push通知先の保存はログイン後に再試行します:", error);
+      }
+    }
 
     await refreshAdminClaim();
 
