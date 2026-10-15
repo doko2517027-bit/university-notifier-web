@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#193b4b">
+  <title>だるまさんがころんだ | CareMate</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="access" class="access-screen" role="status">
+    <div class="access-card">
+      <div class="access-mark">◉</div>
+      <p class="eyebrow">CARE MATE / LIMITED PLAYTEST</p>
+      <h1>だるまさんが<br>ころんだ</h1>
+      <p id="access-message">本人確認中…</p>
+      <a class="button button-secondary" href="../index.html">CareMateに戻る</a>
+    </div>
+  </div>
+  <main id="app" hidden>
+    <canvas id="game-canvas" aria-label="3Dゲーム画面"></canvas>
+    <section id="menu" class="panel-screen menu-screen">
+      <div class="menu-card">
+        <p class="eyebrow">CAREMATE MINI GAME · 2510044 TEST</p>
+        <h1>だるまさんが<br>ころんだ</h1>
+        <p class="lead">見つかる前に近づく。動いた瞬間を見逃さない。</p>
+        <div class="menu-actions">
+          <button id="play-button" class="button button-primary">▶ プレイ</button>
+          <button id="settings-button" class="button button-secondary">⚙ 設定</button>
+          <a class="button button-secondary" href="../index.html">← CareMateに戻る</a>
+        </div>
+      </div>
+    </section>
+    <section id="mode" class="panel-screen" hidden>
+      <div class="dialog-card">
+        <button class="back-button" data-back="menu">← 戻る</button>
+        <p class="eyebrow">PLAY MODE</p>
+        <h2>対戦モード</h2>
+        <button id="cpu-button" class="choice-button"><span>CPUと対戦</span><small>4〜10人で遊ぶ</small></button>
+        <button id="friend-button" class="choice-button disabled" disabled><span>フレンドと対戦</span><small>サーバー側判定の準備中。現在は利用できません</small></button>
+      </div>
+    </section>
+    <section id="setup" class="panel-screen" hidden>
+      <div class="dialog-card">
+        <button class="back-button" data-back="mode">← 戻る</button>
+        <p class="eyebrow">CPU BATTLE</p>
+        <h2>対戦の設定</h2>
+        <label class="field">参加人数 <select id="player-count">
+          <option value="4">4人</option><option value="5">5人</option><option value="6">6人</option>
+          <option value="7">7人</option><option value="8">8人</option><option value="9">9人</option><option value="10">10人</option>
+        </select></label>
+        <label class="field">自分の役割 <select id="player-role">
+          <option value="runner">逃走者</option><option value="oni">鬼</option><option value="random">ランダム</option>
+        </select></label>
+        <button id="start-button" class="button button-primary full">対戦を始める</button>
+      </div>
+    </section>
+    <section id="settings" class="panel-screen" hidden>
+      <div class="dialog-card">
+        <button class="back-button" data-back="menu">← 戻る</button>
+        <p class="eyebrow">SETTINGS</p>
+        <h2>設定</h2>
+        <label class="field">初期視点 <select id="camera-setting"><option value="tps">三人称 (TPS)</option><option value="fps">一人称 (FPS)</option></select></label>
+        <label class="field">視点感度 <input id="sensitivity-setting" type="range" min="0.5" max="2" step="0.1" value="1"></label>
+        <label class="field">画質 <select id="quality-setting"><option value="auto">自動</option><option value="low">低</option><option value="high">高</option></select></label>
+        <p class="hint">PC：WASD移動・Shiftダッシュ・V視点切替・E振り向き・F伏せる・クリックで指摘/タッチ・Esc一時停止</p>
+        <p class="hint">スマホ：左側をドラッグして移動・右側をスワイプして視点操作します。</p>
+      </div>
+    </section>
+    <section id="hud" hidden>
+      <div class="hud-top">
+        <div class="hud-badge"><strong id="role-label">逃走者</strong><span id="round-label">第1ラウンド</span></div>
+        <div class="hud-badge center" id="state-label">鬼は後ろを向いている</div>
+        <div class="hud-badge stats"><span id="alive-label">生存 3人</span><span id="lives-label">残機 ♥♥♥</span></div>
+      </div>
+      <div id="toast" class="toast" aria-live="polite"></div>
+      <div id="crosshair" aria-hidden="true">+</div>
+      <div class="hud-bottom">
+        <button id="pause-button" class="hud-button" aria-label="一時停止">Ⅱ</button>
+        <div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+        <div class="hud-actions">
+          <button id="view-button" class="hud-button">視点</button>
+          <button id="dash-button" class="hud-button runner-action">ダッシュ</button>
+          <button id="touch-button" class="hud-button hud-button-main runner-action">タッチ</button>
+          <button id="turn-button" class="hud-button hud-button-main oni-action" hidden>振り向く</button>
+          <button id="lower-button" class="hud-button oni-action" hidden>伏せる</button>
+        </div>
+      </div>
+    </section>
+    <section id="pause" class="panel-screen" hidden>
+      <div class="dialog-card compact"><h2>一時停止</h2><button id="resume-button" class="button button-primary full">再開</button><button id="quit-button" class="button button-secondary full">メニューへ</button></div>
+    </section>
+    <section id="result" class="panel-screen" hidden>
+      <div class="dialog-card compact">
+        <p class="eyebrow">ROUND RESULT</p>
+        <h2 id="result-title">ラウンド終了</h2>
+        <p id="result-reason"></p>
+        <div id="next-choices" class="menu-actions">
+          <button id="continue-button" class="button button-primary">続ける</button>
+          <button id="change-button" class="button button-secondary">鬼を交代</button>
+          <button id="result-menu-button" class="button button-secondary">メニューへ</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="./js/bootstrap.js"></script>
+</body>
+</html>

@@ -1501,9 +1501,9 @@ function ensureThrobPilotNavTab() {
   void throbPilotNavCheck.then((allowed) => {
     for (const link of links) {
       if (allowed) {
-        link.href = "throwbattle/";
-        link.setAttribute("aria-label", "Throbを開く");
-        link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">🎯</span></span><span>Throb</span>';
+        link.href = "daruma/";
+        link.setAttribute("aria-label", "だるまさんがころんだを開く");
+        link.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👁️</span></span><span>だるま</span>';
       }
       link.style.removeProperty("display");
     }
