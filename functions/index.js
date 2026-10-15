@@ -62,6 +62,16 @@ const {
   targetedSystemNewsContentSignature,
 } = require("./system_news_audience.js");
 const {
+  MATETALK_ADMIN,
+  normalizeExchangeId,
+  sanitizeNickname,
+  sanitizeMessage,
+  studentRoomId,
+  adminRoomId,
+  canAccessRoom,
+  scheduleEventKey,
+} = require("./matetalk_policy.js");
+const {
   REFERRAL_MAX_INVITES,
   REFERRAL_CODE_TTL_DAYS,
   REFERRAL_PROOF_TTL_MINUTES,
@@ -4773,7 +4783,439 @@ exports.removeTargetedSystemNewsCopies = onDocumentDeleted(
   },
 );
 
-// 新規お問い合わせは担当者 2510044 の全登録端末にだけ通知する。
+// メイトークは参加者をサーバー側で検証し、管理者ルームは2510044だけが管理者として扱う。
+function mateTalkProfileCopy(studentNumber, user = {}, publicUser = {}, current = {}) {
+  const nickname = sanitizeNickname(
+    current.nickname || user.rankingNickname || user.nickname || "",
+  );
+  return {
+    studentNumber,
+    nickname,
+    photoUrl: String(publicUser.photo || user.profile?.photo || ""),
+    exchangeEnabled: current.exchangeEnabled === true,
+    updatedAt: new Date(),
+  };
+}
+
+async function ensureMateTalkAdminRoom(studentNumber) {
+  const roomId = adminRoomId(studentNumber);
+  if (!roomId) return "";
+  const roomRef = db.collection("mateTalkRooms").doc(roomId);
+  const roomSnapshot = await roomRef.get();
+  const roomData = {
+    roomType: "admin",
+    participants: [MATETALK_ADMIN, studentNumber],
+    studentNumber,
+  };
+  if (!roomSnapshot.exists) {
+    roomData.createdAt = FieldValue.serverTimestamp();
+    roomData.updatedAt = FieldValue.serverTimestamp();
+  }
+  await roomRef.set(roomData, { merge: true });
+  return roomId;
+}
+
+async function ensureAllMateTalkAdminRooms() {
+  const usersSnapshot = await db.collection("users").get();
+  const studentNumbers = usersSnapshot.docs
+    .map((document) => String(document.id || ""))
+    .filter((value) => /^\d{7}$/.test(value) && value !== MATETALK_ADMIN);
+  const roomRefs = studentNumbers.map((value) => db.collection("mateTalkRooms").doc(adminRoomId(value)));
+  const roomSnapshots = roomRefs.length ? await db.getAll(...roomRefs) : [];
+  let batch = db.batch();
+  let writes = 0;
+  const commits = [];
+  roomSnapshots.forEach((snapshot, index) => {
+    if (snapshot.exists) return;
+    const studentNumber = studentNumbers[index];
+    batch.create(snapshot.ref, {
+      roomType: "admin",
+      participants: [MATETALK_ADMIN, studentNumber],
+      studentNumber,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writes += 1;
+    if (writes === 400) {
+      commits.push(batch.commit());
+      batch = db.batch();
+      writes = 0;
+    }
+  });
+  if (writes) commits.push(batch.commit());
+  await Promise.all(commits);
+  return studentNumbers.length;
+}
+
+async function ensureMateTalkProfile(studentNumber) {
+  const [userSnapshot, publicSnapshot, profileSnapshot, privateSnapshot] = await Promise.all([
+    db.collection("users").doc(studentNumber).get(),
+    db.collection("publicUsers").doc(studentNumber).get(),
+    db.collection("mateTalkProfiles").doc(studentNumber).get(),
+    db.collection("mateTalkPrivateProfiles").doc(studentNumber).get(),
+  ]);
+  if (!userSnapshot.exists) throw new HttpsError("not-found", "ユーザーが見つかりません。");
+  const profile = mateTalkProfileCopy(
+    studentNumber,
+    userSnapshot.data() || {},
+    publicSnapshot.data() || {},
+    profileSnapshot.data() || {},
+  );
+  await db.collection("mateTalkProfiles").doc(studentNumber).set(profile, { merge: true });
+  if (studentNumber !== MATETALK_ADMIN) await ensureMateTalkAdminRoom(studentNumber);
+  return {
+    ...profile,
+    exchangeId: profile.exchangeEnabled === true
+      ? normalizeExchangeId(privateSnapshot.data()?.exchangeId) : "",
+  };
+}
+
+function requireMateTalkAdmin(request, studentNumber) {
+  if (studentNumber !== MATETALK_ADMIN || request.auth?.token?.admin !== true) {
+    throw new HttpsError("permission-denied", "システム管理者として利用できません。");
+  }
+}
+
+exports.initializeMateTalk = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    if (studentNumber === MATETALK_ADMIN && request.auth?.token?.admin === true) {
+      await ensureAllMateTalkAdminRooms();
+    }
+    const profile = await ensureMateTalkProfile(studentNumber);
+    return {
+      profile,
+      isSystemAdmin: studentNumber === MATETALK_ADMIN && request.auth?.token?.admin === true,
+    };
+  },
+);
+
+exports.saveMateTalkSettings = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const nickname = sanitizeNickname(request.data?.nickname);
+    const exchangeEnabled = request.data?.exchangeEnabled === true;
+    const exchangeId = exchangeEnabled ? normalizeExchangeId(request.data?.exchangeId) : "";
+    if (!nickname) throw new HttpsError("invalid-argument", "ニックネームを入力してください。");
+    if (exchangeEnabled && !exchangeId) {
+      throw new HttpsError("invalid-argument", "交換IDは英数字4〜20文字で入力してください。");
+    }
+
+    const profileRef = db.collection("mateTalkProfiles").doc(studentNumber);
+    const privateProfileRef = db.collection("mateTalkPrivateProfiles").doc(studentNumber);
+    const newIdRef = exchangeId ? db.collection("mateTalkExchangeIds").doc(exchangeId) : null;
+    await db.runTransaction(async (transaction) => {
+      const [privateProfileSnapshot, newIdSnapshot] = await Promise.all([
+        transaction.get(privateProfileRef),
+        newIdRef ? transaction.get(newIdRef) : Promise.resolve(null),
+      ]);
+      const current = privateProfileSnapshot.data() || {};
+      const oldExchangeId = normalizeExchangeId(current.exchangeId);
+      if (newIdSnapshot?.exists && newIdSnapshot.data()?.studentNumber !== studentNumber) {
+        throw new HttpsError("already-exists", "その交換IDは使用されています。");
+      }
+      if (oldExchangeId && oldExchangeId !== exchangeId) {
+        transaction.delete(db.collection("mateTalkExchangeIds").doc(oldExchangeId));
+      }
+      if (newIdRef) {
+        transaction.set(newIdRef, {
+          studentNumber,
+          updatedAt: new Date(),
+        });
+      }
+      transaction.set(profileRef, {
+        nickname,
+        exchangeEnabled,
+        updatedAt: new Date(),
+      }, { merge: true });
+      transaction.set(privateProfileRef, {
+        exchangeId,
+        updatedAt: new Date(),
+      }, { merge: true });
+      transaction.set(db.collection("users").doc(studentNumber), {
+        rankingNickname: nickname,
+        mateTalkSetupCompleted: true,
+        mateTalkUpdatedAt: new Date(),
+      }, { merge: true });
+    });
+    return { nickname, exchangeEnabled, exchangeId };
+  },
+);
+
+exports.connectMateTalkFriend = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const exchangeId = normalizeExchangeId(request.data?.exchangeId);
+    if (!exchangeId) throw new HttpsError("invalid-argument", "交換IDを確認してください。");
+    const exchangeSnapshot = await db.collection("mateTalkExchangeIds").doc(exchangeId).get();
+    const friendNumber = String(exchangeSnapshot.data()?.studentNumber || "");
+    if (!/^\d{7}$/.test(friendNumber) || friendNumber === studentNumber) {
+      throw new HttpsError("not-found", "交換相手が見つかりません。");
+    }
+    const friendProfile = await db.collection("mateTalkProfiles").doc(friendNumber).get();
+    if (!friendProfile.exists || friendProfile.data()?.exchangeEnabled !== true) {
+      throw new HttpsError("failed-precondition", "相手のアカウント交換は現在停止中です。");
+    }
+    const roomId = studentRoomId(studentNumber, friendNumber);
+    await db.collection("mateTalkRooms").doc(roomId).set({
+      roomType: "student",
+      participants: [studentNumber, friendNumber].sort(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      createdBy: studentNumber,
+    }, { merge: true });
+    return { roomId, friendNumber };
+  },
+);
+
+exports.sendMateTalkMessage = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    const body = sanitizeMessage(request.data?.body);
+    const mode = request.data?.mode === "admin" ? "admin" : "student";
+    if (!roomId || !body) throw new HttpsError("invalid-argument", "メッセージを入力してください。");
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    const messageRef = roomRef.collection("messages").doc();
+    const rateRef = db.collection("mateTalkRateLimits").doc(studentNumber);
+    await db.runTransaction(async (transaction) => {
+      const [roomSnapshot, rateSnapshot] = await Promise.all([
+        transaction.get(roomRef),
+        transaction.get(rateRef),
+      ]);
+      const room = roomSnapshot.data() || {};
+      if (!roomSnapshot.exists || !canAccessRoom(room, studentNumber)) {
+        throw new HttpsError("permission-denied", "このチャットには送信できません。");
+      }
+      if (mode === "admin") requireMateTalkAdmin(request, studentNumber);
+      if (room.roomType === "admin" && studentNumber === MATETALK_ADMIN && mode !== "admin") {
+        throw new HttpsError("failed-precondition", "管理者モードへ切り替えてください。");
+      }
+      const lastSentAt = timestampMillis(rateSnapshot.data()?.lastSentAt);
+      if (lastSentAt && Date.now() - lastSentAt < 450) {
+        throw new HttpsError("resource-exhausted", "少し待ってから送信してください。");
+      }
+      const sentAt = new Date();
+      transaction.set(messageRef, {
+        senderId: studentNumber,
+        senderRole: mode === "admin" ? "admin" : "student",
+        body,
+        type: "text",
+        createdAt: sentAt,
+      });
+      transaction.set(roomRef, {
+        lastMessage: body.slice(0, 100),
+        lastMessageAt: sentAt,
+        lastSenderId: studentNumber,
+        updatedAt: sentAt,
+      }, { merge: true });
+      transaction.set(rateRef, { lastSentAt: sentAt }, { merge: true });
+    });
+    return { messageId: messageRef.id };
+  },
+);
+
+function mateTalkScheduleDocumentId(user = {}) {
+  if (String(user.department || "").trim() === "看護学科") return "ns_yamate";
+  if (String(user.major || "").includes("理学療法")) return "pt";
+  if (String(user.major || "").includes("作業療法")) return "ot";
+  return "";
+}
+
+function mateTalkDateKey(value) {
+  const date = value instanceof Date ? value : value?.toDate?.() || new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(date);
+}
+
+function mateTalkTimeKey(value) {
+  const date = value instanceof Date ? value : value?.toDate?.() || new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+}
+
+async function buildMateTalkSchedule(studentNumber, includeHidden = false) {
+  const userRef = db.collection("users").doc(studentNumber);
+  const userSnapshot = await userRef.get();
+  const user = userSnapshot.data() || {};
+  const scheduleId = mateTalkScheduleDocumentId(user);
+  const [enrollmentSnapshot, scheduleSnapshot, personalSnapshot, sharedSnapshot, privacySnapshot] = await Promise.all([
+    userRef.collection("enrolledSubjects").get(),
+    scheduleId ? db.collection("schedule").doc(scheduleId).get() : Promise.resolve(null),
+    db.collection("calendarEvents").where("ownerId", "==", studentNumber).get(),
+    db.collection("calendarSharedEvents").get(),
+    db.collection("mateTalkSchedulePrivacy").doc(studentNumber).get(),
+  ]);
+  const aliases = new Set();
+  enrollmentSnapshot.docs.forEach((document) => {
+    const course = document.data() || {};
+    if (course.status === "removed") return;
+    [course.name, course.subjectKey, course.subjectId, document.id].forEach((value) => {
+      const normalized = normalizeCourseName(value);
+      if (normalized) aliases.add(normalized);
+    });
+  });
+  const hidden = new Set(Array.isArray(privacySnapshot.data()?.hiddenEventKeys)
+    ? privacySnapshot.data().hiddenEventKeys.map(String) : []);
+  const today = mateTalkDateKey(new Date());
+  const lastDate = new Date();
+  lastDate.setDate(lastDate.getDate() + 120);
+  const endDate = mateTalkDateKey(lastDate);
+  const grade = normalizeGrade(user.grade);
+  const selections = user.classSelections && typeof user.classSelections === "object"
+    ? user.classSelections : {};
+  const events = [];
+  const schedule = scheduleSnapshot?.data() || {};
+  const commonPattern = /ガイダンス|オリエンテーション|説明会|健康診断|予防接種|ワクチン接種|模擬試験|模試|学内行事|防災訓練|避難訓練/;
+  for (const day of Array.isArray(schedule.allDays) ? schedule.allDays : []) {
+    const date = String(day.date || "");
+    if (date < today || date > endDate) continue;
+    for (const item of Array.isArray(day.schedules) ? day.schedules : []) {
+      const itemGrade = normalizeGrade(item.grade);
+      if (grade && itemGrade && itemGrade !== grade) continue;
+      const enrolled = aliases.has(normalizeCourseName(item.subject));
+      const common = item.displayForAll === true || item.isCommonEvent === true || commonPattern.test(String(item.subject || ""));
+      if (!enrolled && !common) continue;
+      const period = Number(String(item.period || "").normalize("NFKC").match(/\d+/)?.[0] || 0);
+      const classGroup = String(item.classGroup || "").normalize("NFKC");
+      const classLetter = classGroup.match(/[A-Z]/i)?.[0]?.toUpperCase() || "";
+      const selectionKey = `${String(item.subject || "").trim()}_${date}_${period}`;
+      const selected = String(selections[selectionKey] || "").toUpperCase();
+      if (classLetter && selected && selected !== classLetter) continue;
+      const event = {
+        kind: "timetable", date,
+        startTime: String(item.startTime || ""), endTime: String(item.endTime || ""),
+        title: String(item.subject || "時間割"), classGroup,
+        location: [item.building, item.room].filter(Boolean).join(" "),
+      };
+      event.key = scheduleEventKey(event);
+      event.hidden = hidden.has(event.key);
+      if (includeHidden || !event.hidden) events.push(event);
+    }
+  }
+  for (const document of personalSnapshot.docs) {
+    const item = document.data() || {};
+    const date = mateTalkDateKey(item.startAt);
+    if (!date || date < today || date > endDate) continue;
+    const event = {
+      kind: "personal", date,
+      startTime: item.allDay === true ? "" : mateTalkTimeKey(item.startAt),
+      endTime: "", title: String(item.title || "予定"), classGroup: "",
+      location: String(item.location || ""),
+    };
+    event.key = scheduleEventKey(event);
+    event.hidden = item.mateTalkVisible === false || hidden.has(event.key);
+    if (includeHidden || !event.hidden) events.push(event);
+  }
+  for (const document of sharedSnapshot.docs) {
+    const item = document.data() || {};
+    const targetGrades = Array.isArray(item.targetGrades) ? item.targetGrades.map(normalizeGrade) : [];
+    if (targetGrades.length && grade && !targetGrades.includes(grade)) continue;
+    const date = mateTalkDateKey(item.startAt);
+    if (!date || date < today || date > endDate) continue;
+    const event = {
+      kind: "shared", date, startTime: "", endTime: "",
+      title: String(item.title || "共有予定"), classGroup: "", location: String(item.location || ""),
+    };
+    event.key = scheduleEventKey(event);
+    event.hidden = hidden.has(event.key);
+    if (includeHidden || !event.hidden) events.push(event);
+  }
+  events.sort((left, right) => `${left.date}${left.startTime}`.localeCompare(`${right.date}${right.startTime}`));
+  return events.slice(0, 500);
+}
+
+exports.getMateTalkSchedule = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    const roomSnapshot = await db.collection("mateTalkRooms").doc(roomId).get();
+    const room = roomSnapshot.data() || {};
+    if (!roomSnapshot.exists || !canAccessRoom(room, studentNumber)) {
+      throw new HttpsError("permission-denied", "この予定は表示できません。");
+    }
+    const otherStudentNumber = room.participants.find((value) => value !== studentNumber);
+    const [mine, theirs] = await Promise.all([
+      buildMateTalkSchedule(studentNumber, true),
+      buildMateTalkSchedule(otherStudentNumber, false),
+    ]);
+    return { mine, theirs, otherStudentNumber };
+  },
+);
+
+exports.setMateTalkScheduleVisibility = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const eventKey = String(request.data?.eventKey || "").trim().slice(0, 500);
+    const hidden = request.data?.hidden === true;
+    if (!eventKey) throw new HttpsError("invalid-argument", "予定を確認できません。");
+    await db.collection("mateTalkSchedulePrivacy").doc(studentNumber).set({
+      hiddenEventKeys: hidden ? FieldValue.arrayUnion(eventKey) : FieldValue.arrayRemove(eventKey),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { eventKey, hidden };
+  },
+);
+
+exports.createMateTalkAdminRoomForNewUser = onDocumentCreated(
+  { document: "users/{studentNumber}", region: "asia-northeast1" },
+  async (event) => {
+    const studentNumber = String(event.params.studentNumber || "");
+    if (!/^\d{7}$/.test(studentNumber) || studentNumber === MATETALK_ADMIN) return;
+    await ensureMateTalkAdminRoom(studentNumber);
+  },
+);
+
+exports.notifyMateTalkMessage = onDocumentCreated(
+  {
+    document: "mateTalkRooms/{roomId}/messages/{messageId}",
+    region: "asia-northeast1",
+    secrets: [WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY],
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const message = snapshot.data() || {};
+    const roomSnapshot = await db.collection("mateTalkRooms").doc(event.params.roomId).get();
+    const room = roomSnapshot.data() || {};
+    if (!canAccessRoom(room, message.senderId)) return;
+    const recipients = room.participants.filter((value) => value !== message.senderId);
+    const senderProfile = await db.collection("mateTalkProfiles").doc(message.senderId).get();
+    const senderName = message.senderRole === "admin"
+      ? "システム管理者"
+      : sanitizeNickname(senderProfile.data()?.nickname) || "メイトーク";
+    webpush.setVapidDetails(
+      "mailto:kidokohei.shonaniryo2517027@gmail.com",
+      WEB_PUSH_PUBLIC_KEY.value(), WEB_PUSH_PRIVATE_KEY.value(),
+    );
+    const results = [];
+    for (const recipient of recipients) {
+      results.push({
+        studentNumber: recipient,
+        results: await sendToUserDevices(recipient, {
+          title: `💬 ${senderName}`,
+          body: String(message.body || "新しいメッセージがあります").slice(0, 100),
+          url: `${SITE_URL}/matetalk.html?room=${encodeURIComponent(event.params.roomId)}`,
+          tag: `matetalk-${event.params.roomId}`,
+        }),
+      });
+    }
+    await snapshot.ref.set({
+      notificationSentAt: new Date(), notificationResults: results,
+    }, { merge: true });
+  },
+);
+
 exports.notifyContactMessage = onDocumentCreated(
   {
     document: "contacts/{contactId}",

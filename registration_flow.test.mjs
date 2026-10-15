@@ -22,7 +22,7 @@ test("通知購読の保存失敗は登録全体の失敗として表示しな�
   assert.doesNotMatch(client, /alert\("通知は登録できませんでした/);
 });
 
-test("リクエスト画面と管理画面の入口は廃止し、2510044のゲーム入口は維持する", async () => {
+test("リクエスト画面と管理画面の入口は廃止し、全学生をメイトークへ案内する", async () => {
   const [home, admin, common, rules] = await Promise.all([
     readFile(new URL("./index.html", import.meta.url), "utf8"),
     readFile(new URL("./admin.html", import.meta.url), "utf8"),
@@ -32,8 +32,8 @@ test("リクエスト画面と管理画面の入口は廃止し、2510044のゲ�
   assert.doesNotMatch(home, /href="requests\.html"/);
   assert.doesNotMatch(admin, /feature_requests_admin/);
   assert.doesNotMatch(rules, /match \/featureRequests\//);
-  assert.match(common, /studentNumber !== "2510044"/);
-  assert.match(common, /game\.href = "daruma\/"/);
+  assert.match(common, /chat\.href = "matetalk\.html"/);
+  assert.doesNotMatch(common, /game\.href = "daruma\/"/);
 });
 
 test("履修未登録の案内は今学期の登録を確認し、過去分未保存なら保存を案内する", async () => {

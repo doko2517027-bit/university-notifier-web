@@ -1444,7 +1444,7 @@ function setupAutoBackButton() {
 
 export async function initializePage(tasks = []) {
   ensureCalendarNavTab();
-  ensureThrobPilotNavTab();
+  ensureMateTalkNavTab();
   setupAutoBackButton();
   showPage();
   // ページ固有データが遅い場合も、保存済みテーマとペットは先に復元する。
@@ -1475,53 +1475,31 @@ function ensureCalendarNavTab() {
   }
 }
 
-let throbPilotNavCheck;
-
-function ensureThrobPilotNavTab() {
+function ensureMateTalkNavTab() {
   const links = [...document.querySelectorAll('.bottom-nav a[href="requests.html"]')];
   for (const link of links) link.remove();
-  if (studentNumber !== "2510044") return;
   const navs = [...document.querySelectorAll(".bottom-nav")];
-  if (!navs.length) return;
-
-  throbPilotNavCheck ||= (async () => {
-    try {
-      await auth.authStateReady();
-      const user = auth.currentUser;
-      if (user?.uid !== "caremate-2510044") return false;
-      const token = await getIdTokenResult(user);
-      if (String(token.claims?.studentNumber || "") !== "2510044") return false;
-      const profile = await getDoc(doc(db, "users", "2510044"));
-      return profile.exists() && String(profile.data()?.studentNumber || profile.id) === "2510044";
-    } catch (error) {
-      console.warn("Throbの入口を確認できませんでした。", error);
-      return false;
-    }
-  })();
-
-  void throbPilotNavCheck.then((allowed) => {
-    if (!allowed) return;
-    for (const nav of navs) {
-      if (nav.querySelector('a[href="daruma/"]')) continue;
-      const game = document.createElement("a");
-      game.href = "daruma/";
-      game.setAttribute("aria-label", "だるまさんがころんだを開く");
-      game.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👁️</span></span><span>だるま</span>';
-      const assignments = nav.querySelector('a[href="assignments.html"]');
-      if (assignments) assignments.insertAdjacentElement("afterend", game);
-      else nav.append(game);
-    }
-  });
+  for (const nav of navs) {
+    nav.querySelectorAll('a[href="daruma/"], a[href="matetalk.html"]').forEach((link) => link.remove());
+    const chat = document.createElement("a");
+    chat.href = "matetalk.html";
+    if (location.pathname.endsWith("/matetalk.html")) chat.classList.add("active");
+    chat.setAttribute("aria-label", "メイトークを開く");
+    chat.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">💬</span><span id="mateTalkNavBadge" class="nav-notification-badge" hidden>0</span></span><span>メイトーク</span>';
+    const assignments = nav.querySelector('a[href="assignments.html"]');
+    if (assignments) assignments.insertAdjacentElement("afterend", chat);
+    else nav.append(chat);
+  }
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     ensureCalendarNavTab();
-    ensureThrobPilotNavTab();
+    ensureMateTalkNavTab();
   }, { once: true });
 } else {
   ensureCalendarNavTab();
-  ensureThrobPilotNavTab();
+  ensureMateTalkNavTab();
 }
 
 export function showNewsSkeleton(target, count = 3) {

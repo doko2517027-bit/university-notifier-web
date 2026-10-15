@@ -4,6 +4,20 @@ service cloud.firestore {
 
   match /databases/{database}/documents {
 
+    function signedInStudent() {
+      return request.auth != null && request.auth.token.studentNumber is string;
+    }
+
+    function currentStudentNumber() {
+      return request.auth.token.studentNumber;
+    }
+
+    function isMateTalkRoomMember(roomId) {
+      return signedInStudent() &&
+        get(/databases/$(database)/documents/mateTalkRooms/$(roomId))
+          .data.participants.hasAny([currentStudentNumber()]);
+    }
+
 
     /* ========================================
        ユーザー情報
@@ -282,6 +296,15 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      match /mateTalkAliases/{friendId} {
+        allow read, delete: if isUserOwner();
+        allow create, update: if isUserOwner() &&
+          request.resource.data.keys().hasOnly(['alias', 'updatedAt']) &&
+          request.resource.data.alias is string &&
+          request.resource.data.alias.size() <= 30 &&
+          request.resource.data.updatedAt is timestamp;
+      }
+
     }
 
 
@@ -425,6 +448,41 @@ service cloud.firestore {
             'photo'
           ]);
 
+    }
+
+    /* メイトーク。プロフィールは認証済み利用者だけが読み、接続・送信はFunctionsで検証する。 */
+    match /mateTalkProfiles/{studentNumber} {
+      allow read: if signedInStudent();
+      allow write: if false;
+    }
+
+    match /mateTalkExchangeIds/{exchangeId} {
+      allow read, write: if false;
+    }
+
+    match /mateTalkPrivateProfiles/{studentNumber} {
+      allow read: if signedInStudent() && currentStudentNumber() == studentNumber;
+      allow write: if false;
+    }
+
+    match /mateTalkRooms/{roomId} {
+      allow read: if signedInStudent() &&
+        resource.data.participants.hasAny([currentStudentNumber()]);
+      allow write: if false;
+
+      match /messages/{messageId} {
+        allow read: if isMateTalkRoomMember(roomId);
+        allow write: if false;
+      }
+    }
+
+    match /mateTalkSchedulePrivacy/{studentNumber} {
+      allow read: if signedInStudent() && currentStudentNumber() == studentNumber;
+      allow write: if false;
+    }
+
+    match /mateTalkRateLimits/{studentNumber} {
+      allow read, write: if false;
     }
 
 
