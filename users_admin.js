@@ -54,6 +54,7 @@ const topProfileImage = document.getElementById("topProfileImage");
 const backButton = document.getElementById("backButton");
 
 const addUserButton = document.getElementById("addUserButton");
+const petShopAdminButton = document.getElementById("petShopAdminButton");
 
 const refreshUsersButton = document.getElementById("refreshUsersButton");
 
@@ -106,6 +107,8 @@ let adminRegistrationLoadState = "hidden";
 const presenceDisplayOptions = () => ({});
 
 const adminScope = readAdminScopeFromUrl();
+
+petShopAdminButton?.addEventListener("click", () => location.assign("pet_shop_admin.html"));
 
 setupTheme(themeButton);
 

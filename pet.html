@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#e9e2cf" />
   <title>CareMate ペット育成</title>
-  <link rel="stylesheet" href="pet.css?v=20261016-2" />
+  <link rel="stylesheet" href="pet.css?v=20261017-2" />
 </head>
 <body>
   <main class="pet-app">
@@ -39,44 +39,46 @@
     </section>
 
     <section id="petHome" class="pet-home" hidden>
-      <div id="petStage" class="pet-stage" aria-label="リトのお部屋">
+      <div id="petStage" class="pet-stage" aria-label="ペットのお部屋">
         <div class="pet-room-background" aria-hidden="true"></div>
         <div class="pet-room-light" aria-hidden="true"></div>
         <div class="pet-room-topbar">
           <button id="petRoomHomeButton" class="pet-room-home" type="button" aria-label="ホームに戻る">←</button>
           <div class="pet-room-title"><strong><span id="petName"></span></strong><small id="petMood">のんびりしているよ</small></div>
-          <div class="pet-room-stats" aria-label="ペットの記録">
-            <span>♡ <b id="petFriendship">0</b></span><span>🔥 <b id="petStreak">0</b>日</span>
+          <div class="pet-room-stats" aria-label="好感度">
+            <span>好感度 ♡ <b id="petFriendship">0</b></span>
           </div>
         </div>
-        <div class="pet-room-label"><span id="petSpeciesLabel"></span><i>のおへや</i></div>
-        <div class="pet-room-prop pet-room-toy" aria-hidden="true">🧶</div>
-        <div class="pet-room-prop pet-room-bowl" aria-hidden="true">🥣</div>
+        <div id="petRoomLabel" class="pet-room-label"></div>
+        <div id="petRoomPropToy" class="pet-room-prop pet-room-toy" hidden><img id="activeToyImage" alt="部屋に出しているおもちゃ" /></div>
+        <div class="pet-room-prop pet-room-bowl" aria-hidden="true"><span></span></div>
         <div id="petRoomDepthShadow" class="pet-room-depth-shadow" aria-hidden="true"></div>
-        <div id="petCreature" class="pet-creature" role="button" tabindex="0" aria-label="リトをなでる。押したまま動かしてなでてね">
+        <div id="petCreature" class="pet-creature" role="button" tabindex="0" aria-label="ペットをなでる。押したまま動かしてなでてね">
           <img id="petImage" class="pet-image" src="assets/pets/lizard/rito_idle.png" alt="" draggable="false" />
           <span id="petReaction" class="pet-reaction" aria-live="polite"></span>
           <span class="pet-touch-hint" aria-hidden="true">ここをなでてね ♡</span>
         </div>
         <div class="pet-room-control-rail" aria-label="お世話">
-          <button type="button" data-care="feed"><span>🥣</span><b>ごはん</b></button>
-          <button type="button" data-care="play"><span>🪀</span><b>遊ぶ</b></button>
-          <button type="button" data-care="sleep"><span>🌙</span><b>おやすみ</b></button>
+          <button type="button" data-care="feed"><img src="assets/pets/food/bok-choy.png" alt="" /><b>ごはん</b></button>
+          <button type="button" data-care="play"><img src="assets/pets/toys/leaf-toy.png" alt="" /><b>遊ぶ</b></button>
+          <button type="button" id="toyButton"><img src="assets/pets/toys/leaf-toy.png" alt="" /><b>おもちゃ</b></button>
+          <button type="button" id="petShopButton"><span class="shop-mark" aria-hidden="true">店</span><b>ショップ</b></button>
         </div>
         <div id="foodPicker" class="food-picker" hidden>
-          <div class="food-picker-head"><div><small>今日のごはん</small><strong>なにをあげる？</strong></div><button id="foodPickerClose" type="button" aria-label="閉じる">×</button></div>
+          <div class="food-picker-head"><div><small>ごはんライブラリ</small><strong>なにをあげる？</strong></div><button id="foodPickerClose" type="button" aria-label="閉じる">×</button></div>
           <div id="foodChoices" class="food-choices"></div>
-          <button id="feedConfirm" class="feed-confirm" type="button" disabled>このごはんをあげる</button>
         </div>
+        <div id="foodDetailDialog" class="pet-modal-backdrop" hidden><section class="pet-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="foodDetailName"><button id="foodDetailClose" class="dialog-close" type="button" aria-label="閉じる">×</button><img id="foodDetailImage" alt="" /><h2 id="foodDetailName"></h2><p id="foodDetailPreference"></p><div class="food-meter-summary"><span>満足度 <b id="foodDetailSatisfaction"></b></span><span>満腹度 <b id="foodDetailFullness"></b></span></div><p id="foodDetailStock" class="food-stock"></p><div class="dialog-actions"><button id="foodCancel" type="button">やめる</button><button id="feedConfirm" class="feed-confirm" type="button">ごはんをあげる</button></div></section></div>
+        <div id="toyPicker" class="pet-picker" hidden><div class="food-picker-head"><div><small>おもちゃ</small><strong>部屋に出すもの</strong></div><button id="toyPickerClose" type="button" aria-label="閉じる">×</button></div><div id="toyChoices" class="food-choices"></div><button id="toyPutAway" type="button">おもちゃをしまう</button></div>
+        <div id="petShop" class="pet-picker pet-shop" hidden><div class="food-picker-head"><div><small>ペットショップ</small><strong>ごはん・おもちゃ</strong></div><button id="petShopClose" type="button" aria-label="閉じる">×</button></div><p class="pet-wallet">お世話コイン <b id="petCoinCount">0</b></p><div id="shopItems" class="food-choices"></div></div>
         <div class="pet-room-bottom">
-          <div class="pet-room-daily"><span>今日のお世話</span><b><span id="petDailyCount">0</span><small>/4</small></b><time id="petTodayLabel"></time></div>
-          <p id="petRoomStatus" class="pet-room-status" role="status">お世話をすると、リトが反応するよ</p>
-          <small id="petCareHint" class="pet-room-note">なでなでは何度でもできるよ</small>
+          <div class="pet-fullness"><span>満腹度</span><div class="meter-track"><i id="petFullnessFill"></i></div><b id="petFullnessValue">8%</b></div>
+          <p id="petRoomStatus" class="pet-room-status" role="status">お世話をすると反応するよ</p>
         </div>
       </div>
       <p class="pet-fixed-note">この子の種類と名前は変更できません。大切に育ててあげてね。</p>
     </section>
   </main>
-  <script type="module" src="pet.js?v=20261016-3"></script>
+  <script type="module" src="pet.js?v=20261017-2"></script>
 </body>
 </html>

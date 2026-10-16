@@ -1,45 +1,87 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { petEligible, petChoices, makePetProfile, applyPetCare, isNextCalendarDay } = require("./pet_care_policy");
+const { petEligible, petChoices, makePetProfile, applyPetCare, advancePetClock, isPetNight } = require("./pet_care_policy");
 
 test("ペット機能は招待人数にかかわらず2510044だけに限定する", () => {
   assert.equal(petEligible("2510044", {}), true);
   assert.deepEqual(petChoices("2510044"), ["lizard"]);
-  assert.equal(petEligible("2510001", { invitedCount: 5 }), false);
   assert.equal(petEligible("2510001", { invitedCount: 100 }), false);
-  assert.deepEqual(petChoices("2510001"), ["lizard"]);
-  assert.equal(petEligible("2510001", { invitedCount: 8, rewardSuppressions: { m6: { deletedAt: new Date() } } }), false);
 });
 
-test("日本時間の日付で毎日4種類を一度ずつ記録する", () => {
-  const first = new Date("2026-10-15T15:10:00.000Z"); // 日本時間 10/16
-  let profile = makePetProfile({ species: "lizard", name: "リト", now: first });
-  profile = applyPetCare(profile, "feed", first);
-  profile = applyPetCare(profile, "play", first);
-  assert.equal(profile.dailyCare.date, "2026-10-16");
-  assert.equal(profile.friendship, 2);
-  assert.equal(profile.currentStreak, 1);
-  assert.throws(() => applyPetCare(profile, "feed", first), /already-cared/);
-  profile = applyPetCare(profile, "pet", first);
-  profile = applyPetCare(profile, "pet", first);
-  profile = applyPetCare(profile, "sleep", first);
-  assert.equal(Object.keys(profile.dailyCare.actions).length, 4);
-  assert.equal(profile.friendship, 5);
-  assert.equal(profile.totalCareCount, 5);
-  assert.equal(applyPetCare(profile, "feed", new Date("2026-10-16T15:10:00.000Z"), { foodId: "greens" }).lastFoodId, "greens");
-  assert.throws(() => applyPetCare(profile, "feed", first, { foodId: "pizza" }), /invalid-food/);
+test("初期リトは空腹・好感度の減衰時刻を個別に持つ", () => {
+  const now = new Date("2026-10-16T12:00:00+09:00");
+  const profile = makePetProfile({ species: "lizard", name: "リト", now });
+  assert.equal(profile.fullness, 8);
+  assert.equal(profile.petCoins, 100);
+  assert.equal(profile.friendship, 0);
+  assert.equal(profile.lastMeterAt.getTime(), now.getTime());
 });
 
-test("連続お世話日数は翌日なら継続し、日を空けると1日から再開", () => {
-  assert.equal(isNextCalendarDay("2026-10-16", "2026-10-17"), true);
-  assert.equal(isNextCalendarDay("2026-10-16", "2026-10-18"), false);
-  const day1 = new Date("2026-10-16T03:00:00+09:00");
-  const day2 = new Date("2026-10-17T03:00:00+09:00");
-  const day4 = new Date("2026-10-19T03:00:00+09:00");
-  let profile = applyPetCare(makePetProfile({ species: "lizard", name: "リト", now: day1 }), "pet", day1);
-  profile = applyPetCare(profile, "feed", day2);
-  assert.equal(profile.currentStreak, 2);
-  profile = applyPetCare(profile, "play", day4);
-  assert.equal(profile.currentStreak, 1);
-  assert.equal(profile.bestStreak, 2);
+test("ごはんの満腹度・満足度を種類ごとに反映し、空腹の間は複数回食べられる", () => {
+  const now = new Date("2026-10-16T12:00:00+09:00");
+  let profile = makePetProfile({ species: "lizard", name: "リト", now });
+  profile = applyPetCare(profile, "feed", now, { foodId: "cricket" });
+  assert.equal(profile.fullness, 44);
+  assert.equal(profile.lastMeal.preference, "大好物");
+  assert.equal(profile.lastMeal.satisfaction, 32);
+  assert.equal(profile.friendship, 1);
+  profile = applyPetCare(profile, "feed", new Date(now.getTime() + 15 * 60_000), { foodId: "komatsuna" });
+  assert.equal(profile.fullness, 68);
+  assert.equal(profile.friendship, 1, "同じタイミングで何度も食べさせても好感度は重複加算しない");
+  profile = applyPetCare(profile, "feed", new Date(now.getTime() + 30 * 60_000), { foodId: "cricket" });
+  assert.equal(profile.fullness, 100);
+  assert.throws(() => applyPetCare(profile, "feed", new Date(now.getTime() + 45 * 60_000), { foodId: "pumpkin" }), /too-full/);
+  assert.throws(() => applyPetCare(profile, "feed", now, { foodId: "pizza" }), /invalid-food/);
+});
+
+test("なでる操作は何度でも受け付けるが、好感度はクールダウン中に重複加算しない", () => {
+  const start = new Date("2026-10-16T10:00:00+09:00");
+  let profile = makePetProfile({ species: "lizard", name: "リト", now: start });
+  profile = applyPetCare(profile, "pet", start);
+  profile = applyPetCare(profile, "pet", new Date(start.getTime() + 1_000));
+  assert.equal(profile.totalCareCount, 2);
+  assert.equal(profile.friendship, 1);
+  profile = applyPetCare(profile, "pet", new Date(start.getTime() + 6 * 60 * 60 * 1000));
+  assert.equal(profile.friendship, 1, "6時間の放置減衰と報酬クールダウンを反映する");
+});
+
+test("90分以内にお世話を続けていれば放置減衰しない", () => {
+  const start = new Date("2026-10-16T10:00:00+09:00");
+  const profile = { ...makePetProfile({ species: "lizard", name: "リト", now: start }), friendship: 8, affinityAwards: { pet: start } };
+  const activeAtEighty = applyPetCare(profile, "pet", new Date(start.getTime() + 80 * 60_000));
+  const afterMoreEighty = advancePetClock(activeAtEighty, new Date(start.getTime() + 160 * 60_000));
+  assert.equal(afterMoreEighty.friendship, 8);
+});
+
+test("好感度は放置90分ごとに減り、満腹度も時間経過で減る", () => {
+  const start = new Date("2026-10-16T10:00:00+09:00");
+  let profile = makePetProfile({ species: "lizard", name: "リト", now: start });
+  profile = applyPetCare(profile, "play", start);
+  profile = { ...profile, friendship: 8, fullness: 60 };
+  const afterNinety = advancePetClock(profile, new Date(start.getTime() + 90 * 60_000));
+  assert.equal(afterNinety.friendship, 7);
+  assert.equal(afterNinety.fullness, 56);
+  const afterThreeHours = advancePetClock(profile, new Date(start.getTime() + 3 * 60 * 60_000));
+  assert.equal(afterThreeHours.friendship, 6);
+  assert.equal(afterThreeHours.fullness, 48);
+});
+
+test("夜間は自動で眠り、世話操作では起こせない", () => {
+  const day = new Date("2026-10-16T12:00:00+09:00");
+  const night = new Date("2026-10-16T23:00:00+09:00");
+  assert.equal(isPetNight(day), false);
+  assert.equal(isPetNight(night), true);
+  const profile = makePetProfile({ species: "lizard", name: "リト", now: day });
+  assert.equal(advancePetClock(profile, night).isSleeping, true);
+  assert.throws(() => applyPetCare(profile, "pet", night), /sleep-time/);
+  assert.throws(() => applyPetCare(profile, "feed", night, { foodId: "cricket" }), /sleep-time/);
+});
+
+test("既存プロフィールの好感度は初回スキーマ更新時に保持される", () => {
+  const now = new Date("2026-10-16T12:00:00+09:00");
+  const oldProfile = { species: "lizard", name: "リト", friendship: 17, createdAt: new Date("2025-01-01T00:00:00Z") };
+  const migrated = advancePetClock(oldProfile, now);
+  assert.equal(migrated.friendship, 17);
+  assert.equal(migrated.fullness, 8);
+  assert.equal(migrated.petCoins, 100);
 });

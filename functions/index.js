@@ -92,10 +92,14 @@ const {
   PET_SPECIES,
   PET_EARLY_CHOICE_IDS,
   PET_CARE_ACTIONS,
+  PET_FOOD_CATALOG,
+  PET_SHOP_DEFAULT_ITEMS,
+  PET_PREFERENCE_LABELS,
   petEligible,
   petChoices,
   makePetProfile,
   applyPetCare,
+  advancePetClock,
 } = require("./pet_care_policy.js");
 
 const PRESENCE_DEVICE_MIGRATION_VERSION = 1;
@@ -681,13 +685,35 @@ exports.getPetGameState = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
-    const [accountSnapshot, profileSnapshot] = await Promise.all([
+    const [accountSnapshot, profileRef] = await Promise.all([
       referralAccountRef(studentNumber).get(),
-      db.collection("petProfiles").doc(studentNumber).get(),
+      Promise.resolve(db.collection("petProfiles").doc(studentNumber)),
     ]);
     const account = accountSnapshot.data() || {};
     const eligible = petEligible(studentNumber, account);
-    const profile = profileSnapshot.exists ? profileSnapshot.data() : null;
+    let profile = null;
+    if (eligible) {
+      profile = await db.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(profileRef);
+        if (!snapshot.exists) return null;
+        const original = snapshot.data();
+        const advanced = advancePetClock(original, new Date());
+        const clockChanged =
+          Number(original.schemaVersion || 1) < 2 ||
+          original.fullness == null || original.petCoins == null || !original.inventory ||
+          !original.affinityAwards || !original.lastMeterAt || !original.lastAffinityDecayAt ||
+          !original.lastInteractionAt || original.fullness !== advanced.fullness ||
+          original.friendship !== advanced.friendship || original.isSleeping !== advanced.isSleeping ||
+          timestampMillis(original.lastMeterAt) !== timestampMillis(advanced.lastMeterAt) ||
+          timestampMillis(original.lastInteractionAt) !== timestampMillis(advanced.lastInteractionAt);
+        if (clockChanged) transaction.set(profileRef, advanced, { merge: true });
+        return advanced;
+      });
+    }
+    const catalogSnapshot = eligible ? await db.collection("petShopCatalog").get() : null;
+    const custom = new Map((catalogSnapshot?.docs || []).map((doc) => [doc.id, { id: doc.id, ...doc.data() }]));
+    const catalog = PET_SHOP_DEFAULT_ITEMS.map((item) => ({ ...item, ...(custom.get(item.id) || {}) }));
+    for (const item of custom.values()) if (!catalog.some((base) => base.id === item.id) && item.enabled !== false) catalog.push(item);
     return {
       eligible,
       pilot: studentNumber === "2510044",
@@ -695,6 +721,7 @@ exports.getPetGameState = onCall(
       species: PET_SPECIES,
       careActions: PET_CARE_ACTIONS,
       profile: eligible && profile ? profile : null,
+      catalog: catalog.filter((item) => item.enabled !== false),
     };
   },
 );
@@ -740,25 +767,37 @@ exports.updatePetGameState = onCall(
         throw new HttpsError("invalid-argument", "お世話の種類を確認してください。");
       }
       return db.runTransaction(async (transaction) => {
+        const foodId = String(request.data?.foodId || "");
+        const foodRef = foodId ? db.collection("petShopCatalog").doc(foodId) : null;
         const [accountSnapshot, profileSnapshot] = await Promise.all([
           transaction.get(accountRef),
           transaction.get(profileRef),
         ]);
+        const foodSnapshot = foodRef ? await transaction.get(foodRef) : null;
         if (!petEligible(studentNumber, accountSnapshot.data() || {})) {
           throw new HttpsError("permission-denied", "ペット機能は友達招待6人達成で解放されます。");
         }
         if (!profileSnapshot.exists) {
           throw new HttpsError("failed-precondition", "先に一緒に暮らすペットを選んでください。");
         }
+        if (foodId && foodSnapshot?.exists && (foodSnapshot.data().kind !== "food" || foodSnapshot.data().enabled === false)) {
+          throw new HttpsError("invalid-argument", "選んだごはんは現在利用できません。");
+        }
         let profile;
         try {
           profile = applyPetCare(profileSnapshot.data(), careAction, now, {
-            foodId: String(request.data?.foodId || ""),
+            foodId,
+            food: foodSnapshot?.exists
+              ? { id: foodSnapshot.id, ...foodSnapshot.data() }
+              : PET_FOOD_CATALOG[foodId],
           });
         } catch (error) {
           if (error.message === "already-cared") {
             throw new HttpsError("already-exists", "今日はそのお世話をしました。また明日遊んでね。");
           }
+          if (error.message === "sleep-time") throw new HttpsError("failed-precondition", "夜はぐっすり眠っています。朝までそっとしておきましょう。");
+          if (error.message === "too-full") throw new HttpsError("failed-precondition", "まだおなかがいっぱいです。少し時間をおいてね。");
+          if (error.message === "out-of-stock") throw new HttpsError("failed-precondition", "そのごはんの在庫がありません。");
           throw new HttpsError("invalid-argument", "お世話を記録できませんでした。");
         }
         transaction.set(profileRef, profile);
@@ -766,7 +805,91 @@ exports.updatePetGameState = onCall(
       });
     }
 
+    if (action === "buy") {
+      const itemId = String(request.data?.itemId || "");
+      if (!/^[a-z0-9-]{2,40}$/.test(itemId)) throw new HttpsError("invalid-argument", "商品を確認してください。");
+      const itemRef = db.collection("petShopCatalog").doc(itemId);
+      return db.runTransaction(async (transaction) => {
+        const [accountSnapshot, profileSnapshot, itemSnapshot] = await Promise.all([
+          transaction.get(accountRef), transaction.get(profileRef), transaction.get(itemRef),
+        ]);
+        if (!petEligible(studentNumber, accountSnapshot.data() || {})) throw new HttpsError("permission-denied", "ペット機能を利用できません。");
+        if (!profileSnapshot.exists) throw new HttpsError("failed-precondition", "先にペットをお迎えしてください。");
+        const customItem = itemSnapshot.exists ? { id: itemId, ...itemSnapshot.data() } : PET_SHOP_DEFAULT_ITEMS.find((item) => item.id === itemId);
+        if (!customItem || customItem.enabled === false || customItem.shopAvailable === false || customItem.infinite === true) throw new HttpsError("failed-precondition", "この商品は購入できません。");
+        const price = Math.max(0, Math.floor(Number(customItem.price) || 0));
+        const profile = advancePetClock(profileSnapshot.data(), now);
+        if (Number(profile.petCoins || 0) < price) throw new HttpsError("failed-precondition", "お世話コインが足りません。");
+        const inventory = { ...(profile.inventory || {}), [itemId]: Number(profile.inventory?.[itemId] || 0) + 1 };
+        const next = { ...profile, inventory, petCoins: Number(profile.petCoins || 0) - price, updatedAt: now };
+        transaction.set(profileRef, next, { merge: true });
+        return { profile: next };
+      });
+    }
+
+    if (action === "set-toy") {
+      const itemId = String(request.data?.itemId || "");
+      return db.runTransaction(async (transaction) => {
+        const [accountSnapshot, profileSnapshot] = await Promise.all([transaction.get(accountRef), transaction.get(profileRef)]);
+        if (!petEligible(studentNumber, accountSnapshot.data() || {})) throw new HttpsError("permission-denied", "ペット機能を利用できません。");
+        if (!profileSnapshot.exists) throw new HttpsError("failed-precondition", "先にペットをお迎えしてください。");
+        const profile = profileSnapshot.data();
+        const owned = Number(profile.inventory?.[itemId] || 0) > 0;
+        const isDefaultToy = PET_SHOP_DEFAULT_ITEMS.some((item) => item.id === itemId && item.kind === "toy" && item.infinite);
+        if (itemId && !owned && !isDefaultToy) throw new HttpsError("permission-denied", "持っていないおもちゃです。");
+        const next = { ...profile, activeToyId: itemId, updatedAt: now };
+        transaction.set(profileRef, next, { merge: true });
+        return { profile: next };
+      });
+    }
+
     throw new HttpsError("invalid-argument", "操作内容が正しくありません。");
+  },
+);
+
+function normalizePetShopItem(input = {}) {
+  const id = String(input.id || "").trim().toLowerCase();
+  const kind = String(input.kind || "");
+  const name = String(input.name || "").trim();
+  const imagePath = String(input.imagePath || "").trim();
+  const preference = String(input.preference || "普通");
+  if (!/^[a-z0-9-]{2,40}$/.test(id) || !["food", "toy"].includes(kind) || !name || name.length > 30) throw new HttpsError("invalid-argument", "商品ID・種類・名前を確認してください。");
+  if (!/^assets\/pets\/(food|toys)\/[a-z0-9._-]+\.png$/i.test(imagePath)) throw new HttpsError("invalid-argument", "画像はペット用ごはん・おもちゃのPNGパスを指定してください。");
+  if (kind === "food" && !PET_PREFERENCE_LABELS.includes(preference)) throw new HttpsError("invalid-argument", "好みの設定を確認してください。");
+  const price = Math.floor(Number(input.price));
+  const fullnessGain = Math.floor(Number(input.fullnessGain || 0));
+  const satisfaction = Math.floor(Number(input.satisfaction || 0));
+  if (!Number.isFinite(price) || price < 0 || price > 100000 || fullnessGain < 0 || fullnessGain > 100 || satisfaction < 0 || satisfaction > 100) throw new HttpsError("invalid-argument", "価格・満腹度・満足度を確認してください。");
+  return { id, kind, name, imagePath, price, preference: kind === "food" ? preference : "普通", fullnessGain, satisfaction, infinite: input.infinite === true, shopAvailable: input.shopAvailable !== false, enabled: input.enabled !== false, updatedAt: new Date() };
+}
+
+exports.getPetShopCatalogAdmin = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
+  async (request) => {
+    await requireEnabledCareMateAdmin(request);
+    const snapshot = await db.collection("petShopCatalog").get();
+    const custom = new Map(snapshot.docs.map((doc) => [doc.id, { id: doc.id, ...doc.data() }]));
+    return { items: PET_SHOP_DEFAULT_ITEMS.map((item) => ({ ...item, ...(custom.get(item.id) || {}), isDefault: true })).concat([...custom.values()].filter((item) => !PET_SHOP_DEFAULT_ITEMS.some((base) => base.id === item.id)).map((item) => ({ ...item, isDefault: false }))) };
+  },
+);
+
+exports.savePetShopCatalogItem = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
+  async (request) => {
+    await requireEnabledCareMateAdmin(request);
+    const action = String(request.data?.action || "save");
+    const id = String(request.data?.id || "").trim().toLowerCase();
+    if (action === "delete") {
+      if (!/^[a-z0-9-]{2,40}$/.test(id) || PET_SHOP_DEFAULT_ITEMS.some((item) => item.id === id)) throw new HttpsError("failed-precondition", "標準商品は削除できません。無効化してください。");
+      await db.collection("petShopCatalog").doc(id).delete();
+      return { deleted: true };
+    }
+    const item = normalizePetShopItem(request.data?.item || {});
+    if (id && id !== item.id) throw new HttpsError("invalid-argument", "既存商品のIDは変更できません。");
+    const defaultItem = PET_SHOP_DEFAULT_ITEMS.find((entry) => entry.id === item.id);
+    if (defaultItem && defaultItem.kind !== item.kind) throw new HttpsError("invalid-argument", "標準商品の種類は変更できません。");
+    await db.collection("petShopCatalog").doc(item.id).set(item, { merge: true });
+    return { item };
   },
 );
 
