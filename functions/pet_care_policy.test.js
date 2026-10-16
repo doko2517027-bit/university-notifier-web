@@ -21,8 +21,13 @@ test("日本時間の日付で毎日4種類を一度ずつ記録する", () => {
   assert.equal(profile.currentStreak, 1);
   assert.throws(() => applyPetCare(profile, "feed", first), /already-cared/);
   profile = applyPetCare(profile, "pet", first);
+  profile = applyPetCare(profile, "pet", first);
   profile = applyPetCare(profile, "sleep", first);
   assert.equal(Object.keys(profile.dailyCare.actions).length, 4);
+  assert.equal(profile.friendship, 5);
+  assert.equal(profile.totalCareCount, 5);
+  assert.equal(applyPetCare(profile, "feed", new Date("2026-10-16T15:10:00.000Z"), { foodId: "greens" }).lastFoodId, "greens");
+  assert.throws(() => applyPetCare(profile, "feed", first, { foodId: "pizza" }), /invalid-food/);
 });
 
 test("連続お世話日数は翌日なら継続し、日を空けると1日から再開", () => {

@@ -10,6 +10,7 @@ const PET_SPECIES = Object.freeze({
 // visible as silhouettes in the UI, but unavailable until their assets exist.
 const PET_EARLY_CHOICE_IDS = Object.freeze(["lizard"]);
 const PET_CARE_ACTIONS = Object.freeze(["feed", "play", "pet", "sleep"]);
+const PET_FOOD_IDS = Object.freeze(["cricket", "greens", "berry"]);
 
 function petEligible(studentNumber, referralAccount = {}) {
   return String(studentNumber) === "2510044";
@@ -53,12 +54,14 @@ function makePetProfile({ species, name, now = new Date() }) {
   };
 }
 
-function applyPetCare(profile, action, now = new Date()) {
+function applyPetCare(profile, action, now = new Date(), options = {}) {
   if (!PET_CARE_ACTIONS.includes(action)) throw new Error("invalid-action");
+  const foodId = action === "feed" ? String(options.foodId || "cricket") : "";
+  if (action === "feed" && !PET_FOOD_IDS.includes(foodId)) throw new Error("invalid-food");
   const date = jstDateKey(now);
   const sameDay = profile.dailyCare?.date === date;
   const actions = sameDay ? { ...(profile.dailyCare?.actions || {}) } : {};
-  if (actions[action]) throw new Error("already-cared");
+  if (actions[action] && action !== "pet") throw new Error("already-cared");
   actions[action] = true;
 
   const firstToday = !sameDay || Object.keys(profile.dailyCare?.actions || {}).length === 0;
@@ -80,8 +83,9 @@ function applyPetCare(profile, action, now = new Date()) {
     lastCareDate: date,
     dailyCare: { date, actions },
     lastAction: action,
+    ...(foodId ? { lastFoodId: foodId } : {}),
     updatedAt: now,
   };
 }
 
-module.exports = { PET_SPECIES, PET_EARLY_CHOICE_IDS, PET_CARE_ACTIONS, petEligible, petChoices, jstDateKey, isNextCalendarDay, makePetProfile, applyPetCare };
+module.exports = { PET_SPECIES, PET_EARLY_CHOICE_IDS, PET_CARE_ACTIONS, PET_FOOD_IDS, petEligible, petChoices, jstDateKey, isNextCalendarDay, makePetProfile, applyPetCare };

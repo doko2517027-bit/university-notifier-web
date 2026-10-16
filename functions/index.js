@@ -752,7 +752,9 @@ exports.updatePetGameState = onCall(
         }
         let profile;
         try {
-          profile = applyPetCare(profileSnapshot.data(), careAction, now);
+          profile = applyPetCare(profileSnapshot.data(), careAction, now, {
+            foodId: String(request.data?.foodId || ""),
+          });
         } catch (error) {
           if (error.message === "already-cared") {
             throw new HttpsError("already-exists", "今日はそのお世話をしました。また明日遊んでね。");
