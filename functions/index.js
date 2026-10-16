@@ -2779,6 +2779,11 @@ exports.cleanupStaleLoginDevices = onSchedule(
         await batch.commit();
       }
     }
+    try {
+      await cleanupMateTalkMessages();
+    } catch (error) {
+      console.error("メイトーク期限切れメッセージの削除に失敗", error);
+    }
   },
 );
 
@@ -4946,6 +4951,7 @@ exports.saveMateTalkSettings = onCall(
       }, { merge: true });
       transaction.set(db.collection("users").doc(studentNumber), {
         rankingNickname: nickname,
+        rankingDisplayMode: "nickname",
         mateTalkSetupCompleted: true,
         mateTalkUpdatedAt: new Date(),
       }, { merge: true });
@@ -4981,14 +4987,107 @@ exports.connectMateTalkFriend = onCall(
   },
 );
 
+exports.rotateMateTalkExchangeId = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const privateRef = db.collection("mateTalkPrivateProfiles").doc(studentNumber);
+    const profileRef = db.collection("mateTalkProfiles").doc(studentNumber);
+    const exchangeId = crypto.randomBytes(8).toString("hex");
+    await db.runTransaction(async (transaction) => {
+      const current = (await transaction.get(privateRef)).data() || {};
+      if (Date.now() - timestampMillis(current.lastRotatedAt) < 10000) {
+        throw new HttpsError("resource-exhausted", "少し待ってからQRを更新してください。");
+      }
+      const oldId = normalizeExchangeId(current.exchangeId);
+      if (oldId) transaction.delete(db.collection("mateTalkExchangeIds").doc(oldId));
+      transaction.set(db.collection("mateTalkExchangeIds").doc(exchangeId), {
+        studentNumber, updatedAt: new Date(),
+      });
+      transaction.set(privateRef, { exchangeId, lastRotatedAt: new Date(), updatedAt: new Date() }, { merge: true });
+      transaction.set(profileRef, { exchangeEnabled: true, updatedAt: new Date() }, { merge: true });
+    });
+    return { exchangeId, exchangeEnabled: true };
+  },
+);
+
+exports.createMateTalkGroup = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const title = String(request.data?.title || "").replace(/\s+/g, " ").trim().slice(0, 30);
+    const friends = [...new Set((Array.isArray(request.data?.friendIds) ? request.data.friendIds : [])
+      .map(normalizeStudentNumber))].filter((value) => value && value !== studentNumber);
+    if (!title || friends.length < 2 || friends.length > 9) {
+      throw new HttpsError("invalid-argument", "グループ名と友達2〜9人を選んでください。");
+    }
+    const refs = friends.map((friend) => db.collection("mateTalkRooms")
+      .doc(studentRoomId(studentNumber, friend)));
+    const snapshots = await db.getAll(...refs);
+    if (snapshots.some((snapshot, index) => !snapshot.exists ||
+      snapshot.data()?.roomType !== "student" ||
+      !canAccessRoom(snapshot.data(), studentNumber) ||
+      !canAccessRoom(snapshot.data(), friends[index]))) {
+      throw new HttpsError("permission-denied", "追加済みの友達だけを選択できます。");
+    }
+    const roomRef = db.collection("mateTalkRooms").doc(`group_${crypto.randomBytes(12).toString("hex")}`);
+    const rateRef = db.collection("mateTalkRateLimits").doc(studentNumber);
+    await db.runTransaction(async (transaction) => {
+      const rate = (await transaction.get(rateRef)).data() || {};
+      if (Date.now() - timestampMillis(rate.lastGroupAt) < 10000) {
+        throw new HttpsError("resource-exhausted", "少し待ってからグループを作成してください。");
+      }
+      transaction.create(roomRef, {
+        roomType: "group", title, participants: [studentNumber, ...friends].sort(),
+        createdBy: studentNumber, createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      transaction.set(rateRef, { lastGroupAt: new Date() }, { merge: true });
+    });
+    return { roomId: roomRef.id };
+  },
+);
+
+exports.markMateTalkRead = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    if (!/^(admin_|student_|group_)[a-z0-9]+$/.test(roomId)) {
+      throw new HttpsError("invalid-argument", "トークを確認してください。");
+    }
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(roomRef);
+      if (!snapshot.exists || !canAccessRoom(snapshot.data(), studentNumber)) {
+        throw new HttpsError("permission-denied", "このトークにはアクセスできません。");
+      }
+      transaction.update(roomRef, {
+        [`unreadCount.${studentNumber}`]: 0,
+        [`readAt.${studentNumber}`]: new Date(),
+      });
+    });
+    return { ok: true };
+  },
+);
+
 exports.sendMateTalkMessage = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
     const roomId = String(request.data?.roomId || "").trim();
     const body = sanitizeMessage(request.data?.body);
+    const imageData = String(request.data?.imageData || "");
+    if (imageData.length > 260000) {
+      throw new HttpsError("invalid-argument", "写真が大きすぎます。別の画像を選んでください。");
+    }
+    const imageMatch = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(imageData);
+    const imageBytes = imageMatch ? Buffer.from(imageMatch[2], "base64") : null;
+    if (imageData && (!imageBytes || !imageBytes.length || imageBytes.length > 180 * 1024)) {
+      throw new HttpsError("invalid-argument", "写真は180KB以下のJPEG・PNG・WebPにしてください。");
+    }
     const mode = request.data?.mode === "admin" ? "admin" : "student";
-    if (!roomId || !body) throw new HttpsError("invalid-argument", "メッセージを入力してください。");
+    if (!roomId || (!body && !imageBytes)) throw new HttpsError("invalid-argument", "メッセージか写真を選んでください。");
     const roomRef = db.collection("mateTalkRooms").doc(roomId);
     const messageRef = roomRef.collection("messages").doc();
     const rateRef = db.collection("mateTalkRateLimits").doc(studentNumber);
@@ -5010,17 +5109,25 @@ exports.sendMateTalkMessage = onCall(
         throw new HttpsError("resource-exhausted", "少し待ってから送信してください。");
       }
       const sentAt = new Date();
+      const unreadCount = { ...(room.unreadCount || {}) };
+      for (const participant of room.participants) {
+        unreadCount[participant] = participant === studentNumber ? 0
+          : Math.min(99, Number(unreadCount[participant] || 0) + 1);
+      }
       transaction.set(messageRef, {
         senderId: studentNumber,
         senderRole: mode === "admin" ? "admin" : "student",
         body,
-        type: "text",
+        type: imageBytes ? "image" : "text",
+        ...(imageBytes ? { imageData } : {}),
         createdAt: sentAt,
+        expiresAt: new Date(sentAt.getTime() + 30 * 24 * 60 * 60 * 1000),
       });
       transaction.set(roomRef, {
-        lastMessage: body.slice(0, 100),
+        lastMessage: (body || "📷 写真").slice(0, 100),
         lastMessageAt: sentAt,
         lastSenderId: studentNumber,
+        unreadCount,
         updatedAt: sentAt,
       }, { merge: true });
       transaction.set(rateRef, { lastSentAt: sentAt }, { merge: true });
@@ -5028,6 +5135,31 @@ exports.sendMateTalkMessage = onCall(
     return { messageId: messageRef.id };
   },
 );
+
+async function cleanupMateTalkMessages() {
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const rooms = await db.collection("mateTalkRooms").get();
+    for (const room of rooms.docs) {
+      for (;;) {
+        const expired = await room.ref.collection("messages")
+          .where("createdAt", "<=", cutoff).limit(400).get();
+        if (expired.empty) break;
+        const batch = db.batch();
+        expired.docs.forEach((message) => batch.delete(message.ref));
+        await batch.commit();
+      }
+      if (timestampMillis(room.data()?.lastMessageAt) <= cutoff.getTime() && room.data()?.lastMessage) {
+        await db.runTransaction(async (transaction) => {
+          const current = await transaction.get(room.ref);
+          if (timestampMillis(current.data()?.lastMessageAt) <= cutoff.getTime()) {
+            transaction.update(room.ref, {
+              lastMessage: "", unreadCount: {}, lastMessageAt: FieldValue.delete(),
+            });
+          }
+        });
+      }
+    }
+}
 
 function mateTalkScheduleDocumentId(user = {}) {
   if (String(user.department || "").trim() === "看護学科") return "ns_yamate";

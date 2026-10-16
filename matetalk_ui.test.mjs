@@ -17,12 +17,38 @@ test("全学生の下部タブをメイトークへ統一する", () => {
   assert.doesNotMatch(common, /game\.href = "daruma\/"/);
 });
 
-test("管理者切替・予定共有・写真動画準備中を表示する", () => {
+test("管理者切替・予定共有・写真送信を表示する", () => {
   assert.match(html, /data-mode="admin"/);
   assert.match(html, /予定共有/);
-  assert.match(html, /COMING SOON/);
+  assert.match(html, /id="matePhotoInput"/);
+  assert.doesNotMatch(html, /COMING SOON/);
   assert.match(styles, /\.matetalk-page\{width:100%;max-width:none;padding:0\}/);
   assert.match(styles, /@media\(max-width:760px\)/);
+});
+
+test("2510044の下部タブは常に管理、未読数は参加ルームだけで集計する", () => {
+  assert.match(common, /studentNumber === "2510044"/);
+  assert.match(common, /settings\.href = "admin\.html"/);
+  assert.match(common, /startMateTalkUnreadBadge/);
+  assert.match(common, /where\("participants", "array-contains", studentNumber\)/);
+  assert.match(client, /class="mate-unread"/);
+});
+
+test("友達QRの再表示・更新・読取とグループ作成の入口がある", () => {
+  for (const id of ["mateShowOwnQr", "mateRotateQr", "mateScanQr", "mateCreateGroupButton", "mateGroupFriends"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(functions, /exports\.createMateTalkGroup/);
+  assert.match(functions, /exports\.rotateMateTalkExchangeId/);
+  assert.match(functions, /studentRoomId\(studentNumber, friend\)/);
+});
+
+test("写真は参加者だけに送信され、メッセージは30日で削除する", () => {
+  assert.match(functions, /imageBytes\.length > 180 \* 1024/);
+  assert.match(functions, /canAccessRoom\(room, studentNumber\)/);
+  assert.match(functions, /expiresAt: new Date\(sentAt\.getTime\(\) \+ 30/);
+  assert.match(functions, /await cleanupMateTalkMessages\(\)/);
+  assert.match(client, /compressMatePhoto/);
 });
 
 test("トーク未選択画面と管理者切替のhidden属性をCSSが上書きしない", () => {

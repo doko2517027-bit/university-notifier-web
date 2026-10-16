@@ -6,7 +6,7 @@ import {
   setupTheme,
   initializePage,
   showToast,
-} from "./common.js?v=20261016-1";
+} from "./common.js?v=20261016-2";
 import {
   collection,
   doc,
@@ -30,6 +30,9 @@ const connectMateTalkFriend = httpsCallable(functions, "connectMateTalkFriend");
 const sendMateTalkMessage = httpsCallable(functions, "sendMateTalkMessage");
 const getMateTalkSchedule = httpsCallable(functions, "getMateTalkSchedule");
 const setMateTalkScheduleVisibility = httpsCallable(functions, "setMateTalkScheduleVisibility");
+const createMateTalkGroup = httpsCallable(functions, "createMateTalkGroup");
+const rotateMateTalkExchangeId = httpsCallable(functions, "rotateMateTalkExchangeId");
+const markMateTalkRead = httpsCallable(functions, "markMateTalkRead");
 
 let myProfile = {};
 let isSystemAdmin = false;
@@ -44,6 +47,9 @@ let activeRoom = null;
 let stopMessages = null;
 let scheduleData = { mine: [], theirs: [] };
 let scheduleFilter = "both";
+let scanStream = null;
+let scanFrame = 0;
+let lastMarkedMessageAt = 0;
 
 setupTheme();
 
@@ -75,6 +81,8 @@ async function startMateTalk() {
   profiles = new Map(profileSnapshot.docs.map((item) => [item.id, item.data()]));
   publicUsers = new Map(publicSnapshot.docs.map((item) => [item.id, item.data()]));
   aliases = new Map(aliasSnapshot.docs.map((item) => [item.id, String(item.data()?.alias || "")]));
+  $("mateMyName").textContent = myProfile.nickname || "自分のプロフィール";
+  $("mateMyPhoto").src = publicUsers.get(studentNumber)?.photo || myProfile.photoUrl || "images/default.png";
   fillSettings();
   subscribeRooms();
   const connectId = new URLSearchParams(location.search).get("connect");
@@ -122,6 +130,7 @@ function otherId(room) {
 }
 
 function displayName(room) {
+  if (room.roomType === "group") return room.title || "グループ";
   const friendId = otherId(room);
   if (room.roomType === "admin") {
     if (mode === "admin" && isSystemAdmin) {
@@ -133,6 +142,7 @@ function displayName(room) {
 }
 
 function photoFor(room) {
+  if (room.roomType === "group") return "images/default.png";
   if (room.roomType === "admin" && !(mode === "admin" && isSystemAdmin)) {
     return "images/default.png";
   }
@@ -149,6 +159,8 @@ function renderRooms() {
   $("mateRoomHeading").textContent = mode === "admin" ? "学生トーク" : "トーク";
   $("mateRoomCount").textContent = `${visible.length}件`;
   $("mateAddFriendButton").hidden = mode === "admin";
+  $("mateCreateGroupButton").hidden = mode === "admin";
+  $("mateMyProfileButton").hidden = mode === "admin";
   if (!visible.length) {
     $("mateRoomList").innerHTML = `<div class="mate-loading-card">${mode === "admin" ? "登録学生を準備中です。" : "システム管理者とのトーク、または交換した友達が表示されます。"}</div>`;
     return;
@@ -157,7 +169,7 @@ function renderRooms() {
     <button type="button" class="mate-room-card${activeRoom?.id === room.id ? " active" : ""}" data-room-id="${escapeHtml(room.id)}">
       <img src="${escapeHtml(photoFor(room))}" alt="">
       <span><b>${escapeHtml(displayName(room))}${room.roomType === "admin" ? '<i class="mate-admin-mark">管理者</i>' : ""}</b><small>${escapeHtml(room.lastMessage || "トークを始めましょう")}</small></span>
-      <time>${escapeHtml(shortTime(room.lastMessageAt))}</time>
+      <span class="mate-room-meta"><time>${escapeHtml(shortTime(room.lastMessageAt))}</time>${unreadFor(room) ? `<em class="mate-unread">${unreadFor(room)}</em>` : ""}</span>
     </button>`).join("");
   $("mateRoomList").querySelectorAll("[data-room-id]").forEach((button) => {
     button.onclick = () => {
@@ -167,20 +179,30 @@ function renderRooms() {
   });
 }
 
+function unreadFor(room) {
+  const count = Number(room.unreadCount?.[studentNumber] || 0);
+  if (count) return Math.min(99, count);
+  return room.lastSenderId && room.lastSenderId !== studentNumber &&
+    timestampMillis(room.lastMessageAt) > timestampMillis(room.readAt?.[studentNumber]) ? 1 : 0;
+}
+
 function openRoom(room) {
   activeRoom = room;
+  lastMarkedMessageAt = 0;
   renderRooms();
   $("mateEmptyState").hidden = true;
   $("mateConversation").hidden = false;
   shell.classList.add("chat-open");
   $("mateChatName").textContent = displayName(room);
   $("mateChatPhoto").src = photoFor(room);
-  $("mateChatStatus").textContent = room.roomType === "admin"
+  $("mateChatStatus").textContent = room.roomType === "group" ? `${room.participants?.length || 0}人のグループ` : room.roomType === "admin"
     ? (mode === "admin" ? "システム管理者として対応" : "CareMate システム管理者")
     : "アカウント交換済み";
-  $("mateRenameButton").hidden = room.roomType === "admin";
+  $("mateRenameButton").hidden = room.roomType !== "student";
+  $("mateScheduleButton").hidden = room.roomType === "group";
   history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(room.id)}`);
   subscribeMessages(room.id);
+  if (unreadFor(room)) markMateTalkRead({ roomId: room.id }).catch(console.error);
 }
 
 function subscribeMessages(roomId) {
@@ -188,12 +210,20 @@ function subscribeMessages(roomId) {
   $("mateMessageList").innerHTML = '<div class="mate-loading-card">メッセージを読み込み中…</div>';
   const messageQuery = query(
     collection(db, "mateTalkRooms", roomId, "messages"),
-    orderBy("createdAt", "asc"),
-    limit(300),
+    orderBy("createdAt", "desc"),
+    limit(100),
   );
   stopMessages = onSnapshot(messageQuery, (snapshot) => {
-    const messages = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const messages = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+      .filter((message) => timestampMillis(message.createdAt) > cutoff).reverse();
     renderMessages(messages);
+    const newest = messages.at(-1);
+    const newestAt = timestampMillis(newest?.createdAt);
+    if (activeRoom?.id === roomId && newest?.senderId !== studentNumber && newestAt > lastMarkedMessageAt) {
+      lastMarkedMessageAt = newestAt;
+      markMateTalkRead({ roomId }).catch(console.error);
+    }
   }, (error) => {
     console.error("メッセージ取得エラー", error);
     $("mateMessageList").innerHTML = '<div class="mate-loading-card">メッセージを読み込めませんでした。</div>';
@@ -210,7 +240,11 @@ function renderMessages(messages) {
     const date = dateLabel(message.createdAt);
     const divider = date !== lastDate ? `<div class="mate-day-divider"><span>${escapeHtml(date)}</span></div>` : "";
     lastDate = date;
-    return `${divider}<div class="mate-message-row${message.senderId === studentNumber ? " mine" : ""}"><div class="mate-message-bubble">${escapeHtml(message.body).replace(/\n/g, "<br>")}<time>${escapeHtml(shortTime(message.createdAt))}</time></div></div>`;
+    const image = message.type === "image" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(message.imageData || "")
+      ? `<img class="mate-message-photo" src="${escapeHtml(message.imageData)}" alt="送信された写真" loading="lazy">` : "";
+    const sender = activeRoom?.roomType === "group" && message.senderId !== studentNumber
+      ? `<small class="mate-message-sender">${escapeHtml(profiles.get(message.senderId)?.nickname || "メンバー")}</small>` : "";
+    return `${divider}<div class="mate-message-row${message.senderId === studentNumber ? " mine" : ""}"><div class="mate-message-bubble">${sender}${image}${escapeHtml(message.body || "").replace(/\n/g, "<br>")}<time>${escapeHtml(shortTime(message.createdAt))}</time></div></div>`;
   }).join("");
   $("mateMessageList").scrollTop = $("mateMessageList").scrollHeight;
 }
@@ -245,6 +279,49 @@ function resizeMessageInput() {
   input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
 }
 
+$("matePhotoButton").onclick = () => $("matePhotoInput").click();
+$("matePhotoInput").onchange = async () => {
+  const file = $("matePhotoInput").files?.[0];
+  $("matePhotoInput").value = "";
+  if (!file || !activeRoom) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 20 * 1024 * 1024) {
+    alert("20MB以下のJPEG・PNG・WebPを選んでください。");
+    return;
+  }
+  $("matePhotoButton").disabled = true;
+  try {
+    const imageData = await compressMatePhoto(file);
+    if (!confirm("この写真をトークに送信しますか？")) return;
+    await sendMateTalkMessage({ roomId: activeRoom.id, mode, imageData });
+  } catch (error) {
+    alert(readableError(error, "写真を送信できませんでした。"));
+  } finally {
+    $("matePhotoButton").disabled = false;
+  }
+};
+
+async function compressMatePhoto(file) {
+  const source = await createImageBitmap(file);
+  try {
+    let scale = Math.min(1, 900 / Math.max(source.width, source.height));
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(source.width * scale));
+      canvas.height = Math.max(1, Math.round(source.height * scale));
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      const encoded = canvas.toDataURL("image/jpeg", Math.max(.55, .78 - attempt * .06));
+      if (encoded.length < 230000) return encoded;
+      scale *= .75;
+    }
+    throw new Error("写真が大きすぎます。別の画像を選んでください。");
+  } finally {
+    source.close();
+  }
+}
+
 document.querySelectorAll("#mateModeSwitch button").forEach((button) => {
   button.onclick = () => {
     mode = button.dataset.mode;
@@ -269,12 +346,36 @@ $("mateChatBack").onclick = closeRoom;
 $("mateRoomSearch").oninput = renderRooms;
 $("mateSettingsButton").onclick = () => openSettings(false);
 $("mateAddFriendButton").onclick = () => openOverlay("mateExchangeOverlay");
+$("mateMyProfileButton").onclick = () => openSettings(false);
+$("mateCreateGroupButton").onclick = () => {
+  const friends = rooms.filter((room) => room.roomType === "student").map((room) => otherId(room));
+  $("mateGroupFriends").innerHTML = friends.length ? friends.map((friendId) =>
+    `<label class="mate-group-friend"><input type="checkbox" value="${friendId}"><span>${escapeHtml(aliases.get(friendId) || profiles.get(friendId)?.nickname || friendId)}</span></label>`).join("")
+    : '<p>まず友達を追加してください。</p>';
+  $("mateGroupMessage").textContent = "";
+  openOverlay("mateGroupOverlay");
+};
+$("mateSaveGroup").onclick = async () => {
+  const friendIds = [...$("mateGroupFriends").querySelectorAll("input:checked")].map((input) => input.value);
+  $("mateSaveGroup").disabled = true;
+  try {
+    const result = await createMateTalkGroup({ title: $("mateGroupName").value, friendIds });
+    closeOverlay("mateGroupOverlay");
+    history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(result.data.roomId)}`);
+    showToast("グループを作成しました");
+  } catch (error) {
+    $("mateGroupMessage").textContent = readableError(error, "グループを作成できませんでした。");
+  } finally {
+    $("mateSaveGroup").disabled = false;
+  }
+};
 
 function fillSettings() {
   $("mateNicknameInput").value = myProfile.nickname || "";
   $("mateExchangeEnabled").checked = myProfile.exchangeEnabled === true;
   $("mateExchangeIdInput").value = myProfile.exchangeId || "";
   updateExchangeFields();
+  $("mateMyName").textContent = myProfile.nickname || "自分のプロフィール";
 }
 
 function openSettings(firstOpen) {
@@ -294,15 +395,79 @@ function updateExchangeFields() {
 
 function updateQr() {
   const exchangeId = $("mateExchangeIdInput").value.trim().toLowerCase();
-  const box = $("mateQrCode");
-  box.innerHTML = "";
   $("mateQrBox").hidden = !$("mateExchangeEnabled").checked || !exchangeId;
+  renderQr("mateQrCode", exchangeId);
+}
+
+function renderQr(targetId, exchangeId) {
+  const box = $(targetId);
+  box.innerHTML = "";
   if (!exchangeId || !window.QRCode) return;
   new window.QRCode(box, {
     text: `${location.origin}${location.pathname.replace(/matetalk\.html$/, "matetalk.html")}?connect=${encodeURIComponent(exchangeId)}`,
     width: 190, height: 190, correctLevel: window.QRCode.CorrectLevel.M,
   });
 }
+
+$("mateShowOwnQr").onclick = () => {
+  const enabled = myProfile.exchangeEnabled === true;
+  const exchangeId = enabled ? myProfile.exchangeId : "";
+  $("mateOwnQrBox").hidden = false;
+  $("mateOwnQrId").textContent = exchangeId ? `交換ID：${exchangeId}` : "QRの利用にはプロフィールで交換IDを設定してください。";
+  renderQr("mateOwnQrCode", exchangeId);
+};
+
+async function rotateQr() {
+  if (!confirm("交換IDとQRを更新しますか？以前のQRは使えなくなります。")) return;
+  const result = await rotateMateTalkExchangeId({});
+  myProfile = { ...myProfile, ...result.data };
+  fillSettings();
+  $("mateShowOwnQr").click();
+  showToast("QRを更新しました");
+}
+$("mateRotateQr").onclick = () => rotateQr().catch((error) => alert(readableError(error, "更新できませんでした。")));
+$("mateRotateQrSettings").onclick = () => rotateQr().catch((error) => { $("mateSettingsMessage").textContent = readableError(error, "更新できませんでした。"); });
+
+$("mateScanQr").onclick = async () => {
+  if (!("BarcodeDetector" in window)) {
+    $("mateExchangeMessage").textContent = "この端末はカメラ読み取りに対応していません。交換IDを入力してください。";
+    return;
+  }
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    $("mateQrVideo").srcObject = scanStream;
+    $("mateScanBox").hidden = false;
+    const detector = new BarcodeDetector({ formats: ["qr_code"] });
+    const scan = async () => {
+      if (!scanStream) return;
+      try {
+        const codes = await detector.detect($("mateQrVideo"));
+        if (!codes.length) { scanFrame = requestAnimationFrame(scan); return; }
+        const url = new URL(codes[0].rawValue, location.href);
+        const value = url.origin === location.origin ? url.searchParams.get("connect") : "";
+        if (value) {
+          $("mateFriendIdInput").value = value;
+          $("mateExchangeMessage").textContent = "QRを読み取りました。交換ボタンで確定してください。";
+          stopQrScan();
+          return;
+        }
+      } catch { /* カメラが映るまで待つ */ }
+      scanFrame = requestAnimationFrame(scan);
+    };
+    scanFrame = requestAnimationFrame(scan);
+  } catch (error) {
+    stopQrScan();
+    $("mateExchangeMessage").textContent = "カメラを利用できません。交換IDを入力してください。";
+  }
+};
+function stopQrScan() {
+  cancelAnimationFrame(scanFrame);
+  scanStream?.getTracks().forEach((track) => track.stop());
+  scanStream = null;
+  $("mateQrVideo").srcObject = null;
+  $("mateScanBox").hidden = true;
+}
+$("mateStopScan").onclick = stopQrScan;
 
 $("mateSaveSettings").onclick = async () => {
   $("mateSettingsMessage").textContent = "";
@@ -315,6 +480,7 @@ $("mateSaveSettings").onclick = async () => {
     });
     myProfile = { ...myProfile, ...result.data };
     profiles.set(studentNumber, myProfile);
+    $("mateMyName").textContent = myProfile.nickname;
     closeOverlay("mateSettingsOverlay");
     showToast("メイトーク設定を保存しました");
   } catch (error) {
@@ -423,13 +589,13 @@ function renderSchedule() {
 }
 
 document.querySelectorAll("[data-close]").forEach((button) => {
-  button.onclick = () => closeOverlay({ settings: "mateSettingsOverlay", exchange: "mateExchangeOverlay", schedule: "mateScheduleOverlay", rename: "mateRenameOverlay" }[button.dataset.close]);
+  button.onclick = () => closeOverlay({ settings: "mateSettingsOverlay", exchange: "mateExchangeOverlay", group: "mateGroupOverlay", schedule: "mateScheduleOverlay", rename: "mateRenameOverlay" }[button.dataset.close]);
 });
 document.querySelectorAll(".mate-overlay").forEach((overlay) => {
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) overlay.hidden = true; });
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(overlay.id); });
 });
 function openOverlay(id) { $(id).hidden = false; }
-function closeOverlay(id) { if (id) $(id).hidden = true; }
+function closeOverlay(id) { if (id) $(id).hidden = true; if (id === "mateExchangeOverlay") stopQrScan(); }
 
 function timestampMillis(value) {
   if (!value) return 0;

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f9d8a">
   <title>メイトーク | CareMate</title>
   <link rel="stylesheet" href="style.css?v=20261015-2">
-  <link rel="stylesheet" href="matetalk.css?v=20261016-3">
+  <link rel="stylesheet" href="matetalk.css?v=20261016-4">
 </head>
 <body class="page-loading matetalk-page">
   <header class="matetalk-topbar">
@@ -30,8 +30,9 @@
           <b id="mateRoomHeading">トーク</b>
           <small id="mateRoomCount">読み込み中</small>
         </div>
-        <button id="mateAddFriendButton" class="mate-add-button" type="button">＋ 交換</button>
+        <div class="mate-room-actions"><button id="mateCreateGroupButton" class="mate-add-button" type="button">👥 グループ</button><button id="mateAddFriendButton" class="mate-add-button" type="button">＋ 友達</button></div>
       </div>
+      <button id="mateMyProfileButton" class="mate-my-profile" type="button"><img id="mateMyPhoto" src="images/default.png" alt=""><span><b id="mateMyName">自分のプロフィール</b><small>写真・ニックネーム・交換ID</small></span><span>›</span></button>
       <label class="mate-search">
         <span>🔎</span>
         <input id="mateRoomSearch" type="search" placeholder="名前・ニックネームで検索" autocomplete="off">
@@ -60,9 +61,8 @@
         </header>
         <div id="mateMessageList" class="mate-message-list" aria-live="polite"></div>
         <form id="mateMessageForm" class="mate-composer">
-          <button class="mate-media-button" type="button" disabled aria-label="写真と動画は準備中">
-            <span>📷</span><i>COMING SOON</i>
-          </button>
+          <button id="matePhotoButton" class="mate-media-button" type="button" aria-label="写真を送信">📷</button>
+          <input id="matePhotoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
           <textarea id="mateMessageInput" rows="1" maxlength="2000" placeholder="メッセージを入力" enterkeyhint="send"></textarea>
           <button id="mateSendButton" class="mate-send-button" type="submit">送信</button>
         </form>
@@ -75,10 +75,12 @@
       <button class="mate-modal-close" type="button" data-close="settings" aria-label="閉じる">×</button>
       <p class="mate-kicker">メイトーク設定</p>
       <h2 id="mateSettingsTitle">あなたのプロフィール</h2>
+      <a class="mate-profile-link" href="profile.html">👤 プロフィール写真を変更</a>
       <label>ニックネーム<input id="mateNicknameInput" maxlength="20" placeholder="友達に表示する名前"></label>
       <label class="mate-toggle-row"><input id="mateExchangeEnabled" type="checkbox"><span>ID・QRでアカウント交換を受け付ける</span></label>
       <label id="mateExchangeIdField">交換ID<input id="mateExchangeIdInput" maxlength="20" inputmode="latin" autocapitalize="none" placeholder="英数字4〜20文字"></label>
       <div id="mateQrBox" class="mate-qr-box" hidden><div id="mateQrCode"></div><small>相手のカメラで読み取ってください</small></div>
+      <button id="mateRotateQrSettings" class="mate-secondary-button" type="button">QR・交換IDを更新</button>
       <p id="mateSettingsMessage" class="mate-form-message"></p>
       <button id="mateSaveSettings" class="mate-primary-button" type="button">設定を保存</button>
       <button id="mateSkipSettings" class="mate-secondary-button" type="button">今は設定しない</button>
@@ -90,10 +92,24 @@
       <button class="mate-modal-close" type="button" data-close="exchange" aria-label="閉じる">×</button>
       <p class="mate-kicker">アカウント交換</p>
       <h2 id="mateExchangeTitle">友達の交換IDを入力</h2>
+      <div class="mate-exchange-actions"><button id="mateShowOwnQr" type="button">自分のQR</button><button id="mateScanQr" type="button">QRを読み取る</button></div>
+      <div id="mateOwnQrBox" class="mate-qr-box" hidden><div id="mateOwnQrCode"></div><small id="mateOwnQrId"></small><button id="mateRotateQr" class="mate-secondary-button" type="button">QRを更新</button></div>
+      <div id="mateScanBox" hidden><video id="mateQrVideo" autoplay playsinline muted></video><p id="mateScanStatus">カメラを起動しています…</p><button id="mateStopScan" class="mate-secondary-button" type="button">読み取りをやめる</button></div>
       <p>交換すると、お互いのトーク一覧に追加されます。</p>
       <label>交換ID<input id="mateFriendIdInput" maxlength="20" inputmode="latin" autocapitalize="none" placeholder="例：kohei_44"></label>
       <p id="mateExchangeMessage" class="mate-form-message"></p>
       <button id="mateConnectFriend" class="mate-primary-button" type="button">交換してトークを開く</button>
+    </section>
+  </div>
+
+  <div id="mateGroupOverlay" class="mate-overlay" hidden>
+    <section class="mate-modal" role="dialog" aria-modal="true" aria-labelledby="mateGroupTitle">
+      <button class="mate-modal-close" type="button" data-close="group" aria-label="閉じる">×</button>
+      <p class="mate-kicker">グループチャット</p><h2 id="mateGroupTitle">友達を選ぶ</h2>
+      <label>グループ名<input id="mateGroupName" maxlength="30" placeholder="例：実習メンバー"></label>
+      <div id="mateGroupFriends" class="mate-group-friends"></div>
+      <p id="mateGroupMessage" class="mate-form-message"></p>
+      <button id="mateSaveGroup" class="mate-primary-button" type="button">グループを作成</button>
     </section>
   </div>
 
@@ -130,6 +146,6 @@
   </nav>
 
   <script src="vendor/qrcode.min.js?v=20261016-1"></script>
-  <script type="module" src="matetalk.js?v=20261016-4"></script>
+  <script type="module" src="matetalk.js?v=20261016-5"></script>
 </body>
 </html>

@@ -1489,7 +1489,43 @@ function ensureMateTalkNavTab() {
     const assignments = nav.querySelector('a[href="assignments.html"]');
     if (assignments) assignments.insertAdjacentElement("afterend", chat);
     else nav.append(chat);
+    if (studentNumber === "2510044") {
+      const settings = nav.querySelector('#settingsTab, a[href="settings.html"]');
+      if (settings) {
+        settings.href = "admin.html";
+        settings.setAttribute("aria-label", "管理画面を開く");
+        settings.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👑</span><span id="adminReportBadge" class="nav-notification-badge" hidden>0</span></span><span>管理</span>';
+      }
+    }
   }
+  startMateTalkUnreadBadge();
+}
+
+let stopMateTalkUnreadBadge = null;
+let mateTalkBadgeAuthBound = false;
+function startMateTalkUnreadBadge() {
+  if (mateTalkBadgeAuthBound || !studentNumber || !document.getElementById("mateTalkNavBadge")) return;
+  mateTalkBadgeAuthBound = true;
+  onAuthStateChanged(auth, (user) => {
+    stopMateTalkUnreadBadge?.();
+    stopMateTalkUnreadBadge = null;
+    if (user?.uid !== `caremate-${studentNumber}`) return;
+    const roomQuery = query(collection(db, "mateTalkRooms"), where("participants", "array-contains", studentNumber));
+    stopMateTalkUnreadBadge = onSnapshot(roomQuery, (snapshot) => {
+      const total = snapshot.docs.reduce((sum, item) => {
+        const room = item.data();
+        const unread = Number(room.unreadCount?.[studentNumber] || 0);
+        if (unread) return sum + unread;
+        const sentAt = room.lastMessageAt?.toMillis?.() || 0;
+        const readAt = room.readAt?.[studentNumber]?.toMillis?.() || 0;
+        return sum + (room.lastSenderId && room.lastSenderId !== studentNumber && sentAt > readAt ? 1 : 0);
+      }, 0);
+      document.querySelectorAll("#mateTalkNavBadge").forEach((badge) => {
+        badge.textContent = total > 99 ? "99+" : String(total);
+        badge.hidden = total === 0;
+      });
+    }, (error) => console.warn("メイトークの未読数を取得できませんでした:", error));
+  });
 }
 
 if (document.readyState === "loading") {
