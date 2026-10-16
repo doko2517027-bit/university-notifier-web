@@ -1,13 +1,17 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { initializeApp, getApps } = require("firebase-admin/app");
-const { getAuth } = require("firebase-admin/auth");
-const { getFirestore } = require("firebase-admin/firestore");
-const { getDatabase } = require("firebase-admin/database");
+const { matchesPasswordHash } = require("./password_policy.js");
 
 let services;
 
 function getServices() {
   if (services) return services;
+  // Keep Firebase Admin SDK loading out of Functions discovery. Firestore's
+  // Admin package is comparatively expensive to load and is only needed after
+  // an authenticated deletion callable is invoked.
+  const { initializeApp, getApps } = require("firebase-admin/app");
+  const { getAuth } = require("firebase-admin/auth");
+  const { getFirestore } = require("firebase-admin/firestore");
+  const { getDatabase } = require("firebase-admin/database");
   if (!getApps().length) {
     initializeApp({
       databaseURL: "https://universitynotifier-67517-default-rtdb.firebaseio.com",
@@ -23,7 +27,6 @@ function getServices() {
 
 async function deleteUserData(target) {
   const { db, auth, realtimeDb } = getServices();
-  // Cloudinary画像は管理者が手動削除し、それ以外のCareMateデータを削除する。
   const removeDocument = (reference) => db.recursiveDelete(reference);
   const removeMatches = async (collectionName, fieldName) => {
     const records = await db.collection(collectionName).where(fieldName, "==", target).get();
@@ -38,15 +41,31 @@ async function deleteUserData(target) {
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
     "referralAccounts", "referralPrivateRewards",
+    "mateTalkProfiles", "mateTalkPrivateProfiles", "mateTalkSchedulePrivacy",
+    "mateTalkRateLimits", "referralHistory", "referralIdentityRegistry",
   ];
   await Promise.all(directCollections.map((name) => removeDocument(db.collection(name).doc(target))));
-  const [contacts, calendarEvents, reports, calendarDispatches, referralCodes] = await Promise.all([
+  const [contacts, calendarEvents, reports, calendarDispatches, referralCodes,
+    referralAdjustments, referralDeletions, referralProofs, inviterProofs, externalAuthChecks,
+    exchangeIds, qrTokens] = await Promise.all([
     removeMatches("contacts", "studentNumber"),
     removeMatches("calendarEvents", "ownerId"),
     removeMatches("reports", "reporterStudentNumber"),
     removeMatches("calendarReminderDispatches", "userId"),
     removeMatches("referralCodes", "inviterStudentNumber"),
+    removeMatches("referralManualAdjustments", "studentNumber"),
+    removeMatches("referralRewardDeletions", "studentNumber"),
+    removeMatches("referralRegistrationProofs", "studentNumber"),
+    removeMatches("referralRegistrationProofs", "inviterStudentNumber"),
+    removeMatches("externalAuthChecks", "studentNumber"),
+    removeMatches("mateTalkExchangeIds", "studentNumber"),
+    removeMatches("mateTalkQrTokens", "studentNumber"),
   ]);
+  // Remove complete student, admin, and group conversations. recursiveDelete also
+  // removes nested messages and base64 photo attachments for every participant.
+  const talkRooms = await db.collection("mateTalkRooms")
+    .where("participants", "array-contains", target).get();
+  await Promise.all(talkRooms.docs.map((room) => removeDocument(room.ref)));
   // 日別ランキングは日付を親文書、学籍番号を子文書IDとして保持している。
   const rankingDays = await db.collection("dailyRanking").listDocuments();
   for (let index = 0; index < rankingDays.length; index += 25) {
@@ -61,11 +80,15 @@ async function deleteUserData(target) {
   }
   // 再試行の起点となるusers文書は最後に消す。
   await removeDocument(db.collection("users").doc(target));
-  return { contacts, calendarEvents, reports, calendarDispatches, referralCodes };
+  return {
+    contacts, calendarEvents, reports, calendarDispatches, referralCodes,
+    referralAdjustments, referralDeletions, referralProofs, inviterProofs, externalAuthChecks,
+    exchangeIds, qrTokens, talkRooms: talkRooms.size,
+  };
 }
 
 exports.deleteCareMateUser = onCall(
-  { region: "asia-northeast1" },
+  { region: "asia-northeast1", timeoutSeconds: 540, memory: "1GiB" },
   async (request) => {
     const actor = String(request.auth?.token?.studentNumber || "");
     const target = String(request.data?.studentNumber || "").trim();
@@ -87,5 +110,22 @@ exports.deleteCareMateUser = onCall(
     }
 
     return { ok: true, ...(await deleteUserData(target)) };
+  },
+);
+
+exports.deleteMyCareMateAccount = onCall(
+  { region: "asia-northeast1", timeoutSeconds: 540, memory: "1GiB" },
+  async (request) => {
+    const studentNumber = String(request.auth?.token?.studentNumber || "");
+    const expectedUid = `caremate-${studentNumber}`;
+    if (!request.auth?.uid || request.auth.uid !== expectedUid || !/^\d{7}$/.test(studentNumber)) {
+      throw new HttpsError("unauthenticated", "ログイン状態を確認してください。");
+    }
+    const userSnapshot = await getServices().db.collection("users").doc(studentNumber).get();
+    if (!userSnapshot.exists || !matchesPasswordHash(request.data?.password, userSnapshot.data()?.appPasswordHash)) {
+      throw new HttpsError("permission-denied", "現在のパスワードが違います。");
+    }
+    await deleteUserData(studentNumber);
+    return { ok: true };
   },
 );

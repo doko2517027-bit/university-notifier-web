@@ -63,6 +63,7 @@ const {
 } = require("./system_news_audience.js");
 const {
   MATETALK_ADMIN,
+  normalizeStudentNumber,
   normalizeExchangeId,
   sanitizeNickname,
   sanitizeMessage,
@@ -4878,9 +4879,21 @@ async function ensureMateTalkProfile(studentNumber) {
   if (studentNumber !== MATETALK_ADMIN) await ensureMateTalkAdminRoom(studentNumber);
   return {
     ...profile,
-    exchangeId: profile.exchangeEnabled === true
-      ? normalizeExchangeId(privateSnapshot.data()?.exchangeId) : "",
+    exchangeId: normalizeExchangeId(privateSnapshot.data()?.exchangeId),
+    qrToken: profile.exchangeEnabled === true
+      ? String(privateSnapshot.data()?.qrToken || "") : "",
   };
+}
+
+async function claimMateTalkSetupPrompt(studentNumber) {
+  const userRef = db.collection("users").doc(studentNumber);
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(userRef);
+    if (!snapshot.exists) throw new HttpsError("not-found", "ユーザーが見つかりません。");
+    if (snapshot.data()?.mateTalkSetupPromptV2At) return false;
+    transaction.set(userRef, { mateTalkSetupPromptV2At: new Date() }, { merge: true });
+    return true;
+  });
 }
 
 function requireMateTalkAdmin(request, studentNumber) {
@@ -4900,6 +4913,7 @@ exports.initializeMateTalk = onCall(
     const profile = await ensureMateTalkProfile(studentNumber);
     return {
       profile,
+      showSetupPrompt: await claimMateTalkSetupPrompt(studentNumber),
       isSystemAdmin: studentNumber === MATETALK_ADMIN && request.auth?.token?.admin === true,
       adminDirectory,
     };
@@ -4912,33 +4926,53 @@ exports.saveMateTalkSettings = onCall(
     const studentNumber = requireAuthenticatedCareMateStudent(request);
     const nickname = sanitizeNickname(request.data?.nickname);
     const exchangeEnabled = request.data?.exchangeEnabled === true;
-    const exchangeId = exchangeEnabled ? normalizeExchangeId(request.data?.exchangeId) : "";
+    const requestedExchangeId = exchangeEnabled ? normalizeExchangeId(request.data?.exchangeId) : "";
     if (!nickname) throw new HttpsError("invalid-argument", "ニックネームを入力してください。");
-    if (exchangeEnabled && !exchangeId) {
+    if (exchangeEnabled && !requestedExchangeId) {
       throw new HttpsError("invalid-argument", "交換IDは英数字4〜20文字で入力してください。");
     }
 
     const profileRef = db.collection("mateTalkProfiles").doc(studentNumber);
     const privateProfileRef = db.collection("mateTalkPrivateProfiles").doc(studentNumber);
-    const newIdRef = exchangeId ? db.collection("mateTalkExchangeIds").doc(exchangeId) : null;
+    const requestedIdRef = requestedExchangeId
+      ? db.collection("mateTalkExchangeIds").doc(requestedExchangeId) : null;
+    const candidateQrToken = crypto.randomBytes(18).toString("base64url");
+    const candidateQrRef = db.collection("mateTalkQrTokens").doc(candidateQrToken);
+    let exchangeId = "";
+    let qrToken = "";
     await db.runTransaction(async (transaction) => {
-      const [privateProfileSnapshot, newIdSnapshot] = await Promise.all([
+      const [privateProfileSnapshot, requestedIdSnapshot, candidateQrSnapshot] = await Promise.all([
         transaction.get(privateProfileRef),
-        newIdRef ? transaction.get(newIdRef) : Promise.resolve(null),
+        requestedIdRef ? transaction.get(requestedIdRef) : Promise.resolve(null),
+        transaction.get(candidateQrRef),
       ]);
       const current = privateProfileSnapshot.data() || {};
       const oldExchangeId = normalizeExchangeId(current.exchangeId);
-      if (newIdSnapshot?.exists && newIdSnapshot.data()?.studentNumber !== studentNumber) {
+      if (oldExchangeId && requestedExchangeId && requestedExchangeId !== oldExchangeId) {
+        throw new HttpsError("failed-precondition", "交換IDは一度設定すると変更できません。QRコードのみ更新できます。");
+      }
+      if (requestedIdSnapshot?.exists && requestedIdSnapshot.data()?.studentNumber !== studentNumber) {
         throw new HttpsError("already-exists", "その交換IDは使用されています。");
       }
-      if (oldExchangeId && oldExchangeId !== exchangeId) {
-        transaction.delete(db.collection("mateTalkExchangeIds").doc(oldExchangeId));
+      if (candidateQrSnapshot.exists) {
+        throw new HttpsError("aborted", "QRコードの発行に失敗しました。もう一度お試しください。");
       }
-      if (newIdRef) {
-        transaction.set(newIdRef, {
+      exchangeId = oldExchangeId || requestedExchangeId;
+      const oldQrToken = String(current.qrToken || "");
+      qrToken = exchangeEnabled
+        ? (current.exchangeEnabled === true && oldQrToken ? oldQrToken : candidateQrToken)
+        : "";
+      if (exchangeEnabled && exchangeId) {
+        transaction.set(db.collection("mateTalkExchangeIds").doc(exchangeId), {
           studentNumber,
           updatedAt: new Date(),
         });
+      }
+      if (oldQrToken && oldQrToken !== qrToken) {
+        transaction.delete(db.collection("mateTalkQrTokens").doc(oldQrToken));
+      }
+      if (qrToken && qrToken !== oldQrToken) {
+        transaction.set(candidateQrRef, { studentNumber, updatedAt: new Date() });
       }
       transaction.set(profileRef, {
         nickname,
@@ -4947,6 +4981,7 @@ exports.saveMateTalkSettings = onCall(
       }, { merge: true });
       transaction.set(privateProfileRef, {
         exchangeId,
+        qrToken,
         updatedAt: new Date(),
       }, { merge: true });
       transaction.set(db.collection("users").doc(studentNumber), {
@@ -4956,7 +4991,7 @@ exports.saveMateTalkSettings = onCall(
         mateTalkUpdatedAt: new Date(),
       }, { merge: true });
     });
-    return { nickname, exchangeEnabled, exchangeId };
+    return { nickname, exchangeEnabled, exchangeId, qrToken };
   },
 );
 
@@ -4964,9 +4999,17 @@ exports.connectMateTalkFriend = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const qrToken = String(request.data?.qrToken || "").trim();
     const exchangeId = normalizeExchangeId(request.data?.exchangeId);
-    if (!exchangeId) throw new HttpsError("invalid-argument", "交換IDを確認してください。");
-    const exchangeSnapshot = await db.collection("mateTalkExchangeIds").doc(exchangeId).get();
+    if (qrToken && !/^[A-Za-z0-9_-]{20,64}$/.test(qrToken)) {
+      throw new HttpsError("invalid-argument", "QRコードを読み取れませんでした。もう一度お試しください。");
+    }
+    if (!qrToken && !exchangeId) {
+      throw new HttpsError("invalid-argument", "交換IDまたはQRコードを確認してください。");
+    }
+    const exchangeSnapshot = qrToken
+      ? await db.collection("mateTalkQrTokens").doc(qrToken).get()
+      : await db.collection("mateTalkExchangeIds").doc(exchangeId).get();
     const friendNumber = String(exchangeSnapshot.data()?.studentNumber || "");
     if (!/^\d{7}$/.test(friendNumber) || friendNumber === studentNumber) {
       throw new HttpsError("not-found", "交換相手が見つかりません。");
@@ -4976,14 +5019,53 @@ exports.connectMateTalkFriend = onCall(
       throw new HttpsError("failed-precondition", "相手のアカウント交換は現在停止中です。");
     }
     const roomId = studentRoomId(studentNumber, friendNumber);
-    await db.collection("mateTalkRooms").doc(roomId).set({
-      roomType: "student",
-      participants: [studentNumber, friendNumber].sort(),
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      createdBy: studentNumber,
-    }, { merge: true });
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    await db.runTransaction(async (transaction) => {
+      const existingRoom = await transaction.get(roomRef);
+      if (existingRoom.exists && existingRoom.data()?.deleting === true) {
+        throw new HttpsError("unavailable", "友達登録の削除処理中です。少し待ってからもう一度お試しください。");
+      }
+      transaction.set(roomRef, {
+        roomType: "student",
+        participants: [studentNumber, friendNumber].sort(),
+        ...(!existingRoom.exists ? { createdAt: FieldValue.serverTimestamp(), createdBy: studentNumber } : {}),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    });
     return { roomId, friendNumber };
+  },
+);
+
+exports.deleteMateTalkFriend = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], timeoutSeconds: 120 },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    if (!/^student_[a-f0-9]{24}$/.test(roomId)) {
+      throw new HttpsError("invalid-argument", "友達とのトークを選択してください。");
+    }
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    let friendNumber = "";
+    await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(roomRef);
+      const room = snapshot.data() || {};
+      if (!snapshot.exists || room.roomType !== "student" || !canAccessRoom(room, studentNumber)) {
+        throw new HttpsError("permission-denied", "この友達トークは削除できません。");
+      }
+      friendNumber = (room.participants || []).find((participant) => participant !== studentNumber) || "";
+      if (!/^\d{7}$/.test(friendNumber) || room.participants?.length !== 2) {
+        throw new HttpsError("failed-precondition", "友達トークの情報を確認できません。");
+      }
+      transaction.set(roomRef, {
+        deleting: true,
+        deleteRequestedAt: FieldValue.serverTimestamp(),
+        deleteRequestedBy: studentNumber,
+      }, { merge: true });
+    });
+    // Room documents contain inline photos; recursiveDelete removes both the room
+    // and every nested message for both participants. Re-exchange can recreate it.
+    await db.recursiveDelete(roomRef);
+    return { ok: true, friendNumber };
   },
 );
 
@@ -4992,59 +5074,82 @@ exports.rotateMateTalkExchangeId = onCall(
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
     const privateRef = db.collection("mateTalkPrivateProfiles").doc(studentNumber);
-    const profileRef = db.collection("mateTalkProfiles").doc(studentNumber);
-    const exchangeId = crypto.randomBytes(8).toString("hex");
+    const qrToken = crypto.randomBytes(18).toString("base64url");
+    const qrTokenRef = db.collection("mateTalkQrTokens").doc(qrToken);
+    let exchangeId = "";
     await db.runTransaction(async (transaction) => {
-      const current = (await transaction.get(privateRef)).data() || {};
+      const [privateSnapshot, newQrSnapshot] = await Promise.all([
+        transaction.get(privateRef), transaction.get(qrTokenRef),
+      ]);
+      const current = privateSnapshot.data() || {};
+      exchangeId = normalizeExchangeId(current.exchangeId);
+      if (!current.exchangeEnabled || !exchangeId) {
+        throw new HttpsError("failed-precondition", "先に交換IDを設定して有効にしてください。");
+      }
+      if (newQrSnapshot.exists) throw new HttpsError("aborted", "QRコードを更新できませんでした。もう一度お試しください。");
       if (Date.now() - timestampMillis(current.lastRotatedAt) < 10000) {
         throw new HttpsError("resource-exhausted", "少し待ってからQRを更新してください。");
       }
-      const oldId = normalizeExchangeId(current.exchangeId);
-      if (oldId) transaction.delete(db.collection("mateTalkExchangeIds").doc(oldId));
-      transaction.set(db.collection("mateTalkExchangeIds").doc(exchangeId), {
+      const oldQrToken = String(current.qrToken || "");
+      if (oldQrToken) transaction.delete(db.collection("mateTalkQrTokens").doc(oldQrToken));
+      transaction.set(qrTokenRef, {
         studentNumber, updatedAt: new Date(),
       });
-      transaction.set(privateRef, { exchangeId, lastRotatedAt: new Date(), updatedAt: new Date() }, { merge: true });
-      transaction.set(profileRef, { exchangeEnabled: true, updatedAt: new Date() }, { merge: true });
+      transaction.set(privateRef, { qrToken, lastRotatedAt: new Date(), updatedAt: new Date() }, { merge: true });
     });
-    return { exchangeId, exchangeEnabled: true };
+    return { exchangeId, qrToken, exchangeEnabled: true };
   },
 );
 
 exports.createMateTalkGroup = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
-    const studentNumber = requireAuthenticatedCareMateStudent(request);
-    const title = String(request.data?.title || "").replace(/\s+/g, " ").trim().slice(0, 30);
-    const friends = [...new Set((Array.isArray(request.data?.friendIds) ? request.data.friendIds : [])
-      .map(normalizeStudentNumber))].filter((value) => value && value !== studentNumber);
-    if (!title || friends.length < 2 || friends.length > 9) {
-      throw new HttpsError("invalid-argument", "グループ名と友達2〜9人を選んでください。");
-    }
-    const refs = friends.map((friend) => db.collection("mateTalkRooms")
-      .doc(studentRoomId(studentNumber, friend)));
-    const snapshots = await db.getAll(...refs);
-    if (snapshots.some((snapshot, index) => !snapshot.exists ||
-      snapshot.data()?.roomType !== "student" ||
-      !canAccessRoom(snapshot.data(), studentNumber) ||
-      !canAccessRoom(snapshot.data(), friends[index]))) {
-      throw new HttpsError("permission-denied", "追加済みの友達だけを選択できます。");
-    }
-    const roomRef = db.collection("mateTalkRooms").doc(`group_${crypto.randomBytes(12).toString("hex")}`);
-    const rateRef = db.collection("mateTalkRateLimits").doc(studentNumber);
-    await db.runTransaction(async (transaction) => {
-      const rate = (await transaction.get(rateRef)).data() || {};
-      if (Date.now() - timestampMillis(rate.lastGroupAt) < 10000) {
-        throw new HttpsError("resource-exhausted", "少し待ってからグループを作成してください。");
+    let studentNumber = "";
+    try {
+      studentNumber = requireAuthenticatedCareMateStudent(request);
+      const title = String(request.data?.title || "").replace(/\s+/g, " ").trim().slice(0, 30);
+      const friends = [...new Set((Array.isArray(request.data?.friendIds) ? request.data.friendIds : [])
+        .map(normalizeStudentNumber))].filter((value) => value && value !== studentNumber);
+      if (!title || friends.length < 2 || friends.length > 9) {
+        throw new HttpsError("invalid-argument", "グループ名と友達2〜9人を選んでください。");
       }
-      transaction.create(roomRef, {
-        roomType: "group", title, participants: [studentNumber, ...friends].sort(),
-        createdBy: studentNumber, createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+      const memberRooms = friends.map((friend) => db.collection("mateTalkRooms")
+        .doc(studentRoomId(studentNumber, friend)));
+      const roomRef = db.collection("mateTalkRooms").doc(`group_${crypto.randomBytes(12).toString("hex")}`);
+      const rateRef = db.collection("mateTalkRateLimits").doc(studentNumber);
+      const participants = [studentNumber, ...friends].sort();
+      await db.runTransaction(async (transaction) => {
+        const [rateSnapshot, ...memberSnapshots] = await Promise.all([
+          transaction.get(rateRef),
+          ...memberRooms.map((ref) => transaction.get(ref)),
+        ]);
+        if (memberSnapshots.some((snapshot, index) => !snapshot.exists ||
+          snapshot.data()?.roomType !== "student" ||
+          snapshot.data()?.deleting === true ||
+          !canAccessRoom(snapshot.data(), studentNumber) ||
+          !canAccessRoom(snapshot.data(), friends[index]))) {
+          throw new HttpsError("permission-denied", "追加済みの友達だけを選択できます。");
+        }
+        if (Date.now() - timestampMillis(rateSnapshot.data()?.lastGroupAt) < 10000) {
+          throw new HttpsError("resource-exhausted", "少し待ってからグループを作成してください。");
+        }
+        transaction.create(roomRef, {
+          roomType: "group", title, participants,
+          createdBy: studentNumber, createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(), unreadCount: {}, readAt: {},
+        });
+        transaction.set(rateRef, { lastGroupAt: new Date() }, { merge: true });
       });
-      transaction.set(rateRef, { lastGroupAt: new Date() }, { merge: true });
-    });
-    return { roomId: roomRef.id };
+      return { roomId: roomRef.id, title, participants };
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("createMateTalkGroup failed", {
+        studentNumber,
+        code: String(error?.code || "unknown"),
+        message: String(error?.message || error).slice(0, 500),
+      });
+      throw new HttpsError("internal", "グループを作成できませんでした。通信を確認して再度お試しください。");
+    }
   },
 );
 
@@ -5059,7 +5164,7 @@ exports.markMateTalkRead = onCall(
     const roomRef = db.collection("mateTalkRooms").doc(roomId);
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(roomRef);
-      if (!snapshot.exists || !canAccessRoom(snapshot.data(), studentNumber)) {
+      if (!snapshot.exists || snapshot.data()?.deleting === true || !canAccessRoom(snapshot.data(), studentNumber)) {
         throw new HttpsError("permission-denied", "このトークにはアクセスできません。");
       }
       transaction.update(roomRef, {
@@ -5097,7 +5202,7 @@ exports.sendMateTalkMessage = onCall(
         transaction.get(rateRef),
       ]);
       const room = roomSnapshot.data() || {};
-      if (!roomSnapshot.exists || !canAccessRoom(room, studentNumber)) {
+      if (!roomSnapshot.exists || room.deleting === true || !canAccessRoom(room, studentNumber)) {
         throw new HttpsError("permission-denied", "このチャットには送信できません。");
       }
       if (mode === "admin") requireMateTalkAdmin(request, studentNumber);

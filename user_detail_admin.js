@@ -1695,6 +1695,7 @@ async function executeCompleteDeletion() {
     await httpsCallable(
       functions,
       "deleteCareMateUser",
+      { timeout: 540000 },
     )({
       studentNumber: targetStudentNumber,
     });

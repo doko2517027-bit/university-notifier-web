@@ -25,7 +25,6 @@ import {
   doc,
   getDoc,
   getDocFromServer,
-  deleteDoc,
   updateDoc,
   addDoc,
   collection,
@@ -347,30 +346,35 @@ document.getElementById("sendContact").onclick = async () => {
 document.getElementById("versionText").textContent = `Version ${VERSION}`;
 
 document.getElementById("unregister").addEventListener("click", async () => {
-  if (!confirm("登録を解除しますか？")) {
+  const button = document.getElementById("unregister");
+  if (!confirm("CareMateアカウントを完全に削除しますか？\nプロフィール、履修・出席・学習データ、通知設定、お問い合わせ履歴、メイトークのルーム・メッセージ・写真も削除されます。この操作は取り消せません。")) return;
+  const confirmation = prompt(`実行するには学籍番号 ${studentNumber} を入力してください。`);
+  if (confirmation !== studentNumber) {
+    if (confirmation !== null) alert("学籍番号が一致しないため、削除を中止しました。");
     return;
   }
-
+  const password = prompt("本人確認のため、現在のCareMateパスワードを入力してください。");
+  if (password === null || !password) return;
+  button.disabled = true;
+  button.textContent = "削除中...";
   try {
-    await removeCurrentCareMatePresence();
-    if (studentNumber) {
-      await deleteDoc(doc(db, "users", studentNumber));
-
-      await deleteDoc(doc(db, "publicUsers", studentNumber));
-
-      await deleteDoc(doc(db, "courseLinks", studentNumber));
-
-      await deleteDoc(doc(db, "assignments", studentNumber));
+    await httpsCallable(functions, "deleteMyCareMateAccount", { timeout: 540000 })({ password });
+    try {
+      const registration = await navigator.serviceWorker?.ready;
+      const subscription = await registration?.pushManager?.getSubscription();
+      await subscription?.unsubscribe();
+    } catch (pushError) {
+      console.warn("通知購読の解除はスキップしました:", pushError);
     }
+    await signOut(auth);
+    clearCareMateStoragePreservingDeviceId();
+    location.href = "register.html";
   } catch (error) {
-    console.error("登録解除エラー:", error);
-    alert("登録を解除できませんでした。ログインし直してからお試しください。");
-    return;
+    console.error("アカウント完全削除エラー:", error);
+    alert("削除を完了できませんでした。データはサーバーで削除確認されていません。時間をおいて再度お試しください。");
+    button.disabled = false;
+    button.textContent = "CareMateアカウントを完全削除";
   }
-
-  clearCareMateStoragePreservingDeviceId();
-
-  location.href = "register.html";
 });
 
 document.getElementById("logout").addEventListener("click", async () => {

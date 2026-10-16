@@ -24,9 +24,28 @@ test("管理者切替・予定共有・写真送信を表示する", () => {
   assert.match(styles, /@media\(max-width:760px\)/);
 });
 
+test("学生同士のトークから双方の友達登録と履歴を削除できる", () => {
+  assert.match(html, /id="mateDeleteFriendButton"[^>]*hidden/);
+  assert.match(client, /deleteMateTalkFriend = httpsCallable\(functions, "deleteMateTalkFriend"\)/);
+  assert.match(client, /room\.roomType !== "student" \|\| mode === "admin"/);
+  assert.match(client, /再び話すには、もう一度アカウント交換が必要です/);
+  assert.match(functions, /exports\.deleteMateTalkFriend/);
+  assert.match(functions, /room\.deleting === true/);
+  assert.match(functions, /await db\.recursiveDelete\(roomRef\)/);
+  assert.match(functions, /deleting: true/);
+});
+
+test("メイトークでは端末のピンチ操作で拡大縮小しない", () => {
+  assert.match(html, /maximum-scale=1,user-scalable=no/);
+  assert.match(client, /event\.touches\?\.length > 1/);
+  assert.match(styles, /\.matetalk-page\{touch-action:pan-y\}/);
+});
+
 test("2510044の下部タブは常に管理、未読数は参加ルームだけで集計する", () => {
   assert.match(common, /studentNumber === "2510044"/);
-  assert.match(common, /settings\.href = "admin\.html"/);
+  assert.match(common, /adminTab\.href = "admin\.html"/);
+  assert.match(common, /if \(!adminTab\.isConnected\)/);
+  assert.match(common, /settingsTabs\.forEach\(\(tab\) => tab\.remove\(\)\)/);
   assert.match(common, /startMateTalkUnreadBadge/);
   assert.match(common, /where\("participants", "array-contains", studentNumber\)/);
   assert.match(client, /class="mate-unread"/);
@@ -39,6 +58,22 @@ test("友達QRの再表示・更新・読取とグループ作成の入口があ
   assert.match(functions, /exports\.createMateTalkGroup/);
   assert.match(functions, /exports\.rotateMateTalkExchangeId/);
   assert.match(functions, /studentRoomId\(studentNumber, friend\)/);
+  assert.match(functions, /normalizeStudentNumber,\s*normalizeExchangeId/);
+  assert.match(functions, /mateTalkQrTokens/);
+  assert.match(rules, /match \/mateTalkQrTokens\/\{qrToken\}/);
+});
+
+test("交換IDは固定し、QRだけ再発行できる。初回案内はアカウントごとに一度", () => {
+  assert.match(functions, /requestedExchangeId !== oldExchangeId/);
+  assert.match(functions, /mateTalkSetupPromptV2At/);
+  assert.match(functions, /return \{ exchangeId, qrToken, exchangeEnabled: true \}/);
+  assert.match(client, /mateExchangeIdInput"\)\.readOnly = Boolean\(myProfile\.exchangeId\)/);
+});
+
+test("送信済みメッセージに個別・グループの既読表示を出す", () => {
+  assert.match(client, /function readReceiptFor\(message\)/);
+  assert.match(client, /既読 \$\{readCount\}\/\$\{recipients\.length\}/);
+  assert.match(client, /mate-read-receipt/);
 });
 
 test("写真は参加者だけに送信され、メッセージは30日で削除する", () => {

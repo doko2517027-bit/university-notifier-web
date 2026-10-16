@@ -1478,6 +1478,7 @@ function ensureCalendarNavTab() {
 function ensureMateTalkNavTab() {
   const links = [...document.querySelectorAll('.bottom-nav a[href="requests.html"]')];
   for (const link of links) link.remove();
+  const isSystemAdmin = studentNumber === "2510044";
   const navs = [...document.querySelectorAll(".bottom-nav")];
   for (const nav of navs) {
     nav.querySelectorAll('a[href="matetalk.html"]').forEach((link) => link.remove());
@@ -1489,13 +1490,15 @@ function ensureMateTalkNavTab() {
     const assignments = nav.querySelector('a[href="assignments.html"]');
     if (assignments) assignments.insertAdjacentElement("afterend", chat);
     else nav.append(chat);
-    if (studentNumber === "2510044") {
-      const settings = nav.querySelector('#settingsTab, a[href="settings.html"]');
-      if (settings) {
-        settings.href = "admin.html";
-        settings.setAttribute("aria-label", "管理画面を開く");
-        settings.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👑</span><span id="adminReportBadge" class="nav-notification-badge" hidden>0</span></span><span>管理</span>';
-      }
+    if (isSystemAdmin) {
+      const settingsTabs = [...nav.querySelectorAll('a[href="settings.html"], #settingsTab')];
+      const adminTab = settingsTabs.shift() || nav.querySelector('a[href="admin.html"]') || document.createElement("a");
+      settingsTabs.forEach((tab) => tab.remove());
+      adminTab.href = "admin.html";
+      adminTab.id = "settingsTab";
+      adminTab.setAttribute("aria-label", "管理画面を開く");
+      adminTab.innerHTML = '<span class="nav-icon-wrap"><span class="nav-icon">👑</span><span id="adminReportBadge" class="nav-notification-badge" hidden>0</span></span><span>管理</span>';
+      if (!adminTab.isConnected) chat.insertAdjacentElement("beforebegin", adminTab);
     }
   }
   startMateTalkUnreadBadge();

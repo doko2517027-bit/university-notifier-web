@@ -32,6 +32,7 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
   const removeMatches = async (collectionName, fieldName) => {
     const records = await db.collection(collectionName).where(fieldName, "==", target).get();
     await Promise.all(records.docs.map((record) => removeDocument(record.ref)));
+    return records.size;
   };
   const directCollections = [
     "publicUsers", "admins", "developers", "assignments",
@@ -41,16 +42,32 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
     "userDeviceAccess", "calendarAssignments",
     "calendarReminderPreferences", "digitalNotes", "clinicalTraining",
     "referralAccounts", "referralPrivateRewards",
+    "mateTalkProfiles", "mateTalkPrivateProfiles", "mateTalkSchedulePrivacy",
+    "mateTalkRateLimits", "referralHistory", "referralIdentityRegistry",
   ];
   await Promise.all(directCollections.map((name) =>
     removeDocument(db.collection(name).doc(target))));
-  await Promise.all([
+  const matches = await Promise.all([
     removeMatches("contacts", "studentNumber"),
     removeMatches("calendarEvents", "ownerId"),
     removeMatches("reports", "reporterStudentNumber"),
     removeMatches("calendarReminderDispatches", "userId"),
     removeMatches("referralCodes", "inviterStudentNumber"),
+    removeMatches("referralManualAdjustments", "studentNumber"),
+    removeMatches("referralRewardDeletions", "studentNumber"),
+    removeMatches("referralRegistrationProofs", "studentNumber"),
+    removeMatches("referralRegistrationProofs", "inviterStudentNumber"),
+    removeMatches("externalAuthChecks", "studentNumber"),
+    removeMatches("mateTalkExchangeIds", "studentNumber"),
+    removeMatches("mateTalkQrTokens", "studentNumber"),
   ]);
+  // A room belongs to all its participants. Removing a departing account removes
+  // the whole room (including nested text/photo messages) for every participant.
+  const talkRooms = await db.collection("mateTalkRooms")
+    .where("participants", "array-contains", target).get();
+  await Promise.all(talkRooms.docs.map((room) => removeDocument(room.ref)));
+
+  // Contact conversations also contain nested messages and possible attachments.
   const rankingDays = await db.collection("dailyRanking").listDocuments();
   for (let index = 0; index < rankingDays.length; index += 25) {
     await Promise.all(rankingDays.slice(index, index + 25)
@@ -63,6 +80,7 @@ async function deleteCareMateDataExceptExternalMedia({ db, auth, realtimeDb }, t
     if (error?.code !== "auth/user-not-found") throw error;
   }
   await removeDocument(db.collection("users").doc(target));
+  return { deletedMateTalkRooms: talkRooms.size, deletedContacts: matches[0], matchedRecords: matches.reduce((sum, count) => sum + count, 0) };
 }
 
 module.exports = {

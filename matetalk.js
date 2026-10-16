@@ -6,7 +6,7 @@ import {
   setupTheme,
   initializePage,
   showToast,
-} from "./common.js?v=20261016-2";
+} from "./common.js?v=20261016-3";
 import {
   collection,
   doc,
@@ -33,6 +33,7 @@ const setMateTalkScheduleVisibility = httpsCallable(functions, "setMateTalkSched
 const createMateTalkGroup = httpsCallable(functions, "createMateTalkGroup");
 const rotateMateTalkExchangeId = httpsCallable(functions, "rotateMateTalkExchangeId");
 const markMateTalkRead = httpsCallable(functions, "markMateTalkRead");
+const deleteMateTalkFriend = httpsCallable(functions, "deleteMateTalkFriend");
 
 let myProfile = {};
 let isSystemAdmin = false;
@@ -50,8 +51,17 @@ let scheduleFilter = "both";
 let scanStream = null;
 let scanFrame = 0;
 let lastMarkedMessageAt = 0;
+let activeMessages = [];
+let pendingQrToken = "";
+let deletingRoomId = "";
 
 setupTheme();
+
+// メイトーク内でのピンチ拡大縮小を抑止し、入力・スクロール操作は維持する。
+document.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (event) => {
+  if (event.touches?.length > 1) event.preventDefault();
+}, { passive: false });
 
 if (!studentNumber) location.href = "login.html";
 
@@ -72,7 +82,7 @@ async function startMateTalk() {
   } : null;
   adminDirectory = new Map((result.data?.adminDirectory || []).map((entry) => [entry.studentNumber, entry.name]));
   $("mateModeSwitch").hidden = !isSystemAdmin;
-  if (!myProfile.nickname) openSettings(true);
+  if (result.data?.showSetupPrompt === true || !myProfile.nickname) openSettings(true);
   const [profileSnapshot, publicSnapshot, aliasSnapshot] = await Promise.all([
     getDocs(collection(db, "mateTalkProfiles")),
     getDocs(collection(db, "publicUsers")),
@@ -98,11 +108,22 @@ function subscribeRooms() {
     where("participants", "array-contains", studentNumber),
   );
   onSnapshot(roomQuery, (snapshot) => {
-    rooms = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    rooms = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+      .filter((room) => room.deleting !== true);
     if (guaranteedAdminRoom && !rooms.some((room) => room.id === guaranteedAdminRoom.id)) {
       rooms.unshift(guaranteedAdminRoom);
     }
     rooms.sort((left, right) => timestampMillis(right.lastMessageAt) - timestampMillis(left.lastMessageAt));
+    if (activeRoom) {
+      const updatedActiveRoom = rooms.find((room) => room.id === activeRoom.id);
+      if (updatedActiveRoom) activeRoom = { ...activeRoom, ...updatedActiveRoom };
+      else {
+        const wasDeletedHere = deletingRoomId === activeRoom.id;
+        closeRoom();
+        if (!wasDeletedHere) showToast("このトークは削除されました。");
+      }
+      renderMessages(activeMessages);
+    }
     renderRooms();
     const requestedRoom = new URLSearchParams(location.search).get("room");
     if (!activeRoom && requestedRoom) {
@@ -200,6 +221,7 @@ function openRoom(room) {
     : "アカウント交換済み";
   $("mateRenameButton").hidden = room.roomType !== "student";
   $("mateScheduleButton").hidden = room.roomType === "group";
+  $("mateDeleteFriendButton").hidden = room.roomType !== "student" || mode === "admin";
   history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(room.id)}`);
   subscribeMessages(room.id);
   if (unreadFor(room)) markMateTalkRead({ roomId: room.id }).catch(console.error);
@@ -207,6 +229,7 @@ function openRoom(room) {
 
 function subscribeMessages(roomId) {
   stopMessages?.();
+  activeMessages = [];
   $("mateMessageList").innerHTML = '<div class="mate-loading-card">メッセージを読み込み中…</div>';
   const messageQuery = query(
     collection(db, "mateTalkRooms", roomId, "messages"),
@@ -217,6 +240,7 @@ function subscribeMessages(roomId) {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const messages = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
       .filter((message) => timestampMillis(message.createdAt) > cutoff).reverse();
+    activeMessages = messages;
     renderMessages(messages);
     const newest = messages.at(-1);
     const newestAt = timestampMillis(newest?.createdAt);
@@ -244,9 +268,21 @@ function renderMessages(messages) {
       ? `<img class="mate-message-photo" src="${escapeHtml(message.imageData)}" alt="送信された写真" loading="lazy">` : "";
     const sender = activeRoom?.roomType === "group" && message.senderId !== studentNumber
       ? `<small class="mate-message-sender">${escapeHtml(profiles.get(message.senderId)?.nickname || "メンバー")}</small>` : "";
-    return `${divider}<div class="mate-message-row${message.senderId === studentNumber ? " mine" : ""}"><div class="mate-message-bubble">${sender}${image}${escapeHtml(message.body || "").replace(/\n/g, "<br>")}<time>${escapeHtml(shortTime(message.createdAt))}</time></div></div>`;
+    const receipt = message.senderId === studentNumber ? `<small class="mate-read-receipt">${escapeHtml(readReceiptFor(message))}</small>` : "";
+    return `${divider}<div class="mate-message-row${message.senderId === studentNumber ? " mine" : ""}"><div class="mate-message-bubble">${sender}${image}${escapeHtml(message.body || "").replace(/\n/g, "<br>")}<span class="mate-message-footer"><time>${escapeHtml(shortTime(message.createdAt))}</time>${receipt}</span></div></div>`;
   }).join("");
   $("mateMessageList").scrollTop = $("mateMessageList").scrollHeight;
+}
+
+function readReceiptFor(message) {
+  const room = activeRoom || {};
+  const recipients = (room.participants || []).filter((participant) => participant !== studentNumber);
+  const readCount = recipients.filter((participant) =>
+    timestampMillis(room.readAt?.[participant]) >= timestampMillis(message.createdAt),
+  ).length;
+  if (!readCount) return "未読";
+  if (room.roomType === "group") return `既読 ${readCount}/${recipients.length}`;
+  return "既読";
 }
 
 $("mateMessageForm").onsubmit = async (event) => {
@@ -343,6 +379,27 @@ function closeRoom() {
 }
 
 $("mateChatBack").onclick = closeRoom;
+$("mateDeleteFriendButton").onclick = async () => {
+  if (!activeRoom || activeRoom.roomType !== "student" || mode === "admin") return;
+  const roomId = activeRoom.id;
+  const friendName = displayName(activeRoom);
+  const confirmed = confirm(`${friendName}との友達登録を削除し、双方のトーク履歴と写真も削除します。再び話すには、もう一度アカウント交換が必要です。削除しますか？`);
+  if (!confirmed) return;
+  const button = $("mateDeleteFriendButton");
+  button.disabled = true;
+  deletingRoomId = roomId;
+  try {
+    await deleteMateTalkFriend({ roomId });
+    if (activeRoom?.id === roomId) closeRoom();
+    showToast("友達登録とトークを削除しました。再度話すにはアカウント交換が必要です。");
+  } catch (error) {
+    console.error("友達・トーク削除エラー", error);
+    showToast(readableError(error));
+  } finally {
+    deletingRoomId = "";
+    button.disabled = false;
+  }
+};
 $("mateRoomSearch").oninput = renderRooms;
 $("mateSettingsButton").onclick = () => openSettings(false);
 $("mateAddFriendButton").onclick = () => openOverlay("mateExchangeOverlay");
@@ -352,18 +409,42 @@ $("mateCreateGroupButton").onclick = () => {
   $("mateGroupFriends").innerHTML = friends.length ? friends.map((friendId) =>
     `<label class="mate-group-friend"><input type="checkbox" value="${friendId}"><span>${escapeHtml(aliases.get(friendId) || profiles.get(friendId)?.nickname || friendId)}</span></label>`).join("")
     : '<p>まず友達を追加してください。</p>';
+  $("mateGroupFriends").querySelectorAll("input").forEach((input) => { input.onchange = updateGroupSelection; });
   $("mateGroupMessage").textContent = "";
+  $("mateGroupName").value = "";
+  updateGroupSelection();
   openOverlay("mateGroupOverlay");
 };
+function updateGroupSelection() {
+  const count = $("mateGroupFriends").querySelectorAll("input:checked").length;
+  const hasName = Boolean($("mateGroupName").value.trim());
+  $("mateSaveGroup").disabled = count < 2 || count > 9 || !hasName;
+  $("mateGroupMessage").textContent = !hasName
+    ? "グループ名を入力してください。"
+    : count < 2
+    ? `あと${2 - count}人選んでください。`
+    : count > 9 ? "友達は9人まで選べます。" : `友達${count}人を選択中（自分を含めて${count + 1}人）`;
+}
+$("mateGroupName").addEventListener("input", updateGroupSelection);
 $("mateSaveGroup").onclick = async () => {
   const friendIds = [...$("mateGroupFriends").querySelectorAll("input:checked")].map((input) => input.value);
   $("mateSaveGroup").disabled = true;
   try {
     const result = await createMateTalkGroup({ title: $("mateGroupName").value, friendIds });
     closeOverlay("mateGroupOverlay");
-    history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(result.data.roomId)}`);
+    const room = {
+      id: result.data.roomId,
+      roomType: "group",
+      title: result.data.title || $("mateGroupName").value.trim(),
+      participants: result.data.participants || [studentNumber, ...friendIds],
+      unreadCount: {},
+      readAt: {},
+    };
+    rooms.unshift(room);
+    openRoom(room);
     showToast("グループを作成しました");
   } catch (error) {
+    console.error("メイトークのグループ作成エラー", error?.code, error?.details, error);
     $("mateGroupMessage").textContent = readableError(error, "グループを作成できませんでした。");
   } finally {
     $("mateSaveGroup").disabled = false;
@@ -374,6 +455,11 @@ function fillSettings() {
   $("mateNicknameInput").value = myProfile.nickname || "";
   $("mateExchangeEnabled").checked = myProfile.exchangeEnabled === true;
   $("mateExchangeIdInput").value = myProfile.exchangeId || "";
+  $("mateExchangeIdInput").readOnly = Boolean(myProfile.exchangeId);
+  $("mateExchangeIdInput").setAttribute("aria-readonly", String(Boolean(myProfile.exchangeId)));
+  $("mateExchangeIdHelp").textContent = myProfile.exchangeId
+    ? "設定済みのIDは変更できません。QRコードだけ更新できます。"
+    : "一度保存するとIDは変更できません。QRコードはあとから更新できます。";
   updateExchangeFields();
   $("mateMyName").textContent = myProfile.nickname || "自分のプロフィール";
 }
@@ -394,17 +480,17 @@ function updateExchangeFields() {
 }
 
 function updateQr() {
-  const exchangeId = $("mateExchangeIdInput").value.trim().toLowerCase();
-  $("mateQrBox").hidden = !$("mateExchangeEnabled").checked || !exchangeId;
-  renderQr("mateQrCode", exchangeId);
+  const qrToken = $("mateExchangeEnabled").checked && myProfile.exchangeEnabled ? myProfile.qrToken : "";
+  $("mateQrBox").hidden = !qrToken;
+  renderQr("mateQrCode", qrToken);
 }
 
-function renderQr(targetId, exchangeId) {
+function renderQr(targetId, qrToken) {
   const box = $(targetId);
   box.innerHTML = "";
-  if (!exchangeId || !window.QRCode) return;
+  if (!qrToken || !window.QRCode) return;
   new window.QRCode(box, {
-    text: `${location.origin}${location.pathname.replace(/matetalk\.html$/, "matetalk.html")}?connect=${encodeURIComponent(exchangeId)}`,
+    text: `${location.origin}${location.pathname.replace(/matetalk\.html$/, "matetalk.html")}?qr=${encodeURIComponent(qrToken)}`,
     width: 190, height: 190, correctLevel: window.QRCode.CorrectLevel.M,
   });
 }
@@ -414,15 +500,21 @@ $("mateShowOwnQr").onclick = () => {
   const exchangeId = enabled ? myProfile.exchangeId : "";
   $("mateOwnQrBox").hidden = false;
   $("mateOwnQrId").textContent = exchangeId ? `交換ID：${exchangeId}` : "QRの利用にはプロフィールで交換IDを設定してください。";
-  renderQr("mateOwnQrCode", exchangeId);
+  renderQr("mateOwnQrCode", enabled ? myProfile.qrToken : "");
 };
 
 async function rotateQr() {
-  if (!confirm("交換IDとQRを更新しますか？以前のQRは使えなくなります。")) return;
+  if (!myProfile.exchangeEnabled || !myProfile.exchangeId) {
+    openSettings(false);
+    $("mateSettingsMessage").textContent = "QRを使うには、先に交換IDを設定してください。";
+    return;
+  }
+  if (!confirm("QRコードを更新しますか？以前のQRは使えなくなります。交換IDは変わりません。")) return;
   const result = await rotateMateTalkExchangeId({});
   myProfile = { ...myProfile, ...result.data };
   fillSettings();
-  $("mateShowOwnQr").click();
+  updateQr();
+  if (!$('mateExchangeOverlay').hidden) $("mateShowOwnQr").click();
   showToast("QRを更新しました");
 }
 $("mateRotateQr").onclick = () => rotateQr().catch((error) => alert(readableError(error, "更新できませんでした。")));
@@ -444,9 +536,10 @@ $("mateScanQr").onclick = async () => {
         const codes = await detector.detect($("mateQrVideo"));
         if (!codes.length) { scanFrame = requestAnimationFrame(scan); return; }
         const url = new URL(codes[0].rawValue, location.href);
-        const value = url.origin === location.origin ? url.searchParams.get("connect") : "";
+        const value = url.origin === location.origin ? url.searchParams.get("qr") || url.searchParams.get("connect") : "";
         if (value) {
-          $("mateFriendIdInput").value = value;
+          if (url.searchParams.has("qr")) pendingQrToken = value;
+          else $("mateFriendIdInput").value = value;
           $("mateExchangeMessage").textContent = "QRを読み取りました。交換ボタンで確定してください。";
           stopQrScan();
           return;
@@ -468,6 +561,7 @@ function stopQrScan() {
   $("mateScanBox").hidden = true;
 }
 $("mateStopScan").onclick = stopQrScan;
+$("mateFriendIdInput").oninput = () => { pendingQrToken = ""; };
 
 $("mateSaveSettings").onclick = async () => {
   $("mateSettingsMessage").textContent = "";
@@ -495,7 +589,8 @@ $("mateConnectFriend").onclick = async () => {
   $("mateExchangeMessage").textContent = "";
   $("mateConnectFriend").disabled = true;
   try {
-    const result = await connectMateTalkFriend({ exchangeId: $("mateFriendIdInput").value });
+    const result = await connectMateTalkFriend({ exchangeId: $("mateFriendIdInput").value, qrToken: pendingQrToken });
+    pendingQrToken = "";
     closeOverlay("mateExchangeOverlay");
     history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(result.data.roomId)}`);
     showToast("アカウントを交換しました");
@@ -618,7 +713,16 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : `${date.getMonth() + 1}月${date.getDate()}日（${"日月火水木金土"[date.getDay()]}）`;
 }
 function readableError(error, fallback) {
-  return String(error?.message || "").replace(/^FirebaseError:\s*/i, "").replace(/^\w+-precondition:\s*/i, "") || fallback;
+  const code = String(error?.code || "").replace(/^functions\//, "");
+  const friendly = {
+    internal: "サーバー側で処理できませんでした。少し待ってから再度お試しください。",
+    unavailable: "通信できませんでした。接続を確認して再度お試しください。",
+    unauthenticated: "ログイン状態を確認して再度お試しください。",
+    "permission-denied": "この操作を行う権限がありません。",
+    "resource-exhausted": "短時間に続けて操作しています。少し待ってお試しください。",
+  };
+  if (friendly[code]) return friendly[code];
+  return String(error?.message || "").replace(/^FirebaseError:\s*/i, "").replace(/^functions\/[\w-]+:\s*/i, "") || fallback;
 }
 function escapeHtml(value) {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");

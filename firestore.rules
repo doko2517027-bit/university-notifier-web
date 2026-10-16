@@ -460,6 +460,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /mateTalkQrTokens/{qrToken} {
+      allow read, write: if false;
+    }
+
     match /mateTalkPrivateProfiles/{studentNumber} {
       allow read: if signedInStudent() && currentStudentNumber() == studentNumber;
       allow write: if false;
