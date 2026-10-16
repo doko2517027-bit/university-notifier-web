@@ -35,6 +35,7 @@ let myProfile = {};
 let isSystemAdmin = false;
 let mode = "student";
 let rooms = [];
+let guaranteedAdminRoom = null;
 let profiles = new Map();
 let publicUsers = new Map();
 let adminDirectory = new Map();
@@ -55,6 +56,14 @@ async function startMateTalk() {
   const result = await initializeMateTalk({});
   myProfile = result.data?.profile || {};
   isSystemAdmin = result.data?.isSystemAdmin === true;
+  // 初期化が完了した時点でサーバー側の管理者ルームは作成済み。
+  // 一覧クエリの反映を待たずに学生の入口を表示する。
+  const adminRoomId = studentNumber === ADMIN_ID ? "" : `admin_${studentNumber}`;
+  guaranteedAdminRoom = adminRoomId ? {
+    id: adminRoomId,
+    roomType: "admin",
+    participants: [ADMIN_ID, studentNumber],
+  } : null;
   adminDirectory = new Map((result.data?.adminDirectory || []).map((entry) => [entry.studentNumber, entry.name]));
   $("mateModeSwitch").hidden = !isSystemAdmin;
   if (!myProfile.nickname) openSettings(true);
@@ -82,6 +91,9 @@ function subscribeRooms() {
   );
   onSnapshot(roomQuery, (snapshot) => {
     rooms = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    if (guaranteedAdminRoom && !rooms.some((room) => room.id === guaranteedAdminRoom.id)) {
+      rooms.unshift(guaranteedAdminRoom);
+    }
     rooms.sort((left, right) => timestampMillis(right.lastMessageAt) - timestampMillis(left.lastMessageAt));
     renderRooms();
     const requestedRoom = new URLSearchParams(location.search).get("room");
@@ -91,7 +103,12 @@ function subscribeRooms() {
     }
   }, (error) => {
     console.error("メイトーク一覧取得エラー", error);
-    $("mateRoomList").innerHTML = '<div class="mate-loading-card">トークを読み込めませんでした。再読み込みしてください。</div>';
+    if (guaranteedAdminRoom) {
+      rooms = [guaranteedAdminRoom];
+      renderRooms();
+    } else {
+      $("mateRoomList").innerHTML = '<div class="mate-loading-card">トークを読み込めませんでした。再読み込みしてください。</div>';
+    }
   });
 }
 
