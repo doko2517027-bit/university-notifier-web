@@ -26,7 +26,7 @@ import {
   loadPersonalTimetableData,
   isEnrolledScheduleItem,
   isCommonScheduleEvent,
-} from "./personal_timetable_data.js?v=20260929-4";
+} from "./personal_timetable_data.js?v=20261016-1";
 
 import {
   setupClassSelection,

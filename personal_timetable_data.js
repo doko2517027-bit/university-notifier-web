@@ -7,6 +7,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { PERIOD_TIMES } from "./attendance_policy.js";
 import { normalizeScheduleClassData } from "./class_group_label.mjs";
+import { isCommonScheduleEvent } from "./schedule_event_policy.mjs";
+export { isCommonScheduleEvent } from "./schedule_event_policy.mjs";
 
 export function normalizeCourseName(value) {
   const normalized = String(value || "")
@@ -53,23 +55,6 @@ export function isEnrolledScheduleItem(item, aliasToCourse) {
 }
 
 // 履修登録の対象外でも、全員へ表示する大学共通の予定だけを判定する。
-export function isCommonScheduleEvent(item) {
-  if (
-    item?.displayForAll === true ||
-    item?.isCommonEvent === true ||
-    item?.isGuidance === true
-  ) {
-    return true;
-  }
-
-  const label = [item?.type, item?.category, item?.subject, item?.title]
-    .filter(Boolean)
-    .join(" ");
-  return /ガイダンス|オリエンテーション|説明会|健康診断|入学式|卒業式|ホームルーム|国家試験対策|国試対策|模擬試験|模試|特別講義|講演会?|セミナー|研修会?|学内行事|就職支援|キャリア支援|防災訓練|避難訓練/.test(
-    label,
-  );
-}
-
 function scheduleDocumentId(user) {
   if (String(user.department || "").trim() === "看護学科") return "ns_yamate";
   if (String(user.major || "").includes("理学療法")) return "pt";

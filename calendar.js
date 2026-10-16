@@ -3,7 +3,7 @@ import {
   loadUserName, loadMyRanking, setupAdminTab, updateAssignmentNavBadge,
   updateNewsNavBadge,
 } from "./common.js";
-import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20260929-4";
+import { loadPersonalTimetableData } from "./personal_timetable_data.js?v=20261016-1";
 import { filterSelectedClassEntries, extractClassGroups, effectiveClassSelections } from "./class_selection.js?v=20261015-1";
 import { JAPANESE_HOLIDAYS } from "./calendar_holidays.mjs";
 import {

@@ -12,9 +12,9 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v146";
+const STATIC_CACHE = "caremate-static-v147";
 
-const RUNTIME_CACHE = "caremate-runtime-v146";
+const RUNTIME_CACHE = "caremate-runtime-v147";
 
 const CACHE_NAMES = [STATIC_CACHE, RUNTIME_CACHE];
 
@@ -38,7 +38,7 @@ const CORE_ASSETS = [
 
   "loading_indicator.js?v=20260929-7",
 
-  "app.js?v=20261015-2",
+  "app.js?v=20261016-1",
 
   "course_link_resolver.mjs",
 
@@ -103,11 +103,11 @@ const CORE_ASSETS = [
 
   "news_rich_text.mjs?v=20261002-1",
 
-  "personal_timetable_data.js?v=20260929-4",
+  "personal_timetable_data.js?v=20261016-1",
 
   "calendar.html",
 
-  "calendar.js?v=20261009-1",
+  "calendar.js?v=20261016-1",
 
   "calendar_model.mjs",
 
@@ -166,7 +166,7 @@ const CORE_ASSETS = [
 
   "class_selection.js?v=20261015-1",
 
-  "personal_timetable.js?v=20261015-1",
+  "personal_timetable.js?v=20261016-1",
 
   "attendance_check.js?v=20261015-1",
 
