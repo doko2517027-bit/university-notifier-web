@@ -73,7 +73,7 @@
 
 /* The room is fixed-screen, but its separate catalog editor must scroll. */
 html:has(body.pet-shop-admin-body){height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
-body.pet-shop-admin-body{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto;padding-bottom:32px}
+body.pet-shop-admin-body{box-sizing:border-box;width:100%;max-width:none;height:auto;min-height:100dvh;margin:0;overflow-x:hidden;overflow-y:auto;padding:clamp(14px,2vw,28px) clamp(14px,2vw,28px) 32px}
 body.pet-shop-admin-body .pet-admin-main{box-sizing:border-box;width:min(900px,calc(100% - 28px));max-width:100%;margin:0 auto 36px}
 body.pet-shop-admin-body .pet-admin-main .card,
 body.pet-shop-admin-body .pet-admin-main section,
