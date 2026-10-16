@@ -21998,10 +21998,7 @@ html[data-caremate-photo-background="true"] body {
   .exam-compact-panel[open] > .card { margin-top: 8px; }
 }
 
-/* 友達招待特典：専用画面だけでペットを育成 */
-.home-user-heading{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
-.home-user-heading #userName{flex:0 1 auto}
-.home-pet-entry{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;max-width:148px;padding:6px 9px;border:1px solid color-mix(in srgb,#89936c 42%,var(--border));border-radius:999px;background:linear-gradient(135deg,color-mix(in srgb,#e9eddb 78%,var(--card)),var(--card));color:var(--text);font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer;box-shadow:0 2px 7px #4c503011}
-.home-pet-entry[hidden]{display:none!important}
-.home-pet-entry>span:last-child{overflow:hidden;text-overflow:ellipsis}
-@media(max-width:430px){.home-user-heading{gap:5px}.home-pet-entry{max-width:114px;padding:5px 7px;font-size:10px}}
+/* 2510044限定ペット入口：メールアイコンの直左に独立した丸ボタンで表示 */
+.home-pet-icon-button{flex:0 0 50px;width:50px;height:50px;border:1px solid #a5b080!important;background:linear-gradient(145deg,#f0f3df,#dfe6c7)!important;color:#596a3d!important;font-size:24px;box-shadow:0 3px 10px #53613a22}
+.home-pet-icon-button[hidden]{display:none!important}
+@media(max-width:430px){.home-pet-icon-button{flex-basis:44px;width:44px;height:44px;font-size:21px}}

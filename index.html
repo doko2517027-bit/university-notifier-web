@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20261016-2" />
+    <link rel="modulepreload" href="app.js?v=20261016-3" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20261015-1" />
 
-    <link rel="stylesheet" href="style.css?v=20261016-2" />
+    <link rel="stylesheet" href="style.css?v=20261016-3" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -192,17 +192,16 @@
 
     <div class="top-buttons">
       <div class="top-user-info">
-        <div class="home-user-heading">
-          <span id="userName"> Unknownさん </span>
-          <button id="homePetButton" class="home-pet-entry" type="button" hidden aria-label="ペット育成を開く">
-            <span aria-hidden="true">🐾</span><span id="homePetButtonLabel">ペットと暮らす</span>
-          </button>
-        </div>
+        <span id="userName"> Unknownさん </span>
 
         <span id="myRanking"></span>
       </div>
 
       <div class="top-right">
+        <button id="homePetButton" class="circle-button icon-button home-pet-icon-button" type="button" hidden aria-label="ペット育成を開く" title="ペット育成">
+          🦎
+        </button>
+
         <button id="activeMailButton" class="circle-button icon-button">
           💌
           <span id="activeMailBadge" class="notification-badge" hidden>
@@ -570,6 +569,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261016-2"></script>
+    <script type="module" src="app.js?v=20261016-3"></script>
   </body>
 </html>

@@ -2,11 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { petEligible, petChoices, makePetProfile, applyPetCare, isNextCalendarDay } = require("./pet_care_policy");
 
-test("ペットは招待6人達成後に解放され、2510044のみ先行テストできる", () => {
+test("ペット機能は招待人数にかかわらず2510044だけに限定する", () => {
   assert.equal(petEligible("2510044", {}), true);
   assert.deepEqual(petChoices("2510044"), ["lizard"]);
   assert.equal(petEligible("2510001", { invitedCount: 5 }), false);
-  assert.equal(petEligible("2510001", { invitedCount: 6 }), true);
+  assert.equal(petEligible("2510001", { invitedCount: 100 }), false);
   assert.deepEqual(petChoices("2510001"), ["lizard"]);
   assert.equal(petEligible("2510001", { invitedCount: 8, rewardSuppressions: { m6: { deletedAt: new Date() } } }), false);
 });

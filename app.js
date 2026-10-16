@@ -81,7 +81,6 @@ const homeSearchInput = document.getElementById("homeSearchInput");
 const homeReferralCard = document.getElementById("homeReferralCard");
 const homeReferralCount = document.getElementById("homeReferralCount");
 const homePetButton = document.getElementById("homePetButton");
-const homePetButtonLabel = document.getElementById("homePetButtonLabel");
 const examStatusCard = document.getElementById("examStatusCard");
 const examStatusLabel = document.getElementById("examStatusLabel");
 const examStatusText = document.getElementById("examStatusText");
@@ -699,9 +698,7 @@ async function loadHomeReferralSummary() {
       const state = await httpsCallable(functions, "getPetGameState")();
       const petState = state.data || {};
       homePetButton.hidden = petState.eligible !== true;
-      if (homePetButtonLabel && petState.profile?.name) {
-        homePetButtonLabel.textContent = `${petState.profile.name}と暮らす`;
-      }
+      homePetButton.title = petState.profile?.name ? `${petState.profile.name}のお世話` : "ペット育成";
     } catch (error) {
       console.warn("ペット機能の解放状況を確認できませんでした:", error);
       homePetButton.hidden = true;

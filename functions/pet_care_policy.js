@@ -12,8 +12,7 @@ const PET_EARLY_CHOICE_IDS = Object.freeze(["lizard"]);
 const PET_CARE_ACTIONS = Object.freeze(["feed", "play", "pet", "sleep"]);
 
 function petEligible(studentNumber, referralAccount = {}) {
-  if (String(studentNumber) === "2510044") return true;
-  return Number(referralAccount.invitedCount || 0) >= 6 && !referralAccount.rewardSuppressions?.m6?.deletedAt;
+  return String(studentNumber) === "2510044";
 }
 
 function petChoices(studentNumber) {
