@@ -207,6 +207,7 @@ function renderPet(profile, action = "") {
   $("petStage").setAttribute("aria-label", `${profile.name}のお部屋`);
   $("petCreature").setAttribute("aria-label", `${profile.name}をなでる。押したまま動かしてなでてね`);
   $("petFriendship").textContent = String(profile.friendship || 0);
+  $("petStreak").textContent = String(profile.currentStreak || 0);
   $("petCoinCount").textContent = String(profile.petCoins || 0);
   const fullness = Math.max(0, Math.min(100, Number(profile.fullness ?? 8)));
   $("petFullnessFill").style.width = `${fullness}%`;

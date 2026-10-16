@@ -134,6 +134,7 @@ function applyPetCare(profile, action, now = new Date(), options = {}) {
   const date = jstDateKey(now);
   const sameDay = advanced.dailyCare?.date === date;
   const actions = sameDay ? { ...(advanced.dailyCare?.actions || {}) } : {};
+  const firstCareToday = !sameDay || Object.keys(actions).length === 0;
   actions[action] = true;
   const reward = PET_AFFINITY_REWARD[action];
   const lastAwardAt = advanced.affinityAwards?.[action] ? timestampMillis(advanced.affinityAwards[action]) : 0;
@@ -149,6 +150,13 @@ function applyPetCare(profile, action, now = new Date(), options = {}) {
   }
   const coins = Number(advanced.petCoins || 0) + (canEarnAffinity ? 5 : 0);
 
+  const previousCareDate = String(advanced.lastCareDate || "");
+  let currentStreak = Number(advanced.currentStreak || 0);
+  if (firstCareToday) {
+    currentStreak = !previousCareDate ? 1 : previousCareDate === date ? currentStreak : isNextCalendarDay(previousCareDate, date) ? currentStreak + 1 : 1;
+  }
+  const bestStreak = Math.max(Number(advanced.bestStreak || 0), currentStreak);
+
   return {
     ...advanced,
     friendship,
@@ -160,8 +168,8 @@ function applyPetCare(profile, action, now = new Date(), options = {}) {
     lastMeterAt: action === "feed" ? now : advanced.lastMeterAt,
     lastInteractionAt: now,
     totalCareCount: Number(advanced.totalCareCount || 0) + 1,
-    currentStreak: advanced.currentStreak || 0,
-    bestStreak: advanced.bestStreak || 0,
+    currentStreak,
+    bestStreak,
     lastCareDate: date,
     dailyCare: { date, actions },
     lastAction: action,

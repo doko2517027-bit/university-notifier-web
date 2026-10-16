@@ -45,6 +45,22 @@ test("なでる操作は何度でも受け付けるが、好感度はクール�
   assert.equal(profile.friendship, 1, "6時間の放置減衰と報酬クールダウンを反映する");
 });
 
+test("連続お世話日数は1日に1度だけ進み、日を飛ばすとリセットし、最高記録を保持する", () => {
+  const firstDay = new Date("2026-10-16T10:00:00+09:00");
+  let profile = makePetProfile({ species: "lizard", name: "リト", now: firstDay });
+  profile = applyPetCare(profile, "pet", firstDay);
+  assert.equal(profile.currentStreak, 1);
+  assert.equal(profile.bestStreak, 1);
+  profile = applyPetCare(profile, "play", new Date("2026-10-16T12:00:00+09:00"));
+  assert.equal(profile.currentStreak, 1, "同じ日に複数回お世話しても連続日数は増えない");
+  profile = applyPetCare(profile, "feed", new Date("2026-10-17T10:00:00+09:00"), { foodId: "pumpkin" });
+  assert.equal(profile.currentStreak, 2);
+  assert.equal(profile.bestStreak, 2);
+  profile = applyPetCare(profile, "pet", new Date("2026-10-19T10:00:00+09:00"));
+  assert.equal(profile.currentStreak, 1, "1日抜けると新しい連続記録を開始する");
+  assert.equal(profile.bestStreak, 2);
+});
+
 test("90分以内にお世話を続けていれば放置減衰しない", () => {
   const start = new Date("2026-10-16T10:00:00+09:00");
   const profile = { ...makePetProfile({ species: "lizard", name: "リト", now: start }), friendship: 8, affinityAwards: { pet: start } };
