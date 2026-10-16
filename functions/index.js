@@ -4844,7 +4844,15 @@ async function ensureAllMateTalkAdminRooms() {
   });
   if (writes) commits.push(batch.commit());
   await Promise.all(commits);
-  return studentNumbers.length;
+  return usersSnapshot.docs
+    .filter((document) => /^\d{7}$/.test(document.id) && document.id !== MATETALK_ADMIN)
+    .map((document) => {
+      const user = document.data() || {};
+      return {
+        studentNumber: document.id,
+        name: String(user.name || user.displayName || user.fullName || ""),
+      };
+    });
 }
 
 async function ensureMateTalkProfile(studentNumber) {
@@ -4880,13 +4888,15 @@ exports.initializeMateTalk = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
+    let adminDirectory = [];
     if (studentNumber === MATETALK_ADMIN && request.auth?.token?.admin === true) {
-      await ensureAllMateTalkAdminRooms();
+      adminDirectory = await ensureAllMateTalkAdminRooms();
     }
     const profile = await ensureMateTalkProfile(studentNumber);
     return {
       profile,
       isSystemAdmin: studentNumber === MATETALK_ADMIN && request.auth?.token?.admin === true,
+      adminDirectory,
     };
   },
 );

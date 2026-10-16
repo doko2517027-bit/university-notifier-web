@@ -37,6 +37,7 @@ let mode = "student";
 let rooms = [];
 let profiles = new Map();
 let publicUsers = new Map();
+let adminDirectory = new Map();
 let aliases = new Map();
 let activeRoom = null;
 let stopMessages = null;
@@ -54,6 +55,7 @@ async function startMateTalk() {
   const result = await initializeMateTalk({});
   myProfile = result.data?.profile || {};
   isSystemAdmin = result.data?.isSystemAdmin === true;
+  adminDirectory = new Map((result.data?.adminDirectory || []).map((entry) => [entry.studentNumber, entry.name]));
   $("mateModeSwitch").hidden = !isSystemAdmin;
   if (!myProfile.nickname) openSettings(true);
   const [profileSnapshot, publicSnapshot, aliasSnapshot] = await Promise.all([
@@ -106,7 +108,7 @@ function displayName(room) {
   const friendId = otherId(room);
   if (room.roomType === "admin") {
     if (mode === "admin" && isSystemAdmin) {
-      return `${friendId} ${String(publicUsers.get(friendId)?.name || "氏名未登録")}`;
+      return `${friendId} ${String(adminDirectory.get(friendId) || publicUsers.get(friendId)?.name || "氏名未登録")}`;
     }
     return "システム管理者";
   }
