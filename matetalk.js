@@ -31,6 +31,9 @@ const sendMateTalkMessage = httpsCallable(functions, "sendMateTalkMessage");
 const getMateTalkSchedule = httpsCallable(functions, "getMateTalkSchedule");
 const setMateTalkScheduleVisibility = httpsCallable(functions, "setMateTalkScheduleVisibility");
 const createMateTalkGroup = httpsCallable(functions, "createMateTalkGroup");
+const updateMateTalkGroup = httpsCallable(functions, "updateMateTalkGroup");
+const createMateTalkGroupInvite = httpsCallable(functions, "createMateTalkGroupInvite");
+const joinMateTalkGroup = httpsCallable(functions, "joinMateTalkGroup");
 const rotateMateTalkExchangeId = httpsCallable(functions, "rotateMateTalkExchangeId");
 const markMateTalkRead = httpsCallable(functions, "markMateTalkRead");
 const deleteMateTalkFriend = httpsCallable(functions, "deleteMateTalkFriend");
@@ -54,6 +57,8 @@ let lastMarkedMessageAt = 0;
 let activeMessages = [];
 let pendingQrToken = "";
 let deletingRoomId = "";
+let groupScanStream = null;
+let groupScanFrame = 0;
 
 setupTheme();
 
@@ -99,6 +104,11 @@ async function startMateTalk() {
   if (connectId) {
     $("mateFriendIdInput").value = connectId;
     openOverlay("mateExchangeOverlay");
+  }
+  const groupToken = new URLSearchParams(location.search).get("joinGroup");
+  if (groupToken) {
+    $("mateGroupInviteInput").value = groupToken;
+    openOverlay("mateJoinGroupOverlay");
   }
 }
 
@@ -163,7 +173,7 @@ function displayName(room) {
 }
 
 function photoFor(room) {
-  if (room.roomType === "group") return "images/default.png";
+  if (room.roomType === "group") return room.iconData || "images/default.png";
   if (room.roomType === "admin" && !(mode === "admin" && isSystemAdmin)) {
     return "images/default.png";
   }
@@ -181,6 +191,7 @@ function renderRooms() {
   $("mateRoomCount").textContent = `${visible.length}件`;
   $("mateAddFriendButton").hidden = mode === "admin";
   $("mateCreateGroupButton").hidden = mode === "admin";
+  $("mateJoinGroupButton").hidden = mode === "admin";
   $("mateMyProfileButton").hidden = mode === "admin";
   if (!visible.length) {
     $("mateRoomList").innerHTML = `<div class="mate-loading-card">${mode === "admin" ? "登録学生を準備中です。" : "システム管理者とのトーク、または交換した友達が表示されます。"}</div>`;
@@ -216,6 +227,7 @@ function openRoom(room) {
   shell.classList.add("chat-open");
   $("mateChatName").textContent = displayName(room);
   $("mateChatPhoto").src = photoFor(room);
+  $("mateGroupManageButton").hidden = room.roomType !== "group" || mode === "admin";
   $("mateChatStatus").textContent = room.roomType === "group" ? `${room.participants?.length || 0}人のグループ` : room.roomType === "admin"
     ? (mode === "admin" ? "システム管理者として対応" : "CareMate システム管理者")
     : "アカウント交換済み";
@@ -265,13 +277,33 @@ function renderMessages(messages) {
     const divider = date !== lastDate ? `<div class="mate-day-divider"><span>${escapeHtml(date)}</span></div>` : "";
     lastDate = date;
     const image = message.type === "image" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(message.imageData || "")
-      ? `<img class="mate-message-photo" src="${escapeHtml(message.imageData)}" alt="送信された写真" loading="lazy">` : "";
+      ? `<div class="mate-message-photo-wrap"><img class="mate-message-photo" src="${escapeHtml(message.imageData)}" alt="送信された写真" loading="lazy"><button class="mate-save-photo" type="button" data-save-photo="${escapeHtml(message.id)}">写真を保存</button></div>` : "";
     const sender = activeRoom?.roomType === "group" && message.senderId !== studentNumber
       ? `<small class="mate-message-sender">${escapeHtml(profiles.get(message.senderId)?.nickname || "メンバー")}</small>` : "";
     const receipt = message.senderId === studentNumber ? `<small class="mate-read-receipt">${escapeHtml(readReceiptFor(message))}</small>` : "";
     return `${divider}<div class="mate-message-row${message.senderId === studentNumber ? " mine" : ""}"><div class="mate-message-bubble">${sender}${image}${escapeHtml(message.body || "").replace(/\n/g, "<br>")}<span class="mate-message-footer"><time>${escapeHtml(shortTime(message.createdAt))}</time>${receipt}</span></div></div>`;
   }).join("");
+  $("mateMessageList").querySelectorAll("[data-save-photo]").forEach((button) => {
+    button.onclick = () => saveChatPhoto(button.dataset.savePhoto);
+  });
   $("mateMessageList").scrollTop = $("mateMessageList").scrollHeight;
+}
+
+async function saveChatPhoto(messageId) {
+  const message = activeMessages.find((item) => item.id === messageId);
+  if (!message?.imageData || !/^data:image\/(jpeg|png|webp);base64,/.test(message.imageData)) return;
+  const extension = message.imageData.startsWith("data:image/png") ? "png"
+    : message.imageData.startsWith("data:image/webp") ? "webp" : "jpg";
+  const response = await fetch(message.imageData);
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = `CareMate-photo-${message.id}.${extension}`;
+  link.rel = "noopener";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }
 
 function readReceiptFor(message) {
@@ -450,6 +482,178 @@ $("mateSaveGroup").onclick = async () => {
     $("mateSaveGroup").disabled = false;
   }
 };
+
+$("mateGroupManageButton").onclick = openGroupManager;
+$("mateJoinGroupButton").onclick = () => openOverlay("mateJoinGroupOverlay");
+$("mateGroupIconInput").onchange = async () => {
+  const file = $("mateGroupIconInput").files?.[0];
+  $("mateGroupIconInput").value = "";
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 20 * 1024 * 1024) {
+    $("mateGroupManageMessage").textContent = "20MB以下のJPEG・PNG・WebPを選んでください。";
+    return;
+  }
+  try {
+    const iconData = await compressMatePhoto(file);
+    if (iconData.length > 220000) throw new Error("アイコン画像を小さくできませんでした。別の画像を選んでください。");
+    $("mateGroupEditIcon").src = iconData;
+    $("mateGroupEditIcon").dataset.pendingIcon = iconData;
+    $("mateGroupManageMessage").textContent = "新しいアイコンを選択しました。保存してください。";
+  } catch (error) {
+    $("mateGroupManageMessage").textContent = readableError(error, "アイコンを読み込めませんでした。");
+  }
+};
+$("mateGroupSaveSettings").onclick = async () => {
+  if (!activeRoom || activeRoom.roomType !== "group") return;
+  const title = $("mateGroupEditName").value.trim();
+  const iconData = $("mateGroupEditIcon").dataset.pendingIcon || "";
+  const button = $("mateGroupSaveSettings");
+  button.disabled = true;
+  try {
+    const result = await updateMateTalkGroup({ roomId: activeRoom.id, action: "update", title, ...(iconData ? { iconData } : {}) });
+    activeRoom = { ...activeRoom, title: result.data.title, iconData: result.data.iconData || activeRoom.iconData || "" };
+    $("mateGroupEditIcon").dataset.pendingIcon = "";
+    $("mateChatName").textContent = displayName(activeRoom);
+    $("mateChatPhoto").src = photoFor(activeRoom);
+    renderRooms();
+    $("mateGroupManageMessage").textContent = "グループ名とアイコンを保存しました。";
+  } catch (error) {
+    $("mateGroupManageMessage").textContent = readableError(error, "設定を保存できませんでした。");
+  } finally { button.disabled = false; }
+};
+$("mateCreateGroupInvite").onclick = async () => {
+  if (!activeRoom || activeRoom.roomType !== "group") return;
+  const button = $("mateCreateGroupInvite");
+  button.disabled = true;
+  try {
+    const result = await createMateTalkGroupInvite({ roomId: activeRoom.id });
+    const inviteUrl = new URL("matetalk.html", location.href);
+    inviteUrl.search = `joinGroup=${encodeURIComponent(result.data.token)}`;
+    renderTextQr("mateGroupInviteQr", inviteUrl.toString());
+    $("mateGroupInviteExpiry").textContent = `このQRは${new Date(result.data.expiresAt).toLocaleString("ja-JP")}まで有効です。`;
+    $("mateGroupInviteQrBox").hidden = false;
+  } catch (error) {
+    $("mateGroupManageMessage").textContent = readableError(error, "招待QRを作成できませんでした。");
+  } finally { button.disabled = false; }
+};
+$("mateGroupMembers").onclick = async (event) => {
+  const button = event.target.closest("[data-remove-member]");
+  if (!button || !activeRoom || activeRoom.roomType !== "group") return;
+  const memberId = button.dataset.removeMember;
+  const memberName = profiles.get(memberId)?.nickname || memberId;
+  if (!confirm(`${memberName}さんをグループから退会させますか？`)) return;
+  button.disabled = true;
+  try {
+    const result = await updateMateTalkGroup({ roomId: activeRoom.id, action: "removeMember", memberId });
+    activeRoom = { ...activeRoom, participants: result.data.participants };
+    renderGroupMembers(activeRoom);
+    $("mateChatStatus").textContent = `${activeRoom.participants.length}人のグループ`;
+  } catch (error) {
+    $("mateGroupManageMessage").textContent = readableError(error, "メンバーを削除できませんでした。");
+  }
+};
+$("mateLeaveGroup").onclick = async () => {
+  if (!activeRoom || activeRoom.roomType !== "group") return;
+  if (!confirm("このグループを退会しますか？トーク一覧から消え、招待されるまで参加できません。")) return;
+  try {
+    await updateMateTalkGroup({ roomId: activeRoom.id, action: "leave" });
+    closeOverlay("mateGroupManageOverlay"); closeRoom(); showToast("グループを退会しました。");
+  } catch (error) { $("mateGroupManageMessage").textContent = readableError(error, "退会できませんでした。"); }
+};
+$("mateDeleteGroup").onclick = async () => {
+  if (!activeRoom || activeRoom.roomType !== "group") return;
+  if (!confirm("グループと全員のトーク履歴・写真を削除します。全メンバーが強制退会になります。この操作は取り消せません。削除しますか？")) return;
+  try {
+    await updateMateTalkGroup({ roomId: activeRoom.id, action: "delete" });
+    closeOverlay("mateGroupManageOverlay"); closeRoom(); showToast("グループを削除し、全員を退会させました。");
+  } catch (error) { $("mateGroupManageMessage").textContent = readableError(error, "グループを削除できませんでした。"); }
+};
+
+function openGroupManager() {
+  if (!activeRoom || activeRoom.roomType !== "group") return;
+  $("mateGroupEditName").value = activeRoom.title || "";
+  $("mateGroupEditIcon").src = activeRoom.iconData || "images/default.png";
+  $("mateGroupEditIcon").dataset.pendingIcon = "";
+  $("mateGroupInviteQrBox").hidden = true;
+  $("mateGroupManageMessage").textContent = "";
+  const isOwner = activeRoom.createdBy === studentNumber;
+  $("mateGroupEditName").readOnly = !isOwner;
+  $("mateGroupIconInput").disabled = !isOwner;
+  $("mateGroupSaveSettings").hidden = !isOwner;
+  $("mateCreateGroupInvite").hidden = !isOwner;
+  $("mateDeleteGroup").hidden = !isOwner;
+  renderGroupMembers(activeRoom);
+  openOverlay("mateGroupManageOverlay");
+}
+
+function renderGroupMembers(room) {
+  const participants = room.participants || [];
+  const owner = room.createdBy === studentNumber;
+  $("mateGroupMemberCount").textContent = `${participants.length}/10人`;
+  $("mateGroupMembers").innerHTML = participants.map((memberId) => {
+    const profile = profiles.get(memberId) || {};
+    const photo = publicUsers.get(memberId)?.photo || profile.photoUrl || "images/default.png";
+    const name = memberId === studentNumber ? `${profile.nickname || myProfile.nickname || "自分"}（あなた）`
+      : profile.nickname || "メンバー";
+    const ownerLabel = room.createdBy === memberId ? "管理者" : "";
+    const remove = owner && memberId !== studentNumber
+      ? `<button type="button" data-remove-member="${escapeHtml(memberId)}">削除</button>` : "";
+    return `<div class="mate-group-member"><img src="${escapeHtml(photo)}" alt=""><span>${escapeHtml(name)}</span><small>${ownerLabel}</small>${remove}</div>`;
+  }).join("");
+}
+
+function renderTextQr(targetId, value) {
+  const box = $(targetId); box.innerHTML = "";
+  if (window.QRCode) new window.QRCode(box, { text: value, width: 190, height: 190, correctLevel: window.QRCode.CorrectLevel.M });
+}
+
+function extractGroupToken(value) {
+  const input = String(value || "").trim();
+  try {
+    const url = new URL(input, location.href);
+    if (url.origin === location.origin && url.searchParams.has("joinGroup")) return url.searchParams.get("joinGroup");
+  } catch { /* invite tokens can be pasted without a URL */ }
+  return input;
+}
+
+async function joinGroupFromInput() {
+  const token = extractGroupToken($("mateGroupInviteInput").value);
+  if (!token) { $("mateJoinGroupMessage").textContent = "招待コードを入力してください。"; return; }
+  const button = $("mateJoinGroupConfirm"); button.disabled = true;
+  try {
+    const result = await joinMateTalkGroup({ token });
+    closeOverlay("mateJoinGroupOverlay");
+    history.replaceState(null, "", `matetalk.html?room=${encodeURIComponent(result.data.roomId)}`);
+    showToast(`${result.data.title || "グループ"}に参加しました。`);
+  } catch (error) { $("mateJoinGroupMessage").textContent = readableError(error, "グループに参加できませんでした。"); }
+  finally { button.disabled = false; }
+}
+$("mateJoinGroupConfirm").onclick = joinGroupFromInput;
+$("mateScanGroupQr").onclick = async () => {
+  if (!("BarcodeDetector" in window)) { $("mateJoinGroupMessage").textContent = "この端末はカメラ読み取りに対応していません。招待リンクを入力してください。"; return; }
+  try {
+    groupScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    $("mateGroupQrVideo").srcObject = groupScanStream; $("mateGroupScanBox").hidden = false;
+    const detector = new BarcodeDetector({ formats: ["qr_code"] });
+    const scan = async () => {
+      if (!groupScanStream) return;
+      try {
+        const codes = await detector.detect($("mateGroupQrVideo"));
+        if (codes.length) {
+          const token = extractGroupToken(codes[0].rawValue);
+          if (token) { $("mateGroupInviteInput").value = token; $("mateJoinGroupMessage").textContent = "招待QRを読み取りました。「グループに参加」を押してください。"; stopGroupQrScan(); return; }
+        }
+      } catch { /* camera frame not ready yet */ }
+      groupScanFrame = requestAnimationFrame(scan);
+    };
+    groupScanFrame = requestAnimationFrame(scan);
+  } catch { stopGroupQrScan(); $("mateJoinGroupMessage").textContent = "カメラを利用できません。招待リンクを入力してください。"; }
+};
+function stopGroupQrScan() {
+  cancelAnimationFrame(groupScanFrame); groupScanStream?.getTracks().forEach((track) => track.stop()); groupScanStream = null;
+  $("mateGroupQrVideo").srcObject = null; $("mateGroupScanBox").hidden = true;
+}
+$("mateStopGroupScan").onclick = stopGroupQrScan;
 
 function fillSettings() {
   $("mateNicknameInput").value = myProfile.nickname || "";
@@ -684,13 +888,17 @@ function renderSchedule() {
 }
 
 document.querySelectorAll("[data-close]").forEach((button) => {
-  button.onclick = () => closeOverlay({ settings: "mateSettingsOverlay", exchange: "mateExchangeOverlay", group: "mateGroupOverlay", schedule: "mateScheduleOverlay", rename: "mateRenameOverlay" }[button.dataset.close]);
+  button.onclick = () => closeOverlay({ settings: "mateSettingsOverlay", exchange: "mateExchangeOverlay", group: "mateGroupOverlay", groupManage: "mateGroupManageOverlay", joinGroup: "mateJoinGroupOverlay", schedule: "mateScheduleOverlay", rename: "mateRenameOverlay" }[button.dataset.close]);
 });
 document.querySelectorAll(".mate-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(overlay.id); });
 });
 function openOverlay(id) { $(id).hidden = false; }
-function closeOverlay(id) { if (id) $(id).hidden = true; if (id === "mateExchangeOverlay") stopQrScan(); }
+function closeOverlay(id) {
+  if (id) $(id).hidden = true;
+  if (id === "mateExchangeOverlay") stopQrScan();
+  if (id === "mateJoinGroupOverlay") stopGroupQrScan();
+}
 
 function timestampMillis(value) {
   if (!value) return 0;

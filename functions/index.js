@@ -5153,6 +5153,166 @@ exports.createMateTalkGroup = onCall(
   },
 );
 
+exports.updateMateTalkGroup = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], timeoutSeconds: 120 },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    const action = String(request.data?.action || "");
+    if (!/^group_[a-f0-9]{24}$/.test(roomId)) {
+      throw new HttpsError("invalid-argument", "管理するグループを選択してください。");
+    }
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    let deleted = false;
+    let result = {};
+    await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(roomRef);
+      const room = snapshot.data() || {};
+      if (!snapshot.exists || room.roomType !== "group" || room.deleting === true ||
+          !canAccessRoom(room, studentNumber)) {
+        throw new HttpsError("permission-denied", "このグループを操作できません。");
+      }
+      const participants = [...new Set((room.participants || []).map(normalizeStudentNumber))];
+      const isOwner = room.createdBy === studentNumber;
+      if (action === "update") {
+        if (!isOwner) throw new HttpsError("permission-denied", "グループ管理者だけが編集できます。");
+        const title = String(request.data?.title || "").replace(/\s+/g, " ").trim().slice(0, 30);
+        const iconData = String(request.data?.iconData || "");
+        if (!title) throw new HttpsError("invalid-argument", "グループ名を入力してください。");
+        if (iconData) {
+          const match = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(iconData);
+          const bytes = match ? Buffer.from(match[2], "base64") : null;
+          if (!bytes?.length || bytes.length > 160 * 1024) {
+            throw new HttpsError("invalid-argument", "グループアイコンは160KB以下のJPEG・PNG・WebPにしてください。");
+          }
+        }
+        transaction.update(roomRef, {
+          title,
+          ...(iconData ? { iconData } : {}),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        result = { title, iconData: iconData || room.iconData || "" };
+        return;
+      }
+      if (action === "removeMember") {
+        if (!isOwner) throw new HttpsError("permission-denied", "グループ管理者だけがメンバーを削除できます。");
+        const memberId = normalizeStudentNumber(request.data?.memberId);
+        if (!memberId || memberId === studentNumber || !participants.includes(memberId)) {
+          throw new HttpsError("invalid-argument", "削除するメンバーを選択してください。");
+        }
+        const nextParticipants = participants.filter((participant) => participant !== memberId);
+        transaction.update(roomRef, {
+          participants: nextParticipants,
+          [`unreadCount.${memberId}`]: FieldValue.delete(),
+          [`readAt.${memberId}`]: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        result = { participants: nextParticipants };
+        return;
+      }
+      if (action === "delete") {
+        if (!isOwner) throw new HttpsError("permission-denied", "グループ管理者だけがグループを削除できます。");
+        transaction.update(roomRef, {
+          deleting: true,
+          deletedBy: studentNumber,
+          deleteRequestedAt: FieldValue.serverTimestamp(),
+        });
+        deleted = true;
+        result = { deleted: true };
+        return;
+      }
+      if (action === "leave") {
+        const nextParticipants = participants.filter((participant) => participant !== studentNumber);
+        if (nextParticipants.length === 0) {
+          transaction.update(roomRef, { deleting: true, deleteRequestedAt: FieldValue.serverTimestamp() });
+          deleted = true;
+          result = { left: true, deleted: true };
+          return;
+        }
+        const nextOwner = room.createdBy === studentNumber
+          ? [...nextParticipants].sort()[0]
+          : room.createdBy;
+        transaction.update(roomRef, {
+          participants: nextParticipants,
+          createdBy: nextOwner,
+          [`unreadCount.${studentNumber}`]: FieldValue.delete(),
+          [`readAt.${studentNumber}`]: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        result = { left: true, participants: nextParticipants, createdBy: nextOwner };
+        return;
+      }
+      throw new HttpsError("invalid-argument", "グループ操作が正しくありません。");
+    });
+    if (deleted) await db.recursiveDelete(roomRef);
+    return { ok: true, ...result };
+  },
+);
+
+exports.createMateTalkGroupInvite = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const roomId = String(request.data?.roomId || "").trim();
+    if (!/^group_[a-f0-9]{24}$/.test(roomId)) {
+      throw new HttpsError("invalid-argument", "招待するグループを選択してください。");
+    }
+    const roomRef = db.collection("mateTalkRooms").doc(roomId);
+    const token = crypto.randomBytes(24).toString("base64url");
+    const inviteRef = db.collection("mateTalkGroupInvites").doc(token);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const snapshot = await roomRef.get();
+    if (!snapshot.exists || snapshot.data()?.roomType !== "group" || snapshot.data()?.deleting === true ||
+        snapshot.data()?.createdBy !== studentNumber || !canAccessRoom(snapshot.data(), studentNumber)) {
+      throw new HttpsError("permission-denied", "グループ管理者だけが招待を作成できます。");
+    }
+    await inviteRef.create({ roomId, createdBy: studentNumber, createdAt: FieldValue.serverTimestamp(), expiresAt });
+    return { token, expiresAt: expiresAt.toISOString() };
+  },
+);
+
+exports.joinMateTalkGroup = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN] },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const token = String(request.data?.token || "").trim();
+    if (!/^[A-Za-z0-9_-]{24,64}$/.test(token)) {
+      throw new HttpsError("invalid-argument", "招待コードが正しくありません。");
+    }
+    const inviteRef = db.collection("mateTalkGroupInvites").doc(token);
+    let result = {};
+    await db.runTransaction(async (transaction) => {
+      const inviteSnapshot = await transaction.get(inviteRef);
+      const invite = inviteSnapshot.data() || {};
+      const roomId = String(invite.roomId || "");
+      if (!inviteSnapshot.exists || timestampMillis(invite.expiresAt) <= Date.now() ||
+          !/^group_[a-f0-9]{24}$/.test(roomId)) {
+        throw new HttpsError("not-found", "招待コードが無効か、有効期限が切れています。");
+      }
+      const roomRef = db.collection("mateTalkRooms").doc(roomId);
+      const roomSnapshot = await transaction.get(roomRef);
+      const room = roomSnapshot.data() || {};
+      if (!roomSnapshot.exists || room.roomType !== "group" || room.deleting === true) {
+        throw new HttpsError("not-found", "このグループは利用できません。");
+      }
+      const participants = [...new Set((room.participants || []).map(normalizeStudentNumber))];
+      if (!participants.includes(studentNumber)) {
+        if (participants.length >= 10) throw new HttpsError("resource-exhausted", "グループは10人まで参加できます。");
+        participants.push(studentNumber);
+        participants.sort();
+      }
+      transaction.update(roomRef, {
+        ...(participants.includes(studentNumber) ? { participants } : {}),
+        [`unreadCount.${studentNumber}`]: 0,
+        [`readAt.${studentNumber}`]: new Date(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      result = { roomId, title: String(room.title || "グループ"), participants };
+    });
+    return { ok: true, ...result };
+  },
+);
+
 exports.markMateTalkRead = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN] },
   async (request) => {

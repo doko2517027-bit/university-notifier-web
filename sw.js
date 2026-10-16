@@ -12,7 +12,7 @@ caremate-static-v1
 ↓
 caremate-static-v2
 */
-const STATIC_CACHE = "caremate-static-v153";
+const STATIC_CACHE = "caremate-static-v154";
 
 const RUNTIME_CACHE = "caremate-runtime-v153";
 
@@ -60,9 +60,9 @@ const CORE_ASSETS = [
 
   "matetalk.html",
 
-  "matetalk.css?v=20261016-6",
+  "matetalk.css?v=20261016-7",
 
-  "matetalk.js?v=20261016-7",
+  "matetalk.js?v=20261016-8",
 
   "vendor/qrcode.min.js?v=20261016-1",
 

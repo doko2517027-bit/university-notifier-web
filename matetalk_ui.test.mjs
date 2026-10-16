@@ -63,6 +63,30 @@ test("友達QRの再表示・更新・読取とグループ作成の入口があ
   assert.match(rules, /match \/mateTalkQrTokens\/\{qrToken\}/);
 });
 
+test("グループ管理で編集・参加QR・メンバー退会・全員削除ができる", () => {
+  for (const id of [
+    "mateGroupManageButton", "mateGroupManageOverlay", "mateGroupIconInput",
+    "mateGroupEditName", "mateCreateGroupInvite", "mateGroupMembers",
+    "mateLeaveGroup", "mateDeleteGroup", "mateJoinGroupButton",
+    "mateJoinGroupOverlay", "mateScanGroupQr", "mateJoinGroupConfirm",
+  ]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const action of ["update", "removeMember", "leave", "delete"]) {
+    assert.match(functions, new RegExp(`action === "${action}"`));
+  }
+  assert.match(functions, /exports\.updateMateTalkGroup/);
+  assert.match(functions, /exports\.createMateTalkGroupInvite/);
+  assert.match(functions, /exports\.joinMateTalkGroup/);
+  assert.match(functions, /await db\.recursiveDelete\(roomRef\)/);
+  assert.match(rules, /match \/mateTalkGroupInvites\/\{inviteId\}[\s\S]*?allow read, write: if false/);
+});
+
+test("個人・グループの送信写真を端末へ保存できる", () => {
+  assert.match(client, /data-save-photo=/);
+  assert.match(client, /async function saveChatPhoto\(messageId\)/);
+  assert.match(client, /link\.download = `CareMate-photo-/);
+  assert.match(client, /room\.roomType === "group"\) return room\.iconData/);
+});
+
 test("交換IDは固定し、QRだけ再発行できる。初回案内はアカウントごとに一度", () => {
   assert.match(functions, /requestedExchangeId !== oldExchangeId/);
   assert.match(functions, /mateTalkSetupPromptV2At/);

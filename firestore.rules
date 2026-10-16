@@ -489,6 +489,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /mateTalkGroupInvites/{inviteId} {
+      allow read, write: if false;
+    }
+
 
     /* ========================================
        今日の問題
