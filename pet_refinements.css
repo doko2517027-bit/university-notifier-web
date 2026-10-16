@@ -36,6 +36,8 @@
  .pet-room-stats{width:100%;margin:0 0 0 48px;justify-content:flex-start;flex-wrap:wrap}
  .pet-room-stats span{padding:6px 9px;white-space:normal;font-size:12px}
  .pet-room-label{top:calc(max(14px,env(safe-area-inset-top)) + 112px);max-width:calc(100vw - 24px);overflow-wrap:anywhere}
+ .pet-creature{bottom:24%}
+ .pet-room-depth-shadow{bottom:25%}
  .pet-room-control-rail{left:8px;right:8px;bottom:max(114px,calc(env(safe-area-inset-bottom) + 100px));justify-content:center;gap:clamp(5px,2vw,10px)}
  .pet-room-control-rail button{flex:1;max-width:72px;min-width:0}
  .pet-room-bottom{grid-template-columns:minmax(0,1fr);max-height:34vh;overflow:auto}
@@ -60,6 +62,7 @@
  .pet-room-stats{width:auto;margin-left:auto}
  .pet-room-label{top:58px}
  .pet-creature{height:48vh;width:min(34vw,300px);bottom:12%}
+ .pet-room-depth-shadow{bottom:11%}
  .pet-room-control-rail{top:auto;right:10px;left:auto;bottom:50%;transform:translateY(50%);display:grid;gap:5px}
  .pet-room-control-rail button{width:54px;height:52px;padding:4px;border-radius:15px}
  .pet-room-control-rail button img,.pet-room-control-rail button .shop-icon{width:25px;height:25px}

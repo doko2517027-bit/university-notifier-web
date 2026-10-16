@@ -2,7 +2,7 @@ import { auth, functions, studentNumber } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const $ = (id) => document.getElementById(id);
-const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, walkTimer: 0, petGesture: false, lastLeft: 50, lastBottom: 11 };
+const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, walkTimer: 0, petGesture: false, lastLeft: 50, lastBottom: window.matchMedia("(max-width:700px) and (orientation:portrait)").matches ? 24 : 11 };
 const lizardAssets = {
   idle: "assets/pets/lizard/rito_idle.png",
   feed: "assets/pets/lizard/rito_feed.png",
@@ -256,14 +256,16 @@ function startRoomRoam() {
     const stage = $("petStage");
     if (state.busy || stage.classList.contains("is-feeding") || stage.classList.contains("is-playing") || stage.classList.contains("is-petting")) { startRoomRoam(); return; }
     const previousBottom = state.lastBottom;
+    const mobilePortrait = window.matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+    const nearBottom = mobilePortrait ? 24 : 11;
     const left = 28 + Math.random() * 44;
-    const bottom = Math.random() < 0.52 ? 28 + Math.random() * 8 : 11 + Math.random() * 7;
+    const bottom = Math.random() < 0.52 ? (mobilePortrait ? 32 : 28) + Math.random() * 8 : nearBottom + Math.random() * 7;
     const walkingAway = bottom > previousBottom + 3;
     const walkingToward = !walkingAway;
     stage.classList.toggle("is-walking-away", walkingAway);
     stage.classList.toggle("is-walking-toward", walkingToward);
     stage.classList.add("is-walking");
-    playWalkAnimation(walkingAway ? lizardAssets.walkAway : lizardAssets.walkToward, { left, bottom });
+    playWalkAnimation(walkingAway ? lizardAssets.walkAway : lizardAssets.walkToward, { left, bottom, nearBottom });
   }, 4200 + Math.random() * 3000);
 }
 
@@ -369,7 +371,7 @@ function playWalkAnimation(frames, target) {
     const progress = step / stepCount;
     const left = fromLeft + (target.left - fromLeft) * progress;
     const bottom = fromBottom + (target.bottom - fromBottom) * progress;
-    const depth = Math.max(0.53, Math.min(0.92, 0.94 - ((bottom - 11) / 25) * 0.36));
+    const depth = Math.max(0.53, Math.min(0.94, 0.94 - ((bottom - target.nearBottom) / 25) * 0.36));
     image.src = frames[step % frames.length];
     creatureEl.style.left = `${left}%`;
     creatureEl.style.bottom = `${bottom}%`;
