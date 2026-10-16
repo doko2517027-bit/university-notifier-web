@@ -11,7 +11,7 @@ const {
 } = require("./matetalk_policy");
 
 test("交換IDは小文字化し安全な形式だけ許可する", () => {
-  assert.equal(normalizeExchangeId(" Kohei_44 "), "kohei_44");
+  assert.equal(normalizeExchangeId(" Caremate_00 "), "caremate_00");
   assert.equal(normalizeExchangeId("短"), "");
   assert.equal(normalizeExchangeId("ab"), "");
 });
