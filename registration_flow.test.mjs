@@ -33,7 +33,6 @@ test("リクエスト画面と管理画面の入口は廃止し、全学生を�
   assert.doesNotMatch(admin, /feature_requests_admin/);
   assert.doesNotMatch(rules, /match \/featureRequests\//);
   assert.match(common, /chat\.href = "matetalk\.html"/);
-  assert.doesNotMatch(common, /game\.href = "daruma\/"/);
 });
 
 test("履修未登録の案内は今学期の登録を確認し、過去分未保存なら保存を案内する", async () => {

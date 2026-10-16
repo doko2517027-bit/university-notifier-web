@@ -1480,7 +1480,7 @@ function ensureMateTalkNavTab() {
   for (const link of links) link.remove();
   const navs = [...document.querySelectorAll(".bottom-nav")];
   for (const nav of navs) {
-    nav.querySelectorAll('a[href="daruma/"], a[href="matetalk.html"]').forEach((link) => link.remove());
+    nav.querySelectorAll('a[href="matetalk.html"]').forEach((link) => link.remove());
     const chat = document.createElement("a");
     chat.href = "matetalk.html";
     if (location.pathname.endsWith("/matetalk.html")) chat.classList.add("active");

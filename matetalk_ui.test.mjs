@@ -13,8 +13,6 @@ const [html, client, common, rules, functions, styles] = await Promise.all([
 
 test("全学生の下部タブをメイトークへ統一する", () => {
   assert.match(common, /chat\.href = "matetalk\.html"/);
-  assert.match(common, /a\[href="daruma\/"\]/);
-  assert.doesNotMatch(common, /game\.href = "daruma\/"/);
 });
 
 test("管理者切替・予定共有・写真送信を表示する", () => {
