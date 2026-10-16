@@ -12,7 +12,7 @@ test("初期リトは空腹・好感度の減衰時刻を個別に持つ", () =>
   const now = new Date("2026-10-16T12:00:00+09:00");
   const profile = makePetProfile({ species: "lizard", name: "リト", now });
   assert.equal(profile.fullness, 8);
-  assert.equal(profile.petCoins, 100);
+  assert.equal(Object.hasOwn(profile, "petCoins"), false);
   assert.equal(profile.friendship, 0);
   assert.equal(profile.lastMeterAt.getTime(), now.getTime());
 });
@@ -99,5 +99,5 @@ test("既存プロフィールの好感度は初回スキーマ更新時に保�
   const migrated = advancePetClock(oldProfile, now);
   assert.equal(migrated.friendship, 17);
   assert.equal(migrated.fullness, 8);
-  assert.equal(migrated.petCoins, 100);
+  assert.equal(Object.hasOwn(migrated, "petCoins"), false);
 });

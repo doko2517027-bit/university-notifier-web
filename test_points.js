@@ -39,6 +39,8 @@ export async function awardDailyQuestionPoints({
   const result = await runTransaction(db, async (transaction) => {
     if ((await transaction.get(awardRef)).exists())
       return { awarded: false, points: 0 };
+    const totalSnapshot = await transaction.get(totalRef);
+    const totalData = totalSnapshot.data() || {};
     transaction.set(awardRef, {
       day,
       type,
@@ -59,7 +61,11 @@ export async function awardDailyQuestionPoints({
     );
     transaction.set(
       totalRef,
-      { point: incrementValue(points), updatedAt: serverTimestamp() },
+      {
+        point: incrementValue(points),
+        ...(Object.hasOwn(totalData, "availablePointBalance") ? { availablePointBalance: incrementValue(points) } : {}),
+        updatedAt: serverTimestamp(),
+      },
       { merge: true },
     );
     return { awarded: true, points };

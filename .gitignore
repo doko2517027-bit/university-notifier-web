@@ -4,3 +4,4 @@ firebase-debug.*.log
 .firebase/
 functions-delete/node_modules/
 functions-clinical/node_modules/
+functions-petgame/node_modules/

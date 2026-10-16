@@ -47,7 +47,7 @@ function advancePetClock(profile, now = new Date()) {
     next.fullness = 8;
     next.schemaVersion = 2;
   } else if (next.fullness == null) next.fullness = 8;
-  if (next.petCoins == null) next.petCoins = 100;
+  delete next.petCoins;
   if (!next.inventory || typeof next.inventory !== "object") next.inventory = {};
   if (!next.lastMeterAt) next.lastMeterAt = now;
   if (!next.lastAffinityDecayAt) next.lastAffinityDecayAt = now;
@@ -107,7 +107,6 @@ function makePetProfile({ species, name, now = new Date() }) {
     createdAt: now,
     friendship: 0,
     fullness: 8,
-    petCoins: 100,
     inventory: {},
     activeToyId: "",
     affinityAwards: {},
@@ -148,7 +147,6 @@ function applyPetCare(profile, action, now = new Date(), options = {}) {
     if (stock <= 0) throw new Error("out-of-stock");
     inventory[foodId] = stock - 1;
   }
-  const coins = Number(advanced.petCoins || 0) + (canEarnAffinity ? 5 : 0);
 
   const previousCareDate = String(advanced.lastCareDate || "");
   let currentStreak = Number(advanced.currentStreak || 0);
@@ -161,7 +159,6 @@ function applyPetCare(profile, action, now = new Date(), options = {}) {
     ...advanced,
     friendship,
     fullness,
-    petCoins: coins,
     inventory,
     affinityAwards,
     lastAffinityDecayAt: canEarnAffinity ? now : advanced.lastAffinityDecayAt,

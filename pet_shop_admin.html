@@ -6,6 +6,7 @@
   <title>ペット商品管理 | CareMate</title>
   <link rel="stylesheet" href="style.css?v=20261015-1" />
   <link rel="stylesheet" href="pet.css?v=20261017-1" />
+  <link rel="stylesheet" href="pet_refinements.css?v=20261018-1" />
   <script defer src="loading_indicator.js?v=20260929-7"></script>
   <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
 </head>
@@ -20,7 +21,7 @@
         <label>商品ID<input id="itemId" required pattern="[a-z0-9-]{2,40}" placeholder="例：leaf-toy" /></label>
         <label>表示名<input id="itemName" required maxlength="30" placeholder="商品名" /></label>
         <label>画像パス<input id="itemImagePath" required placeholder="assets/pets/food/item.png" /></label>
-        <label>価格（お世話コイン）<input id="itemPrice" type="number" min="0" max="100000" value="10" required /></label>
+        <label>価格（学習ポイント）<input id="itemPrice" type="number" min="0" max="100000" value="10" required /></label>
         <label class="food-only">ペットの好み<select id="itemPreference"><option>大好物</option><option>好物</option><option selected>普通</option><option>嫌い</option><option>食べたくない</option></select></label>
         <label class="food-only">満足度（0〜100）<input id="itemSatisfaction" type="number" min="0" max="100" value="20" /></label>
         <label class="food-only">満腹度の上昇（0〜100）<input id="itemFullnessGain" type="number" min="0" max="100" value="20" /></label>
@@ -33,6 +34,6 @@
     <section><h2>登録商品</h2><div id="petItemList" class="pet-admin-list" aria-live="polite">読み込み中…</div></section>
     <p id="petAdminStatus" class="pet-admin-status" role="status"></p>
   </main>
-  <script type="module" src="pet_shop_admin.js?v=20261017-1"></script>
+  <script type="module" src="pet_shop_admin.js?v=20261018-1"></script>
 </body>
 </html>

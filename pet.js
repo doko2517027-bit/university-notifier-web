@@ -2,15 +2,15 @@ import { auth, functions, studentNumber } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const $ = (id) => document.getElementById(id);
-const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, petGesture: false, lastBottom: 11 };
+const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, walkTimer: 0, petGesture: false, lastBottom: 11 };
 const lizardAssets = {
   idle: "assets/pets/lizard/rito_idle.png",
   feed: "assets/pets/lizard/rito_feed.png",
   play: "assets/pets/lizard/rito_play.png",
   pet: "assets/pets/lizard/rito_pet.png",
   sleep: "assets/pets/lizard/rito_sleep.png",
-  walkToward: "assets/pets/lizard/rito_walk_toward_strip.png",
-  walkAway: "assets/pets/lizard/rito_walk_away_strip.png",
+  walkToward: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-toward-0${index + 1}.png`),
+  walkAway: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-away-0${index + 1}.png`),
 };
 const careCopy = {
   feed: { text: "おいしいごはんを食べて、リトはごきげん！", mark: "♡" },
@@ -88,7 +88,7 @@ if (!auth.currentUser || auth.currentUser.uid !== `caremate-${studentNumber}`) {
 
 async function loadPetState() {
   try {
-    const result = await httpsCallable(functions, "getPetGameState")();
+    const result = await httpsCallable(functions, "getPetGameStateV2")();
     state.data = result.data || {};
     if (!state.data.eligible) {
       $("petLocked").hidden = false;
@@ -128,7 +128,7 @@ async function choosePet(event) {
   if (!name || name.length > 12) { status("名前は1〜12文字で入力してください"); return; }
   setBusy(true);
   try {
-    const result = await httpsCallable(functions, "updatePetGameState")({ action: "choose", species: state.selectedSpecies, name });
+    const result = await httpsCallable(functions, "updatePetGameStateV2")({ action: "choose", species: state.selectedSpecies, name });
     $("petChoose").hidden = true;
     renderPet(result.data.profile);
     status(`${result.data.profile.name}をお迎えしました`);
@@ -180,7 +180,7 @@ async function careForPet(action, foodId = "") {
   setBusy(true);
   $("petReaction").textContent = careCopy[action].mark;
   try {
-    const result = await httpsCallable(functions, "updatePetGameState")({ action: "care", careAction: action, foodId });
+    const result = await httpsCallable(functions, "updatePetGameStateV2")({ action: "care", careAction: action, foodId });
     if (action === "feed") { closeFoodDetail(); $("foodPicker").hidden = true; }
     renderPet(result.data.profile, action);
     if (action === "feed") {
@@ -208,12 +208,13 @@ function renderPet(profile, action = "") {
   $("petCreature").setAttribute("aria-label", `${profile.name}をなでる。押したまま動かしてなでてね`);
   $("petFriendship").textContent = String(profile.friendship || 0);
   $("petStreak").textContent = String(profile.currentStreak || 0);
-  $("petCoinCount").textContent = String(profile.petCoins || 0);
+  $("petCoinCount").textContent = String(state.data?.learningPointBalance ?? 0);
   const fullness = Math.max(0, Math.min(100, Number(profile.fullness ?? 8)));
   $("petFullnessFill").style.width = `${fullness}%`;
   $("petFullnessValue").textContent = `${fullness}%`;
   $("petFullnessFill").classList.toggle("is-low", fullness < 25);
   setTimeOfDay();
+  stopWalkAnimation();
   const night = Boolean(profile.isSleeping) || isNightByClock();
   const currentAction = night ? "sleep" : action;
   const image = $("petImage");
@@ -266,7 +267,8 @@ function startRoomRoam() {
     stage.classList.toggle("is-walking-away", walkingAway);
     stage.classList.toggle("is-walking-toward", walkingToward);
     stage.classList.add("is-walking");
-    window.setTimeout(() => { stage.classList.remove("is-walking", "is-walking-away", "is-walking-toward"); }, 2700);
+    playWalkAnimation(walkingAway ? lizardAssets.walkAway : lizardAssets.walkToward);
+    window.setTimeout(() => { stopWalkAnimation(); stage.classList.remove("is-walking", "is-walking-away", "is-walking-toward"); }, 2700);
     state.roamTimer = window.setTimeout(startRoomRoam, 2700);
   }, 4200 + Math.random() * 3000);
 }
@@ -290,7 +292,7 @@ async function setRoomToy(itemId) {
   if (state.busy) return;
   setBusy(true);
   try {
-    const result = await httpsCallable(functions, "updatePetGameState")({ action: "set-toy", itemId });
+    const result = await httpsCallable(functions, "updatePetGameStateV2")({ action: "set-toy", itemId });
     state.data.profile = result.data.profile;
     $("toyPicker").hidden = true;
     renderPet(result.data.profile);
@@ -301,7 +303,7 @@ async function setRoomToy(itemId) {
 
 function openPetShop() {
   if (state.busy) return;
-  $("petCoinCount").textContent = String(state.data?.profile?.petCoins || 0);
+  $("petCoinCount").textContent = String(state.data?.learningPointBalance ?? 0);
   const items = (state.data?.catalog || []).filter((item) => item.shopAvailable !== false);
   $("shopItems").replaceChildren(...items.map((item) => {
     const owned = Number(state.data.profile?.inventory?.[item.id] || 0);
@@ -310,7 +312,7 @@ function openPetShop() {
     button.type = "button";
     button.dataset.buy = item.id;
     button.className = "food-choice shop-item";
-    button.innerHTML = `<img src="${safeAsset(item.imagePath)}" alt="" /><span class="food-choice-copy"><b>${escapeHtml(item.name)}</b><small>${item.kind === "food" ? `${escapeHtml(item.preference || "普通")} · 満足度 ${Number(item.satisfaction) || 0}` : "おもちゃ"}</small></span><strong class="shop-price">${infinite ? "無限" : `${Number(item.price) || 0} コイン`}</strong>${infinite ? "" : `<small>${owned ? `所持 ×${owned}` : "購入"}</small>`}`;
+    button.innerHTML = `<img src="${safeAsset(item.imagePath)}" alt="" /><span class="food-choice-copy"><b>${escapeHtml(item.name)}</b><small>${item.kind === "food" ? `${escapeHtml(item.preference || "普通")} · 満足度 ${Number(item.satisfaction) || 0}` : "おもちゃ"}</small></span><strong class="shop-price">${infinite ? "無限" : `${Number(item.price) || 0} pt`}</strong>${infinite ? "" : `<small>${owned ? `所持 ×${owned}` : "購入"}</small>`}`;
     button.disabled = infinite;
     return button;
   }));
@@ -321,8 +323,9 @@ async function buyShopItem(itemId) {
   if (state.busy) return;
   setBusy(true);
   try {
-    const result = await httpsCallable(functions, "updatePetGameState")({ action: "buy", itemId });
+    const result = await httpsCallable(functions, "updatePetGameStateV2")({ action: "buy", itemId });
     state.data.profile = result.data.profile;
+    state.data.learningPointBalance = result.data.learningPointBalance;
     renderPet(result.data.profile);
     openPetShop();
     status("お買いものを受け取りました");
@@ -348,7 +351,21 @@ function setTimeOfDay() {
   const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
   const stage = $("petStage");
   stage.classList.remove("time-morning", "time-day", "time-evening", "time-night");
-  stage.classList.add(hour >= 22 || hour < 5 ? "time-night" : hour < 10 ? "time-morning" : hour < 17 ? "time-day" : "time-evening");
+  stage.classList.add(hour >= 22 || hour < 6 ? "time-night" : hour < 10 ? "time-morning" : "time-day");
+}
+function playWalkAnimation(frames) {
+  stopWalkAnimation();
+  const image = $("petImage");
+  let frame = 0;
+  image.src = frames[frame];
+  state.walkTimer = window.setInterval(() => {
+    frame = (frame + 1) % frames.length;
+    image.src = frames[frame];
+  }, 140);
+}
+function stopWalkAnimation() {
+  if (state.walkTimer) window.clearInterval(state.walkTimer);
+  state.walkTimer = 0;
 }
 function safeAsset(path) { return /^assets\/pets\/(food|toys|lizard)\/[a-z0-9._-]+\.png$/i.test(String(path || "")) ? path : "assets/pets/food/komatsuna.png"; }
 function escapeHtml(value) { return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }

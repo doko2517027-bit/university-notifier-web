@@ -64,6 +64,9 @@ const firestoreStatus = document.getElementById("firestoreStatus");
 const renderStatus = document.getElementById("renderStatus");
 
 const lastCronText = document.getElementById("lastCronText");
+const lastCronStartedText = document.getElementById("lastCronStartedText");
+const lastCronErrorText = document.getElementById("lastCronErrorText");
+const dashboardRefresh = document.getElementById("dashboardRefresh");
 
 const lastScheduleCheckText = document.getElementById("lastScheduleCheckText");
 
@@ -192,6 +195,14 @@ if (
     `;
     menu.append(card);
   }
+  if (menu && !document.getElementById("adminPetShopCard")) {
+    const card = document.createElement("div");
+    card.id = "adminPetShopCard";
+    card.className = "card setting-card admin-menu-card";
+    card.setAttribute("onclick", "location.href='pet_shop_admin.html'");
+    card.innerHTML = `<div class="admin-menu-icon" aria-hidden="true">🛍️</div><h3>ペットショップ管理</h3><p>販売するごはん・おもちゃの追加・修正・削除</p>`;
+    menu.append(card);
+  }
 }
 
 await initializePage([
@@ -260,23 +271,34 @@ async function loadSystemStatus() {
       setText(lastScheduleCheckText, "----");
 
       setText(lastAssignmentCheckText, "----");
+      setText(lastCronStartedText, "最終開始：----");
+      if (lastCronErrorText) lastCronErrorText.hidden = true;
 
       return;
     }
 
     const data = snapshot.data();
 
-    const renderStatusText = {
-      ok: "🟢 正常",
-
-      running: "🟡 実行中",
-
-      error: "🔴 エラー",
-    };
-
-    setText(renderStatus, renderStatusText[data.renderStatus] || "⚫ 未確認");
-
-    setText(lastCronText, formatAdminDate(data.lastCronAt));
+    const lastSuccess = adminTimestampMillis(data.lastCronAt);
+    const lastStarted = adminTimestampMillis(data.lastCronStartedAt);
+    const lastError = adminTimestampMillis(data.lastCronErrorAt);
+    const ageMinutes = lastSuccess ? (Date.now() - lastSuccess) / 60_000 : Infinity;
+    const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+    const withinSchedule = hour >= 7 && hour <= 22;
+    let statusText = "⚫ 実行履歴なし";
+    if (lastError > lastSuccess) statusText = "🔴 直近エラーあり";
+    else if (data.renderStatus === "running" && lastStarted && Date.now() - lastStarted < 60 * 60_000) statusText = "🟡 実行中";
+    else if (ageMinutes <= 90) statusText = "🟢 最近の実行を確認";
+    else if (!withinSchedule) statusText = "⚪ 次の定期実行待ち";
+    else if (lastSuccess) statusText = "🟠 実行遅延・要確認";
+    setText(renderStatus, statusText);
+    setText(lastCronText, `最終成功：${formatAdminDate(data.lastCronAt)}`);
+    setText(lastCronStartedText, `最終開始：${formatAdminDate(data.lastCronStartedAt)}`);
+    if (lastCronErrorText) {
+      const errorMessage = String(data.lastCronError || "").trim();
+      lastCronErrorText.textContent = lastError > lastSuccess ? `直近エラー (${formatAdminDate(data.lastCronErrorAt)}): ${errorMessage || "詳細なし"}` : "";
+      lastCronErrorText.hidden = lastError <= lastSuccess;
+    }
 
     setText(lastScheduleCheckText, formatAdminDate(data.lastScheduleCheckAt));
 
@@ -316,6 +338,15 @@ function formatAdminDate(timestamp) {
   } catch {
     return "----";
   }
+}
+
+function adminTimestampMillis(timestamp) {
+  try {
+    if (timestamp && typeof timestamp.toMillis === "function") return timestamp.toMillis();
+    if (timestamp && typeof timestamp.toDate === "function") return timestamp.toDate().getTime();
+    const value = new Date(timestamp).getTime();
+    return Number.isFinite(value) ? value : 0;
+  } catch { return 0; }
 }
 
 /* ========================================
@@ -447,6 +478,14 @@ async function saveNotificationSettings() {
 ======================================== */
 
 function setupEvents() {
+  if (dashboardRefresh) dashboardRefresh.addEventListener("click", async () => {
+    dashboardRefresh.disabled = true;
+    dashboardRefresh.textContent = "更新中…";
+    systemAppPromise = null;
+    await Promise.all([loadDashboard(), loadSystemStatus()]);
+    dashboardRefresh.disabled = false;
+    dashboardRefresh.textContent = "状態を更新";
+  });
   [adminScopeDepartment, adminScopeMajor, adminScopeGrade]
     .filter(Boolean)
     .forEach((input) => {

@@ -507,8 +507,11 @@ function referralRewardGrantState(account = {}, invitedCount = 0, now = new Date
 
 async function ensureReferralPointReward(studentNumber) {
   const accountRef = referralAccountRef(studentNumber);
+  const rankingRef = db.collection("totalRanking").doc(studentNumber);
   await db.runTransaction(async (transaction) => {
-    const accountSnapshot = await transaction.get(accountRef);
+    const [accountSnapshot, rankingSnapshot] = await Promise.all([
+      transaction.get(accountRef), transaction.get(rankingRef),
+    ]);
     if (!accountSnapshot.exists) return;
     const account = accountSnapshot.data() || {};
     const invitedCount = Math.max(0, Number(account.invitedCount || 0));
@@ -520,8 +523,8 @@ async function ensureReferralPointReward(studentNumber) {
       { merge: true },
     );
     transaction.set(
-      db.collection("totalRanking").doc(studentNumber),
-      { point: FieldValue.increment(100), updatedAt: new Date() },
+      rankingRef,
+      { point: FieldValue.increment(100), ...(Object.hasOwn(rankingSnapshot.data() || {}, "availablePointBalance") ? { availablePointBalance: FieldValue.increment(100) } : {}), updatedAt: new Date() },
       { merge: true },
     );
   });
@@ -685,9 +688,10 @@ exports.getPetGameState = onCall(
   { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
   async (request) => {
     const studentNumber = requireAuthenticatedCareMateStudent(request);
-    const [accountSnapshot, profileRef] = await Promise.all([
+    const [accountSnapshot, profileRef, rankingSnapshot] = await Promise.all([
       referralAccountRef(studentNumber).get(),
       Promise.resolve(db.collection("petProfiles").doc(studentNumber)),
+      db.collection("totalRanking").doc(studentNumber).get(),
     ]);
     const account = accountSnapshot.data() || {};
     const eligible = petEligible(studentNumber, account);
@@ -700,13 +704,13 @@ exports.getPetGameState = onCall(
         const advanced = advancePetClock(original, new Date());
         const clockChanged =
           Number(original.schemaVersion || 1) < 2 ||
-          original.fullness == null || original.petCoins == null || !original.inventory ||
+          original.fullness == null || original.petCoins != null || !original.inventory ||
           !original.affinityAwards || !original.lastMeterAt || !original.lastAffinityDecayAt ||
           !original.lastInteractionAt || original.fullness !== advanced.fullness ||
           original.friendship !== advanced.friendship || original.isSleeping !== advanced.isSleeping ||
           timestampMillis(original.lastMeterAt) !== timestampMillis(advanced.lastMeterAt) ||
           timestampMillis(original.lastInteractionAt) !== timestampMillis(advanced.lastInteractionAt);
-        if (clockChanged) transaction.set(profileRef, advanced, { merge: true });
+        if (clockChanged) transaction.set(profileRef, { ...advanced, petCoins: FieldValue.delete() }, { merge: true });
         return advanced;
       });
     }
@@ -721,6 +725,7 @@ exports.getPetGameState = onCall(
       species: PET_SPECIES,
       careActions: PET_CARE_ACTIONS,
       profile: eligible && profile ? profile : null,
+      learningPointBalance: Math.max(0, Math.floor(Number(rankingSnapshot.data()?.availablePointBalance ?? rankingSnapshot.data()?.point ?? 0))),
       catalog: catalog.filter((item) => item.enabled !== false),
     };
   },
@@ -809,9 +814,10 @@ exports.updatePetGameState = onCall(
       const itemId = String(request.data?.itemId || "");
       if (!/^[a-z0-9-]{2,40}$/.test(itemId)) throw new HttpsError("invalid-argument", "商品を確認してください。");
       const itemRef = db.collection("petShopCatalog").doc(itemId);
+      const rankingRef = db.collection("totalRanking").doc(studentNumber);
       return db.runTransaction(async (transaction) => {
-        const [accountSnapshot, profileSnapshot, itemSnapshot] = await Promise.all([
-          transaction.get(accountRef), transaction.get(profileRef), transaction.get(itemRef),
+        const [accountSnapshot, profileSnapshot, itemSnapshot, rankingSnapshot] = await Promise.all([
+          transaction.get(accountRef), transaction.get(profileRef), transaction.get(itemRef), transaction.get(rankingRef),
         ]);
         if (!petEligible(studentNumber, accountSnapshot.data() || {})) throw new HttpsError("permission-denied", "ペット機能を利用できません。");
         if (!profileSnapshot.exists) throw new HttpsError("failed-precondition", "先にペットをお迎えしてください。");
@@ -819,11 +825,14 @@ exports.updatePetGameState = onCall(
         if (!customItem || customItem.enabled === false || customItem.shopAvailable === false || customItem.infinite === true) throw new HttpsError("failed-precondition", "この商品は購入できません。");
         const price = Math.max(0, Math.floor(Number(customItem.price) || 0));
         const profile = advancePetClock(profileSnapshot.data(), now);
-        if (Number(profile.petCoins || 0) < price) throw new HttpsError("failed-precondition", "お世話コインが足りません。");
+        const ranking = rankingSnapshot.data() || {};
+        const balance = Math.max(0, Math.floor(Number(ranking.availablePointBalance ?? ranking.point ?? 0)));
+        if (balance < price) throw new HttpsError("failed-precondition", "学習ポイントが足りません。");
         const inventory = { ...(profile.inventory || {}), [itemId]: Number(profile.inventory?.[itemId] || 0) + 1 };
-        const next = { ...profile, inventory, petCoins: Number(profile.petCoins || 0) - price, updatedAt: now };
-        transaction.set(profileRef, next, { merge: true });
-        return { profile: next };
+        const next = { ...profile, inventory, updatedAt: now };
+        transaction.set(profileRef, { ...next, petCoins: FieldValue.delete() }, { merge: true });
+        transaction.set(rankingRef, { availablePointBalance: balance - price, updatedAt: now }, { merge: true });
+        return { profile: next, learningPointBalance: balance - price };
       });
     }
 
@@ -1184,11 +1193,13 @@ exports.completeReferralRegistration = onCall(
       const inviter = String(referralProof.inviterStudentNumber || "");
       const accountRef = referralAccountRef(inviter);
       const historyRef = db.collection("referralHistory").doc(studentNumber);
-      const [codeSnapshot, accountSnapshot, historySnapshot] =
+      const rankingRef = db.collection("totalRanking").doc(inviter);
+      const [codeSnapshot, accountSnapshot, historySnapshot, rankingSnapshot] =
         await Promise.all([
           transaction.get(codeRef),
           transaction.get(accountRef),
           transaction.get(historyRef),
+          transaction.get(rankingRef),
         ]);
       const code = codeSnapshot.data() || {};
       const account = accountSnapshot.data() || {};
@@ -1245,8 +1256,8 @@ exports.completeReferralRegistration = onCall(
       );
       if (rewardGrantState.shouldGrantPoints) {
         transaction.set(
-          db.collection("totalRanking").doc(inviter),
-          { point: FieldValue.increment(100), updatedAt: now },
+          rankingRef,
+          { point: FieldValue.increment(100), ...(Object.hasOwn(rankingSnapshot.data() || {}, "availablePointBalance") ? { availablePointBalance: FieldValue.increment(100) } : {}), updatedAt: now },
           { merge: true },
         );
       }
@@ -1476,7 +1487,8 @@ exports.setReferralRewardDeletedAdmin = onCall(
         suppressions[key] = { deletedAt: now, deletedBy: updatedBy, reason };
         if (milestoneCount === 2 && rewardGrants.m2LearningPoints?.grantedAt && !rewardGrants.m2LearningPoints?.reversedAt) {
           const currentPoints = Math.max(0, Number(rankingSnapshot.data()?.point || 0));
-          transaction.set(rankingRef, { point: Math.max(0, currentPoints - 100), updatedAt: now }, { merge: true });
+          const rankingData = rankingSnapshot.data() || {};
+          transaction.set(rankingRef, { point: Math.max(0, currentPoints - 100), ...(Object.hasOwn(rankingData, "availablePointBalance") ? { availablePointBalance: Math.max(0, Number(rankingData.availablePointBalance || 0) - 100) } : {}), updatedAt: now }, { merge: true });
           rewardGrants.m2LearningPoints = { ...rewardGrants.m2LearningPoints, reversedAt: now, reversedBy: updatedBy };
         }
         if (milestoneCount === 4 && !["light", "dark"].includes(personalization.theme)) personalization.theme = "light";
@@ -1514,7 +1526,8 @@ exports.setReferralRewardDeletedAdmin = onCall(
         delete suppressions[key];
         if (milestoneCount === 2 && Number(account.invitedCount || 0) >= 2) {
           const currentPoints = Math.max(0, Number(rankingSnapshot.data()?.point || 0));
-          transaction.set(rankingRef, { point: currentPoints + 100, updatedAt: now }, { merge: true });
+          const rankingData = rankingSnapshot.data() || {};
+          transaction.set(rankingRef, { point: currentPoints + 100, ...(Object.hasOwn(rankingData, "availablePointBalance") ? { availablePointBalance: Number(rankingData.availablePointBalance || 0) + 100 } : {}), updatedAt: now }, { merge: true });
           rewardGrants.m2LearningPoints = { grantedAt: now, points: 100, restoredAt: now, restoredBy: updatedBy };
         }
         if (milestoneCount === 10 && Number(account.invitedCount || 0) >= 10) {
@@ -1574,6 +1587,7 @@ exports.grantReferralReward = onCall(
     }
     const rewardRef = db.collection("referralPrivateRewards").doc(target);
     const accountRef = referralAccountRef(target);
+    const rankingRef = db.collection("totalRanking").doc(target);
     await db.runTransaction(async (transaction) => {
       const [rewardSnapshot, accountSnapshot] = await Promise.all([
         transaction.get(rewardRef),
@@ -1623,13 +1637,15 @@ exports.adjustReferralCountAdmin = onCall(
       throw new HttpsError("invalid-argument", "達成人数または修正理由を確認してください。");
     }
     const accountRef = referralAccountRef(target);
+    const rankingRef = db.collection("totalRanking").doc(target);
     const rewardRef = db.collection("referralPrivateRewards").doc(target);
     const adjustmentRef = db.collection("referralManualAdjustments").doc();
     await db.runTransaction(async (transaction) => {
-      const [userSnapshot, accountSnapshot, rewardSnapshot] = await Promise.all([
+      const [userSnapshot, accountSnapshot, rewardSnapshot, rankingSnapshot] = await Promise.all([
         transaction.get(db.collection("users").doc(target)),
         transaction.get(accountRef),
         transaction.get(rewardRef),
+        transaction.get(rankingRef),
       ]);
       if (!userSnapshot.exists) {
         throw new HttpsError("not-found", "対象学生が見つかりません。");
@@ -1663,8 +1679,8 @@ exports.adjustReferralCountAdmin = onCall(
       );
       if (rewardGrantState.shouldGrantPoints) {
         transaction.set(
-          db.collection("totalRanking").doc(target),
-          { point: FieldValue.increment(100), updatedAt: now },
+          rankingRef,
+          { point: FieldValue.increment(100), ...(Object.hasOwn(rankingSnapshot.data() || {}, "availablePointBalance") ? { availablePointBalance: FieldValue.increment(100) } : {}), updatedAt: now },
           { merge: true },
         );
       }

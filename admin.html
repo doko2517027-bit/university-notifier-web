@@ -10,6 +10,7 @@
     <title>管理 | CareMateApp</title>
 
     <link rel="stylesheet" href="style.css?v=20261015-1" />
+  <link rel="stylesheet" href="admin_dashboard.css?v=20261018-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
 
     <script>
@@ -96,30 +97,18 @@
       ></p>
     </section>
 
-    <h2>📊 ダッシュボード</h2>
-
-    <div class="card setting-card">
-      <p><b>登録ユーザー数</b></p>
-      <p id="userCount">取得中...</p>
-
-      <p><b>Version</b></p>
-      <p id="versionText">取得中...</p>
-
-      <p><b>Firestore状態</b></p>
-      <p id="firestoreStatus">確認中...</p>
-
-      <p><b>Render状態</b></p>
-      <p id="renderStatus">準備中</p>
-
-      <p><b>最終Cron実行</b></p>
-      <p id="lastCronText">----</p>
-
-      <p><b>最終時間割取得</b></p>
-      <p id="lastScheduleCheckText">----</p>
-
-      <p><b>最終課題取得</b></p>
-      <p id="lastAssignmentCheckText">----</p>
-    </div>
+    <section class="admin-dashboard-section">
+      <div class="admin-dashboard-heading"><div><p class="admin-dashboard-eyebrow">CARE MATE OPERATIONS</p><h2>📊 システムダッシュボード</h2><p>アプリと定期処理の直近状態を確認できます。</p></div><button id="dashboardRefresh" type="button" class="btn">状態を更新</button></div>
+      <div class="admin-dashboard-grid">
+        <article class="admin-dashboard-card admin-dashboard-primary"><span>登録ユーザー</span><strong id="userCount">取得中…</strong><small>現在の管理対象</small></article>
+        <article class="admin-dashboard-card"><span>Firestore</span><strong id="firestoreStatus">確認中…</strong><small>ユーザー・学習データ</small></article>
+        <article class="admin-dashboard-card"><span>定期処理 / Render Cron</span><strong id="renderStatus">状態を確認中…</strong><small id="lastCronText">最終成功：----</small><small id="lastCronStartedText">最終開始：----</small><small id="lastCronErrorText" class="admin-dashboard-error" hidden></small></article>
+        <article class="admin-dashboard-card"><span>時間割データ取得</span><strong id="lastScheduleCheckText">----</strong><small>最後に確認した時刻</small></article>
+        <article class="admin-dashboard-card"><span>課題データ取得</span><strong id="lastAssignmentCheckText">----</strong><small>最後に確認した時刻</small></article>
+        <article class="admin-dashboard-card"><span>アプリ版</span><strong id="versionText">取得中…</strong><small>Webアプリ</small></article>
+      </div>
+      <div class="admin-render-connection"><div><strong>Render 実行履歴</strong><small>スケジュール：日本時間 7:00〜22:00、毎時</small></div><a href="https://dashboard.render.com/cron/crn-db8rvgvavr4c73c4nj5g/runs" target="_blank" rel="noopener noreferrer">現在のCron履歴を開く ↗</a></div>
+    </section>
 
     <h2>📱 Push通知</h2>
 
@@ -378,6 +367,6 @@
       </a>
     </nav>
 
-    <script type="module" src="admin.js?v=20261013-1"></script>
+    <script type="module" src="admin.js?v=20261018-1"></script>
   </body>
 </html>

@@ -43,7 +43,7 @@ function renderItems() {
     const card = document.createElement("article");
     card.className = `pet-admin-item${item.enabled === false ? " is-disabled" : ""}`;
     const image = safeAsset(item.imagePath) || "";
-    card.innerHTML = `<img src="${image}" alt="" /><div class="pet-admin-item-copy"><strong>${escapeHtml(item.name)}</strong><small>${item.kind === "food" ? `ごはん · ${escapeHtml(item.preference || "普通")} · 満足度 ${Number(item.satisfaction) || 0} · 満腹 +${Number(item.fullnessGain) || 0}%` : "おもちゃ"}</small><small>${item.infinite ? "在庫 無限" : `価格 ${Number(item.price) || 0} コイン`} · ${item.enabled === false ? "無効" : item.shopAvailable === false ? "ショップ非表示" : "販売中"}</small><code>${escapeHtml(item.id)}</code></div><div class="pet-admin-item-actions"><button class="btn" type="button" data-edit="${escapeHtml(item.id)}">編集</button>${item.isDefault ? "" : `<button class="btn" type="button" data-delete="${escapeHtml(item.id)}">削除</button>`}</div>`;
+    card.innerHTML = `<img src="${image}" alt="" /><div class="pet-admin-item-copy"><strong>${escapeHtml(item.name)}</strong><small>${item.kind === "food" ? `ごはん · ${escapeHtml(item.preference || "普通")} · 満足度 ${Number(item.satisfaction) || 0} · 満腹 +${Number(item.fullnessGain) || 0}%` : "おもちゃ"}</small><small>${item.infinite ? "在庫 無限" : `価格 ${Number(item.price) || 0} pt`} · ${item.enabled === false ? "無効" : item.shopAvailable === false ? "ショップ非表示" : "販売中"}</small><code>${escapeHtml(item.id)}</code></div><div class="pet-admin-item-actions"><button class="btn" type="button" data-edit="${escapeHtml(item.id)}">編集</button>${item.isDefault ? "" : `<button class="btn" type="button" data-delete="${escapeHtml(item.id)}">削除</button>`}</div>`;
     return card;
   }));
 }
