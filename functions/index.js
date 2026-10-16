@@ -88,6 +88,15 @@ const {
   nextMilestone,
   validGiftUrl,
 } = require("./referral_policy.js");
+const {
+  PET_SPECIES,
+  PET_EARLY_CHOICE_IDS,
+  PET_CARE_ACTIONS,
+  petEligible,
+  petChoices,
+  makePetProfile,
+  applyPetCare,
+} = require("./pet_care_policy.js");
 
 const PRESENCE_DEVICE_MIGRATION_VERSION = 1;
 
@@ -663,6 +672,99 @@ exports.issueReferralCode = onCall(
       );
       return { code: newCode, expiresAt: expiresAt.getTime(), reused: false };
     });
+  },
+);
+
+// ペット育成は6人招待特典。2510044は公開前の限定テスト対象。
+// 個人の選択・世話データはクライアントから直接読み書きさせない。
+exports.getPetGameState = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const [accountSnapshot, profileSnapshot] = await Promise.all([
+      referralAccountRef(studentNumber).get(),
+      db.collection("petProfiles").doc(studentNumber).get(),
+    ]);
+    const account = accountSnapshot.data() || {};
+    const eligible = petEligible(studentNumber, account);
+    const profile = profileSnapshot.exists ? profileSnapshot.data() : null;
+    return {
+      eligible,
+      pilot: studentNumber === "2510044",
+      choices: eligible ? petChoices(studentNumber) : [],
+      species: PET_SPECIES,
+      careActions: PET_CARE_ACTIONS,
+      profile: eligible && profile ? profile : null,
+    };
+  },
+);
+
+exports.updatePetGameState = onCall(
+  { region: "asia-northeast1", cors: [SITE_ORIGIN], memory: "256MiB" },
+  async (request) => {
+    const studentNumber = requireAuthenticatedCareMateStudent(request);
+    const action = String(request.data?.action || "");
+    const accountRef = referralAccountRef(studentNumber);
+    const profileRef = db.collection("petProfiles").doc(studentNumber);
+    const now = new Date();
+
+    if (action === "choose") {
+      const species = String(request.data?.species || "");
+      const name = String(request.data?.name || "").trim();
+      if (!petChoices(studentNumber).includes(species) || !PET_SPECIES[species]) {
+        throw new HttpsError("invalid-argument", "選べないペットです。");
+      }
+      if (!name || name.length > 12 || /[\u0000-\u001f<>]/.test(name)) {
+        throw new HttpsError("invalid-argument", "名前は1〜12文字で入力してください。");
+      }
+      return db.runTransaction(async (transaction) => {
+        const [accountSnapshot, existing] = await Promise.all([
+          transaction.get(accountRef),
+          transaction.get(profileRef),
+        ]);
+        if (!petEligible(studentNumber, accountSnapshot.data() || {})) {
+          throw new HttpsError("permission-denied", "ペット機能は友達招待6人達成で解放されます。");
+        }
+        if (existing.exists) {
+          return { profile: existing.data(), alreadyChosen: true };
+        }
+        const profile = makePetProfile({ species, name, now });
+        transaction.create(profileRef, profile);
+        return { profile, alreadyChosen: false };
+      });
+    }
+
+    if (action === "care") {
+      const careAction = String(request.data?.careAction || "");
+      if (!PET_CARE_ACTIONS.includes(careAction)) {
+        throw new HttpsError("invalid-argument", "お世話の種類を確認してください。");
+      }
+      return db.runTransaction(async (transaction) => {
+        const [accountSnapshot, profileSnapshot] = await Promise.all([
+          transaction.get(accountRef),
+          transaction.get(profileRef),
+        ]);
+        if (!petEligible(studentNumber, accountSnapshot.data() || {})) {
+          throw new HttpsError("permission-denied", "ペット機能は友達招待6人達成で解放されます。");
+        }
+        if (!profileSnapshot.exists) {
+          throw new HttpsError("failed-precondition", "先に一緒に暮らすペットを選んでください。");
+        }
+        let profile;
+        try {
+          profile = applyPetCare(profileSnapshot.data(), careAction, now);
+        } catch (error) {
+          if (error.message === "already-cared") {
+            throw new HttpsError("already-exists", "今日はそのお世話をしました。また明日遊んでね。");
+          }
+          throw new HttpsError("invalid-argument", "お世話を記録できませんでした。");
+        }
+        transaction.set(profileRef, profile);
+        return { profile };
+      });
+    }
+
+    throw new HttpsError("invalid-argument", "操作内容が正しくありません。");
   },
 );
 

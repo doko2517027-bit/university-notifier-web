@@ -18,7 +18,7 @@
 
     <link rel="preconnect" href="https://api.open-meteo.com" />
 
-    <link rel="modulepreload" href="app.js?v=20261016-1" />
+    <link rel="modulepreload" href="app.js?v=20261016-2" />
 
     <link rel="modulepreload" href="common.js" />
 
@@ -26,7 +26,7 @@
 
     <link rel="modulepreload" href="class_selection.js?v=20261015-1" />
 
-    <link rel="stylesheet" href="style.css?v=20261015-1" />
+    <link rel="stylesheet" href="style.css?v=20261016-2" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script defer src="splash_intro.js?v=20260929-9"></script>
 
@@ -192,7 +192,12 @@
 
     <div class="top-buttons">
       <div class="top-user-info">
-        <span id="userName"> Unknownさん </span>
+        <div class="home-user-heading">
+          <span id="userName"> Unknownさん </span>
+          <button id="homePetButton" class="home-pet-entry" type="button" hidden aria-label="ペット育成を開く">
+            <span aria-hidden="true">🐾</span><span id="homePetButtonLabel">ペットと暮らす</span>
+          </button>
+        </div>
 
         <span id="myRanking"></span>
       </div>
@@ -565,6 +570,6 @@
       };
     </script>
 
-    <script type="module" src="app.js?v=20261016-1"></script>
+    <script type="module" src="app.js?v=20261016-2"></script>
   </body>
 </html>

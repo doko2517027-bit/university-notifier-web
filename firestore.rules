@@ -403,6 +403,9 @@ service cloud.firestore {
     match /referralAccounts/{documentId} {
       allow read, write: if false;
     }
+    match /petProfiles/{studentNumber} {
+      allow read, write: if false;
+    }
     match /referralCodes/{documentId} {
       allow read, write: if false;
     }

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e9e2cf" />
+  <title>CareMate ペット育成</title>
+  <link rel="stylesheet" href="pet.css?v=20261016-1" />
+</head>
+<body>
+  <main class="pet-app">
+    <header class="pet-header">
+      <button id="petHomeButton" class="pet-home-button" type="button">← ホーム</button>
+      <div><p class="pet-kicker">CareMate little companion</p><h1>ペットと暮らす</h1></div>
+      <span class="pet-header-mark" aria-hidden="true">✿</span>
+    </header>
+    <p id="petStatus" class="pet-status" role="status">お迎えの準備をしています…</p>
+
+    <section id="petLocked" class="pet-card pet-locked" hidden>
+      <div class="pet-lock-icon" aria-hidden="true">🐾</div>
+      <h2>もう少しでお迎えできます</h2>
+      <p>友達招待6人達成の特典で、ペットとの暮らしが解放されます。</p>
+      <a href="referral.html" class="pet-primary-link">友達招待を見る</a>
+    </section>
+
+    <section id="petChoose" class="pet-card pet-choose" hidden>
+      <p class="pet-section-eyebrow">YOUR LITTLE FRIEND</p>
+      <h2>一緒に暮らす子を選ぼう</h2>
+      <p class="pet-caption">選んだ子と名前は、あとから変更できません。</p>
+      <div id="petSpeciesGrid" class="pet-species-grid"></div>
+      <form id="petChooseForm" class="pet-name-form">
+        <label for="petNameInput">名前をつけてね</label>
+        <div class="pet-name-row">
+          <input id="petNameInput" maxlength="12" autocomplete="off" value="リト" required />
+          <button id="petChooseSubmit" class="pet-primary-button" type="submit" disabled>この子に決める</button>
+        </div>
+        <small>確定すると種類・名前は変更できません。</small>
+      </form>
+    </section>
+
+    <section id="petHome" class="pet-home" hidden>
+      <div class="pet-intro-row">
+        <div><p class="pet-section-eyebrow">YOUR COMPANION</p><h2><span id="petName"></span><small>と暮らす</small></h2></div>
+        <span id="petSpeciesLabel" class="pet-species-label"></span>
+      </div>
+      <div id="petStage" class="pet-stage">
+        <div class="pet-stage-sun"></div>
+        <div class="pet-stage-floor"></div>
+        <img id="petImage" class="pet-image" src="assets/pets/lizard/rito_idle.png" alt="" />
+        <div id="petReaction" class="pet-reaction" aria-live="polite"></div>
+        <div id="petMood" class="pet-mood">のんびりしているよ</div>
+      </div>
+      <div class="pet-stats">
+        <div class="pet-stat"><span aria-hidden="true">♡</span><small>なかよし度</small><b id="petFriendship">0</b></div>
+        <div class="pet-stat"><span aria-hidden="true">🔥</span><small>連続お世話</small><b><span id="petStreak">0</span><small>日</small></b></div>
+        <div class="pet-stat"><span aria-hidden="true">✿</span><small>今日のお世話</small><b><span id="petDailyCount">0</span><small>/4</small></b></div>
+      </div>
+      <section class="pet-care-card">
+        <div class="pet-care-heading"><div><p class="pet-section-eyebrow">TODAY</p><h3>今日のお世話</h3></div><span id="petTodayLabel"></span></div>
+        <div class="pet-care-actions">
+          <button type="button" data-care="feed"><span>🍓</span><b>ごはん</b><small>おなかいっぱい</small></button>
+          <button type="button" data-care="play"><span>🍃</span><b>遊ぶ</b><small>いっしょに遊ぼう</small></button>
+          <button type="button" data-care="pet"><span>♡</span><b>なでる</b><small>やさしくなでなで</small></button>
+          <button type="button" data-care="sleep"><span>☾</span><b>おやすみ</b><small>ゆっくり休もう</small></button>
+        </div>
+        <p id="petCareHint" class="pet-care-hint">それぞれ1日1回お世話できます。</p>
+      </section>
+      <p class="pet-fixed-note">この子の種類と名前は変更できません。大切に育ててあげてね。</p>
+    </section>
+  </main>
+  <script type="module" src="pet.js?v=20261016-1"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "id": "lizard",
+  "name": "トカゲ",
+  "characterName": "リト",
+  "artStyleReference": "user-provided Rito concept sheet",
+  "states": {
+    "idle": "rito_idle.png",
+    "feed": "rito_feed.png",
+    "play": "rito_play.png",
+    "pet": "rito_pet.png",
+    "sleep": "rito_sleep.png"
+  },
+  "care": ["feed", "play", "pet", "sleep"]
+}
