@@ -201,7 +201,11 @@ function renderPet(profile, action = "") {
     button.disabled = completed || state.busy;
     button.classList.toggle("is-done", completed);
     const small = button.querySelector("small");
-    if (completed) small.textContent = "今日はお世話済み";
+    // The room controls intentionally use a compact icon + label layout and may
+    // not contain a <small>. Keep rendering successful for either layout.
+    if (small) small.textContent = completed ? "今日はお世話済み" : "";
+    const label = button.querySelector("b")?.textContent?.trim() || "お世話";
+    button.setAttribute("aria-label", completed ? `${label}。今日はお世話済み` : label);
   });
   const currentAction = action || (profile.lastAction === "sleep" ? "sleep" : "");
   const imageSet = assets[profile.species];
