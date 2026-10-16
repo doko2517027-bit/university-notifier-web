@@ -2,16 +2,20 @@ import { auth, functions, studentNumber } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const $ = (id) => document.getElementById(id);
-const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, walkTimer: 0, petGesture: false, lastBottom: 11 };
+const state = { data: null, selectedSpecies: "", busy: false, selectedFood: null, roamTimer: 0, walkTimer: 0, petGesture: false, lastLeft: 50, lastBottom: 11 };
 const lizardAssets = {
   idle: "assets/pets/lizard/rito_idle.png",
   feed: "assets/pets/lizard/rito_feed.png",
   play: "assets/pets/lizard/rito_play.png",
   pet: "assets/pets/lizard/rito_pet.png",
   sleep: "assets/pets/lizard/rito_sleep.png",
-  walkToward: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-toward-0${index + 1}.png`),
-  walkAway: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-away-0${index + 1}.png`),
+  walkToward: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-toward-0${index + 1}.png?v=20261017-2`),
+  walkAway: Array.from({ length: 4 }, (_, index) => `assets/pets/lizard/animations/walk-away-0${index + 1}.png?v=20261017-2`),
 };
+for (const path of [...lizardAssets.walkToward, ...lizardAssets.walkAway]) {
+  const preload = new Image();
+  preload.src = path;
+}
 const careCopy = {
   feed: { text: "おいしいごはんを食べて、リトはごきげん！", mark: "♡" },
   play: { text: "葉っぱのおもちゃでたくさん遊んだよ！", mark: "♪" },
@@ -220,7 +224,7 @@ function renderPet(profile, action = "") {
   const image = $("petImage");
   image.src = lizardAssets[currentAction] || lizardAssets.idle;
   const stage = $("petStage");
-  stage.classList.remove("is-feeding", "is-playing", "is-petting", "is-sleeping", "has-reaction");
+  stage.classList.remove("is-feeding", "is-playing", "is-petting", "is-sleeping", "is-walking", "is-walking-away", "is-walking-toward", "has-reaction");
   stage.classList.add("is-in-room");
   const motionClass = { feed: "is-feeding", play: "is-playing", pet: "is-petting", sleep: "is-sleeping" }[currentAction];
   if (motionClass) stage.classList.add(motionClass);
@@ -255,21 +259,11 @@ function startRoomRoam() {
     const left = 28 + Math.random() * 44;
     const bottom = Math.random() < 0.52 ? 28 + Math.random() * 8 : 11 + Math.random() * 7;
     const walkingAway = bottom > previousBottom + 3;
-    const walkingToward = bottom < previousBottom - 3;
-    const depth = Math.max(0.53, Math.min(0.92, 0.94 - ((bottom - 11) / 25) * 0.36));
-    state.lastBottom = bottom;
-    const creatureEl = $("petCreature");
-    creatureEl.style.left = `${left}%`;
-    creatureEl.style.bottom = `${bottom}%`;
-    creatureEl.style.setProperty("--pet-depth", depth.toFixed(2));
-    $("petRoomDepthShadow").style.left = `${left}%`;
-    $("petRoomDepthShadow").style.bottom = `${bottom - 1}%`;
+    const walkingToward = !walkingAway;
     stage.classList.toggle("is-walking-away", walkingAway);
     stage.classList.toggle("is-walking-toward", walkingToward);
     stage.classList.add("is-walking");
-    playWalkAnimation(walkingAway ? lizardAssets.walkAway : lizardAssets.walkToward);
-    window.setTimeout(() => { stopWalkAnimation(); stage.classList.remove("is-walking", "is-walking-away", "is-walking-toward"); }, 2700);
-    state.roamTimer = window.setTimeout(startRoomRoam, 2700);
+    playWalkAnimation(walkingAway ? lizardAssets.walkAway : lizardAssets.walkToward, { left, bottom });
   }, 4200 + Math.random() * 3000);
 }
 
@@ -353,14 +347,43 @@ function setTimeOfDay() {
   stage.classList.remove("time-morning", "time-day", "time-evening", "time-night");
   stage.classList.add(hour >= 22 || hour < 6 ? "time-night" : hour < 10 ? "time-morning" : "time-day");
 }
-function playWalkAnimation(frames) {
+function playWalkAnimation(frames, target) {
   stopWalkAnimation();
   const image = $("petImage");
-  let frame = 0;
-  image.src = frames[frame];
+  const stage = $("petStage");
+  const creatureEl = $("petCreature");
+  const shadow = $("petRoomDepthShadow");
+  const fromLeft = state.lastLeft;
+  const fromBottom = state.lastBottom;
+  const stepCount = 16;
+  let step = 0;
+  image.src = frames[0];
   state.walkTimer = window.setInterval(() => {
-    frame = (frame + 1) % frames.length;
-    image.src = frames[frame];
+    if (state.busy || isSleeping()) {
+      stopWalkAnimation();
+      stage.classList.remove("is-walking", "is-walking-away", "is-walking-toward");
+      image.src = lizardAssets.idle;
+      return;
+    }
+    step += 1;
+    const progress = step / stepCount;
+    const left = fromLeft + (target.left - fromLeft) * progress;
+    const bottom = fromBottom + (target.bottom - fromBottom) * progress;
+    const depth = Math.max(0.53, Math.min(0.92, 0.94 - ((bottom - 11) / 25) * 0.36));
+    image.src = frames[step % frames.length];
+    creatureEl.style.left = `${left}%`;
+    creatureEl.style.bottom = `${bottom}%`;
+    creatureEl.style.setProperty("--pet-depth", depth.toFixed(2));
+    shadow.style.left = `${left}%`;
+    shadow.style.bottom = `${bottom - 1}%`;
+    state.lastLeft = left;
+    state.lastBottom = bottom;
+    if (step >= stepCount) {
+      stopWalkAnimation();
+      stage.classList.remove("is-walking", "is-walking-away", "is-walking-toward");
+      image.src = lizardAssets.idle;
+      startRoomRoam();
+    }
   }, 140);
 }
 function stopWalkAnimation() {
