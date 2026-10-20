@@ -3,60 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="stylesheet" href="caremate_shell.css?v=20261020-1">
+  <meta name="theme-color" content="#2d65bd">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-3">
   <title>管理 | CareMate</title>
 </head>
 <body class="caremate-renewed">
   <main class="cm-main">
     <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">管理</h1></div></header>
-    <nav class="cm-shortcuts" aria-label="管理メニュー">
-      <a href="exam_admin.html"><span aria-hidden="true">📝</span>問題管理</a>
-      <a href="#newAccount"><span aria-hidden="true">＋</span>学生登録</a>
-      <a href="#accountList"><span aria-hidden="true">👥</span>利用アカウント</a>
-      <a href="#entrance"><span aria-hidden="true">🔐</span>入口認証</a>
-    </nav>
-    <section class="cm-panel" id="questions">
-      <h2>テスト問題</h2>
-      <p class="cm-subtitle">科目・単元・問題・公開設定とJSON一括登録を管理します。</p>
-      <div class="cm-actions">
-        <a class="cm-button cm-button-primary" href="exam_admin.html"><span aria-hidden="true">📝</span><span>問題と科目の管理</span></a>
-        <a class="cm-button" href="reports_admin.html"><span aria-hidden="true">📣</span><span>問題の報告を確認</span></a>
-      </div>
-    </section>
-    <section class="cm-panel" id="entrance">
-      <h2>入口認証</h2>
-      <p class="cm-subtitle">30分間・1回限りの入口文言を発行できます。</p>
-      <a class="cm-button" href="entrance_admin.html"><span aria-hidden="true">🔐</span><span>ワンタイム文言を発行</span></a>
-    </section>
-    <section class="cm-panel" id="newAccount">
-      <h2>学生アカウントを登録</h2>
-      <p class="cm-subtitle">登録後すぐにログインできます。初期パスワードは本人へ安全な方法で伝えてください。</p>
-      <form id="newAccountForm" class="cm-form-grid" autocomplete="off">
-        <label class="cm-field">学籍番号<input id="newStudentNumber" type="text" inputmode="numeric" pattern="[0-9]{7}" minlength="7" maxlength="7" autocomplete="off" required></label>
-        <label class="cm-field">氏名<input id="newStudentName" type="text" maxlength="80" autocomplete="name" required></label>
-        <label class="cm-field">初期パスワード<input id="newStudentPassword" type="password" minlength="6" maxlength="128" autocomplete="new-password" required></label>
-        <button class="cm-button cm-button-primary" type="submit">学生を登録</button>
-      </form>
-      <p id="newAccountStatus" class="cm-status" role="status" aria-live="polite"></p>
-    </section>
-    <section class="cm-panel" id="accountList">
-      <h2>利用アカウント</h2>
-      <p class="cm-subtitle">現在利用を許可したアカウントです。</p>
-      <div id="accessList" class="cm-list" aria-live="polite">読み込み中…</div>
+    <p class="cm-subtitle">学生アカウントとテスト対策を管理します。</p>
+    <section class="cm-panel">
+      <h2>ユーザー管理</h2>
+      <p class="cm-subtitle">manaba・アプリパスワードの再設定、利用解除、新規登録を行います。</p>
+      <a class="cm-button cm-button-primary" href="admin_users.html"><span aria-hidden="true">👥</span><span>ユーザー一覧を開く</span></a>
+      <details class="cm-details">
+        <summary>新しい学生を登録</summary>
+        <form id="newAccountForm" class="cm-form-grid" autocomplete="off">
+          <label class="cm-field">学籍番号<input id="newStudentNumber" type="text" inputmode="numeric" pattern="[0-9]{7}" minlength="7" maxlength="7" autocomplete="off" required></label>
+          <label class="cm-field">氏名<input id="newStudentName" type="text" maxlength="80" autocomplete="off" required></label>
+          <label class="cm-field">初期アプリパスワード<input id="newStudentPassword" type="password" minlength="6" maxlength="128" autocomplete="new-password" required></label>
+          <button class="cm-button cm-button-primary" type="submit">学生を登録</button>
+        </form>
+        <p id="newAccountStatus" class="cm-status" role="status" aria-live="polite"></p>
+      </details>
     </section>
     <section class="cm-panel">
-      <h2>管理者の設定</h2>
-      <div class="cm-actions">
-        <a class="cm-button" href="settings.html"><span aria-hidden="true">⚙️</span><span>パスワード・課題通知</span></a>
-        <button id="signOutButton" class="cm-button" type="button">ログアウト</button>
-      </div>
+      <h2>ワンタイムパスワード</h2>
+      <p class="cm-subtitle">管理者が決めた文言を発行します。発行後10分で無効になり、1回だけ使えます。</p>
+      <a class="cm-button" href="entrance_admin.html"><span aria-hidden="true">🔐</span><span>文言を発行する</span></a>
     </section>
+    <section class="cm-panel">
+      <h2>テスト管理</h2>
+      <p class="cm-subtitle">従来のテスト管理画面を開きます。</p>
+      <a class="cm-button" href="exam_admin.html"><span aria-hidden="true">📖</span><span>テスト管理を開く</span></a>
+    </section>
+    <section class="cm-panel"><button id="signOutButton" class="cm-button" type="button">管理者ログアウト</button></section>
   </main>
-  <nav class="cm-nav" aria-label="メインメニュー">
-    <a href="app.html"><span aria-hidden="true">📝</span><span>テスト</span></a>
-    <a href="admin.html" aria-current="page"><span aria-hidden="true">⚙️</span><span>管理</span></a>
-    <a href="assignments.html"><span aria-hidden="true">📚</span><span>課題</span></a>
-  </nav>
+  <nav class="cm-nav" aria-label="メインメニュー"></nav>
   <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./admin_portal.js"></script>
 </body>
 </html>

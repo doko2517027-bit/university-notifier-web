@@ -31,7 +31,16 @@ function dateKey(item) {
   if (item.deadlineAt?.toDate) {
     return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(item.deadlineAt.toDate());
   }
-  return String(item.deadlineText || item.deadline || "").match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
+  const match = String(item.deadlineText || item.deadline || "").match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
+  return match ? `${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}` : "";
+}
+
+function deadlineTime(item) {
+  if (item.deadlineAt?.toDate) return item.deadlineAt.toDate().getTime();
+  const key = dateKey(item);
+  if (!key) return Number.MAX_SAFE_INTEGER;
+  const time = String(item.deadlineText || item.deadline || "").match(/(\d{1,2}):(\d{2})/);
+  return new Date(`${key}T${time ? `${time[1].padStart(2, "0")}:${time[2]}` : "23:59"}:00+09:00`).getTime();
 }
 
 async function completionId(item) {
@@ -123,7 +132,12 @@ try {
   items = [...unique.values()];
   list.replaceChildren();
   if (!current.length) list.append(text("p", "現在、未提出の課題はありません。", "cm-subtitle"));
-  else for (const item of current) list.append(card({ ...item, completionId: await completionId(item) }));
+  else {
+    const sortedCurrent = [...current].sort((a, b) => {
+      return deadlineTime(a) - deadlineTime(b);
+    });
+    for (const item of sortedCurrent) list.append(card({ ...item, completionId: await completionId(item) }));
+  }
   renderCalendar();
   renderDay();
 } catch (error) {

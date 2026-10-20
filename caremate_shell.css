@@ -36,7 +36,7 @@ body.caremate-renewed {
 .cm-button-primary { border-color: #2e68c0; background: #2e68c0; color: #fff; box-shadow: 0 4px 12px #2e68c033; }
 .cm-button-primary:hover { border-color: #2057a9; background: #2057a9; color: #fff; }
 .cm-button:disabled { opacity: .55; cursor: wait; }
-.cm-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 9px max(14px, env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); border-top: 1px solid #e1e8f2; background: #ffffffef; box-shadow: 0 -7px 25px #2036560d; backdrop-filter: blur(14px); }
+.cm-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; padding: 9px max(14px, env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); border-top: 1px solid #e1e8f2; background: #ffffffef; box-shadow: 0 -7px 25px #2036560d; backdrop-filter: blur(14px); }
 .cm-nav a { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 12px; color: #586a85; text-decoration: none; font-size: 14px; font-weight: 750; }
 .cm-nav a > span:first-child { font-size: 19px; line-height: 1.1; }
 .cm-nav a[aria-current="page"] { color: #205bb2; background: #eaf2ff; }
@@ -69,6 +69,25 @@ body.caremate-renewed {
 .cm-calendar-day.has-deadline { background: #edf4ff; border-color: #bfd3f5; }
 .cm-calendar-day.is-selected { outline: 3px solid #2e68c0; outline-offset: -3px; }
 .cm-calendar-date-title { margin: 20px 0 10px; font-size: 18px; }
+.cm-home-clock { padding-top: 19px; padding-bottom: 21px; }
+.cm-home-clock > .cm-subtitle { margin: 0 0 5px; }
+.cm-current-datetime { display: block; color: #203656; font-size: clamp(22px, 5vw, 34px); font-weight: 850; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.cm-details { margin-top: 18px; border-top: 1px solid #e1e8f2; padding-top: 14px; }
+.cm-details > summary { cursor: pointer; color: #2b5eaa; font-weight: 800; }
+.cm-button-danger { border-color: #efc8cb; background: #fff5f5; color: #9a2833; }
+.cm-button-danger:hover { border-color: #e09ba2; background: #ffeded; }
+.cm-danger-panel { border-color: #f0d2d4; }
+.cm-calendar-empty { min-height: 44px; }
+.cm-button-compact { width: auto; min-height: 44px; padding: 8px 14px; }
+.cm-user-action { margin: 13px 0; padding: 14px; border: 1px solid #e3eaf4; border-radius: 12px; background: #fff; }
+.cm-user-action .cm-field { margin-top: 5px; }
+.cm-admin-user { align-content: start; }
+@media (max-width: 600px) {
+  .cm-nav { gap: 3px; }
+  .cm-nav a { font-size: 12px; }
+  .cm-nav a > span:first-child { font-size: 18px; }
+  .cm-button-compact { width: auto; }
+}
 .cm-toast { position: fixed; z-index: 1000; left: 50%; bottom: 118px; transform: translateX(-50%); max-width: min(90vw, 500px); padding: 13px 18px; border-radius: 12px; background: #1f3455; color: #fff; box-shadow: 0 8px 28px #17243c44; }
 @media (max-width: 600px) {
   body.caremate-renewed { padding: 18px 14px calc(105px + env(safe-area-inset-bottom)); }

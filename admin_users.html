@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-3">
+  <title>ユーザー一覧 | CareMate</title>
+</head>
+<body class="caremate-renewed">
+  <main class="cm-main">
+    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">ユーザー一覧</h1></div></header>
+    <p class="cm-subtitle">パスワードの再設定と利用解除を行えます。パスワードは表示・取得されません。</p>
+    <section class="cm-panel">
+      <div class="cm-calendar-header"><h2>登録ユーザー</h2><button id="refreshUsers" class="cm-button cm-button-compact" type="button">更新</button></div>
+      <div id="adminUserList" class="cm-list" aria-live="polite">読み込み中…</div>
+      <p id="adminUsersStatus" class="cm-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <nav class="cm-nav" aria-label="メインメニュー"></nav>
+  <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./admin_users.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /* Renewed CareMate service worker: no protected HTML or legacy UI is cached. */
-const CACHE = "caremate-renewed-v1";
+const CACHE = "caremate-renewed-v2";
 const CORE = ["./", "index.html", "offline.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {

@@ -227,6 +227,126 @@ exports.createCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
   return { created: true, studentNumber, role: "member" };
 });
 
+// 管理者によるパスワード再設定。初期・再設定パスワードはFirestoreへ
+// ハッシュでのみ保存し、学生には現在のパスワードを求めない。
+exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
+  await requireAdmin(request);
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const password = request.data?.password;
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || !isValidNewPassword(password)) {
+    throw new HttpsError("invalid-argument", "学籍番号または新しいパスワードを確認してください。");
+  }
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
+    if (!access.exists || access.data()?.active !== true || !user.exists) {
+      throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    }
+    transaction.update(userRef, {
+      appPasswordHash: hashPassword(password),
+      passwordChangedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return { changed: true };
+});
+
+exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
+  await requireAdmin(request);
+  const snapshot = await db.collection("access").get();
+  const accounts = await Promise.all(snapshot.docs.map(async (accessDoc) => {
+    const number = accessDoc.id.replace(/^caremate-/, "");
+    if (!STUDENT_NUMBER_PATTERN.test(number)) return null;
+    const user = await db.collection("users").doc(number).get();
+    const access = accessDoc.data() || {};
+    return {
+      studentNumber: number,
+      name: String(user.data()?.name || "（氏名未登録）"),
+      role: access.role === "admin" ? "admin" : "member",
+      active: access.active === true,
+      hasManabaPassword: typeof user.data()?.manabaPasswordEncrypted === "string" && user.data().manabaPasswordEncrypted.length > 0,
+    };
+  }));
+  return { accounts: accounts.filter(Boolean).sort((a, b) => a.studentNumber.localeCompare(b.studentNumber)) };
+});
+
+// 管理者はmanaba連携情報を保存・削除できる。値はクライアントで既存方式
+// (AES-GCM)により暗号化して渡し、Render側のデータ形式を維持する。
+exports.adminSetStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => {
+  await requireAdmin(request);
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const encrypted = request.data?.encryptedPassword;
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || typeof encrypted !== "string" || encrypted.length < 20 || encrypted.length > 4096) {
+    throw new HttpsError("invalid-argument", "学籍番号またはmanabaパスワードを確認してください。");
+  }
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
+    if (!access.exists || access.data()?.active !== true || !user.exists) {
+      throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    }
+    transaction.update(userRef, {
+      manabaPasswordEncrypted: encrypted,
+      manabaSetupSkipped: false,
+      manabaResetRequired: false,
+      manabaVerified: null,
+      manabaVerifiedAt: null,
+      manabaVerificationError: null,
+    });
+  });
+  return { changed: true };
+});
+
+exports.adminRemoveStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => {
+  await requireAdmin(request);
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
+    if (!access.exists || access.data()?.active !== true || !user.exists) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    transaction.update(userRef, {
+      manabaPasswordEncrypted: FieldValue.delete(),
+      manabaSetupSkipped: true,
+      manabaResetRequired: false,
+      manabaVerified: null,
+      manabaVerifiedAt: null,
+      manabaVerificationError: null,
+    });
+  });
+  return { removed: true };
+});
+
+// 登録解除は復元可能なアクセス停止として扱い、履修・課題・学習履歴を
+// 即時消去しない。既存番号の再登録も重複チェックにより防止する。
+exports.adminDeactivateStudent = onCall(CALL_OPTIONS, async (request) => {
+  const { studentNumber: adminNumber } = await requireAdmin(request);
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+  if (studentNumber === adminNumber) throw new HttpsError("failed-precondition", "管理者本人はこの操作で解除できません。");
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  await db.runTransaction(async (transaction) => {
+    const access = await transaction.get(accessRef);
+    if (!access.exists || access.data()?.active !== true) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    transaction.update(accessRef, { active: false, revokedAt: FieldValue.serverTimestamp(), revokedBy: adminNumber });
+  });
+  return { deactivated: true };
+});
+
+exports.deactivateMyCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
+  const studentNumber = authenticatedStudentNumber(request);
+  await requireApprovedStudent(studentNumber);
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  await db.runTransaction(async (transaction) => {
+    const access = await transaction.get(accessRef);
+    if (!access.exists || access.data()?.active !== true) throw new HttpsError("failed-precondition", "登録解除済みです。");
+    transaction.update(accessRef, { active: false, revokedAt: FieldValue.serverTimestamp(), selfRevoked: true });
+  });
+  return { deactivated: true };
+});
+
 
 // ========================================
 // Firebase認証済みユーザーを確認

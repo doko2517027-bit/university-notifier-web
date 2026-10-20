@@ -80,7 +80,7 @@ test("CSVは自主学習とテスト対策を区別して出力する", () => {
 
 test("ホーム導線、共通タイマー、既存問題画面、本人限定ルールが接続されている", async () => {
   const [home, common, tracking, quiz, fill, daily, rules, page, styles] = await Promise.all([
-    readFile(new URL("./app.html", import.meta.url), "utf8"),
+    readFile(new URL("./home.html", import.meta.url), "utf8"),
     readFile(new URL("./common.js", import.meta.url), "utf8"),
     readFile(new URL("./study_tracking.js", import.meta.url), "utf8"),
     readFile(new URL("./quiz.js", import.meta.url), "utf8"),
@@ -90,7 +90,9 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
     readFile(new URL("./study_analytics.html", import.meta.url), "utf8"),
     readFile(new URL("./style.css", import.meta.url), "utf8"),
   ]);
-  assert.match(home, /href="study_analytics\.html"/);
+  assert.match(home, /id="currentDateTime"/);
+  assert.match(home, /id="calendarGrid"/);
+  assert.match(common, /href: "exam\.html", icon: "📖", label: "勉強"/);
   assert.match(common, /initializeGlobalStudyTracking/);
   assert.match(tracking, /\["running", "paused"\]\.includes\(state\.status\)/);
   assert.match(tracking, /state\?\.source === "exam" && state\.route !== currentPage/);

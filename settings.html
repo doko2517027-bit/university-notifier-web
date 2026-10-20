@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2d65bd">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-3">
   <title>設定 | CareMate</title>
 </head>
 <body class="caremate-renewed">
@@ -12,39 +13,45 @@
     <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">設定</h1></div></header>
     <section class="cm-panel">
       <h2>アカウント</h2>
-      <p id="accountSummary" class="cm-subtitle">読み込み中…</p>
+      <label class="cm-field">学籍番号<input id="studentNumberDisplay" type="text" readonly aria-readonly="true"></label>
+      <p id="accountSummary" class="cm-status" aria-live="polite">読み込み中…</p>
     </section>
     <section class="cm-panel">
-      <h2>アプリ用パスワード</h2>
+      <h2>manabaパスワード</h2>
+      <p id="manabaStatus" class="cm-subtitle">登録状況を確認中…</p>
+      <form id="manabaForm">
+        <label class="cm-field"><span id="manabaLabel">manabaパスワードを登録</span><input id="manabaPassword" type="password" autocomplete="new-password" required></label>
+        <button id="manabaSaveButton" class="cm-button cm-button-primary" type="submit">保存</button>
+      </form>
+      <button id="removeManabaButton" class="cm-button cm-button-danger" type="button" hidden>manabaパスワードを削除</button>
+      <p id="manabaSaveStatus" class="cm-status" role="status" aria-live="polite"></p>
+    </section>
+    <section class="cm-panel">
+      <h2>アプリパスワード</h2>
       <form id="passwordForm">
         <label class="cm-field">現在のパスワード<input id="currentPassword" type="password" autocomplete="current-password" required></label>
-        <label class="cm-field">新しいパスワード<input id="newPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
-        <label class="cm-field">新しいパスワード（確認）<input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
-        <button class="cm-button cm-button-primary" type="submit">パスワードを変更</button>
+        <label class="cm-field">変更後のパスワード<input id="newPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+        <label class="cm-field">変更後のパスワード（再確認）<input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+        <button class="cm-button cm-button-primary" type="submit">アプリパスワードを変更</button>
       </form>
-      <p id="passwordStatus" class="cm-status" role="status"></p>
+      <p id="passwordStatus" class="cm-status" role="status" aria-live="polite"></p>
     </section>
     <section class="cm-panel">
-      <h2>manaba連携</h2>
-      <p id="manabaStatus" class="cm-subtitle">確認中…</p>
-      <form id="manabaForm">
-        <label class="cm-field">manabaの新しいパスワード<input id="manabaPassword" type="password" autocomplete="off" required></label>
-        <button class="cm-button" type="submit">保存して次回の取得に反映</button>
-      </form>
-      <p id="manabaSaveStatus" class="cm-status" role="status"></p>
-    </section>
-    <section class="cm-panel">
-      <h2>課題の通知</h2>
-      <label class="cm-toggle"><input id="notifyAssignment" type="checkbox">新しい課題を通知</label>
-      <label class="cm-toggle"><input id="notifyReminder" type="checkbox">締切リマインダーを通知</label>
-      <button id="enablePushButton" class="cm-button" type="button">この端末で通知を有効にする</button>
+      <h2>通知</h2>
+      <label class="cm-toggle"><input id="notifyAssignment" type="checkbox">新しい課題の通知</label>
+      <label class="cm-toggle"><input id="notifyReminder" type="checkbox">締切リマインダー</label>
+      <button id="enablePushButton" class="cm-button" type="button">この端末の通知を有効にする</button>
       <p id="pushStatus" class="cm-status" role="status"></p>
+    </section>
+    <section class="cm-panel cm-danger-panel">
+      <h2>登録解除</h2>
+      <p class="cm-subtitle">解除すると、このアカウントではログインできなくなります。登録解除後は自分で再登録できません。学習・課題の記録は復元に備えて保持されます。</p>
+      <button id="deactivateButton" class="cm-button cm-button-danger" type="button">自分の登録を解除</button>
+      <p id="deactivateStatus" class="cm-status" role="status"></p>
     </section>
     <section class="cm-panel"><button id="logoutButton" class="cm-button" type="button">ログアウト</button></section>
   </main>
-  <nav class="cm-nav" aria-label="メインメニュー">
-    <a href="app.html"><span aria-hidden="true">📝</span><span>テスト</span></a><a href="settings.html" data-role-tab="member" aria-current="page" hidden><span aria-hidden="true">👤</span><span>設定</span></a><a href="admin.html" data-role-tab="admin" hidden><span aria-hidden="true">⚙️</span><span>管理</span></a><a href="assignments.html"><span aria-hidden="true">📚</span><span>課題</span></a>
-  </nav>
-  <script type="module" src="page_bootstrap.js" data-care-page data-entry="./settings.js"></script>
+  <nav class="cm-nav" aria-label="メインメニュー"></nav>
+  <script type="module" src="page_bootstrap.js" data-care-page data-role="member" data-entry="./settings.js"></script>
 </body>
 </html>

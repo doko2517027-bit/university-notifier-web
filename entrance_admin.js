@@ -12,7 +12,7 @@ document.getElementById("issueForm").addEventListener("submit", async (event) =>
   status.textContent = "発行中…";
   try {
     await httpsCallable(functions, "issueEntrancePhrase")({ phrase: input.value.trim() });
-    status.textContent = "発行しました。30分以内に1回だけ使用できます。";
+    status.textContent = "発行しました。10分以内に1回だけ使用できます。";
     input.value = "";
   } catch (error) {
     console.error("入口文言発行エラー:", error);

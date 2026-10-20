@@ -223,7 +223,7 @@ async function handleLogin() {
 
         appPasswordInput.value = "";
 
-        location.replace("app.html");
+        location.replace("exam.html");
 
 
     } catch (error) {

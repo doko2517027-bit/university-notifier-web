@@ -3,7 +3,7 @@
  *
  * ・管理者だけが認証文言を発行できる
  * ・文言は1回使用すると無効
- * ・有効期限は30分
+ * ・有効期限は10分
  * ・新しい文言を発行すると古い文言は無効
  * ・認証文言はハッシュ化して保存
  */
@@ -33,7 +33,7 @@ const db = admin.firestore();
 
 const REGION = "asia-northeast1";
 
-const EXPIRES_MINUTES = 30;
+const EXPIRES_MINUTES = 10;
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 8;
 

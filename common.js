@@ -12,17 +12,27 @@ export function normalizeNavigation() {
   if (!role) return;
   const current = location.pathname.split("/").pop();
   const entries = [
-    { href: "app.html", label: "テスト", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "study_analytics.html", "must_remember.html"] },
-    { href: role === "admin" ? "admin.html" : "settings.html", label: role === "admin" ? "管理" : "設定", pages: role === "admin" ? ["admin.html", "exam_admin.html", "exam_questions_admin.html", "exam_materials_admin.html", "reports_admin.html", "question_report_edit.html", "entrance_admin.html", "settings.html"] : ["settings.html"] },
-    { href: "assignments.html", label: "課題", pages: ["assignments.html"] },
+    { href: "exam.html", icon: "📖", label: "勉強", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "study_analytics.html", "must_remember.html"] },
+    { href: "assignments.html", icon: "📚", label: "課題", pages: ["assignments.html"] },
+    { href: "home.html", icon: "🏠", label: "ホーム", pages: ["home.html"] },
+    { href: role === "admin" ? "admin.html" : "settings.html", icon: role === "admin" ? "👑" : "⚙️", label: role === "admin" ? "管理" : "設定", pages: role === "admin" ? ["admin.html", "admin_users.html", "exam_admin.html", "exam_questions_admin.html", "exam_materials_admin.html", "reports_admin.html", "question_report_edit.html", "entrance_admin.html", "settings.html"] : ["settings.html"] },
   ];
-  for (const nav of document.querySelectorAll(".bottom-nav")) {
+  for (const nav of document.querySelectorAll(".bottom-nav, .cm-nav")) {
     nav.replaceChildren();
+    nav.setAttribute("aria-label", "メインメニュー");
     for (const entry of entries) {
       const link = document.createElement("a");
       link.href = entry.href;
-      link.textContent = entry.label;
-      if (entry.pages.includes(current)) link.classList.add("active");
+      const icon = document.createElement("span");
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = entry.icon;
+      const label = document.createElement("span");
+      label.textContent = entry.label;
+      link.append(icon, label);
+      if (entry.pages.includes(current)) {
+        link.classList.add("active");
+        link.setAttribute("aria-current", "page");
+      }
       nav.append(link);
     }
   }
