@@ -5,14 +5,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <link rel="stylesheet" href="caremate_shell.css?v=20261020-6">
+  <link rel="stylesheet" href="admin_management.css?v=20261020-1">
   <title>ユーザー一覧 | CareMate</title>
 </head>
-<body class="caremate-renewed">
+<body class="caremate-renewed cm-admin-page">
   <main class="cm-main">
-    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">ユーザー一覧</h1></div></header>
-    <p class="cm-subtitle">パスワードの再設定と利用解除を行えます。パスワードは表示・取得されません。</p>
+    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">ユーザーと権限</h1><p class="cm-subtitle">ユーザーを探して管理します。パスワードは表示・取得されません。</p></div></header>
     <section class="cm-panel">
-      <div class="cm-calendar-header"><h2>登録ユーザー</h2><button id="refreshUsers" class="cm-button cm-button-compact" type="button">更新</button></div>
+      <div class="cm-calendar-header"><h2>登録ユーザー <span id="userCount" class="cm-count"></span></h2><button id="refreshUsers" class="cm-button cm-button-compact" type="button">更新</button></div>
+      <div class="cm-admin-filters"><label class="cm-field">名前・学籍番号で検索<input id="userSearch" type="search" placeholder="例：2510044"></label><label class="cm-field">表示<select id="userRoleFilter"><option value="active">利用中</option><option value="all">すべて</option><option value="admin">管理者</option><option value="member">学生</option><option value="inactive">登録解除済み</option></select></label></div>
+      <p id="rolePolicyHint" class="cm-admin-hint"></p>
       <div id="adminUserList" class="cm-list" aria-live="polite">読み込み中…</div>
       <p id="adminUsersStatus" class="cm-status" role="status" aria-live="polite"></p>
     </section>

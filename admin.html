@@ -6,18 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2d65bd">
   <link rel="stylesheet" href="caremate_shell.css?v=20261020-6">
+  <link rel="stylesheet" href="admin_management.css?v=20261020-1">
   <title>管理 | CareMate</title>
 </head>
-<body class="caremate-renewed">
+<body class="caremate-renewed cm-admin-page">
   <main class="cm-main">
-    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">管理</h1></div></header>
-    <p class="cm-subtitle">学生アカウントとテスト対策を管理します。</p>
-    <section class="cm-panel">
-      <h2>ユーザー管理</h2>
-      <p class="cm-subtitle">manaba・アプリパスワードの再設定、利用解除、新規登録を行います。</p>
-      <a class="cm-button cm-button-primary" href="admin_users.html"><span aria-hidden="true">👥</span><span>ユーザー一覧を開く</span></a>
+    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">管理</h1><p class="cm-subtitle">目的から選んで操作できます。管理者権限の付与・解除は2510044だけが行えます。</p></div></header>
+    <div class="cm-admin-hub" aria-label="管理メニュー">
+      <a class="cm-admin-tile" href="admin_users.html"><span class="cm-admin-tile-icon" aria-hidden="true">👥</span><span><strong>ユーザーと権限</strong><small>一覧・パスワード・管理者設定</small></span><span aria-hidden="true">›</span></a>
+      <a class="cm-admin-tile" href="exam_admin.html"><span class="cm-admin-tile-icon" aria-hidden="true">📖</span><span><strong>テスト管理</strong><small>問題の登録・公開・編集</small></span><span aria-hidden="true">›</span></a>
+      <a class="cm-admin-tile" href="entrance_admin.html"><span class="cm-admin-tile-icon" aria-hidden="true">🔐</span><span><strong>入口の文言</strong><small>10分間有効な文言を発行</small></span><span aria-hidden="true">›</span></a>
+    </div>
+    <section class="cm-panel" id="newStudentSection">
+      <h2>新しい学生を登録</h2>
+      <p class="cm-subtitle">学生として登録します。管理者権限は登録後に2510044が設定します。</p>
       <details class="cm-details">
-        <summary>新しい学生を登録</summary>
+        <summary>登録フォームを開く</summary>
         <form id="newAccountForm" class="cm-form-grid" autocomplete="off">
           <label class="cm-field">学籍番号<input id="newStudentNumber" type="text" inputmode="numeric" pattern="[0-9]{7}" minlength="7" maxlength="7" autocomplete="off" required></label>
           <label class="cm-field">氏名<input id="newStudentName" type="text" maxlength="80" autocomplete="off" required></label>
@@ -28,14 +32,11 @@
       </details>
     </section>
     <section class="cm-panel">
-      <h2>ワンタイムパスワード</h2>
-      <p class="cm-subtitle">管理者が決めた文言を発行します。発行後10分で無効になり、1回だけ使えます。</p>
-      <a class="cm-button" href="entrance_admin.html"><span aria-hidden="true">🔐</span><span>文言を発行する</span></a>
-    </section>
-    <section class="cm-panel">
-      <h2>テスト管理</h2>
-      <p class="cm-subtitle">従来のテスト管理画面を開きます。</p>
-      <a class="cm-button" href="exam_admin.html"><span aria-hidden="true">📖</span><span>テスト管理を開く</span></a>
+      <h2>セキュリティ確認</h2>
+      <p class="cm-subtitle">権限と登録データをその場で確認します。これは簡易点検であり、アプリ全体の安全を保証するものではありません。</p>
+      <button id="runSecurityCheck" class="cm-button cm-button-primary" type="button">安全確認を実行</button>
+      <p id="securityStatus" class="cm-status" role="status" aria-live="polite"></p>
+      <div id="securityResults" class="cm-security-results" aria-live="polite"></div>
     </section>
     <section class="cm-panel"><button id="signOutButton" class="cm-button" type="button">管理者ログアウト</button></section>
   </main>

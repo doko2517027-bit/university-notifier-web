@@ -4,6 +4,11 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 
 const list = document.getElementById("adminUserList");
 const status = document.getElementById("adminUsersStatus");
+const search = document.getElementById("userSearch");
+const filter = document.getElementById("userRoleFilter");
+let allAccounts = [];
+let canManageRoles = false;
+let currentStudentNumber = "";
 const call = (name, data = {}) => httpsCallable(functions, name)(data);
 const node = (tag, value = "", className = "") => {
   const element = document.createElement(tag);
@@ -28,6 +33,7 @@ function formCard(account, kind) {
   form.className = "cm-user-action";
   const output = node("p", "", "cm-status");
   if (kind === "app") {
+    form.append(node("h4", "アプリパスワード"));
     const password = field("新しいアプリパスワード", "password", "new-password");
     password.input.minLength = 6;
     const confirmation = field("新しいパスワード（再入力）", "password", "new-password");
@@ -54,6 +60,7 @@ function formCard(account, kind) {
       } finally { submit.disabled = false; }
     });
   } else {
+    form.append(node("h4", "manabaパスワード"));
     const password = field("manabaパスワード", "password");
     form.append(password.label);
     const submit = node("button", account.hasManabaPassword ? "manabaパスワードを変更" : "manabaパスワードを登録", "cm-button");
@@ -100,13 +107,45 @@ function formCard(account, kind) {
 
 function accountCard(account) {
   const article = node("article", "", "cm-item cm-admin-user");
-  article.append(node("h3", account.name), node("p", `${account.studentNumber} · ${account.role === "admin" ? "管理者" : "学生"} · ${account.active ? "利用中" : "登録解除済み"}`));
-  if (account.role !== "admin") article.append(node("p", `manabaパスワード：${account.hasManabaPassword ? "登録済み" : "未登録"}`));
-  if (!account.active || account.role === "admin") return article;
+  const head = node("div", "", "cm-admin-user-head");
+  head.append(node("h3", account.name), node("span", account.studentNumber, "cm-admin-user-id"));
+  const meta = node("div", "", "cm-admin-user-meta");
+  meta.append(node("span", account.studentNumber === "2510044" ? "主管理者" : account.role === "admin" ? "管理者" : "学生", `cm-admin-chip ${account.role}`));
+  meta.append(node("span", account.active ? "利用中" : "登録解除済み", `cm-admin-chip ${account.active ? "" : "inactive"}`));
+  meta.append(node("span", `manaba ${account.hasManabaPassword ? "登録済み" : "未登録"}`, "cm-admin-chip"));
+  article.append(head, meta);
+  if (!account.active) return article;
+  const canEditAccount = account.studentNumber !== currentStudentNumber && (canManageRoles || account.role !== "admin");
+  if (!canEditAccount && account.studentNumber !== "2510044") article.append(node("p", "管理者アカウントの変更は主管理者のみ可能です。"));
+  if (!canEditAccount && account.studentNumber === "2510044") article.append(node("p", "主管理者アカウントは他の管理者から変更できません。"));
+  if (!canEditAccount) return article;
   const details = document.createElement("details");
   details.className = "cm-details";
-  const summary = node("summary", "このユーザーを管理");
+  const summary = node("summary", "設定・パスワードを開く");
   details.append(summary, formCard(account, "manaba"), formCard(account, "app"));
+  if (canManageRoles && account.studentNumber !== "2510044") {
+    const roleBox = node("div", "", "cm-user-action");
+    roleBox.append(node("h4", "管理者権限"), node("p", account.role === "admin" ? "このユーザーは管理画面を利用できます。" : "現在は学生として利用中です。"));
+    const roleButton = node("button", account.role === "admin" ? "管理者権限を解除" : "管理者権限を付与", account.role === "admin" ? "cm-button cm-button-danger" : "cm-button");
+    roleButton.type = "button";
+    const roleStatus = node("p", "", "cm-status");
+    roleButton.addEventListener("click", async () => {
+      const role = account.role === "admin" ? "member" : "admin";
+      if (!confirm(`${account.name}（${account.studentNumber}）を${role === "admin" ? "管理者" : "学生"}に変更しますか？`)) return;
+      roleButton.disabled = true;
+      roleStatus.textContent = "権限を変更中…";
+      try {
+        await call("adminSetCareMateRole", { studentNumber: account.studentNumber, role });
+        status.textContent = `${account.studentNumber} の権限を変更しました。画面を再読み込みすると反映されます。`;
+        await loadUsers(true);
+      } catch (error) {
+        roleStatus.textContent = error.code === "functions/permission-denied" ? "主管理者のみ変更できます。" : "権限を変更できませんでした。";
+        roleButton.disabled = false;
+      }
+    });
+    roleBox.append(roleButton, roleStatus);
+    details.append(roleBox);
+  }
   const revoke = node("button", "登録解除", "cm-button cm-button-danger");
   revoke.type = "button";
   revoke.addEventListener("click", async () => {
@@ -129,15 +168,35 @@ function accountCard(account) {
   return article;
 }
 
-async function loadUsers() {
+function renderUsers() {
+  const query = search.value.trim().toLocaleLowerCase();
+  const mode = filter.value;
+  const visible = allAccounts.filter((account) => {
+    if (query && !`${account.name} ${account.studentNumber}`.toLocaleLowerCase().includes(query)) return false;
+    if (mode === "active" && !account.active) return false;
+    if (mode === "inactive" && account.active) return false;
+    if (mode === "admin" && account.role !== "admin") return false;
+    if (mode === "member" && account.role !== "member") return false;
+    return true;
+  });
+  document.getElementById("userCount").textContent = `${visible.length} / ${allAccounts.length}人`;
+  document.getElementById("rolePolicyHint").textContent = canManageRoles
+    ? "主管理者として、ユーザーの設定と管理者権限の付与・解除ができます。"
+    : "管理者権限の付与・解除は2510044のみ可能です。学生の設定・テスト管理は利用できます。";
+  list.replaceChildren();
+  if (!visible.length) list.append(node("p", "該当するユーザーはいません。", "cm-subtitle"));
+  visible.forEach((account) => list.append(accountCard(account)));
+}
+
+async function loadUsers(preserveStatus = false) {
   list.textContent = "読み込み中…";
-  status.textContent = "";
+  if (!preserveStatus) status.textContent = "";
   try {
     const result = await call("adminListCareMateAccounts");
-    const accounts = result.data?.accounts || [];
-    list.replaceChildren();
-    if (!accounts.length) list.append(node("p", "ユーザーが登録されていません。", "cm-subtitle"));
-    accounts.forEach((account) => list.append(accountCard(account)));
+    allAccounts = result.data?.accounts || [];
+    canManageRoles = result.data?.canManageRoles === true;
+    currentStudentNumber = result.data?.currentStudentNumber || "";
+    renderUsers();
   } catch (error) {
     console.error("ユーザー一覧取得エラー:", error);
     list.textContent = "ユーザー一覧を取得できませんでした。管理者ログインと通信状態を確認してください。";
@@ -145,4 +204,6 @@ async function loadUsers() {
 }
 
 document.getElementById("refreshUsers").addEventListener("click", () => void loadUsers());
+search.addEventListener("input", renderUsers);
+filter.addEventListener("change", renderUsers);
 await loadUsers();

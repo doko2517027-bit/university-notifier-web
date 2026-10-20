@@ -47,6 +47,7 @@ const {
   matchesPasswordHash,
   isValidNewPassword,
 } = require("./password_change_policy.js");
+const { PRIMARY_ADMIN_NUMBER, isPrimaryAdmin, canManageAccount } = require("./admin_policy.js");
 
 
 // ========================================
@@ -176,6 +177,12 @@ async function requireAdmin(request) {
   return { studentNumber, uid };
 }
 
+function requireManageableAccount(actorNumber, targetNumber, access) {
+  if (!canManageAccount(actorNumber, targetNumber, access?.role)) {
+    throw new HttpsError("permission-denied", "この管理者アカウントは変更できません。");
+  }
+}
+
 // A claim in an old token is not sufficient: check the current allow-list.
 exports.checkCareMateAccess = onCall(CALL_OPTIONS, async (request) => {
   const studentNumber = authenticatedStudentNumber(request);
@@ -230,7 +237,7 @@ exports.createCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
 // 管理者によるパスワード再設定。初期・再設定パスワードはFirestoreへ
 // ハッシュでのみ保存し、学生には現在のパスワードを求めない。
 exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
-  await requireAdmin(request);
+  const { studentNumber: actorNumber } = await requireAdmin(request);
   const studentNumber = String(request.data?.studentNumber || "").trim();
   const password = request.data?.password;
   if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || !isValidNewPassword(password)) {
@@ -243,6 +250,7 @@ exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
     if (!access.exists || access.data()?.active !== true || !user.exists) {
       throw new HttpsError("not-found", "利用中の学生が見つかりません。");
     }
+    requireManageableAccount(actorNumber, studentNumber, access.data());
     transaction.update(userRef, {
       appPasswordHash: hashPassword(password),
       passwordChangedAt: FieldValue.serverTimestamp(),
@@ -252,7 +260,7 @@ exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
 });
 
 exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
-  await requireAdmin(request);
+  const { studentNumber: actorNumber } = await requireAdmin(request);
   const snapshot = await db.collection("access").get();
   const accounts = await Promise.all(snapshot.docs.map(async (accessDoc) => {
     const number = accessDoc.id.replace(/^caremate-/, "");
@@ -267,13 +275,79 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
       hasManabaPassword: typeof user.data()?.manabaPasswordEncrypted === "string" && user.data().manabaPasswordEncrypted.length > 0,
     };
   }));
-  return { accounts: accounts.filter(Boolean).sort((a, b) => a.studentNumber.localeCompare(b.studentNumber)) };
+  return {
+    canManageRoles: actorNumber === PRIMARY_ADMIN_NUMBER,
+    currentStudentNumber: actorNumber,
+    accounts: accounts.filter(Boolean).sort((a, b) => a.studentNumber.localeCompare(b.studentNumber)),
+  };
+});
+
+// Read-only, point-in-time audit. This is not a penetration test or a proof
+// that deployed rules, IAM and the Render integration are safe.
+exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
+  await requireAdmin(request);
+  const snapshot = await db.collection("access").get();
+  const primary = snapshot.docs.find((doc) => doc.id === authUidForStudent(PRIMARY_ADMIN_NUMBER));
+  const invalidAccess = snapshot.docs.filter((doc) =>
+    !/^caremate-\d{7}$/.test(doc.id) || !["admin", "member"].includes(doc.data()?.role)
+  );
+  const active = snapshot.docs.filter((doc) =>
+    /^caremate-\d{7}$/.test(doc.id) && doc.data()?.active === true
+  );
+  const users = await Promise.all(active.map((accessDoc) =>
+    db.collection("users").doc(accessDoc.id.slice("caremate-".length)).get()
+  ));
+  const missingUsers = users.filter((doc) => !doc.exists).length;
+  const readableHashes = users.filter((doc) => doc.exists && typeof doc.data()?.appPasswordHash === "string").length;
+  const legacyManaba = users.filter((doc) => doc.exists && typeof doc.data()?.manabaPasswordEncrypted === "string").length;
+  return {
+    checkedAt: new Date().toISOString(),
+    checks: [
+      { id: "primary", level: primary?.data()?.active === true && primary?.data()?.role === "admin" ? "pass" : "fail", text: "主管理者2510044の利用権限" },
+      { id: "roles", level: invalidAccess.length ? "fail" : "pass", text: `権限データの形式（異常 ${invalidAccess.length} 件）` },
+      { id: "users", level: missingUsers ? "fail" : "pass", text: `有効な利用者の登録整合性（不一致 ${missingUsers} 件）` },
+      { id: "hashes", level: readableHashes ? "warn" : "pass", text: `利用者ドキュメント内のパスワードハッシュ（${readableHashes} 件）` },
+      { id: "manaba", level: legacyManaba ? "warn" : "pass", text: `旧方式で保存されたmanaba認証情報（${legacyManaba} 件）` },
+      { id: "scope", level: "unknown", text: "Firestore/Storageの本番ルール・IAM・Renderはこのボタンでは検証できません" },
+    ],
+  };
+});
+
+// Only the designated primary administrator may grant or revoke admin access.
+// Firestore client rules deny access writes, so this is the sole role editor.
+exports.adminSetCareMateRole = onCall(CALL_OPTIONS, async (request) => {
+  const { studentNumber: actorNumber } = await requireAdmin(request);
+  if (!isPrimaryAdmin(actorNumber, "admin")) {
+    throw new HttpsError("permission-denied", "管理者権限の設定は主管理者のみ可能です。");
+  }
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const role = request.data?.role;
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || !["admin", "member"].includes(role)) {
+    throw new HttpsError("invalid-argument", "学籍番号または権限を確認してください。");
+  }
+  if (studentNumber === PRIMARY_ADMIN_NUMBER) {
+    throw new HttpsError("failed-precondition", "主管理者の権限は変更できません。");
+  }
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
+    if (!access.exists || access.data()?.active !== true || !user.exists) {
+      throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    }
+    transaction.update(accessRef, {
+      role,
+      roleChangedAt: FieldValue.serverTimestamp(),
+      roleChangedBy: actorNumber,
+    });
+  });
+  return { changed: true, role };
 });
 
 // 管理者はmanaba連携情報を保存・削除できる。値はクライアントで既存方式
 // (AES-GCM)により暗号化して渡し、Render側のデータ形式を維持する。
 exports.adminSetStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => {
-  await requireAdmin(request);
+  const { studentNumber: actorNumber } = await requireAdmin(request);
   const studentNumber = String(request.data?.studentNumber || "").trim();
   const encrypted = request.data?.encryptedPassword;
   if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || typeof encrypted !== "string" || encrypted.length < 20 || encrypted.length > 4096) {
@@ -286,6 +360,7 @@ exports.adminSetStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => 
     if (!access.exists || access.data()?.active !== true || !user.exists) {
       throw new HttpsError("not-found", "利用中の学生が見つかりません。");
     }
+    requireManageableAccount(actorNumber, studentNumber, access.data());
     transaction.update(userRef, {
       manabaPasswordEncrypted: encrypted,
       manabaSetupSkipped: false,
@@ -299,7 +374,7 @@ exports.adminSetStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => 
 });
 
 exports.adminRemoveStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => {
-  await requireAdmin(request);
+  const { studentNumber: actorNumber } = await requireAdmin(request);
   const studentNumber = String(request.data?.studentNumber || "").trim();
   if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
@@ -307,6 +382,7 @@ exports.adminRemoveStudentManabaPassword = onCall(CALL_OPTIONS, async (request) 
   await db.runTransaction(async (transaction) => {
     const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
     if (!access.exists || access.data()?.active !== true || !user.exists) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    requireManageableAccount(actorNumber, studentNumber, access.data());
     transaction.update(userRef, {
       manabaPasswordEncrypted: FieldValue.delete(),
       manabaSetupSkipped: true,
@@ -330,6 +406,7 @@ exports.adminDeactivateStudent = onCall(CALL_OPTIONS, async (request) => {
   await db.runTransaction(async (transaction) => {
     const access = await transaction.get(accessRef);
     if (!access.exists || access.data()?.active !== true) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+    requireManageableAccount(adminNumber, studentNumber, access.data());
     transaction.update(accessRef, { active: false, revokedAt: FieldValue.serverTimestamp(), revokedBy: adminNumber });
   });
   return { deactivated: true };
@@ -338,6 +415,9 @@ exports.adminDeactivateStudent = onCall(CALL_OPTIONS, async (request) => {
 exports.deactivateMyCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
   const studentNumber = authenticatedStudentNumber(request);
   await requireApprovedStudent(studentNumber);
+  if (studentNumber === PRIMARY_ADMIN_NUMBER) {
+    throw new HttpsError("failed-precondition", "主管理者は自分の登録を解除できません。");
+  }
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
   await db.runTransaction(async (transaction) => {
     const access = await transaction.get(accessRef);

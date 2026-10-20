@@ -7,6 +7,36 @@ const newAccountStatus = document.getElementById("newAccountStatus");
 document.getElementById("signOutButton").addEventListener("click", () => {
   void signOutCareMate();
 });
+const securityButton = document.getElementById("runSecurityCheck");
+const securityStatus = document.getElementById("securityStatus");
+const securityResults = document.getElementById("securityResults");
+securityButton?.addEventListener("click", async () => {
+  securityButton.disabled = true;
+  securityStatus.textContent = "権限と登録データを確認中…";
+  securityResults.replaceChildren();
+  try {
+    const response = await httpsCallable(functions, "adminRunSecurityCheck")();
+    const checks = response.data?.checks || [];
+    const labels = { pass: "良好", warn: "要確認", fail: "異常", unknown: "未検査" };
+    for (const check of checks) {
+      const row = document.createElement("div");
+      row.className = `cm-security-row ${["pass", "warn", "fail", "unknown"].includes(check.level) ? check.level : "unknown"}`;
+      const level = document.createElement("strong");
+      level.textContent = labels[check.level] || labels.unknown;
+      const text = document.createElement("span");
+      text.textContent = check.text;
+      row.append(level, text);
+      securityResults.append(row);
+    }
+    const concern = checks.some((check) => check.level === "warn" || check.level === "fail");
+    securityStatus.textContent = `${new Date(response.data?.checkedAt || Date.now()).toLocaleString("ja-JP")}に確認しました。${concern ? "要確認項目があります。安全が保証された状態ではありません。" : "この簡易点検で異常は見つかりませんでした。未検査項目もあります。"}`;
+  } catch (error) {
+    console.error("セキュリティ確認エラー:", error);
+    securityStatus.textContent = "確認を完了できませんでした。管理者権限と通信状態を確認してください。";
+  } finally {
+    securityButton.disabled = false;
+  }
+});
 newAccountForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = newAccountForm.querySelector("button[type=submit]");
