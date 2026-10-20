@@ -21,7 +21,10 @@ service cloud.firestore {
 
     function assignmentEnabled() {
       return approved()
-        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.experienceMode != 'study-only';
+        && (
+          !('experienceMode' in get(/databases/$(database)/documents/access/$(request.auth.uid)).data)
+          || get(/databases/$(database)/documents/access/$(request.auth.uid)).data.experienceMode == 'assignments'
+        );
     }
 
     function permittedStudent(studentNumber) {

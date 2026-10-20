@@ -30,7 +30,9 @@ test("課題通知なしでは課題・manaba導線と直接アクセスを無�
   assert.match(settings, /assignmentAccess && user\.manabaCredentialConfigured/);
   assert.match(home, /assignmentAccess \? getDoc\(doc\(db, "assignments"/);
   assert.match(rules, /assignmentEnabled\(\)/);
-  assert.match(rules, /experienceMode != 'study-only'/);
+  assert.match(rules, /!\('experienceMode' in/);
+  assert.match(rules, /experienceMode == 'assignments'/);
+  assert.match(rules, /calendarAssignments/);
 });
 
 test("新規アカウントは入口の一回限りgrantで利用形態を確定する", async () => {
