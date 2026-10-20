@@ -218,12 +218,12 @@ async function handleLogin() {
 
 
         // ====================================
-        // ⑤ ホーム画面に移動
+        // ⑤ ログイン後はホーム画面を最初に表示
         // ====================================
 
         appPasswordInput.value = "";
 
-        location.replace("exam.html");
+        location.replace("home.html");
 
 
     } catch (error) {
