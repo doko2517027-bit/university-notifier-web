@@ -1,5 +1,4 @@
 import { functions } from "./auth_core.js";
-import { encryptData } from "./common.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 const list = document.getElementById("adminUserList");
@@ -92,8 +91,7 @@ function formCard(account, kind) {
       submit.disabled = true;
       output.textContent = "保存中…";
       try {
-        const encryptedPassword = await encryptData(password.input.value);
-        await call("adminSetStudentManabaPassword", { studentNumber: account.studentNumber, encryptedPassword });
+        await call("adminSetStudentManabaPassword", { studentNumber: account.studentNumber, password: password.input.value });
         form.reset();
         output.textContent = "manabaパスワードを保存しました。";
       } catch (error) {

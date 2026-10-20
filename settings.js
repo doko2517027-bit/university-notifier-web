@@ -1,7 +1,5 @@
 import { auth, db, functions, signOutCareMate } from "./auth_core.js";
-import { encryptData } from "./common.js";
-import { savedExternalPasswordFields } from "./settings_password_fields.mjs";
-import { deleteField, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js";
 
@@ -20,7 +18,7 @@ try {
   const snapshot = await getDoc(userRef);
   const user = snapshot.data() || {};
   accountSummary.textContent = `${user.name || "学生"}（${studentNumber}）`;
-  const hasManabaPassword = typeof user.manabaPasswordEncrypted === "string" && user.manabaPasswordEncrypted.length > 0;
+  const hasManabaPassword = user.manabaCredentialConfigured === true;
   manabaLabel.textContent = hasManabaPassword ? "manabaパスワードを変更" : "manabaパスワードを登録";
   document.getElementById("manabaSaveButton").textContent = hasManabaPassword ? "パスワードを変更" : "パスワードを登録";
   removeManabaButton.hidden = !hasManabaPassword;
@@ -66,9 +64,11 @@ document.getElementById("manabaForm").addEventListener("submit", async (event) =
   button.disabled = true;
   status.textContent = "保存中…";
   try {
-    const encrypted = await encryptData(input.value);
-    await updateDoc(userRef, savedExternalPasswordFields("manaba", encrypted));
+    await httpsCallable(functions, "setMyManabaPassword")({ password: input.value });
     input.value = "";
+    removeManabaButton.hidden = false;
+    manabaLabel.textContent = "manabaパスワードを変更";
+    document.getElementById("manabaSaveButton").textContent = "パスワードを変更";
     manabaStatus.textContent = "次回の課題取得時に確認します。";
     status.textContent = "保存しました。";
   } catch (error) {
@@ -83,14 +83,7 @@ removeManabaButton.addEventListener("click", async () => {
   const status = document.getElementById("manabaSaveStatus");
   status.textContent = "削除中…";
   try {
-    await updateDoc(userRef, {
-      manabaPasswordEncrypted: deleteField(),
-      manabaSetupSkipped: true,
-      manabaResetRequired: false,
-      manabaVerified: null,
-      manabaVerifiedAt: null,
-      manabaVerificationError: null,
-    });
+    await httpsCallable(functions, "removeMyManabaPassword")();
     removeManabaButton.hidden = true;
     manabaLabel.textContent = "manabaパスワードを登録";
     document.getElementById("manabaSaveButton").textContent = "パスワードを登録";

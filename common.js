@@ -95,17 +95,3 @@ export function showToast(message) {
   document.body.append(toast);
   setTimeout(() => toast.remove(), 3500);
 }
-
-// Existing manaba data uses this AES-GCM format. Keep it until a verified
-// server-side credential migration is ready; changing it would break Render.
-const MANABA_LEGACY_KEY = "UniversityNotifier2026";
-export async function encryptData(value) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", encoder.encode(MANABA_LEGACY_KEY.padEnd(32, "0")), "AES-GCM", false, ["encrypt"]);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(JSON.stringify(value)));
-  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-  combined.set(iv);
-  combined.set(new Uint8Array(ciphertext), iv.length);
-  return btoa(String.fromCharCode(...combined));
-}

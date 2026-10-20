@@ -44,7 +44,9 @@ const {
 
 const {
   hashPassword,
+  hashLegacyPassword,
   matchesPasswordHash,
+  needsPasswordUpgrade,
   isValidNewPassword,
 } = require("./password_change_policy.js");
 const { PRIMARY_ADMIN_NUMBER, isPrimaryAdmin, canManageAccount } = require("./admin_policy.js");
@@ -80,6 +82,20 @@ const CALL_OPTIONS = {
 const STUDENT_NUMBER_PATTERN = /^\d{7}$/;
 const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 8;
+const credentialRef = (studentNumber) => db.collection("systemPrivate").doc("careMateCredentials")
+  .collection("accounts").doc(studentNumber);
+const manabaRef = (studentNumber) => db.collection("systemPrivate").doc("manabaCredentials")
+  .collection("accounts").doc(studentNumber);
+const legacyManabaKey = () => Buffer.from("UniversityNotifier2026".padEnd(32, "0"), "utf8");
+
+function decryptLegacyManaba(value) {
+  const bytes = Buffer.from(value, "base64");
+  if (bytes.length < 29) throw new Error("Invalid legacy credential");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", legacyManabaKey(), bytes.subarray(0, 12));
+  decipher.setAuthTag(bytes.subarray(bytes.length - 16));
+  const plaintext = Buffer.concat([decipher.update(bytes.subarray(12, -16)), decipher.final()]).toString("utf8");
+  return String(JSON.parse(plaintext));
+}
 
 async function reserveLoginAttempt(request, studentNumber) {
   const source = String(
@@ -210,20 +226,21 @@ exports.createCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
   const uid = authUidForStudent(studentNumber);
   const accessRef = db.collection("access").doc(uid);
   const userRef = db.collection("users").doc(studentNumber);
+  const secretRef = credentialRef(studentNumber);
   await db.runTransaction(async (transaction) => {
-    const [accessSnapshot, userSnapshot] = await Promise.all([
-      transaction.get(accessRef), transaction.get(userRef),
+    const [accessSnapshot, userSnapshot, secretSnapshot] = await Promise.all([
+      transaction.get(accessRef), transaction.get(userRef), transaction.get(secretRef),
     ]);
-    if (accessSnapshot.exists || userSnapshot.exists) {
+    if (accessSnapshot.exists || userSnapshot.exists || secretSnapshot.exists) {
       throw new HttpsError("already-exists", "この学籍番号はすでに登録されています。");
     }
     const now = FieldValue.serverTimestamp();
     transaction.create(userRef, {
       name,
-      appPasswordHash: hashPassword(password),
       createdAt: now,
       createdBy,
     });
+    transaction.create(secretRef, { hash: hashPassword(password), createdAt: now });
     transaction.create(accessRef, {
       active: true,
       role: "member",
@@ -245,16 +262,15 @@ exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
   }
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
   const userRef = db.collection("users").doc(studentNumber);
+  const secretRef = credentialRef(studentNumber);
   await db.runTransaction(async (transaction) => {
     const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
     if (!access.exists || access.data()?.active !== true || !user.exists) {
       throw new HttpsError("not-found", "利用中の学生が見つかりません。");
     }
     requireManageableAccount(actorNumber, studentNumber, access.data());
-    transaction.update(userRef, {
-      appPasswordHash: hashPassword(password),
-      passwordChangedAt: FieldValue.serverTimestamp(),
-    });
+    transaction.set(secretRef, { hash: hashPassword(password), passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
+    transaction.update(userRef, { appPasswordHash: FieldValue.delete(), passwordChangedAt: FieldValue.serverTimestamp() });
   });
   return { changed: true };
 });
@@ -272,7 +288,7 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
       name: String(user.data()?.name || "（氏名未登録）"),
       role: access.role === "admin" ? "admin" : "member",
       active: access.active === true,
-      hasManabaPassword: typeof user.data()?.manabaPasswordEncrypted === "string" && user.data().manabaPasswordEncrypted.length > 0,
+      hasManabaPassword: user.data()?.manabaCredentialConfigured === true || typeof user.data()?.manabaPasswordEncrypted === "string",
     };
   }));
   return {
@@ -280,6 +296,57 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
     currentStudentNumber: actorNumber,
     accounts: accounts.filter(Boolean).sort((a, b) => a.studentNumber.localeCompare(b.studentNumber)),
   };
+});
+
+// One-time, idempotent migration. Each account is moved atomically; any
+// unreadable manaba value is left untouched and reported without its content.
+exports.adminMigrateLegacyCredentials = onCall(CALL_OPTIONS, async (request) => {
+  const { studentNumber: actor } = await requireAdmin(request);
+  if (actor !== PRIMARY_ADMIN_NUMBER) throw new HttpsError("permission-denied", "主管理者のみ実行できます。");
+  const snapshot = await db.collection("access").get();
+  const result = { checked: 0, passwordsMoved: 0, manabaMoved: 0, failed: [] };
+  for (const accessDoc of snapshot.docs) {
+    const number = accessDoc.id.replace(/^caremate-/, "");
+    if (!STUDENT_NUMBER_PATTERN.test(number)) continue;
+    result.checked++;
+    const userRef = db.collection("users").doc(number);
+    try {
+      const changed = await db.runTransaction(async (transaction) => {
+        const [user, appSecret, manabaSecret] = await Promise.all([
+          transaction.get(userRef), transaction.get(credentialRef(number)), transaction.get(manabaRef(number)),
+        ]);
+        if (!user.exists) return { app: false, manaba: false };
+        const publicData = user.data() || {};
+        const updates = {};
+        let app = false;
+        let manaba = false;
+        if (typeof publicData.appPasswordHash === "string") {
+          if (!appSecret.exists) {
+            transaction.set(credentialRef(number), { hash: hashLegacyPassword(publicData.appPasswordHash), migratedAt: FieldValue.serverTimestamp() });
+          }
+          updates.appPasswordHash = FieldValue.delete();
+          app = true;
+        }
+        if (typeof publicData.manabaPasswordEncrypted === "string") {
+          if (!manabaSecret.exists) {
+            transaction.set(manabaRef(number), {
+              password: decryptLegacyManaba(publicData.manabaPasswordEncrypted), migratedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          updates.manabaPasswordEncrypted = FieldValue.delete();
+          updates.manabaCredentialConfigured = true;
+          manaba = true;
+        }
+        if (Object.keys(updates).length) transaction.update(userRef, updates);
+        return { app, manaba };
+      });
+      result.passwordsMoved += changed.app ? 1 : 0;
+      result.manabaMoved += changed.manaba ? 1 : 0;
+    } catch {
+      result.failed.push(number);
+    }
+  }
+  return result;
 });
 
 // Read-only, point-in-time audit. This is not a penetration test or a proof
@@ -294,20 +361,28 @@ exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
   const active = snapshot.docs.filter((doc) =>
     /^caremate-\d{7}$/.test(doc.id) && doc.data()?.active === true
   );
-  const users = await Promise.all(active.map((accessDoc) =>
+  const allAccounts = snapshot.docs.filter((accessDoc) => /^caremate-\d{7}$/.test(accessDoc.id));
+  const users = await Promise.all(allAccounts.map((accessDoc) =>
     db.collection("users").doc(accessDoc.id.slice("caremate-".length)).get()
   ));
-  const missingUsers = users.filter((doc) => !doc.exists).length;
+  const missingUsers = users.filter((doc, index) => active.includes(allAccounts[index]) && !doc.exists).length;
   const readableHashes = users.filter((doc) => doc.exists && typeof doc.data()?.appPasswordHash === "string").length;
   const legacyManaba = users.filter((doc) => doc.exists && typeof doc.data()?.manabaPasswordEncrypted === "string").length;
+  const privateHashes = await Promise.all(active.map((doc) => credentialRef(doc.id.slice("caremate-".length)).get()));
+  const missingOrWeakHashes = privateHashes.filter((doc) => !/^pbkdf2-v1\$(direct|layered)\$600000\$/.test(String(doc.data()?.hash || ""))).length;
+  const privateManaba = await Promise.all(active.map((doc) => manabaRef(doc.id.slice("caremate-".length)).get()));
+  const missingManaba = active.filter((doc, index) => {
+    const user = users[allAccounts.indexOf(doc)]?.data() || {};
+    return user.manabaCredentialConfigured === true && typeof privateManaba[index].data()?.password !== "string";
+  }).length;
   return {
     checkedAt: new Date().toISOString(),
     checks: [
       { id: "primary", level: primary?.data()?.active === true && primary?.data()?.role === "admin" ? "pass" : "fail", text: "主管理者2510044の利用権限" },
       { id: "roles", level: invalidAccess.length ? "fail" : "pass", text: `権限データの形式（異常 ${invalidAccess.length} 件）` },
       { id: "users", level: missingUsers ? "fail" : "pass", text: `有効な利用者の登録整合性（不一致 ${missingUsers} 件）` },
-      { id: "hashes", level: readableHashes ? "fail" : "pass", text: `パスワードハッシュが利用者ドキュメント内に存在（${readableHashes} 件・権限のあるブラウザから文書全体を取得可能）` },
-      { id: "manaba", level: legacyManaba ? "warn" : "pass", text: `旧方式のmanaba認証情報（${legacyManaba} 件・暗号化鍵がWebコード内）` },
+      { id: "hashes", level: readableHashes || missingOrWeakHashes ? "fail" : "pass", text: `ログイン認証情報の分離・強度（公開側 ${readableHashes} 件、未移行・不整合 ${missingOrWeakHashes} 件）` },
+      { id: "manaba", level: legacyManaba || missingManaba ? "warn" : "pass", text: `manaba認証情報の分離（公開側 ${legacyManaba} 件、保存不整合 ${missingManaba} 件）` },
       { id: "scope", level: "unknown", text: "Firestore/Storageの本番ルール・IAM・Renderはこのボタンでは検証できません" },
     ],
   };
@@ -344,32 +419,62 @@ exports.adminSetCareMateRole = onCall(CALL_OPTIONS, async (request) => {
   return { changed: true, role };
 });
 
-// 管理者はmanaba連携情報を保存・削除できる。値はクライアントで既存方式
-// (AES-GCM)により暗号化して渡し、Render側のデータ形式を維持する。
+async function saveManabaCredential(studentNumber, password) {
+  if (typeof password !== "string" || !password || password.length > 256) {
+    throw new HttpsError("invalid-argument", "manabaパスワードを確認してください。");
+  }
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const user = await transaction.get(userRef);
+    if (!user.exists) throw new HttpsError("not-found", "登録情報が見つかりません。");
+    transaction.set(manabaRef(studentNumber), { password, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    transaction.update(userRef, {
+      manabaPasswordEncrypted: FieldValue.delete(), manabaCredentialConfigured: true,
+      manabaSetupSkipped: false, manabaResetRequired: false, manabaVerified: null,
+      manabaVerifiedAt: null, manabaVerificationError: null,
+    });
+  });
+}
+
+async function removeManabaCredential(studentNumber) {
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const user = await transaction.get(userRef);
+    if (!user.exists) throw new HttpsError("not-found", "登録情報が見つかりません。");
+    transaction.delete(manabaRef(studentNumber));
+    transaction.update(userRef, {
+      manabaPasswordEncrypted: FieldValue.delete(), manabaCredentialConfigured: false,
+      manabaSetupSkipped: true, manabaResetRequired: false, manabaVerified: null,
+      manabaVerifiedAt: null, manabaVerificationError: null,
+    });
+  });
+}
+
+exports.setMyManabaPassword = onCall(CALL_OPTIONS, async (request) => {
+  const studentNumber = authenticatedStudentNumber(request);
+  await requireApprovedStudent(studentNumber);
+  await saveManabaCredential(studentNumber, request.data?.password);
+  return { changed: true };
+});
+
+exports.removeMyManabaPassword = onCall(CALL_OPTIONS, async (request) => {
+  const studentNumber = authenticatedStudentNumber(request);
+  await requireApprovedStudent(studentNumber);
+  await removeManabaCredential(studentNumber);
+  return { removed: true };
+});
+
 exports.adminSetStudentManabaPassword = onCall(CALL_OPTIONS, async (request) => {
   const { studentNumber: actorNumber } = await requireAdmin(request);
   const studentNumber = String(request.data?.studentNumber || "").trim();
-  const encrypted = request.data?.encryptedPassword;
-  if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || typeof encrypted !== "string" || encrypted.length < 20 || encrypted.length > 4096) {
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) {
     throw new HttpsError("invalid-argument", "学籍番号またはmanabaパスワードを確認してください。");
   }
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
-  const userRef = db.collection("users").doc(studentNumber);
-  await db.runTransaction(async (transaction) => {
-    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
-    if (!access.exists || access.data()?.active !== true || !user.exists) {
-      throw new HttpsError("not-found", "利用中の学生が見つかりません。");
-    }
-    requireManageableAccount(actorNumber, studentNumber, access.data());
-    transaction.update(userRef, {
-      manabaPasswordEncrypted: encrypted,
-      manabaSetupSkipped: false,
-      manabaResetRequired: false,
-      manabaVerified: null,
-      manabaVerifiedAt: null,
-      manabaVerificationError: null,
-    });
-  });
+  const access = await accessRef.get();
+  if (!access.exists || access.data()?.active !== true) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+  requireManageableAccount(actorNumber, studentNumber, access.data());
+  await saveManabaCredential(studentNumber, request.data?.password);
   return { changed: true };
 });
 
@@ -378,20 +483,10 @@ exports.adminRemoveStudentManabaPassword = onCall(CALL_OPTIONS, async (request) 
   const studentNumber = String(request.data?.studentNumber || "").trim();
   if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
-  const userRef = db.collection("users").doc(studentNumber);
-  await db.runTransaction(async (transaction) => {
-    const [access, user] = await Promise.all([transaction.get(accessRef), transaction.get(userRef)]);
-    if (!access.exists || access.data()?.active !== true || !user.exists) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
-    requireManageableAccount(actorNumber, studentNumber, access.data());
-    transaction.update(userRef, {
-      manabaPasswordEncrypted: FieldValue.delete(),
-      manabaSetupSkipped: true,
-      manabaResetRequired: false,
-      manabaVerified: null,
-      manabaVerifiedAt: null,
-      manabaVerificationError: null,
-    });
-  });
+  const access = await accessRef.get();
+  if (!access.exists || access.data()?.active !== true) throw new HttpsError("not-found", "利用中の学生が見つかりません。");
+  requireManageableAccount(actorNumber, studentNumber, access.data());
+  await removeManabaCredential(studentNumber);
   return { removed: true };
 });
 
@@ -488,25 +583,9 @@ exports.authenticateCareMate = onCall(
       .doc(studentNumber)
       .get();
 
-    const storedHash = String(
-      userSnapshot.data()?.appPasswordHash || ""
-    );
-
-    // 入力されたパスワードをSHA-256でハッシュ化
-    const inputHash = crypto
-      .createHash("sha256")
-      .update(password, "utf8")
-      .digest("hex");
-
-    // パスワード照合
-    if (
-      !userSnapshot.exists ||
-      !/^[a-f0-9]{64}$/i.test(storedHash) ||
-      !crypto.timingSafeEqual(
-        Buffer.from(storedHash.toLowerCase(), "hex"),
-        Buffer.from(inputHash, "hex")
-      )
-    ) {
+    const privateCredential = await credentialRef(studentNumber).get();
+    const storedHash = privateCredential.data()?.hash || userSnapshot.data()?.appPasswordHash;
+    if (!userSnapshot.exists || !matchesPasswordHash(password, storedHash)) {
       throw unauthorized();
     }
 
@@ -517,6 +596,20 @@ exports.authenticateCareMate = onCall(
     } = await requireApprovedStudent(studentNumber);
 
     const isAdmin = role === "admin";
+
+    if (needsPasswordUpgrade(storedHash)) {
+      const upgradedHash = hashPassword(password);
+      await db.runTransaction(async (transaction) => {
+        const [currentSecret, currentUser] = await Promise.all([
+          transaction.get(credentialRef(studentNumber)), transaction.get(db.collection("users").doc(studentNumber)),
+        ]);
+        const currentHash = currentSecret.data()?.hash || currentUser.data()?.appPasswordHash;
+        if (currentHash === storedHash) {
+          transaction.set(credentialRef(studentNumber), { hash: upgradedHash, passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
+          transaction.update(db.collection("users").doc(studentNumber), { appPasswordHash: FieldValue.delete() });
+        }
+      });
+    }
 
     // Firebase Authentication用トークンを発行
     const token = await adminAuth.createCustomToken(
@@ -573,12 +666,14 @@ exports.changeCareMatePassword = onCall(
     const userRef = db
       .collection("users")
       .doc(studentNumber);
+    const secretRef = credentialRef(studentNumber);
 
     await db.runTransaction(
       async (transaction) => {
 
-        const userSnapshot =
-          await transaction.get(userRef);
+        const [userSnapshot, secretSnapshot] = await Promise.all([
+          transaction.get(userRef), transaction.get(secretRef),
+        ]);
 
         if (!userSnapshot.exists) {
           throw new HttpsError(
@@ -587,8 +682,7 @@ exports.changeCareMatePassword = onCall(
           );
         }
 
-        const storedHash =
-          userSnapshot.data()?.appPasswordHash;
+        const storedHash = secretSnapshot.data()?.hash || userSnapshot.data()?.appPasswordHash;
 
         // 現在のパスワードを照合
         if (
@@ -603,23 +697,15 @@ exports.changeCareMatePassword = onCall(
           );
         }
 
-        // 新しいパスワードをハッシュ化
-        const newHash = hashPassword(newPassword);
-
-        if (newHash === storedHash) {
+        if (matchesPasswordHash(newPassword, storedHash)) {
           throw new HttpsError(
             "invalid-argument",
             "別のパスワードを入力してください。"
           );
         }
 
-        // パスワードを更新
-        transaction.update(userRef, {
-          appPasswordHash: newHash,
-
-          passwordChangedAt:
-            FieldValue.serverTimestamp(),
-        });
+        transaction.set(secretRef, { hash: hashPassword(newPassword), passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
+        transaction.update(userRef, { appPasswordHash: FieldValue.delete(), passwordChangedAt: FieldValue.serverTimestamp() });
       }
     );
 
