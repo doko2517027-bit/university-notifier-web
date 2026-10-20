@@ -34,6 +34,11 @@ try {
   localStorage.setItem("loggedIn", "true");
   setStudentNumber(studentNumber);
   document.documentElement.dataset.caremateRole = role;
+  document.documentElement.dataset.assignmentAccess = access.data?.assignmentAccess === false ? "false" : "true";
+  if (access.data?.assignmentAccess === false && location.pathname.endsWith("assignments.html")) {
+    location.replace("home.html");
+    throw Object.assign(new Error("課題なし画面では課題ページを利用できません。"), { redirecting: true });
+  }
   normalizeNavigation();
   document.documentElement.classList.add("caremate-access-approved");
   if ("serviceWorker" in navigator) {

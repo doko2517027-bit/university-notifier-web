@@ -36,6 +36,7 @@ const REGION = "asia-northeast1";
 const EXPIRES_MINUTES = 10;
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 8;
+const GRANT_EXPIRES_MINUTES = 30;
 
 // 認証文言を保存するFirestoreドキュメント
 const entranceRef = db
@@ -109,6 +110,7 @@ exports.issueEntrancePhrase = onCall(
     const phrase = String(
       request.data?.phrase || ""
     ).trim();
+    const experienceMode = request.data?.experienceMode === "study-only" ? "study-only" : "assignments";
 
     // 文言の長さを確認
     if (
@@ -152,7 +154,8 @@ exports.issueEntrancePhrase = onCall(
 
       expiresAt: expiresAt,
 
-      createdBy: request.auth.uid
+      createdBy: request.auth.uid,
+      experienceMode,
     });
 
     return {
@@ -255,6 +258,17 @@ exports.redeemEntrancePhrase = onCall(
           return { ok: false };
         }
 
+        const grant = crypto.randomBytes(32).toString("base64url");
+        const grantHash = crypto.createHash("sha256").update(grant).digest("hex");
+        const grantRef = db.collection("systemPrivate").doc("entranceGrants")
+          .collection("tokens").doc(grantHash);
+        transaction.create(grantRef, {
+          experienceMode: data.experienceMode === "study-only" ? "study-only" : "assignments",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromMillis(now + GRANT_EXPIRES_MINUTES * 60 * 1000),
+          usedAt: null,
+        });
+
         // 認証成功 → 使用済みに変更
         transaction.update(entranceRef, {
           usedAt:
@@ -262,7 +276,7 @@ exports.redeemEntrancePhrase = onCall(
         });
         transaction.delete(attemptRef);
 
-        return { ok: true };
+        return { ok: true, grant, experienceMode: data.experienceMode === "study-only" ? "study-only" : "assignments" };
       }
     );
   }

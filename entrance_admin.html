@@ -14,6 +14,10 @@
       <p class="cm-subtitle">16〜120文字の文言を発行できます。発行後10分以内に1回だけ使えます。再発行すると前の文言は無効になります。</p>
       <form id="issueForm">
         <label class="cm-field">ワンタイム文言<input id="entrancePhrase" type="text" minlength="16" maxlength="120" autocomplete="off" spellcheck="false" required></label>
+        <fieldset class="cm-field"><legend>表示するCareMate</legend>
+          <label class="cm-toggle"><input type="radio" name="experienceMode" value="assignments" checked>課題通知あり（課題タブ・manaba連携あり）</label>
+          <label class="cm-toggle"><input type="radio" name="experienceMode" value="study-only">課題通知なし（課題・manaba連携を表示しない）</label>
+        </fieldset>
         <button class="cm-button cm-button-primary" type="submit">文言を発行する</button>
       </form>
       <p id="issueStatus" class="cm-status" role="status"></p>
@@ -22,6 +26,6 @@
     <a class="cm-button" href="admin.html">管理へ戻る</a>
   </main>
   <nav class="cm-nav" aria-label="メインメニュー"><a href="app.html">テスト</a><a href="admin.html" aria-current="page">管理</a><a href="assignments.html">課題</a></nav>
-  <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./entrance_admin.js"></script>
+  <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./entrance_admin.js?v=20261020-4"></script>
 </body>
 </html>

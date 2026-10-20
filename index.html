@@ -567,6 +567,8 @@
                             LOGIN_ENABLED_KEY,
                             "true"
                         );
+                        localStorage.setItem("caremateEntranceGrant", String(result.data?.grant || ""));
+                        localStorage.setItem("caremateExperienceMode", result.data?.experienceMode === "study-only" ? "study-only" : "assignments");
 
                         entryMessage.textContent = "";
 

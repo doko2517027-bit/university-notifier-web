@@ -108,7 +108,8 @@ export async function signInCareMateAuth(
 
     const result = await authenticateCareMate({
         studentNumber: normalizedStudentNumber,
-        password
+        password,
+        entranceGrant: localStorage.getItem("caremateEntranceGrant") || ""
     });
 
     // Firebaseカスタムトークン
@@ -125,6 +126,9 @@ export async function signInCareMateAuth(
         auth,
         token
     );
+
+    localStorage.removeItem("caremateEntranceGrant");
+    localStorage.setItem("caremateExperienceMode", result.data?.assignmentAccess === false ? "study-only" : "assignments");
 
     return result.data;
 }

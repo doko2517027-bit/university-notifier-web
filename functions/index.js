@@ -184,6 +184,32 @@ async function requireApprovedStudent(studentNumber) {
   };
 }
 
+async function resolveExperienceMode(studentNumber, grant) {
+  const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
+  const access = await accessRef.get();
+  const current = access.data()?.experienceMode;
+  if (["assignments", "study-only"].includes(current)) return current;
+  // Existing users predate the two-route entry and retain their assignment access.
+  if (current !== "pending") return "assignments";
+  if (typeof grant !== "string" || grant.length < 32 || grant.length > 128) {
+    throw new HttpsError("failed-precondition", "管理者が発行した入口文言から、もう一度ログイン画面を開いてください。");
+  }
+  const grantHash = crypto.createHash("sha256").update(grant).digest("hex");
+  const grantRef = db.collection("systemPrivate").doc("entranceGrants").collection("tokens").doc(grantHash);
+  return db.runTransaction(async (transaction) => {
+    const [currentAccess, token] = await Promise.all([transaction.get(accessRef), transaction.get(grantRef)]);
+    const mode = token.data()?.experienceMode;
+    const expiresAt = token.data()?.expiresAt?.toMillis?.() || 0;
+    if (currentAccess.data()?.experienceMode !== "pending" || token.data()?.usedAt || expiresAt <= Date.now()
+      || !["assignments", "study-only"].includes(mode)) {
+      throw new HttpsError("permission-denied", "入口の認証情報が無効です。新しい文言を発行してください。");
+    }
+    transaction.update(accessRef, { experienceMode: mode, experienceModeSetAt: FieldValue.serverTimestamp() });
+    transaction.update(grantRef, { usedAt: FieldValue.serverTimestamp(), usedBy: studentNumber });
+    return mode;
+  });
+}
+
 async function requireAdmin(request) {
   const studentNumber = authenticatedStudentNumber(request);
   const { uid, role } = await requireApprovedStudent(studentNumber);
@@ -203,7 +229,9 @@ function requireManageableAccount(actorNumber, targetNumber, access) {
 exports.checkCareMateAccess = onCall(CALL_OPTIONS, async (request) => {
   const studentNumber = authenticatedStudentNumber(request);
   const { role } = await requireApprovedStudent(studentNumber);
-  return { active: true, role };
+  const access = await db.collection("access").doc(authUidForStudent(studentNumber)).get();
+  const experienceMode = access.data()?.experienceMode === "study-only" ? "study-only" : "assignments";
+  return { active: true, role, experienceMode, assignmentAccess: experienceMode === "assignments" };
 });
 
 // 管理者が新しい学生アカウントを登録する。管理者権限は画面ではなく
@@ -244,6 +272,7 @@ exports.createCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
     transaction.create(accessRef, {
       active: true,
       role: "member",
+      experienceMode: "pending",
       createdAt: now,
       createdBy,
     });
@@ -289,6 +318,7 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
       role: access.role === "admin" ? "admin" : "member",
       active: access.active === true,
       hasManabaPassword: user.data()?.manabaCredentialConfigured === true || typeof user.data()?.manabaPasswordEncrypted === "string",
+      experienceMode: access.experienceMode === "study-only" ? "study-only" : access.experienceMode === "pending" ? "pending" : "assignments",
     };
   }));
   return {
@@ -453,6 +483,8 @@ async function removeManabaCredential(studentNumber) {
 exports.setMyManabaPassword = onCall(CALL_OPTIONS, async (request) => {
   const studentNumber = authenticatedStudentNumber(request);
   await requireApprovedStudent(studentNumber);
+  const access = await db.collection("access").doc(authUidForStudent(studentNumber)).get();
+  if (access.data()?.experienceMode === "study-only") throw new HttpsError("permission-denied", "この画面ではmanaba連携を利用しません。");
   await saveManabaCredential(studentNumber, request.data?.password);
   return { changed: true };
 });
@@ -595,6 +627,7 @@ exports.authenticateCareMate = onCall(
       role,
     } = await requireApprovedStudent(studentNumber);
 
+    const experienceMode = await resolveExperienceMode(studentNumber, request.data?.entranceGrant);
     const isAdmin = role === "admin";
 
     if (needsPasswordUpgrade(storedHash)) {
@@ -617,6 +650,7 @@ exports.authenticateCareMate = onCall(
       {
         studentNumber,
         admin: isAdmin,
+        assignmentAccess: experienceMode === "assignments",
       }
     );
 
@@ -626,6 +660,8 @@ exports.authenticateCareMate = onCall(
       token,
       admin: isAdmin,
       role,
+      experienceMode,
+      assignmentAccess: experienceMode === "assignments",
     };
   }
 );

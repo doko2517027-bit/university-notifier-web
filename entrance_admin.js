@@ -11,8 +11,9 @@ document.getElementById("issueForm").addEventListener("submit", async (event) =>
   button.disabled = true;
   status.textContent = "発行中…";
   try {
-    await httpsCallable(functions, "issueEntrancePhrase")({ phrase: input.value.trim() });
-    status.textContent = "発行しました。10分以内に1回だけ使用できます。";
+    const experienceMode = new FormData(form).get("experienceMode") || "assignments";
+    await httpsCallable(functions, "issueEntrancePhrase")({ phrase: input.value.trim(), experienceMode });
+    status.textContent = `発行しました。10分以内に1回だけ使用できます（${experienceMode === "study-only" ? "課題通知なし" : "課題通知あり"}）。`;
     input.value = "";
   } catch (error) {
     console.error("入口文言発行エラー:", error);

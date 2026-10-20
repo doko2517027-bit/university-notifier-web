@@ -174,3 +174,4 @@ body.caremate-renewed {
 .dark .cm-dialog-close { background: #333; color: var(--cm-text); }
 .dark .cm-toast { background: #292929; color: #fff; }
 .dark .cm-assignment-deadline { color: #ffc299 !important; }
+[data-assignment-access="false"] [data-assignment-only] { display: none !important; }

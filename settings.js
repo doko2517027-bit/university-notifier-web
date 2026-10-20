@@ -4,6 +4,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
+const assignmentAccess = document.documentElement.dataset.assignmentAccess !== "false";
 const userRef = doc(db, "users", studentNumber);
 const accountSummary = document.getElementById("accountSummary");
 const manabaStatus = document.getElementById("manabaStatus");
@@ -18,7 +19,7 @@ try {
   const snapshot = await getDoc(userRef);
   const user = snapshot.data() || {};
   accountSummary.textContent = `${user.name || "学生"}（${studentNumber}）`;
-  const hasManabaPassword = user.manabaCredentialConfigured === true;
+  const hasManabaPassword = assignmentAccess && user.manabaCredentialConfigured === true;
   manabaLabel.textContent = hasManabaPassword ? "manabaパスワードを変更" : "manabaパスワードを登録";
   document.getElementById("manabaSaveButton").textContent = hasManabaPassword ? "パスワードを変更" : "パスワードを登録";
   removeManabaButton.hidden = !hasManabaPassword;

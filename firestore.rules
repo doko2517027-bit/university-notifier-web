@@ -19,6 +19,11 @@ service cloud.firestore {
       return approved() && request.auth.token.studentNumber == studentNumber;
     }
 
+    function assignmentEnabled() {
+      return approved()
+        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.experienceMode != 'study-only';
+    }
+
     function permittedStudent(studentNumber) {
       let uid = 'caremate-' + studentNumber;
       return exists(/databases/$(database)/documents/access/$(uid))
@@ -90,13 +95,13 @@ service cloud.firestore {
     }
 
     match /assignments/{studentNumber} {
-      allow get: if owner(studentNumber) || (admin() && permittedStudent(studentNumber));
+      allow get: if (owner(studentNumber) && assignmentEnabled()) || (admin() && permittedStudent(studentNumber));
       allow list: if false;
       allow write: if false;
     }
 
     match /calendarAssignments/{studentNumber}/items/{id} {
-      allow get, list: if owner(studentNumber);
+      allow get, list: if owner(studentNumber) && assignmentEnabled();
       allow write: if false;
     }
 

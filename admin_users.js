@@ -111,6 +111,7 @@ function accountCard(account) {
   meta.append(node("span", account.studentNumber === "2510044" ? "主管理者" : account.role === "admin" ? "管理者" : "学生", `cm-admin-chip ${account.role}`));
   meta.append(node("span", account.active ? "利用中" : "登録解除済み", `cm-admin-chip ${account.active ? "" : "inactive"}`));
   meta.append(node("span", `manaba ${account.hasManabaPassword ? "登録済み" : "未登録"}`, "cm-admin-chip"));
+  meta.append(node("span", account.experienceMode === "study-only" ? "課題通知なし" : account.experienceMode === "pending" ? "入口未設定" : "課題通知あり", "cm-admin-chip"));
   article.append(head, meta);
   if (!account.active) return article;
   const canEditAccount = account.studentNumber !== currentStudentNumber && (canManageRoles || account.role !== "admin");

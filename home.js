@@ -17,6 +17,7 @@ let month = new Date(now.getFullYear(), now.getMonth(), 1);
 let selected = dateKey(now);
 let assignments = [];
 let personalEvents = [];
+const assignmentAccess = document.documentElement.dataset.assignmentAccess !== "false";
 
 function dateKey(value) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
@@ -50,7 +51,7 @@ function openDay(key) {
   dayItems.replaceChildren();
   const tasks = assignments.filter((item) => keyFor(item) === key);
   const events = personalEvents.filter((item) => item.date === key).sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
-  if (!tasks.length && !events.length) dayItems.append(el("p", "この日の課題・予定はありません。", "cm-subtitle"));
+  if (!tasks.length && !events.length) dayItems.append(el("p", assignmentAccess ? "この日の課題・予定はありません。" : "この日の予定はありません。", "cm-subtitle"));
   for (const item of tasks) {
     const card = el("article", "", "cm-item cm-calendar-task");
     card.append(el("span", "manaba課題", "cm-item-kicker"), el("h3", item.title || "課題"), el("p", item.course || "科目名なし"));
@@ -97,7 +98,7 @@ function renderCalendar() {
     const events = personalEvents.filter((item) => item.date === key);
     const button = el("button", "", `cm-calendar-day${key === dateKey(new Date()) ? " is-today" : ""}${tasks.length || events.length ? " has-items" : ""}`);
     button.type = "button";
-    button.setAttribute("aria-label", `${monthIndex + 1}月${day}日、課題${tasks.length}件、予定${events.length}件`);
+    button.setAttribute("aria-label", assignmentAccess ? `${monthIndex + 1}月${day}日、課題${tasks.length}件、予定${events.length}件` : `${monthIndex + 1}月${day}日、予定${events.length}件`);
     button.append(el("span", day, "cm-calendar-day-number"));
     const labels = el("span", "", "cm-calendar-day-items");
     for (const task of tasks) labels.append(el("small", task.title || "課題", "cm-calendar-chip assignment"));
@@ -149,17 +150,17 @@ eventForm.addEventListener("submit", async (event) => {
 });
 
 const [currentResult, archivedResult, personalResult] = await Promise.allSettled([
-    getDoc(doc(db, "assignments", studentNumber)),
-    getDocs(collection(db, "calendarAssignments", studentNumber, "items")),
+    assignmentAccess ? getDoc(doc(db, "assignments", studentNumber)) : Promise.resolve(null),
+    assignmentAccess ? getDocs(collection(db, "calendarAssignments", studentNumber, "items")) : Promise.resolve(null),
     getDocs(collection(db, "calendarPersonal", studentNumber, "items")),
 ]);
 for (const result of [currentResult, archivedResult, personalResult]) {
   if (result.status === "rejected") console.error("カレンダーデータの読み込みエラー:", result.reason);
 }
-const currentItems = currentResult.status === "fulfilled" && Array.isArray(currentResult.value.data()?.assignments)
+const currentItems = currentResult.status === "fulfilled" && Array.isArray(currentResult.value?.data?.()?.assignments)
   ? currentResult.value.data().assignments : [];
 const archivedItems = archivedResult.status === "fulfilled"
-  ? archivedResult.value.docs.map((snapshot) => snapshot.data()) : [];
+  ? (archivedResult.value?.docs || []).map((snapshot) => snapshot.data()) : [];
 const unique = new Map();
 [...archivedItems, ...currentItems].forEach((item) => {
   const key = `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
