@@ -139,3 +139,37 @@ body.caremate-renewed {
   .cm-dialog { width: 100%; max-height: 88dvh; padding: 20px 15px max(18px, env(safe-area-inset-bottom)); border-radius: 18px 18px 12px 12px; }
   .cm-dialog .cm-list { grid-template-columns: 1fr; }
 }
+
+/* The same saved theme is used by the renewed shell and all study pages. */
+:root.dark {
+  --cm-primary: #55d9c5;
+  --cm-primary-light: #70e4d3;
+  --cm-bg: #121b28;
+  --cm-card: #1d2b3a;
+  --cm-text: #f2f7fc;
+  --cm-muted: #b5c7d9;
+  --cm-border: #43566c;
+  color-scheme: dark;
+}
+.dark body.caremate-renewed { background: var(--cm-bg); color: var(--cm-text); }
+.dark .cm-panel, .dark .cm-item, .dark .cm-user-action, .dark .cm-dialog,
+.dark .cm-calendar-day, .dark .cm-calendar-controls button { background: var(--cm-card); color: var(--cm-text); }
+.dark .cm-shortcuts, .dark .cm-nav { background: #1d2b3aef; border-color: var(--cm-border); }
+.dark .cm-shortcuts a { background: #2d4057; color: #deedff; }
+.dark .cm-shortcuts a:hover, .dark .cm-button:hover { background: #36506a; }
+.dark .cm-button { background: #293b50; color: var(--cm-text); border-color: var(--cm-border); }
+.dark .cm-button-primary { background: #087e71; border-color: #087e71; color: #fff; }
+.dark .cm-button-primary:hover { background: #0a6d63; color: #fff; }
+.dark .cm-button-danger { background: #4a2731; color: #ffdce0; border-color: #85515c; }
+.dark .cm-field, .dark .cm-dialog-form .cm-field { color: var(--cm-text); }
+.dark .cm-field input, .dark .cm-field select, .dark .cm-field textarea,
+.dark .cm-dialog-form input, .dark .cm-dialog-form textarea { background: #142233; color: var(--cm-text); border-color: #5c7086; }
+.dark .cm-field input::placeholder, .dark .cm-field textarea::placeholder { color: #a9b8c8; }
+.dark .cm-status, .dark .cm-item p, .dark .cm-calendar-weekdays { color: var(--cm-muted); }
+.dark .cm-calendar-day.has-items { background: #1a3a3c; border-color: #37786f; }
+.dark .cm-calendar-chip.assignment { background: #66343d; color: #ffe3e5; }
+.dark .cm-calendar-chip.personal { background: #23554b; color: #dcfff4; }
+.dark .cm-details { border-color: var(--cm-border); }
+.dark .cm-details > summary { color: #9ccaff; }
+.dark .cm-dialog-close { background: #37495c; color: var(--cm-text); }
+.dark .cm-assignment-deadline { color: #ffc299 !important; }

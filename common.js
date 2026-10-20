@@ -39,6 +39,10 @@ export function normalizeNavigation() {
 }
 
 export function setupTheme(button) {
+  if (window.CareMatePreferences) {
+    window.CareMatePreferences.bind(button);
+    return;
+  }
   if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
   if (!button) return;
   button.addEventListener("click", () => {

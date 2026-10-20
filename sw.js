@@ -1,6 +1,6 @@
 /* Renewed CareMate service worker: no protected HTML or legacy UI is cached. */
-const CACHE = "caremate-renewed-v2";
-const CORE = ["./", "index.html", "offline.html", "manifest.json", "icon-192.png", "icon-512.png"];
+const CACHE = "caremate-renewed-v3";
+const CORE = ["./", "index.html", "offline.html", "ui_preferences.js", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
@@ -32,8 +32,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   // Only the small, non-sensitive shell can be served offline.
-  if (CORE.some((asset) => asset !== "./" && url.pathname.endsWith(asset.replace(/^\.\//, "")))) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+  const coreAsset = CORE.find((asset) => asset !== "./" && url.pathname.endsWith(asset.replace(/^\.\//, "")));
+  if (coreAsset) {
+    event.respondWith(fetch(request).catch(() => caches.match(new URL(coreAsset, self.registration.scope).href)));
   }
 });
 
