@@ -44,7 +44,6 @@ const {
 
 const {
   hashPassword,
-  hashLegacyPassword,
   matchesPasswordHash,
   needsPasswordUpgrade,
   isValidNewPassword,
@@ -90,17 +89,6 @@ const credentialRef = (studentNumber) => db.collection("systemPrivate").doc("car
   .collection("accounts").doc(studentNumber);
 const manabaRef = (studentNumber) => db.collection("systemPrivate").doc("manabaCredentials")
   .collection("accounts").doc(studentNumber);
-const legacyManabaKey = () => Buffer.from("UniversityNotifier2026".padEnd(32, "0"), "utf8");
-
-function decryptLegacyManaba(value) {
-  const bytes = Buffer.from(value, "base64");
-  if (bytes.length < 29) throw new Error("Invalid legacy credential");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", legacyManabaKey(), bytes.subarray(0, 12));
-  decipher.setAuthTag(bytes.subarray(bytes.length - 16));
-  const plaintext = Buffer.concat([decipher.update(bytes.subarray(12, -16)), decipher.final()]).toString("utf8");
-  return String(JSON.parse(plaintext));
-}
-
 async function reserveLoginAttempt(request, studentNumber) {
   const source = String(
     request.rawRequest?.ip ||
@@ -303,7 +291,7 @@ exports.adminSetStudentAppPassword = onCall(CALL_OPTIONS, async (request) => {
     }
     requireManageableAccount(actorNumber, studentNumber, access.data());
     transaction.set(secretRef, { hash: hashPassword(password), passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
-    transaction.update(userRef, { appPasswordHash: FieldValue.delete(), passwordChangedAt: FieldValue.serverTimestamp() });
+    transaction.update(userRef, { passwordChangedAt: FieldValue.serverTimestamp() });
   });
   return { changed: true };
 });
@@ -321,7 +309,7 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
       name: String(user.data()?.name || "（氏名未登録）"),
       role: access.role === "admin" ? "admin" : "member",
       active: access.active === true,
-      hasManabaPassword: user.data()?.manabaCredentialConfigured === true || typeof user.data()?.manabaPasswordEncrypted === "string",
+      hasManabaPassword: user.data()?.manabaCredentialConfigured === true,
       experienceMode: access.experienceMode === "study-only" ? "study-only" : access.experienceMode === "pending" ? "pending" : "assignments",
     };
   }));
@@ -330,57 +318,6 @@ exports.adminListCareMateAccounts = onCall(CALL_OPTIONS, async (request) => {
     currentStudentNumber: actorNumber,
     accounts: accounts.filter(Boolean).sort((a, b) => a.studentNumber.localeCompare(b.studentNumber)),
   };
-});
-
-// One-time, idempotent migration. Each account is moved atomically; any
-// unreadable manaba value is left untouched and reported without its content.
-exports.adminMigrateLegacyCredentials = onCall(CALL_OPTIONS, async (request) => {
-  const { studentNumber: actor } = await requireAdmin(request);
-  if (actor !== PRIMARY_ADMIN_NUMBER) throw new HttpsError("permission-denied", "主管理者のみ実行できます。");
-  const snapshot = await db.collection("access").get();
-  const result = { checked: 0, passwordsMoved: 0, manabaMoved: 0, failed: [] };
-  for (const accessDoc of snapshot.docs) {
-    const number = accessDoc.id.replace(/^caremate-/, "");
-    if (!STUDENT_NUMBER_PATTERN.test(number)) continue;
-    result.checked++;
-    const userRef = db.collection("users").doc(number);
-    try {
-      const changed = await db.runTransaction(async (transaction) => {
-        const [user, appSecret, manabaSecret] = await Promise.all([
-          transaction.get(userRef), transaction.get(credentialRef(number)), transaction.get(manabaRef(number)),
-        ]);
-        if (!user.exists) return { app: false, manaba: false };
-        const publicData = user.data() || {};
-        const updates = {};
-        let app = false;
-        let manaba = false;
-        if (typeof publicData.appPasswordHash === "string") {
-          if (!appSecret.exists) {
-            transaction.set(credentialRef(number), { hash: hashLegacyPassword(publicData.appPasswordHash), migratedAt: FieldValue.serverTimestamp() });
-          }
-          updates.appPasswordHash = FieldValue.delete();
-          app = true;
-        }
-        if (typeof publicData.manabaPasswordEncrypted === "string") {
-          if (!manabaSecret.exists) {
-            transaction.set(manabaRef(number), {
-              password: decryptLegacyManaba(publicData.manabaPasswordEncrypted), migratedAt: FieldValue.serverTimestamp(),
-            });
-          }
-          updates.manabaPasswordEncrypted = FieldValue.delete();
-          updates.manabaCredentialConfigured = true;
-          manaba = true;
-        }
-        if (Object.keys(updates).length) transaction.update(userRef, updates);
-        return { app, manaba };
-      });
-      result.passwordsMoved += changed.app ? 1 : 0;
-      result.manabaMoved += changed.manaba ? 1 : 0;
-    } catch {
-      result.failed.push(number);
-    }
-  }
-  return result;
 });
 
 // Read-only, point-in-time audit. This is not a penetration test or a proof
@@ -620,7 +557,7 @@ exports.authenticateCareMate = onCall(
       .get();
 
     const privateCredential = await credentialRef(studentNumber).get();
-    const storedHash = privateCredential.data()?.hash || userSnapshot.data()?.appPasswordHash;
+    const storedHash = privateCredential.data()?.hash;
     if (!userSnapshot.exists || !matchesPasswordHash(password, storedHash)) {
       throw unauthorized();
     }
@@ -637,13 +574,10 @@ exports.authenticateCareMate = onCall(
     if (needsPasswordUpgrade(storedHash)) {
       const upgradedHash = hashPassword(password);
       await db.runTransaction(async (transaction) => {
-        const [currentSecret, currentUser] = await Promise.all([
-          transaction.get(credentialRef(studentNumber)), transaction.get(db.collection("users").doc(studentNumber)),
-        ]);
-        const currentHash = currentSecret.data()?.hash || currentUser.data()?.appPasswordHash;
+        const currentSecret = await transaction.get(credentialRef(studentNumber));
+        const currentHash = currentSecret.data()?.hash;
         if (currentHash === storedHash) {
           transaction.set(credentialRef(studentNumber), { hash: upgradedHash, passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
-          transaction.update(db.collection("users").doc(studentNumber), { appPasswordHash: FieldValue.delete() });
         }
       });
     }
@@ -722,7 +656,7 @@ exports.changeCareMatePassword = onCall(
           );
         }
 
-        const storedHash = secretSnapshot.data()?.hash || userSnapshot.data()?.appPasswordHash;
+        const storedHash = secretSnapshot.data()?.hash;
 
         // 現在のパスワードを照合
         if (
@@ -745,7 +679,7 @@ exports.changeCareMatePassword = onCall(
         }
 
         transaction.set(secretRef, { hash: hashPassword(newPassword), passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
-        transaction.update(userRef, { appPasswordHash: FieldValue.delete(), passwordChangedAt: FieldValue.serverTimestamp() });
+        transaction.update(userRef, { passwordChangedAt: FieldValue.serverTimestamp() });
       }
     );
 

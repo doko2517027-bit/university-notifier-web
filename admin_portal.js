@@ -10,23 +10,6 @@ document.getElementById("signOutButton").addEventListener("click", () => {
 const securityButton = document.getElementById("runSecurityCheck");
 const securityStatus = document.getElementById("securityStatus");
 const securityResults = document.getElementById("securityResults");
-const migrateButton = document.getElementById("migrateCredentials");
-migrateButton?.addEventListener("click", async () => {
-  if (!confirm("既存のログイン・manaba認証情報を、ブラウザから読めない安全な保存先へ移行しますか？")) return;
-  migrateButton.disabled = true;
-  securityStatus.textContent = "認証情報を安全に移行中…";
-  try {
-    const response = await httpsCallable(functions, "adminMigrateLegacyCredentials")();
-    const data = response.data || {};
-    securityStatus.textContent = data.failed?.length
-      ? `移行できないアカウントが${data.failed.length}件あります。データは削除せず維持しました。`
-      : `移行完了：ログイン${data.passwordsMoved || 0}件、manaba${data.manabaMoved || 0}件。`;
-    if (!data.failed?.length) migrateButton.hidden = true;
-  } catch (error) {
-    console.error("認証情報移行エラー:", error);
-    securityStatus.textContent = "移行できませんでした。主管理者でログインしているか確認してください。";
-  } finally { migrateButton.disabled = false; }
-});
 securityButton?.addEventListener("click", async () => {
   securityButton.disabled = true;
   securityStatus.textContent = "権限と登録データを確認中…";
