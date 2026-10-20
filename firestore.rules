@@ -47,13 +47,6 @@ service cloud.firestore {
       match /pushSubscriptions/{deviceId} {
         allow read, create, update, delete: if owner(studentNumber);
       }
-      match /assignmentCompletions/{assignmentId} {
-        allow read, delete: if owner(studentNumber);
-        allow create, update: if owner(studentNumber)
-          && request.resource.data.keys().hasOnly(['submitted', 'updatedAt'])
-          && request.resource.data.submitted == true
-          && request.resource.data.updatedAt is timestamp;
-      }
       match /examProgress/{id} {
         allow read, create, update: if owner(studentNumber);
         allow delete: if false;
@@ -105,6 +98,36 @@ service cloud.firestore {
     match /calendarAssignments/{studentNumber}/items/{id} {
       allow get, list: if owner(studentNumber);
       allow write: if false;
+    }
+
+    match /calendarPersonal/{studentNumber}/items/{id} {
+      allow get, list: if owner(studentNumber);
+      allow create: if owner(studentNumber)
+        && request.resource.data.keys().hasOnly(['title', 'date', 'time', 'note', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.time is string
+        && request.resource.data.time.size() <= 5
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      allow update: if owner(studentNumber)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'date', 'time', 'note', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.time is string
+        && request.resource.data.time.size() <= 5
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if owner(studentNumber);
     }
 
     match /system/exam {

@@ -2,7 +2,6 @@ import {
   db,
   setupTheme,
   initializePage,
-  loadProfileImage,
   isAdmin,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
@@ -24,12 +23,6 @@ import { isSubjectInMode, getModeCategories, groupCatalogItems } from "./exam_ca
 
 const elements = {
   themeButton: document.getElementById("themeButton"),
-
-  profileButton: document.getElementById("profileButton"),
-
-  profileImage: document.getElementById("topProfileImage"),
-
-  backButton: document.getElementById("backButton"),
 
   examTitle: document.getElementById("examTitle"),
 
@@ -177,7 +170,6 @@ if (window.matchMedia("(max-width: 650px)").matches) {
 setupEvents();
 
 await initializePage([
-  loadProfileImage(elements.profileImage),
 
   setupRoleTabs(),
 
@@ -194,14 +186,6 @@ await initializePage([
 ======================================== */
 
 function setupEvents() {
-  elements.backButton?.addEventListener("click", () => {
-    location.href = "app.html";
-  });
-
-  elements.profileButton?.addEventListener("click", () => {
-    location.href = "settings.html";
-  });
-
   elements.searchInput?.addEventListener("input", () => {
     elements.clearSearchButton.hidden = elements.searchInput.value === "";
 

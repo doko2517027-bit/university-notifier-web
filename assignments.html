@@ -4,28 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-4">
   <title>課題 | CareMate</title>
 </head>
 <body class="caremate-renewed">
   <main class="cm-main">
     <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">課題</h1></div></header>
-    <p class="cm-subtitle">manabaの未提出課題と、過去の締切をカレンダーで確認できます。</p>
+    <p class="cm-subtitle">締切が近い順に表示しています。課題の内容を確認して manaba から開けます。</p>
     <section class="cm-panel">
-      <h2>未提出の課題</h2>
-      <div id="assignmentList" class="cm-list" aria-live="polite">読み込み中…</div>
-    </section>
-    <section class="cm-panel">
-      <div class="cm-calendar-header"><h2>課題カレンダー</h2><div class="cm-calendar-controls"><button id="previousMonth" type="button" aria-label="前の月">‹</button><strong id="calendarMonth"></strong><button id="nextMonth" type="button" aria-label="次の月">›</button></div></div>
-      <div class="cm-calendar-weekdays" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-      <div id="calendarGrid" class="cm-calendar-grid" aria-label="課題カレンダー"></div>
-      <h3 id="calendarDateTitle" class="cm-calendar-date-title">日付を選択してください</h3>
-      <div id="calendarDayItems" class="cm-list" aria-live="polite"></div>
+      <div id="assignmentList" class="cm-list cm-assignment-list" aria-live="polite">読み込み中…</div>
     </section>
   </main>
-  <nav class="cm-nav" aria-label="メインメニュー">
-    <a href="app.html"><span aria-hidden="true">📝</span><span>テスト</span></a><a href="admin.html" data-role-tab="admin" hidden><span aria-hidden="true">⚙️</span><span>管理</span></a><a href="settings.html" data-role-tab="member" hidden><span aria-hidden="true">👤</span><span>設定</span></a><a href="assignments.html" aria-current="page"><span aria-hidden="true">📚</span><span>課題</span></a>
-  </nav>
+  <nav class="cm-nav" aria-label="メインメニュー"></nav>
   <script type="module" src="page_bootstrap.js" data-care-page data-entry="./assignments.js"></script>
 </body>
 </html>
