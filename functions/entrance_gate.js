@@ -11,7 +11,8 @@
 const { onCall, HttpsError } =
   require("firebase-functions/v2/https");
 
-const admin = require("firebase-admin");
+const { getApps, initializeApp } = require("firebase-admin/app");
+const { FieldValue, getFirestore, Timestamp } = require("firebase-admin/firestore");
 
 const crypto = require("node:crypto");
 
@@ -20,11 +21,11 @@ const crypto = require("node:crypto");
 // Firebase初期化
 // ========================================
 
-if (!admin.apps.length) {
-  admin.initializeApp();
+if (!getApps().length) {
+  initializeApp();
 }
 
-const db = admin.firestore();
+const db = getFirestore();
 
 
 // ========================================
@@ -141,7 +142,7 @@ exports.issueEntrancePhrase = onCall(
     const now = Date.now();
 
     const expiresAt =
-      admin.firestore.Timestamp.fromMillis(
+      Timestamp.fromMillis(
         now + EXPIRES_MINUTES * 60 * 1000
       );
 
@@ -154,7 +155,7 @@ exports.issueEntrancePhrase = onCall(
       usedAt: null,
 
       createdAt:
-        admin.firestore.FieldValue.serverTimestamp(),
+        FieldValue.serverTimestamp(),
 
       expiresAt: expiresAt,
 
@@ -260,7 +261,7 @@ exports.redeemEntrancePhrase = onCall(
             failures,
             windowStart: withinWindow ? attempt.windowStart : now,
             blockedUntil: failures >= MAX_FAILED_ATTEMPTS ? now + ATTEMPT_WINDOW_MS : 0,
-            expiresAt: admin.firestore.Timestamp.fromMillis(now + 2 * ATTEMPT_WINDOW_MS),
+            expiresAt: Timestamp.fromMillis(now + 2 * ATTEMPT_WINDOW_MS),
           });
           return { ok: false };
         }
@@ -271,15 +272,15 @@ exports.redeemEntrancePhrase = onCall(
           .collection("tokens").doc(grantHash);
         transaction.create(grantRef, {
           experienceMode: data.experienceMode === "study-only" ? "study-only" : "assignments",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          expiresAt: admin.firestore.Timestamp.fromMillis(now + GRANT_EXPIRES_MINUTES * 60 * 1000),
+          createdAt: FieldValue.serverTimestamp(),
+          expiresAt: Timestamp.fromMillis(now + GRANT_EXPIRES_MINUTES * 60 * 1000),
           usedAt: null,
         });
 
         // 認証成功 → 使用済みに変更
         transaction.update(entranceRef, {
           usedAt:
-            admin.firestore.FieldValue.serverTimestamp()
+            FieldValue.serverTimestamp()
         });
         transaction.delete(attemptRef);
 
