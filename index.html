@@ -2,7 +2,7 @@
 <html lang="ja">
 
 <head>
-    <script src="ui_preferences.js?v=20261020-1"></script>
+    <script src="ui_preferences.js?v=20261020-2"></script>
     <meta charset="UTF-8">
 
     <meta
@@ -249,7 +249,7 @@
 
 </head>
 
-<body class="cm-login-page">
+<body class="cm-login-page cm-entry-notice">
 
     <!-- =====================================
          ① 一般利用者向け終了画面
@@ -439,6 +439,7 @@
 
             // ログイン画面を表示
             loginView.hidden = false;
+            document.body.classList.remove("cm-entry-notice");
 
             // login.jsの二重読み込みを防止
             if (loginInitialized) {
@@ -581,8 +582,11 @@
                     // 認証失敗
                     // ====================================
 
-                    entryMessage.textContent =
-                        "検索結果はありません";
+                    // 入口文言ではなかった場合は通常のGoogle検索へ。
+                    window.location.assign(
+                        "https://www.google.com/search?q=" +
+                        encodeURIComponent(phrase)
+                    );
 
 
                 } catch (error) {

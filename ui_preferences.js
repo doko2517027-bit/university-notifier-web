@@ -55,6 +55,13 @@
     .dark .notice p, .dark .login-header p, .dark .entry-message { color: #b8c9db; }
     .dark .login-card input, .dark .search-box input { background: #142132; border-color: #597087; color: #f3f7fb; }
     .dark .search-box button { color: #d9e6f4; }
+    .cm-entry-notice .cm-floating-theme { display: none; }
+    body.cm-entry-notice.cm-has-floating-theme { padding-top: max(24px, env(safe-area-inset-top)) !important; }
+    .dark body.cm-entry-notice { background: #f8fafc; color: #1e293b; color-scheme: light; }
+    .dark body.cm-entry-notice .notice, .dark body.cm-entry-notice .search-box { background: #fff; color: #1e293b; border-color: #e2e8f0; }
+    .dark body.cm-entry-notice .notice p, .dark body.cm-entry-notice .entry-message { color: #64748b; }
+    .dark body.cm-entry-notice .search-box input { background: transparent; color: #1e293b; }
+    .dark body.cm-entry-notice .search-box button { color: #64748b; }
     .dark body.cm-offline-page { background: #111b29; color: #f3f7fb; }
     .dark body.cm-offline-page main { background: #1d2a3b; }
     .dark body.cm-offline-page p { color: #b8c9db; }
