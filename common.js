@@ -21,6 +21,9 @@ export function normalizeNavigation() {
   for (const nav of document.querySelectorAll(".bottom-nav, .cm-nav")) {
     nav.replaceChildren();
     nav.setAttribute("aria-label", "メインメニュー");
+    // Some account types intentionally have one fewer tab. Size the grid from
+    // the tabs that are actually visible instead of leaving a blank column.
+    nav.style.gridTemplateColumns = `repeat(${entries.length}, minmax(0, 1fr))`;
     for (const entry of entries) {
       const link = document.createElement("a");
       link.href = entry.href;

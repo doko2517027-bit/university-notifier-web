@@ -35,6 +35,11 @@ test("課題通知なしでは課題・manaba導線と直接アクセスを無�
   assert.match(rules, /calendarAssignments/);
 });
 
+test("表示されるタブ数に合わせて下部ナビを均等配置する", async () => {
+  const nav = await source("./common.js");
+  assert.match(nav, /gridTemplateColumns = `repeat\(\$\{entries\.length\}, minmax\(0, 1fr\)\)`/);
+});
+
 test("新規アカウントは入口の一回限りgrantで利用形態を確定する", async () => {
   const functions = await source("./functions/index.js");
   assert.match(functions, /experienceMode: "pending"/);
