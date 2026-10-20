@@ -77,6 +77,10 @@ const SITE_ORIGIN =
 const CALL_OPTIONS = {
   region: REGION,
   cors: [SITE_ORIGIN],
+  serviceAccount: "caremate-functions@universitynotifier-67517.iam.gserviceaccount.com",
+  maxInstances: 3,
+  concurrency: 20,
+  timeoutSeconds: 30,
 };
 
 const STUDENT_NUMBER_PATTERN = /^\d{7}$/;

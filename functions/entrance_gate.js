@@ -37,6 +37,7 @@ const EXPIRES_MINUTES = 10;
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 8;
 const GRANT_EXPIRES_MINUTES = 30;
+const RUNTIME_SERVICE_ACCOUNT = "caremate-functions@universitynotifier-67517.iam.gserviceaccount.com";
 
 // 認証文言を保存するFirestoreドキュメント
 const entranceRef = db
@@ -99,7 +100,10 @@ async function verifyAdmin(uid) {
 exports.issueEntrancePhrase = onCall(
   {
     region: REGION,
-    maxInstances: 2
+    maxInstances: 2,
+    concurrency: 20,
+    timeoutSeconds: 30,
+    serviceAccount: RUNTIME_SERVICE_ACCOUNT,
   },
 
   async (request) => {
@@ -173,7 +177,10 @@ exports.issueEntrancePhrase = onCall(
 exports.redeemEntrancePhrase = onCall(
   {
     region: REGION,
-    maxInstances: 2
+    maxInstances: 2,
+    concurrency: 20,
+    timeoutSeconds: 30,
+    serviceAccount: RUNTIME_SERVICE_ACCOUNT,
   },
 
   async (request) => {
