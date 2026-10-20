@@ -273,10 +273,15 @@ async function handleLogin() {
 // ログインボタン
 // ========================================
 
-loginButton.addEventListener(
-    "click",
-    handleLogin
-);
+const loginForm = document.getElementById("loginForm");
+if (loginForm) {
+    loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        void handleLogin();
+    });
+} else {
+    loginButton.addEventListener("click", handleLogin);
+}
 
 
 // ========================================

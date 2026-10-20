@@ -167,11 +167,64 @@ async function requireApprovedStudent(studentNumber) {
   };
 }
 
+async function requireAdmin(request) {
+  const studentNumber = authenticatedStudentNumber(request);
+  const { uid, role } = await requireApprovedStudent(studentNumber);
+  if (role !== "admin") {
+    throw new HttpsError("permission-denied", "管理者権限がありません。");
+  }
+  return { studentNumber, uid };
+}
+
 // A claim in an old token is not sufficient: check the current allow-list.
 exports.checkCareMateAccess = onCall(CALL_OPTIONS, async (request) => {
   const studentNumber = authenticatedStudentNumber(request);
   const { role } = await requireApprovedStudent(studentNumber);
   return { active: true, role };
+});
+
+// 管理者が新しい学生アカウントを登録する。管理者権限は画面ではなく
+// サーバーで照合し、同一学籍番号の二重登録をトランザクションで防ぐ。
+exports.createCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
+  const { studentNumber: createdBy } = await requireAdmin(request);
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const name = String(request.data?.name || "").trim();
+  const password = request.data?.password;
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) {
+    throw new HttpsError("invalid-argument", "学籍番号は7桁で入力してください。");
+  }
+  if (!name || name.length > 80) {
+    throw new HttpsError("invalid-argument", "氏名を入力してください（80文字以内）。");
+  }
+  if (!isValidNewPassword(password)) {
+    throw new HttpsError("invalid-argument", "初期パスワードは6〜128文字で設定してください。");
+  }
+
+  const uid = authUidForStudent(studentNumber);
+  const accessRef = db.collection("access").doc(uid);
+  const userRef = db.collection("users").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [accessSnapshot, userSnapshot] = await Promise.all([
+      transaction.get(accessRef), transaction.get(userRef),
+    ]);
+    if (accessSnapshot.exists || userSnapshot.exists) {
+      throw new HttpsError("already-exists", "この学籍番号はすでに登録されています。");
+    }
+    const now = FieldValue.serverTimestamp();
+    transaction.create(userRef, {
+      name,
+      appPasswordHash: hashPassword(password),
+      createdAt: now,
+      createdBy,
+    });
+    transaction.create(accessRef, {
+      active: true,
+      role: "member",
+      createdAt: now,
+      createdBy,
+    });
+  });
+  return { created: true, studentNumber, role: "member" };
 });
 
 
