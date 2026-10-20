@@ -117,7 +117,7 @@ function accountCard(account) {
   if (!account.active) return article;
   const canEditAccount = account.studentNumber !== currentStudentNumber && (canManageRoles || account.role !== "admin");
   if (!canEditAccount && account.studentNumber !== "2510044") article.append(node("p", "管理者アカウントの変更は主管理者のみ可能です。"));
-  if (!canEditAccount && account.studentNumber === "2510044") article.append(node("p", "主管理者アカウントは他の管理者から変更できません。"));
+  if (!canEditAccount && account.studentNumber === "2510044") article.append(node("p", "主管理者本人の権限と登録状態は、この画面から変更できません。"));
   if (!canEditAccount) return article;
   const details = document.createElement("details");
   details.className = "cm-details";
