@@ -34,7 +34,9 @@ service cloud.firestore {
     }
 
     match /users/{studentNumber} {
-      allow get: if owner(studentNumber) || (admin() && permittedStudent(studentNumber));
+      // Admin lists use a sanitized callable; never expose another user's
+      // entire document (which still contains legacy credential fields).
+      allow get: if owner(studentNumber);
       allow list: if false;
       allow create, delete: if false;
       allow update: if owner(studentNumber)
