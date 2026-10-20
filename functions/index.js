@@ -306,8 +306,8 @@ exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
       { id: "primary", level: primary?.data()?.active === true && primary?.data()?.role === "admin" ? "pass" : "fail", text: "主管理者2510044の利用権限" },
       { id: "roles", level: invalidAccess.length ? "fail" : "pass", text: `権限データの形式（異常 ${invalidAccess.length} 件）` },
       { id: "users", level: missingUsers ? "fail" : "pass", text: `有効な利用者の登録整合性（不一致 ${missingUsers} 件）` },
-      { id: "hashes", level: readableHashes ? "warn" : "pass", text: `利用者ドキュメント内のパスワードハッシュ（${readableHashes} 件）` },
-      { id: "manaba", level: legacyManaba ? "warn" : "pass", text: `旧方式で保存されたmanaba認証情報（${legacyManaba} 件）` },
+      { id: "hashes", level: readableHashes ? "fail" : "pass", text: `パスワードハッシュが利用者ドキュメント内に存在（${readableHashes} 件・権限のあるブラウザから文書全体を取得可能）` },
+      { id: "manaba", level: legacyManaba ? "warn" : "pass", text: `旧方式のmanaba認証情報（${legacyManaba} 件・暗号化鍵がWebコード内）` },
       { id: "scope", level: "unknown", text: "Firestore/Storageの本番ルール・IAM・Renderはこのボタンでは検証できません" },
     ],
   };

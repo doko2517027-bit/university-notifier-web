@@ -17,7 +17,7 @@ securityButton?.addEventListener("click", async () => {
   try {
     const response = await httpsCallable(functions, "adminRunSecurityCheck")();
     const checks = response.data?.checks || [];
-    const labels = { pass: "良好", warn: "要確認", fail: "異常", unknown: "未検査" };
+    const labels = { pass: "良好", warn: "要改善", fail: "要修正", unknown: "未検査" };
     for (const check of checks) {
       const row = document.createElement("div");
       row.className = `cm-security-row ${["pass", "warn", "fail", "unknown"].includes(check.level) ? check.level : "unknown"}`;
