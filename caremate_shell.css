@@ -110,8 +110,8 @@ body.caremate-renewed {
 .cm-calendar-header h2 { margin-bottom: 2px; }
 .cm-calendar-header .cm-subtitle { margin: 2px 0 0; font-size: 13px; }
 .cm-calendar-day-items { display: grid; gap: 2px; width: 100%; margin-top: 3px; }
-.cm-calendar-chip { display: block; max-width: 100%; overflow: hidden; padding: 2px 4px; border-radius: 5px; font-size: 10px; font-weight: 750; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.cm-calendar-chip.assignment { color: #87483a; background: #fff0e9; }
+.cm-calendar-chip { display: block; width: 100%; min-width: 0; overflow: hidden; padding: 3px 4px; border-radius: 4px; font-size: 10px; font-weight: 750; line-height: 1.25; text-overflow: clip; white-space: nowrap; }
+.cm-calendar-chip.assignment { color: #a54b50; background: #ffe7e8; }
 .cm-calendar-chip.personal { color: #146c5b; background: #dff5ef; }
 .cm-calendar-more { color: var(--cm-muted); font-size: 10px; }
 .cm-item-kicker { display: block; margin-bottom: 5px; color: var(--cm-primary); font-size: 12px; font-weight: 800; }

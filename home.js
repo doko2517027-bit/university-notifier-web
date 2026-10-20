@@ -100,9 +100,8 @@ function renderCalendar() {
     button.setAttribute("aria-label", `${monthIndex + 1}月${day}日、課題${tasks.length}件、予定${events.length}件`);
     button.append(el("span", day, "cm-calendar-day-number"));
     const labels = el("span", "", "cm-calendar-day-items");
-    for (const task of tasks.slice(0, 2)) labels.append(el("small", `課 ${task.title || "課題"}`, "cm-calendar-chip assignment"));
-    for (const event of events.slice(0, Math.max(0, 2 - Math.min(tasks.length, 2)))) labels.append(el("small", `予 ${event.title}`, "cm-calendar-chip personal"));
-    if (tasks.length + events.length > 2) labels.append(el("small", `ほか ${tasks.length + events.length - 2}件`, "cm-calendar-more"));
+    for (const task of tasks) labels.append(el("small", task.title || "課題", "cm-calendar-chip assignment"));
+    for (const event of events) labels.append(el("small", event.title, "cm-calendar-chip personal"));
     button.append(labels);
     button.addEventListener("click", () => openDay(key));
     grid.append(button);
@@ -149,21 +148,26 @@ eventForm.addEventListener("submit", async (event) => {
   } finally { submit.disabled = false; }
 });
 
-try {
-  const [current, archived, personal] = await Promise.all([
+const [currentResult, archivedResult, personalResult] = await Promise.allSettled([
     getDoc(doc(db, "assignments", studentNumber)),
     getDocs(collection(db, "calendarAssignments", studentNumber, "items")),
     getDocs(collection(db, "calendarPersonal", studentNumber, "items")),
-  ]);
-  const currentItems = Array.isArray(current.data()?.assignments) ? current.data().assignments : [];
-  const unique = new Map();
-  [...archived.docs.map((snapshot) => snapshot.data()), ...currentItems].forEach((item) => {
-    const key = `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
-    unique.set(key, { ...unique.get(key), ...item });
-  });
-  assignments = [...unique.values()];
-  personalEvents = personal.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() })).filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.date || ""));
-} catch (error) {
-  console.error("ホームの課題カレンダー読み込みエラー:", error);
+]);
+for (const result of [currentResult, archivedResult, personalResult]) {
+  if (result.status === "rejected") console.error("カレンダーデータの読み込みエラー:", result.reason);
 }
+const currentItems = currentResult.status === "fulfilled" && Array.isArray(currentResult.value.data()?.assignments)
+  ? currentResult.value.data().assignments : [];
+const archivedItems = archivedResult.status === "fulfilled"
+  ? archivedResult.value.docs.map((snapshot) => snapshot.data()) : [];
+const unique = new Map();
+[...archivedItems, ...currentItems].forEach((item) => {
+  const key = `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
+  unique.set(key, { ...unique.get(key), ...item });
+});
+assignments = [...unique.values()];
+personalEvents = personalResult.status === "fulfilled"
+  ? personalResult.value.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))
+    .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.date || ""))
+  : [];
 renderCalendar();

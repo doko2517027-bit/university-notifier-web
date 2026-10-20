@@ -6,6 +6,7 @@ import { normalizeNavigation, setStudentNumber } from "./common.js";
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";
 const entry = pageScript?.dataset.entry || "";
+let pageAuthorized = false;
 
 try {
   await auth.authStateReady();
@@ -41,8 +42,21 @@ try {
   document.querySelectorAll("[data-role-tab]").forEach((tab) => {
     tab.hidden = tab.dataset.roleTab !== role;
   });
-  if (entry) await import(entry);
+  pageAuthorized = true;
 } catch (error) {
   console.error("CareMate画面認証エラー:", error);
   if (!error?.redirecting) location.replace("index.html");
+}
+
+if (pageAuthorized && entry) {
+  try {
+    await import(entry);
+  } catch (error) {
+    console.error("CareMate画面読み込みエラー:", error);
+    const message = document.createElement("p");
+    message.className = "cm-status";
+    message.setAttribute("role", "alert");
+    message.textContent = "画面を読み込めませんでした。更新してもう一度お試しください。";
+    document.querySelector("main")?.prepend(message);
+  }
 }

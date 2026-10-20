@@ -1,5 +1,5 @@
 import { auth, db } from "./auth_core.js";
-import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
 const list = document.getElementById("assignmentList");
@@ -40,18 +40,9 @@ function card(item) {
 }
 
 try {
-  const [currentSnap, archivedSnap] = await Promise.all([
-    getDoc(doc(db, "assignments", studentNumber)),
-    getDocs(collection(db, "calendarAssignments", studentNumber, "items")),
-  ]);
+  const currentSnap = await getDoc(doc(db, "assignments", studentNumber));
   const current = Array.isArray(currentSnap.data()?.assignments) ? currentSnap.data().assignments : [];
-  const archived = archivedSnap.docs.map((entry) => entry.data());
-  const unique = new Map();
-  [...archived, ...current].forEach((item) => {
-    const key = `${item.url || ""}|${item.course || ""}|${item.title || ""}|${item.deadlineText || item.deadline || ""}`;
-    unique.set(key, { ...unique.get(key), ...item });
-  });
-  const sorted = [...unique.values()].sort((a, b) => dueDate(a) - dueDate(b));
+  const sorted = [...current].sort((a, b) => dueDate(a) - dueDate(b));
   list.replaceChildren();
   if (!sorted.length) list.append(text("p", "課題はありません。", "cm-subtitle"));
   else sorted.forEach((item) => list.append(card(item)));
