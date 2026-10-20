@@ -1,115 +1,299 @@
-import {
-  db,
-  initializePage,
-  setupOfflineAlert,
-  signInCareMateAuth,
-  refreshAdminClaim,
-  showLoadingIndicator,
-  hideLoadingIndicator,
-} from "./common.js?v=20260929-7";
+/**
+ * CareMate ログイン処理
+ *
+ * ・新しいauth_core.jsを使用
+ * ・Firebase Functionsで認証
+ * ・許可されたユーザーのみログイン
+ * ・ログイン成功後はapp.htmlへ移動
+ */
 
 import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
+    db,
+    signInCareMateAuth
+} from "./auth_core.js";
+
+import {
+    doc,
+    getDoc,
+    updateDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const studentNumber = document.getElementById("studentNumber");
-const appPassword = document.getElementById("appPassword");
-const loginButton = document.getElementById("loginButton");
-const registerButton = document.getElementById("registerButton");
 
-await initializePage();
+// ========================================
+// HTML要素
+// ========================================
 
-registerButton.addEventListener("click", () => {
-  showLoadingIndicator("登録画面を開いています…");
-  location.href = "register.html";
-});
+const studentNumberInput =
+    document.getElementById("studentNumber");
 
-loginButton.addEventListener("click", async () => {
-  const value = studentNumber.value.trim();
+const appPasswordInput =
+    document.getElementById("appPassword");
 
-  if (!/^\d{7}$/.test(value)) {
-    alert("学籍番号は7桁の数字で入力してください。");
-    return;
-  }
+const loginButton =
+    document.getElementById("loginButton");
 
-  if (appPassword.value.trim() === "") {
-    alert("パスワードを入力してください。");
-    return;
-  }
+const loginMessage =
+    document.getElementById("loginMessage");
 
-  const originalLabel = loginButton.textContent;
-  let navigating = false;
-  loginButton.disabled = true;
-  loginButton.textContent = "ログイン中…";
-  showLoadingIndicator("ログインを確認しています…");
-  const slowTimer = setTimeout(() => {
-    showLoadingIndicator("接続に時間がかかっています…");
-  }, 10000);
-  try {
-    const userRef = doc(db, "users", value);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      alert("登録されていません。");
-      return;
-    }
-    const user = userSnap.data();
-    const inputHash = await hashPassword(appPassword.value);
-    if (inputHash !== user.appPasswordHash) {
-      alert("学籍番号またはパスワードが違います。");
-      return;
+
+// ========================================
+// メッセージ表示
+// ========================================
+
+function showLoginMessage(message) {
+
+    if (loginMessage) {
+        loginMessage.textContent = message;
+    } else if (message) {
+        alert(message);
     }
 
-    showLoadingIndicator("ログインしています…");
-    await signInCareMateAuth(value, appPassword.value);
-    await refreshAdminClaim();
-
-    localStorage.setItem("registered", "true");
-    localStorage.setItem("loggedIn", "true");
-    localStorage.setItem("studentNumber", value);
-    localStorage.setItem("department", user.department || "");
-    localStorage.setItem("major", user.major || "");
-    localStorage.setItem("grade", user.grade || "");
-    localStorage.setItem("manabaId", user.manabaId || "");
-    localStorage.setItem("migrated", "true");
-
-    // 利用時刻の保存が遅くてもログイン画面から先へ進める。
-    const lastLoginUpdate = updateDoc(userRef, {
-      lastLoginAt: serverTimestamp(),
-      lastActiveAt: serverTimestamp(),
-    }).catch((error) => console.warn("最終ログイン時刻を保存できませんでした:", error));
-    await Promise.race([
-      lastLoginUpdate,
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-    ]);
-
-    navigating = true;
-    showLoadingIndicator("ホームを開いています…");
-    location.href = "index.html";
-  } catch (error) {
-    console.error("Firebase認証エラー:", error);
-    alert(
-      error?.code === "functions/unauthenticated"
-        ? "学籍番号またはパスワードが違います。"
-        : "ログインできませんでした。通信状態を確認して、時間をおいて再度お試しください。",
-    );
-  } finally {
-    clearTimeout(slowTimer);
-    if (!navigating) {
-      hideLoadingIndicator();
-      loginButton.disabled = false;
-      loginButton.textContent = originalLabel;
-    }
-  }
-});
-
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
 }
+
+
+// ========================================
+// ログイン処理
+// ========================================
+
+async function handleLogin() {
+
+    if (loginButton.disabled) {
+        return;
+    }
+
+    const studentNumber =
+        studentNumberInput.value.trim();
+
+    const password =
+        appPasswordInput.value;
+
+
+    // 入力チェック
+
+    if (!/^\d{7}$/.test(studentNumber)) {
+        showLoginMessage(
+            "学籍番号は7桁の数字で入力してください。"
+        );
+        return;
+    }
+
+    if (!password.trim()) {
+        showLoginMessage(
+            "パスワードを入力してください。"
+        );
+        return;
+    }
+
+
+    // ログイン開始
+
+    loginButton.disabled = true;
+    loginButton.textContent = "ログイン中…";
+
+    showLoginMessage("");
+
+
+    try {
+
+        // ====================================
+        // ① Firebaseで認証
+        // ====================================
+
+        // サーバー側で
+        // ・学籍番号
+        // ・パスワード
+        // ・利用許可
+        // を確認する
+
+        await signInCareMateAuth(
+            studentNumber,
+            password
+        );
+
+
+        // ====================================
+        // ② 学生プロフィール取得
+        // ====================================
+
+        let user = {};
+
+        const userRef = doc(
+            db,
+            "users",
+            studentNumber
+        );
+
+        try {
+
+            const userSnap =
+                await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                user = userSnap.data();
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "プロフィール取得エラー:",
+                error
+            );
+
+        }
+
+
+        // ====================================
+        // ③ ログイン情報保存
+        // ====================================
+
+        localStorage.setItem(
+            "registered",
+            "true"
+        );
+
+        localStorage.setItem(
+            "loggedIn",
+            "true"
+        );
+
+        localStorage.setItem(
+            "studentNumber",
+            studentNumber
+        );
+
+        localStorage.setItem(
+            "department",
+            user.department || ""
+        );
+
+        localStorage.setItem(
+            "major",
+            user.major || ""
+        );
+
+        localStorage.setItem(
+            "grade",
+            user.grade || ""
+        );
+
+        localStorage.setItem(
+            "manabaId",
+            user.manabaId || ""
+        );
+
+        localStorage.setItem(
+            "migrated",
+            "true"
+        );
+
+
+        // ====================================
+        // ④ 最終ログイン時刻
+        // ====================================
+
+        try {
+
+            await Promise.race([
+
+                updateDoc(userRef, {
+                    lastLoginAt: serverTimestamp(),
+                    lastActiveAt: serverTimestamp()
+                }),
+
+                new Promise((resolve) =>
+                    setTimeout(resolve, 1500)
+                )
+
+            ]);
+
+        } catch (error) {
+
+            console.warn(
+                "ログイン時刻の保存エラー:",
+                error
+            );
+
+        }
+
+
+        // ====================================
+        // ⑤ ホーム画面に移動
+        // ====================================
+
+        appPasswordInput.value = "";
+
+        location.replace("app.html");
+
+
+    } catch (error) {
+
+        console.error(
+            "ログインエラー:",
+            error
+        );
+
+        if (
+            error?.code ===
+            "functions/unauthenticated"
+        ) {
+
+            showLoginMessage(
+                "学籍番号またはパスワードが違います。"
+            );
+
+        } else if (
+            error?.code ===
+            "functions/permission-denied"
+        ) {
+
+            showLoginMessage(
+                "このアカウントは利用が許可されていません。"
+            );
+
+        } else {
+
+            showLoginMessage(
+                "ログインできませんでした。通信状態を確認してください。"
+            );
+
+        }
+
+    } finally {
+
+        loginButton.disabled = false;
+        loginButton.textContent = "ログイン";
+
+    }
+
+}
+
+
+// ========================================
+// ログインボタン
+// ========================================
+
+loginButton.addEventListener(
+    "click",
+    handleLogin
+);
+
+
+// ========================================
+// Enterキーでログイン
+// ========================================
+
+appPasswordInput.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (event.key === "Enter") {
+
+            event.preventDefault();
+
+            void handleLogin();
+
+        }
+
+    }
+);

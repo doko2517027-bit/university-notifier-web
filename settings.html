@@ -1,285 +1,50 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-
-    <title>設定</title>
-
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="manifest.json" />
-
-    <link rel="stylesheet" href="style.css?v=20261015-1" />
-    <script defer src="loading_indicator.js?v=20260929-7"></script>
-
-    <script>
-      if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-      }
-    </script>
-  </head>
-
-  <body class="page-loading">
-    <div class="top-buttons">
-      <div class="top-user-info">
-        <span id="userName"> Unknownさん </span>
-
-        <span id="myRanking"></span>
-      </div>
-
-      <div class="top-right">
-        <button id="themeButton" class="circle-button">🌙</button>
-
-        <button id="profileButton" class="circle-button">
-          <img
-            id="topProfileImage"
-            src="images/default.png"
-            class="header-profile-image"
-          />
-        </button>
-      </div>
-    </div>
-
-    <header class="header">
-      <div class="logo">⚙️</div>
-
-      <h1>設定</h1>
-
-      <p>CareMateApp</p>
-    </header>
-
-    <h2>登録情報</h2>
-
-    <div class="card setting-card">
-      <p><b>学籍番号</b></p>
-      <p id="studentNumberText"></p>
-      <p><b>氏名</b></p>
-      <p id="registeredNameText"></p>
-
-      <p><b>学科</b></p>
-      <p id="departmentText"></p>
-
-      <p><b>専攻</b></p>
-      <p id="majorText"></p>
-
-      <p><b>学年</b></p>
-      <p id="gradeText"></p>
-      <p><b>卒業予定</b></p>
-      <p id="graduationText"></p>
-      <p><b>在籍状態</b></p>
-      <p id="academicStatusText">確認中</p>
-    </div>
-
-    <section id="annualResponseSettings" hidden>
-      <h2>年度末の進級・在籍確認</h2>
-      <div class="card setting-card settings-form-stack">
-        <p id="annualResponseAssessment"></p>
-        <p id="annualResponsePeriodNote">受付期間中、反映前の回答を変更できます。</p>
-        <label>最終ステータス<select id="annualResponseChoice"></select></label>
-        <label id="annualResponseReasonRow" hidden>変更理由<textarea id="annualResponseReason" rows="3" maxlength="500" placeholder="自動判定や前回の回答と異なる理由"></textarea></label>
-        <label id="annualResponseEffectiveRow" hidden>大学の正式な卒業日・退学日<input id="annualResponseEffectiveDate" type="date" /></label>
-        <label id="annualResponseLeaveRow" hidden>休学開始日<input id="annualResponseLeaveStartDate" type="date" /></label>
-        <button id="saveAnnualResponse" class="btn btn-primary" type="button">回答を変更する</button>
-        <p class="annual-transition-note">CareMate内の自己管理用です。大学の正式な判定は大学からの通知を確認してください。</p>
-      </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
+  <title>設定 | CareMate</title>
+</head>
+<body class="caremate-renewed">
+  <main class="cm-main">
+    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">設定</h1></div></header>
+    <section class="cm-panel">
+      <h2>アカウント</h2>
+      <p id="accountSummary" class="cm-subtitle">読み込み中…</p>
     </section>
-
-    <h2>パスワード変更</h2>
-    <div class="card setting-card settings-form-stack">
-      <p>manaba・ActiveMailはCareMateに保存したパスワードを更新します。各サービス本体のパスワードは変更されません。</p>
-      <label
-        >manaba 新しいパスワード<input
-          id="newmanabaPassword"
-          type="password"
-          autocomplete="new-password"
-      /></label>
-      <button id="savemanabaPassword" class="btn btn-secondary">
-        manabaを変更
-      </button>
-      <label
-        >ActiveMail 新しいパスワード<input
-          id="newActiveMailPassword"
-          type="password"
-          autocomplete="new-password"
-      /></label>
-      <button id="saveActiveMailPassword" class="btn btn-secondary">
-        ActiveMailを変更
-      </button>
-      <label
-        >CareMate 現在のパスワード<input
-          id="currentCareMatePassword"
-          type="password"
-          autocomplete="current-password"
-      /></label>
-      <label
-        >CareMate 新しいパスワード<input
-          id="newCareMatePassword"
-          type="password"
-          autocomplete="new-password"
-          maxlength="128"
-      /></label>
-      <label
-        >CareMate 確認入力<input
-          id="confirmCareMatePassword"
-          type="password"
-          autocomplete="new-password"
-          maxlength="128"
-      /></label>
-      <button id="saveCareMatePassword" class="btn btn-primary">
-        CareMateを変更
-      </button>
-    </div>
-
-    <h2>お問い合わせ</h2>
-    <div class="card setting-card settings-form-stack">
-      <label
-        >種類<select id="contactCategory">
-          <option>不具合</option>
-          <option>使い方</option>
-          <option>要望</option>
-          <option>その他</option>
-        </select></label
-      >
-      <label
-        >内容<textarea
-          id="contactMessage"
-          rows="5"
-          maxlength="2000"
-          placeholder="お問い合わせ内容を入力"
-        ></textarea>
-      </label>
-      <button id="sendContact" class="btn btn-primary">送信する</button>
-      <a
-        id="contactChatLink"
-        class="btn btn-secondary"
-        href="contact_chat.html"
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-decoration: none;
-          box-sizing: border-box;
-        "
-        >💬 お問い合わせの履歴・返信を見る</a
-      >
-      <a id="contactInboxLink" href="contact_admin.html" hidden
-        >📨 お問い合わせ管理</a
-      >
-    </div>
-
-    <h2>アプリ情報</h2>
-
-    <div class="card setting-card">
-      <p id="versionText"></p>
-    </div>
-
-    <h2 id="pushNotifications">通知設定</h2>
-
-    <div class="card setting-card settings-push-card">
-      <p id="pushRegistrationStatus" class="settings-push-status" role="status">通知の登録状態を確認中...</p>
-      <button id="enablePushButton" class="btn btn-primary">
-        🔔 通知を有効にする
-      </button>
-
-      <br /><br />
-
-      <label class="setting-row">
-        <span>
-          <b>🗓 時間割変更</b><br />
-          <small>時間割PDFに変更があった時</small>
-        </span>
-        <input type="checkbox" id="notifySchedule" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>📢 コースニュース</b><br />
-          <small>コースニュースに新しいお知らせが出た時</small>
-        </span>
-        <input type="checkbox" id="notifyCourseNews" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>📚 新しい課題</b><br />
-          <small>manabaに新しい未提出課題が出た時</small>
-        </span>
-        <input type="checkbox" id="notifyAssignment" />
-      </label>
-
-      <label class="setting-row">
-        <span>
-          <b>⏰ 課題リマインダー</b><br />
-          <small>締切前にお知らせ</small>
-        </span>
-        <input type="checkbox" id="notifyReminder" />
-      </label>
-
-      <label id="systemNewsRow" class="setting-row">
-        <span>
-          <b>💙 CareMateからのお知らせ</b><br />
-          <small>運営からのお知らせが投稿された時</small>
-        </span>
-        <input type="checkbox" id="notifySystemNews" />
-      </label>
-    </div>
-
-    <h2>アカウント</h2>
-
-    <div class="card setting-card">
-      <p>ログアウト後はログイン画面に戻ります。</p>
-
-      <button id="logout" class="btn btn-primary">ログアウト</button>
-    </div>
-
-    <h2>危険な操作</h2>
-
-    <div class="card setting-card">
-      <p>登録情報、学習データ、メイトークのルーム・メッセージ・写真など、アカウントに関連するCareMate内のデータを削除します。削除したルームは他の参加者側からも消えます。</p>
-
-      <button id="unregister" class="btn btn-danger">CareMateアカウントを完全削除</button>
-    </div>
-
-    <nav class="bottom-nav">
-      <a href="index.html">
-        🏠<br />
-        <span>ホーム</span>
-      </a>
-
-      <a href="assignments.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">📚</span>
-
-          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
-            0
-          </span>
-        </span>
-
-        <span>課題</span>
-      </a>
-
-      <a href="news.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">📢</span>
-
-          <span id="newsNavBadge" class="nav-notification-badge" hidden>
-            0
-          </span>
-        </span>
-
-        <span>お知らせ</span>
-      </a>
-
-      <a id="settingsTab" href="settings.html" class="active">
-        ⚙️<br />
-        <span>設定</span>
-      </a>
-    </nav>
-
-    <script type="module" src="settings.js?v=20261016-1"></script>
-  </body>
+    <section class="cm-panel">
+      <h2>アプリ用パスワード</h2>
+      <form id="passwordForm">
+        <label class="cm-field">現在のパスワード<input id="currentPassword" type="password" autocomplete="current-password" required></label>
+        <label class="cm-field">新しいパスワード<input id="newPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+        <label class="cm-field">新しいパスワード（確認）<input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+        <button class="cm-button cm-button-primary" type="submit">パスワードを変更</button>
+      </form>
+      <p id="passwordStatus" class="cm-status" role="status"></p>
+    </section>
+    <section class="cm-panel">
+      <h2>manaba連携</h2>
+      <p id="manabaStatus" class="cm-subtitle">確認中…</p>
+      <form id="manabaForm">
+        <label class="cm-field">manabaの新しいパスワード<input id="manabaPassword" type="password" autocomplete="off" required></label>
+        <button class="cm-button" type="submit">保存して次回の取得に反映</button>
+      </form>
+      <p id="manabaSaveStatus" class="cm-status" role="status"></p>
+    </section>
+    <section class="cm-panel">
+      <h2>課題の通知</h2>
+      <label class="cm-toggle"><input id="notifyAssignment" type="checkbox">新しい課題を通知</label>
+      <label class="cm-toggle"><input id="notifyReminder" type="checkbox">締切リマインダーを通知</label>
+      <button id="enablePushButton" class="cm-button" type="button">この端末で通知を有効にする</button>
+      <p id="pushStatus" class="cm-status" role="status"></p>
+    </section>
+    <section class="cm-panel"><button id="logoutButton" class="cm-button" type="button">ログアウト</button></section>
+  </main>
+  <nav class="cm-nav" aria-label="メインメニュー">
+    <a href="app.html">テスト</a><a href="settings.html" data-role-tab="member" aria-current="page" hidden>設定</a><a href="admin.html" data-role-tab="admin" hidden>管理</a><a href="assignments.html">課題</a>
+  </nav>
+  <script type="module" src="page_bootstrap.js" data-care-page data-entry="./settings.js"></script>
+</body>
 </html>

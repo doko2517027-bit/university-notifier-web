@@ -22,7 +22,7 @@ document.getElementById("backButton").onclick = () => {
 };
 
 document.getElementById("profileButton").onclick = () => {
-  location.href = "profile.html";
+  location.href = "settings.html";
 };
 
 async function loadRemember() {

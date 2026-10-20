@@ -40,7 +40,7 @@ const admin = await isAdmin();
 
 if (!admin) {
   alert("管理者のみアクセスできます。");
-  location.href = "index.html";
+  location.href = "app.html";
 }
 
 if (subjectId) {
@@ -62,7 +62,7 @@ document.getElementById("backButton").onclick = () => {
 };
 
 document.getElementById("profileButton").onclick = () => {
-  location.href = "profile.html";
+  location.href = "settings.html";
 };
 
 async function loadUnitInfo() {

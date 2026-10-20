@@ -9,15 +9,5 @@ export function savedExternalPasswordFields(kind, encryptedPassword) {
       manabaVerificationError: null,
     };
   }
-  if (kind === "activeMail") {
-    return {
-      activeMailPasswordEncrypted: encryptedPassword,
-      activeMailSetupSkipped: false,
-      activeMailResetRequired: false,
-      activeMailVerified: null,
-      activeMailVerifiedAt: null,
-      activeMailVerificationError: null,
-    };
-  }
   throw new Error("未対応の連携サービスです");
 }

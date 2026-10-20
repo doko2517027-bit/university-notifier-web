@@ -80,7 +80,7 @@ test("CSVは自主学習とテスト対策を区別して出力する", () => {
 
 test("ホーム導線、共通タイマー、既存問題画面、本人限定ルールが接続されている", async () => {
   const [home, common, tracking, quiz, fill, daily, rules, page, styles] = await Promise.all([
-    readFile(new URL("./index.html", import.meta.url), "utf8"),
+    readFile(new URL("./app.html", import.meta.url), "utf8"),
     readFile(new URL("./common.js", import.meta.url), "utf8"),
     readFile(new URL("./study_tracking.js", import.meta.url), "utf8"),
     readFile(new URL("./quiz.js", import.meta.url), "utf8"),
@@ -90,15 +90,15 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
     readFile(new URL("./study_analytics.html", import.meta.url), "utf8"),
     readFile(new URL("./style.css", import.meta.url), "utf8"),
   ]);
-  assert.match(home, /自己学習・学習分析/);
+  assert.match(home, /href="study_analytics\.html"/);
   assert.match(common, /initializeGlobalStudyTracking/);
   assert.match(tracking, /\["running", "paused"\]\.includes\(state\.status\)/);
   assert.match(tracking, /state\?\.source === "exam" && state\.route !== currentPage/);
   assert.match(quiz, /recordQuestionAttempt/);
   assert.match(fill, /recordQuestionAttempt/);
   assert.match(daily, /recordQuestionAttempt/);
-  assert.match(rules, /match \/studySessions\/\{sessionId\}/);
-  assert.match(rules, /allow read, create, update, delete: if isUserOwner\(\)/);
+  assert.match(rules, /match \/studySessions\/\{id\}/);
+  assert.match(rules, /allow read, create, update, delete: if owner\(studentNumber\)/);
   assert.match(page, /data-study-tab="questions"/);
   assert.match(page, /id="exportStudyCsv"/);
   assert.match(page, /class="study-secondary-summary"/);

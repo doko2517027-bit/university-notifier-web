@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
+  <title>入口文言 | CareMate</title>
+</head>
+<body class="caremate-renewed">
+  <main class="cm-main">
+    <header class="cm-header"><div><span class="cm-brand">CareMate</span><h1 class="cm-title">入口文言の発行</h1></div></header>
+    <section class="cm-panel">
+      <p class="cm-subtitle">16〜120文字の文言を発行できます。発行後30分以内に1回だけ使えます。再発行すると前の文言は無効になります。</p>
+      <form id="issueForm">
+        <label class="cm-field">ワンタイム文言<input id="entrancePhrase" type="text" minlength="16" maxlength="120" autocomplete="off" spellcheck="false" required></label>
+        <button class="cm-button cm-button-primary" type="submit">文言を発行する</button>
+      </form>
+      <p id="issueStatus" class="cm-status" role="status"></p>
+      <p class="cm-subtitle">文言はここに再表示できません。利用者へ安全な方法で伝えてください。</p>
+    </section>
+    <a class="cm-button" href="admin.html">管理へ戻る</a>
+  </main>
+  <nav class="cm-nav" aria-label="メインメニュー"><a href="app.html">テスト</a><a href="admin.html" aria-current="page">管理</a><a href="assignments.html">課題</a></nav>
+  <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./entrance_admin.js"></script>
+</body>
+</html>

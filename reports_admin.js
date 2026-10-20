@@ -39,7 +39,7 @@ const escapeHtml = (value) =>
   );
 if (!(await isAdmin())) {
   alert("管理者のみ利用できます");
-  location.replace("index.html");
+  location.replace("app.html");
 }
 setupTheme(document.getElementById("themeButton"));
 setupAdminTab();
@@ -98,10 +98,9 @@ async function resolveNames(items) {
 }
 function card(item, names, resolved) {
   const report = item.data,
-    isQuestion = report.type === "questionAnswer",
     labels =
       names.get(`${report.subjectId || ""}|${report.unitId || ""}`) || {};
-  return `<article class="card setting-card report-management-card"><div class="report-card-heading"><b>${isQuestion ? "テスト問題の答え" : report.type === "post" ? "投稿" : "コメント"}</b><span class="report-status ${resolved ? "is-resolved" : "is-open"}">${resolved ? (report.status === "corrected" ? "修正済み" : "解決済み") : "未解決"}</span></div>${isQuestion ? `<p><b>科目：</b>${escapeHtml(labels.subject || "-")}<br><b>単元：</b>${escapeHtml(labels.unit || "-")}<br><b>問題形式：</b>${escapeHtml(report.questionType || "-")}</p><p><b>問題文</b><br>${escapeHtml(report.question || "-")}</p><p><b>登録された答え</b><br>${escapeHtml(Array.isArray(report.registeredAnswer) ? report.registeredAnswer.join(" / ") : (report.registeredAnswer ?? "-"))}</p>` : `<p><b>対象：</b>${escapeHtml(report.targetStudentNumber || report.postId || "-")}</p>`}<p><b>通報者：</b>${escapeHtml(report.reporterStudentNumber || "-")}<br><b>理由：</b>${escapeHtml(report.reason || "-")}</p><div class="report-actions">${isQuestion && !resolved ? `<a class="btn btn-primary" href="question_report_edit.html?reportId=${encodeURIComponent(item.id)}">問題を直接修正</a>` : ""}${!isQuestion && report.postId && !resolved ? `<button class="btn btn-danger delete-reported-post" data-id="${item.id}" data-post-id="${escapeHtml(report.postId)}">投稿を削除して解決</button>` : ""}${resolved ? `<button class="btn reopen-report" data-id="${item.id}">未解決へ戻す</button>` : `<button class="btn close-report" data-id="${item.id}">対応済みにする</button>`}</div></article>`;
+  return `<article class="card setting-card report-management-card"><div class="report-card-heading"><b>テスト問題の答え</b><span class="report-status ${resolved ? "is-resolved" : "is-open"}">${resolved ? (report.status === "corrected" ? "修正済み" : "解決済み") : "未解決"}</span></div><p><b>科目：</b>${escapeHtml(labels.subject || "-")}<br><b>単元：</b>${escapeHtml(labels.unit || "-")}<br><b>問題形式：</b>${escapeHtml(report.questionType || "-")}</p><p><b>問題文</b><br>${escapeHtml(report.question || "-")}</p><p><b>登録された答え</b><br>${escapeHtml(Array.isArray(report.registeredAnswer) ? report.registeredAnswer.join(" / ") : (report.registeredAnswer ?? "-"))}</p><p><b>報告者：</b>${escapeHtml(report.reporterStudentNumber || "-")}<br><b>理由：</b>${escapeHtml(report.reason || "-")}</p><div class="report-actions">${!resolved ? `<a class="btn btn-primary" href="question_report_edit.html?reportId=${encodeURIComponent(item.id)}">問題を直接修正</a>` : ""}${resolved ? `<button class="btn reopen-report" data-id="${item.id}">未解決へ戻す</button>` : `<button class="btn close-report" data-id="${item.id}">対応済みにする</button>`}</div></article>`;
 }
 async function render() {
   const names = await resolveNames(reports),
@@ -128,9 +127,7 @@ onSnapshot(
   (snapshot) => {
     reports = snapshot.docs
       .map((item) => ({ id: item.id, data: item.data() }))
-      .filter(
-        (item) => item.data.type !== "post" && item.data.type !== "comment",
-      );
+      .filter((item) => item.data.type === "questionAnswer");
     render().catch(console.error);
   },
 );

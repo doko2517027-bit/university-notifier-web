@@ -1,15 +1,5 @@
-import { db, studentNumber } from "./common.js";
-import {
-  doc,
-  getDoc,
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
 export function studyPointHtml(earnedPoints) {
-  return `
-        <div class="study-point-summary" aria-label="この問題のポイント">
-            <span>この問題の正解ポイント <b>+${Number(earnedPoints || 0)}pt</b></span>
-            <span>累計 <b class="study-total-points">読み込み中…</b></span>
-        </div>`;
+  return "";
 }
 
 export function studySearchHtml() {
@@ -34,17 +24,8 @@ export function setupStudyTools(root) {
       );
     });
   }
-  refreshTotalPoints(root);
 }
 
 export async function refreshTotalPoints(root) {
-  const output = root.querySelector(".study-total-points");
-  if (!output || !studentNumber) return;
-  try {
-    const snapshot = await getDoc(doc(db, "totalRanking", studentNumber));
-    output.textContent = `${Number(snapshot.data()?.point || 0).toLocaleString()}pt`;
-  } catch (error) {
-    console.warn("累計ポイントの取得に失敗しました。", error);
-    output.textContent = "--pt";
-  }
+  // The legacy export remains for answer screens; points were retired.
 }

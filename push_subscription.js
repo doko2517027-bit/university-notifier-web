@@ -130,7 +130,7 @@ async function showPushPermissionUnavailable(permission) {
   return showPushPermissionDialog({
     title: blocked ? "通知がオフになっています" : "通知を設定できませんでした",
     message: blocked
-      ? "「許可しない」が選択されているため、授業開始・課題締切・時間割変更・大学メールなどの大切な通知は届きません。"
+      ? "「許可しない」が選択されているため、課題と締切の通知は届きません。"
       : "この端末または現在の開き方では、Push通知を利用できません。",
     note: blocked
       ? "端末の「設定」→「通知」→「CareMate」から通知を許可してください。"
@@ -165,7 +165,7 @@ export async function requestPushPermissionWithEducation({ force = false } = {})
   const permission = await showPushPermissionDialog({
     title: "大切なお知らせを受け取るために",
     message:
-      "CareMateは、授業の打刻、課題の締切、時間割の変更、大学メールなど、見逃せない情報をPush通知でお知らせします。",
+      "CareMateは、新しい課題と締切の通知をお届けします。",
     note:
       "次に表示される端末の確認画面で「許可」を選んでください。",
     buttonText: "通知を許可する",

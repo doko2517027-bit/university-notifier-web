@@ -178,7 +178,7 @@ export function setupScrubber(root, onMove) {
 export function finishTest(sessionPoints, retry, back) {
   if (
     confirm(
-      `全問終了！\n今回獲得 ${sessionPoints}ポイント\n\nOK：もう一度解く\nキャンセル：問題選択へ`,
+      "全問終了！\n\nOK：もう一度解く\nキャンセル：問題選択へ",
     )
   )
     retry();

@@ -3,19 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>通報管理 | CareMate</title>
+    <title>テスト問題の報告 | CareMate</title>
     <link rel="stylesheet" href="style.css?v=20261015-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>
       if (localStorage.getItem("theme") === "dark")
         document.documentElement.classList.add("dark");
     </script>
+    <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
   </head>
   <body class="page-loading">
     <div class="top-buttons">
       <button id="backButton" class="circle-button">←</button>
       <h2 class="report-page-title">
-        🚨 通報一覧
+        テスト問題の報告
         <span id="reportsUnresolvedBadge" class="admin-card-badge" hidden
           >0</span
         >
@@ -40,13 +41,12 @@
       <div id="resolvedReportList"></div>
     </section>
     <nav class="bottom-nav">
-      <a href="index.html">🏠<br /><span>ホーム</span></a
+      <a href="app.html">📝<br /><span>テスト</span></a
       ><a href="assignments.html">📚<br /><span>課題</span></a
-      ><a href="news.html">📢<br /><span>お知らせ</span></a
       ><a id="settingsTab" href="admin.html" class="active"
         >👑<br /><span>管理</span></a
       >
     </nav>
-    <script type="module" src="reports_admin.js"></script>
+    <script type="module" src="page_bootstrap.js" data-care-page data-role="admin" data-entry="./reports_admin.js?v=20261020-2"></script>
   </body>
 </html>

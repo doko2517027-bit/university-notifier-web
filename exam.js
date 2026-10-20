@@ -195,11 +195,11 @@ await initializePage([
 
 function setupEvents() {
   elements.backButton?.addEventListener("click", () => {
-    location.href = "index.html";
+    location.href = "app.html";
   });
 
   elements.profileButton?.addEventListener("click", () => {
-    location.href = "profile.html";
+    location.href = "settings.html";
   });
 
   elements.searchInput?.addEventListener("input", () => {

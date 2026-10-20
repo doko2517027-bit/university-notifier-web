@@ -18,7 +18,7 @@ let report,
   index = -1;
 if (!(await isAdmin())) {
   alert("管理者のみ利用できます");
-  location.replace("index.html");
+  location.replace("app.html");
 }
 const lines = (value) =>
   String(value || "")

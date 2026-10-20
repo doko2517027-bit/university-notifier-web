@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css?v=20261015-1" />
     <script defer src="loading_indicator.js?v=20260929-7"></script>
     <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
+    <link rel="stylesheet" href="caremate_shell.css?v=20261020-2">
   </head>
   <body class="page-loading study-analytics-body">
     <div class="top-buttons">
@@ -135,12 +136,11 @@
     </main>
 
     <nav class="bottom-nav">
-      <a href="index.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">🏠</span></span><span>ホーム</span></a>
+      <a href="app.html" class="active"><span class="nav-icon-wrap"><span class="nav-icon">📝</span></span><span>テスト</span></a>
       <a href="assignments.html"><span class="nav-icon-wrap"><span class="nav-icon">📚</span></span><span>課題</span></a>
-      <a href="news.html"><span class="nav-icon-wrap"><span class="nav-icon">📢</span></span><span>お知らせ</span></a>
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
       <a id="adminTab" href="admin.html" style="display:none"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="study_analytics.js?v=20261009-4"></script>
+    <script type="module" src="page_bootstrap.js" data-care-page data-entry="./study_analytics.js?v=20261020-2"></script>
   </body>
 </html>

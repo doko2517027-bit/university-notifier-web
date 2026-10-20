@@ -1,574 +1,600 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
+
+<head>
+    <meta charset="UTF-8">
+
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-
-    <title>CareMateApp</title>
-
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="manifest.json" />
-
-    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
-
-    <link rel="preconnect" href="https://api.open-meteo.com" />
-
-    <link rel="modulepreload" href="app.js?v=20261016-3" />
-
-    <link rel="modulepreload" href="common.js" />
-
-    <link rel="modulepreload" href="personal_timetable_data.js" />
-
-    <link rel="modulepreload" href="class_selection.js?v=20261015-1" />
-
-    <link rel="stylesheet" href="style.css?v=20261016-3" />
-    <script defer src="loading_indicator.js?v=20260929-7"></script>
-    <script defer src="splash_intro.js?v=20260929-9"></script>
-
-    <script>
-      if (
-        localStorage.getItem("loggedIn") !== "true" ||
-        !localStorage.getItem("studentNumber")
-      ) {
-        location.replace("login.html");
-      }
-
-      if (localStorage.getItem("theme") === "dark") {
-        document.documentElement.classList.add("dark");
-      }
-
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("sw.js", {
-            updateViaCache: "none",
-          })
-          .catch((error) => {
-            console.warn("Service Worker の登録に失敗しました。", error);
-          });
-      }
-    </script>
-  </head>
-  <body class="home-page page-loading">
-    <div id="splash" aria-label="CareMateの起動アニメーション" role="region">
-      <video id="splashVideo" muted playsinline preload="none" aria-hidden="true"></video>
-      <button id="splashSkip" type="button" aria-label="起動アニメーションをスキップ">スキップ</button>
-    </div>
-
-    <div id="examPopupOverlay" class="exam-popup-overlay">
-      <div class="exam-popup-card">
-        <button id="closeExamPopup" class="exam-popup-close" type="button">
-          ×
-        </button>
-
-        <div class="exam-popup-icon">📚</div>
-
-        <p id="examPopupLabel" class="exam-popup-label">テストのお知らせ</p>
-
-        <h2 id="examPopupTitle">試験情報</h2>
-
-        <p id="examPopupCountdown" class="exam-popup-countdown"></p>
-
-        <p id="examPopupPeriod" class="exam-popup-period"></p>
-
-        <button id="openExamFromPopup" class="btn btn-primary">
-          テスト対策を開く
-        </button>
-      </div>
-    </div>
-
-    <div id="attendancePopupOverlay" class="exam-popup-overlay">
-      <div class="exam-popup-card">
-        <button
-          id="closeAttendancePopup"
-          class="exam-popup-close"
-          type="button"
-        >
-          ×
-        </button>
-
-        <div class="exam-popup-icon">📝</div>
-
-        <p class="exam-popup-label">出席確認</p>
-
-        <h2 id="attendanceSubject">成人看護学</h2>
-
-        <p>打刻可能時間です</p>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px">
-          <button id="attendanceYes" class="btn btn-primary" style="flex: 1">
-            ✅ 出席
-          </button>
-
-          <button id="attendanceNo" class="btn" style="flex: 1">❌ 欠席</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="rankingPopupOverlay" class="exam-popup-overlay">
-      <div class="exam-popup-card">
-        <button id="closeRankingPopup" class="exam-popup-close" type="button">
-          ×
-        </button>
-
-        <div class="exam-popup-icon">🏆</div>
-
-        <p class="exam-popup-label">昨日のランキング</p>
-
-        <h2 id="rankingPopupTitle">🏆 昨日のランキング</h2>
-
-        <p id="rankingPopupDate">日付</p>
-
-        <div id="rankingPopupList">
-          <div id="rankingDate"></div>
-
-          <div id="rankingList">読み込み中...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- クラス選択 -->
-    <div id="classSelectionOverlay" class="exam-popup-overlay" role="dialog" aria-modal="true" aria-label="今日の授業クラス選択" hidden>
-      <div class="exam-popup-card">
-        <div class="exam-popup-icon">🏫</div>
-
-        <p class="exam-popup-label">クラス確認</p>
-
-        <h2>今日の授業クラス</h2>
-
-        <div id="classSelectionList">読み込み中...</div>
-
-        <button id="saveClassSelection" class="btn btn-primary">保存</button>
-      </div>
-    </div>
-
-    <div id="annualTransitionOverlay" class="exam-popup-overlay" hidden>
-      <div class="exam-popup-card">
-        <div class="exam-popup-icon">🎓</div>
-        <p class="exam-popup-label">年度末の確認</p>
-        <h2 id="annualTransitionTitle">次年度の予定を確認</h2>
-        <p id="annualTransitionMessage"></p>
-        <p id="annualTransitionAssessment" class="academic-assessment" role="status"></p>
-        <div id="annualTransitionActions" class="annual-transition-actions">
-          <label>最終ステータス<select id="annualTransitionChoice"></select></label>
-          <label id="annualTransitionReasonRow" hidden>自動判定と異なる理由<textarea id="annualTransitionReason" rows="3" maxlength="500" placeholder="理由を入力してください"></textarea></label>
-          <label id="annualTransitionDateRow" hidden>大学の正式な卒業日・退学日<input id="annualTransitionEffectiveDate" type="date" /></label>
-          <label id="annualTransitionLeaveRow" hidden>休学開始日<input id="annualTransitionLeaveStartDate" type="date" /></label>
-          <button id="saveAnnualTransition" class="btn btn-primary" type="button">この内容で確定</button>
-        </div>
-        <p class="annual-transition-note">
-          この判定はCareMate内の自己管理用で、大学の正式な進級判定ではありません。反映予定日までは現在の学年のままです。
-        </p>
-      </div>
-    </div>
-
-    <div id="creditConfirmationOverlay" class="exam-popup-overlay" hidden>
-      <div class="exam-popup-card credit-confirmation-card">
-        <div class="exam-popup-icon">💳</div>
-        <p class="exam-popup-label">単位取得の確認</p>
-        <h2 id="creditConfirmationTitle">履修科目の単位を確認</h2>
-        <p id="creditConfirmationMessage">
-          各科目について、単位を取得できたか選択してください。
-        </p>
-        <label class="credit-semester-leave"><input id="creditSemesterLeave" type="checkbox" /> この学期は休学する</label>
-        <label id="creditLeaveStartRow" class="credit-leave-start" hidden>休学開始日<input id="creditLeaveStartDate" type="date" /></label>
-        <div id="creditConfirmationList" class="credit-confirmation-list"></div>
-        <button
-          id="saveCreditConfirmation"
-          class="btn btn-primary"
-          type="button"
-        >
-          回答を保存
-        </button>
-        <p class="annual-transition-note">
-          取得できなかった科目は、履修科目に「再履修」として残ります。
-        </p>
-      </div>
-    </div>
-
-    <div class="top-buttons">
-      <div class="top-user-info">
-        <span id="userName"> Unknownさん </span>
-
-        <span id="myRanking"></span>
-      </div>
-
-      <div class="top-right">
-        <button id="homePetButton" class="circle-button icon-button home-pet-icon-button" type="button" hidden aria-label="ペット育成を開く" title="ペット育成">
-          🦎
-        </button>
-
-        <button id="activeMailButton" class="circle-button icon-button">
-          💌
-          <span id="activeMailBadge" class="notification-badge" hidden>
-            0
-          </span>
-        </button>
-
-        <button id="themeButton" class="circle-button">🌙</button>
-
-        <button id="profileButton" class="circle-button">
-          <img
-            id="topProfileImage"
-            src="images/default.png"
-            class="header-profile-image"
-          />
-        </button>
-      </div>
-    </div>
-
-    <button id="homeEnrollmentNotice" class="home-enrollment-notice" type="button" hidden>
-      <span aria-hidden="true">📘</span>
-      <span><strong>履修登録がまだ完了していません</strong><small>時間割・出席管理を使うには履修登録が必要です</small></span>
-      <b>登録へ →</b>
-    </button>
-
-    <button
-      id="courseRegistrationBanner"
-      class="course-registration-banner"
-      type="button"
-      hidden
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
     >
-      <span class="course-registration-banner-track">
-        <span id="courseRegistrationBannerText">履修登録期間中！！</span>
-      </span>
-    </button>
 
-    <div class="home-weather-search-row">
-      <button id="homeReferralCard" class="home-referral-compact" type="button" hidden>
-        <span class="home-referral-icon">👥</span>
-        <span><b>友達招待</b><small id="homeReferralCount">読み込み中...</small></span>
-      </button>
-      <button id="weatherCard" class="home-weather-compact" type="button">
-        <span id="weatherLocation" class="home-weather-location">地域</span>
-        <span id="weatherMain" class="home-weather-main">読み込み中...</span>
-        <span id="weatherDetail" class="home-weather-detail"></span>
-        <span id="weatherDate" hidden></span>
-        <span id="weatherUpdated" hidden></span>
-      </button>
-      <form id="homeSearchForm" class="home-search-form">
-        <input
-          id="homeSearchInput"
-          type="search"
-          placeholder="Googleで検索"
-          aria-label="Googleで検索"
-        />
-        <button type="submit" aria-label="検索">⌕</button>
-      </form>
-    </div>
+    <meta name="theme-color" content="#2563eb">
 
-    <div id="examStatusCard" class="card setting-card" style="display: none">
-      <div
-        id="examStatusLabel"
-        style="
-          font-size: 13px;
-          font-weight: bold;
-          color: var(--primary);
-          margin-bottom: 6px;
-        "
-      ></div>
-      <div
-        id="examStatusText"
-        style="font-size: 24px; font-weight: 800; color: var(--text)"
-      ></div>
-      <div
-        id="examStatusTitle"
-        style="margin-top: 6px; font-size: 14px; color: var(--subtext)"
-      ></div>
-    </div>
+    <link rel="manifest" href="manifest.json">
 
-    <div id="authSetupCards"></div>
+    <title>CareMate</title>
 
-    <button
-      id="pushNotificationSetupCard"
-      class="card setting-card home-push-setup-card"
-      type="button"
-      hidden
-    >
-      <span class="home-push-setup-icon" aria-hidden="true">🔕</span>
-      <span>
-        <b>Push通知を登録してください</b>
-        <small>登録しないと、打刻・課題・時間割変更・大学メールなどの通知が届きません。</small>
-      </span>
-      <span class="home-push-setup-arrow" aria-hidden="true">›</span>
-    </button>
+    <style>
 
-    <div id="pushNotificationGuideModal" class="admin-modal-overlay" hidden>
-      <section class="admin-modal home-push-guide-modal" role="dialog" aria-modal="true" aria-labelledby="pushNotificationGuideTitle">
-        <div class="home-push-guide-icon" aria-hidden="true">🔔</div>
-        <h2 id="pushNotificationGuideTitle">Push通知の登録が必要です</h2>
-        <p>通知を登録していないと、授業の打刻、課題の締切、時間割変更、大学メールなどの大切なお知らせが届きません。</p>
-        <p class="home-push-guide-note">設定画面の「通知を有効にする」を押し、端末に表示される確認でも「許可」を選んでください。</p>
-        <p class="home-push-guide-note">すでに通知が届いている場合は、下のテスト通知で確認したあと「正常に通知が届いています」を押してください。</p>
-        <p id="pushNotificationGuideStatus" class="home-push-guide-status" role="status" aria-live="polite"></p>
-        <div class="home-push-guide-check-actions">
-          <button id="sendMyPushTestNotification" type="button" class="btn">テスト通知を送る</button>
-          <button id="confirmPushNotificationWorking" type="button" class="btn btn-primary">正常に通知が届いています</button>
-        </div>
-        <div class="admin-modal-actions">
-          <button id="closePushNotificationGuide" type="button" class="btn">閉じる</button>
-          <button id="openPushNotificationSettings" type="button" class="btn btn-primary">設定へ</button>
-        </div>
-      </section>
-    </div>
-
-    <header class="header">
-      <div class="logo">🎓</div>
-      <h1>CareMateApp</h1>
-      <p>大学時間割変更通知アプリ</p>
-    </header>
-
-    <hr />
-
-    <h2>📅 講義・試験予定</h2>
-
-    <div class="schedule-scroll home-schedule-grid">
-      <!-- 講義予定 -->
-      <div id="lectureScheduleCard" class="card day-card">
-        <div class="schedule-card-title schedule-title-row">
-          <span> 📅 講義予定 </span>
-
-          <a
-            id="lectureSchedulePdfLink"
-            class="schedule-pdf-link"
-            href="https://sums.ac.jp/students/html/sums/pdf/syllabus/syllabus_ft01.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="大学の時間割PDFを開く"
-          >
-            📄 PDF
-          </a>
-        </div>
-
-        <div class="schedule-switcher">
-          <button id="lecturePrev" class="schedule-switch-button" type="button">
-            ◀
-          </button>
-
-          <button
-            id="lectureDatePickerButton"
-            class="schedule-date-picker"
-            type="button"
-            aria-expanded="false"
-          >
-            <span id="lectureScheduleLabel" class="schedule-switch-label">
-              今日
-            </span>
-
-            <span
-              id="lectureScheduleDetail"
-              class="schedule-switch-detail"
-              hidden
-            >
-            </span>
-
-            <span class="schedule-calendar-hint">
-              📅 タップして日付を選択
-            </span>
-          </button>
-
-          <button id="lectureNext" class="schedule-switch-button" type="button">
-            ▶
-          </button>
-        </div>
-
-        <div id="lectureCalendarPopup" class="lecture-calendar-popup" hidden>
-          <div class="lecture-calendar-header">
-            <button
-              id="lectureCalendarPrevMonth"
-              class="lecture-calendar-nav"
-              type="button"
-            >
-              ◀
-            </button>
-
-            <div id="lectureCalendarMonth" class="lecture-calendar-month">
-              2026年7月
-            </div>
-
-            <button
-              id="lectureCalendarNextMonth"
-              class="lecture-calendar-nav"
-              type="button"
-            >
-              ▶
-            </button>
-          </div>
-
-          <div class="lecture-calendar-weekdays">
-            <span>日</span>
-            <span>月</span>
-            <span>火</span>
-            <span>水</span>
-            <span>木</span>
-            <span>金</span>
-            <span>土</span>
-          </div>
-
-          <div id="lectureCalendarDays" class="lecture-calendar-days"></div>
-        </div>
-
-        <div id="lectureScheduleList" class="schedule-content">取得中...</div>
-      </div>
-
-      <section id="homeTodayCard" class="card day-card home-today-card" aria-labelledby="homeTodayTitle">
-        <div class="home-today-heading">
-          <div>
-            <h3 id="homeTodayTitle">✅ 今日のやること</h3>
-            <small id="homeTodayDate"></small>
-          </div>
-          <span id="homeTodayCount" class="home-today-count">読み込み中</span>
-        </div>
-        <div id="homeNextLecture" class="home-next-lecture" aria-live="polite">次の講義を確認中...</div>
-        <form id="homeTodayForm" class="home-today-form">
-          <input id="homeTodayInput" name="title" maxlength="120" required placeholder="自分のやることを追加" aria-label="やること" />
-          <input id="homeTodayTime" name="dueTime" type="time" aria-label="終わる時刻（任意）" title="終わる時刻（任意）" />
-          <button id="homeTodaySave" class="btn btn-primary" type="submit">追加</button>
-          <button id="homeTodayCancel" class="btn" type="button" hidden>取消</button>
-        </form>
-        <p id="homeTodayStatus" class="home-today-status" role="status">今日の情報を読み込み中...</p>
-        <div id="homeTodayItems" class="home-today-items" aria-live="polite"></div>
-        <a class="home-today-calendar-link" href="calendar.html">カレンダーで詳しく見る →</a>
-      </section>
-
-      <!-- 試験日程 -->
-      <div id="examScheduleCard" class="card day-card" style="display: none">
-        <div class="schedule-card-title">📚 試験日程</div>
-
-        <div class="schedule-switcher">
-          <button id="examPrev" class="schedule-switch-button" type="button">
-            ◀
-          </button>
-
-          <div id="examPage" class="schedule-switch-label">日付</div>
-
-          <button id="examNext" class="schedule-switch-button" type="button">
-            ▶
-          </button>
-        </div>
-
-        <div id="examScheduleList" class="schedule-content">読み込み中...</div>
-      </div>
-    </div>
-
-    <h2>📝 便利タブ ☀️</h2>
-
-    <div class="home-slider home-feature-grid">
-      <div class="home-slide">
-        <div id="studyAnalyticsCard" class="card setting-card home-card">
-          <h2>📊 自己学習・学習分析</h2>
-          <p>勉強時間・正答率・苦手分野をまとめて確認</p>
-        </div>
-      </div>
-      <div class="home-slide">
-        <div
-          id="examCard"
-          class="card setting-card home-card"
-          style="display: none"
-        >
-          <h2>📚 テスト対策</h2>
-          <p>AI穴埋め・四択・今日の1問</p>
-        </div>
-      </div>
-
-      <div class="home-slide">
-        <div id="attendanceCard" class="card setting-card home-card">
-          <h2>📝 出席管理</h2>
-
-          <p>出席状況・欠席回数・試験資格を確認</p>
-        </div>
-      </div>
-
-      <div id="courseRegistrationSlide" class="home-slide" hidden>
-        <div id="courseRegistrationCard" class="card setting-card home-card">
-          <h2>📘 履修登録</h2>
-          <p id="courseRegistrationCardText">履修科目と単位数を確認・登録</p>
-        </div>
-      </div>
-      <div id="resumeStudySlide" class="home-slide" hidden>
-        <div class="card setting-card home-card">
-          <h2>🎓 復学</h2>
-          <p>休学中です。履修登録を再開する場合は復学してください。</p>
-          <button id="resumeStudyButton" class="btn btn-primary" type="button">復学して履修登録を再開</button>
-        </div>
-      </div>
-    </div>
-
-    <hr />
-
-    <h2>🔔 お知らせ</h2>
-
-    <h3 class="news-section-title">📢 大学</h3>
-    <div id="newsList">まだお知らせはありません</div>
-
-    <h3 class="news-section-title">📘 コース</h3>
-    <div id="homeCourseNews">読み込み中...</div>
-
-    <h3 class="news-section-title">💙 CareMate</h3>
-    <div id="homeSystemNews">読み込み中...</div>
-
-    <footer id="version"></footer>
-
-    <nav class="bottom-nav">
-      <a href="index.html" class="active">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">🏠</span>
-        </span>
-
-        <span>ホーム</span>
-      </a>
-
-      <a href="assignments.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">📚</span>
-
-          <span id="assignmentNavBadge" class="nav-notification-badge" hidden>
-            0
-          </span>
-        </span>
-
-        <span>課題</span>
-      </a>
-
-      <a href="news.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">📢</span>
-
-          <span id="newsNavBadge" class="nav-notification-badge" hidden>
-            0
-          </span>
-        </span>
-
-        <span>お知らせ</span>
-      </a>
-
-      <a id="settingsTab" href="settings.html">
-        <span class="nav-icon-wrap">
-          <span class="nav-icon">⚙️</span>
-        </span>
-
-        <span>設定</span>
-      </a>
-    </nav>
-
-    <script>
-      window.pendingPopups = [];
-
-      window.showNextPopup = function () {
-        if (window.pendingPopups.length === 0) {
-          return;
+        * {
+            box-sizing: border-box;
         }
 
-        const next = window.pendingPopups.shift();
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f8fafc;
 
-        next();
-      };
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Helvetica Neue",
+                sans-serif;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 24px;
+            color: #1e293b;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        /* =============================
+           サービス終了のお知らせ
+        ============================= */
+
+        .notice {
+            background: white;
+            border-radius: 24px;
+            padding: 44px 28px;
+            text-align: center;
+
+            box-shadow:
+                0 8px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        h1 {
+            font-size: 30px;
+            margin: 0 0 32px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 19px;
+            margin-bottom: 24px;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 2;
+            color: #64748b;
+        }
+
+        /* =============================
+           Google検索風の入力欄
+        ============================= */
+
+        .search-box {
+            display: flex;
+            align-items: center;
+
+            background: white;
+
+            border: 1px solid #e2e8f0;
+            border-radius: 50px;
+
+            padding: 8px 16px;
+            margin-top: 35px;
+
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .search-box input {
+            flex: 1;
+            min-width: 0;
+
+            border: none;
+            outline: none;
+
+            padding: 10px;
+            font-size: 16px;
+
+            background: transparent;
+        }
+
+        .search-box button {
+            border: none;
+            background: transparent;
+
+            font-size: 20px;
+            cursor: pointer;
+
+            padding: 5px 10px;
+            color: #64748b;
+        }
+
+        .search-box button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .entry-message {
+            min-height: 20px;
+            margin-top: 14px;
+
+            text-align: center;
+            font-size: 13px;
+
+            color: #64748b;
+        }
+
+        /* =============================
+           ログイン画面
+        ============================= */
+
+        .login-view {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+
+        .login-header h1 {
+            font-size: 30px;
+            margin: 0 0 8px;
+        }
+
+        .login-header p {
+            font-size: 15px;
+            color: #64748b;
+        }
+
+        .login-card {
+            background: white;
+            padding: 32px 25px;
+
+            border-radius: 24px;
+
+            box-shadow:
+                0 8px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .login-card label {
+            display: block;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            margin: 20px 0 10px;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 14px;
+
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+
+            font-size: 16px;
+        }
+
+        .login-card button {
+            width: 100%;
+
+            margin-top: 28px;
+            padding: 15px;
+
+            background: #2563eb;
+            color: white;
+
+            border: none;
+            border-radius: 12px;
+
+            font-size: 16px;
+            font-weight: 600;
+
+            cursor: pointer;
+        }
+
+        .login-card button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .login-message {
+            text-align: center;
+            color: #dc2626;
+
+            font-size: 13px;
+            margin-top: 15px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- =====================================
+         ① 一般利用者向け終了画面
+    ===================================== -->
+
+    <main id="closedView" class="container">
+
+        <section class="notice">
+
+            <h1>CareMate</h1>
+
+            <h2>サービス終了のお知らせ</h2>
+
+            <p>
+                CareMateの一般向けサービスは<br>
+                終了いたしました。
+            </p>
+
+            <p>
+                一般向けの提供は終了しました。<br>
+                登録情報については個別に管理しています。
+            </p>
+
+            <p>
+                これまでご利用いただき、<br>
+                誠にありがとうございました。
+            </p>
+
+        </section>
+
+
+        <!-- Google検索風の入力欄 -->
+
+        <form
+            id="entryForm"
+            class="search-box"
+            autocomplete="off"
+        >
+
+            <input
+                type="text"
+                id="entryCode"
+                placeholder="検索"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="検索"
+                maxlength="120"
+            >
+
+            <button
+                id="entryButton"
+                type="submit"
+                aria-label="検索する"
+            >
+                ⌕
+            </button>
+
+        </form>
+
+        <p
+            id="entryMessage"
+            class="entry-message"
+            role="status"
+            aria-live="polite"
+        ></p>
+
+    </main>
+
+
+    <!-- =====================================
+         ② 認証後のログイン画面
+    ===================================== -->
+
+    <main
+        id="loginView"
+        class="login-view"
+        hidden
+    >
+
+        <div class="login-header">
+
+            <div class="login-logo">🎓</div>
+
+            <h1>CareMate</h1>
+
+            <p>ログイン</p>
+
+        </div>
+
+
+        <div class="login-card">
+
+            <label for="studentNumber">
+                学籍番号
+            </label>
+
+            <input
+                id="studentNumber"
+                type="text"
+                inputmode="numeric"
+                maxlength="7"
+                placeholder="例：2510000"
+                autocomplete="username"
+            >
+
+
+            <label for="appPassword">
+                アプリ用パスワード
+            </label>
+
+            <input
+                id="appPassword"
+                type="password"
+                placeholder="登録したパスワード"
+                autocomplete="current-password"
+            >
+
+
+            <button
+                id="loginButton"
+                type="button"
+            >
+                ログイン
+            </button>
+
+            <p
+                id="loginMessage"
+                class="login-message"
+                role="status"
+            ></p>
+
+        </div>
+
+    </main>
+
+
+    <!-- =====================================
+         ③ 画面切り替え・ワンタイム認証
+    ===================================== -->
+
+    <script type="module">
+
+        // ====================================
+        // HTML要素
+        // ====================================
+
+        const closedView =
+            document.getElementById("closedView");
+
+        const loginView =
+            document.getElementById("loginView");
+
+        const entryForm =
+            document.getElementById("entryForm");
+
+        const entryCode =
+            document.getElementById("entryCode");
+
+        const entryButton =
+            document.getElementById("entryButton");
+
+        const entryMessage =
+            document.getElementById("entryMessage");
+
+        const loginMessage =
+            document.getElementById("loginMessage");
+
+
+        // ====================================
+        // この端末で入口を通過したか
+        // ====================================
+
+        const LOGIN_ENABLED_KEY =
+            "caremateLoginEnabled";
+
+
+        // ====================================
+        // ログイン画面を表示
+        // ====================================
+
+        let loginInitialized = false;
+
+        async function showLoginScreen() {
+
+            // サービス終了画面を非表示
+            closedView.hidden = true;
+
+            // ログイン画面を表示
+            loginView.hidden = false;
+
+            // login.jsの二重読み込みを防止
+            if (loginInitialized) {
+                return;
+            }
+
+            loginInitialized = true;
+
+            try {
+
+                // 既存のログイン処理を読み込む
+                await import(
+                    "./login.js?v=20261020-1"
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "ログイン画面の初期化エラー:",
+                    error
+                );
+
+                loginMessage.textContent =
+                    "ログイン機能を読み込めませんでした。ページを再読み込みしてください。";
+
+            }
+
+        }
+
+
+        // ====================================
+        // 初回表示
+        // ====================================
+
+        // 一度入口を通過した端末では、
+        // 次回から終了案内を表示しない
+
+        if (
+            localStorage.getItem(
+                LOGIN_ENABLED_KEY
+            ) === "true"
+        ) {
+
+            showLoginScreen();
+
+        }
+
+
+        // ====================================
+        // 検索欄の送信処理
+        // ====================================
+
+        entryForm.addEventListener(
+            "submit",
+
+            async (event) => {
+
+                event.preventDefault();
+
+                const phrase =
+                    entryCode.value.trim();
+
+                // 空欄では検索しない
+                if (!phrase) {
+                    return;
+                }
+
+                // 二重送信防止
+                entryButton.disabled = true;
+
+                entryMessage.textContent =
+                    "検索中…";
+
+                // 入力した文言を画面から消す
+                entryCode.value = "";
+
+
+                try {
+
+                    // ====================================
+                    // Firebaseを読み込む
+                    // ====================================
+
+                    const {
+                        functions
+                    } = await import(
+                        "./auth_core.js"
+                    );
+
+                    const {
+                        httpsCallable
+                    } = await import(
+                        "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js"
+                    );
+
+
+                    // ====================================
+                    // サーバー側のワンタイム認証
+                    // ====================================
+
+                    const redeemEntrancePhrase =
+                        httpsCallable(
+                            functions,
+                            "redeemEntrancePhrase"
+                        );
+
+                    const result =
+                        await redeemEntrancePhrase({
+                            phrase: phrase
+                        });
+
+
+                    // ====================================
+                    // 認証成功
+                    // ====================================
+
+                    if (
+                        result.data?.ok === true
+                    ) {
+
+                        // この端末では次回から
+                        // ログイン画面を直接表示
+
+                        localStorage.setItem(
+                            LOGIN_ENABLED_KEY,
+                            "true"
+                        );
+
+                        entryMessage.textContent = "";
+
+                        // ログイン画面に切り替える
+                        await showLoginScreen();
+
+                        return;
+
+                    }
+
+
+                    // ====================================
+                    // 認証失敗
+                    // ====================================
+
+                    entryMessage.textContent =
+                        "検索結果はありません";
+
+
+                } catch (error) {
+
+                    console.error(
+                        "入口認証エラー:",
+                        error
+                    );
+
+                    entryMessage.textContent =
+                        "検索を完了できませんでした。通信状態をご確認ください。";
+
+                } finally {
+
+                    entryButton.disabled = false;
+
+                }
+
+            }
+        );
+
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch((error) => console.warn("更新確認に失敗しました:", error));
+      }
     </script>
 
-    <script type="module" src="app.js?v=20261016-3"></script>
-  </body>
+</body>
+
 </html>

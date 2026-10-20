@@ -52,7 +52,7 @@ document.getElementById("backButton").onclick = async () => {
 };
 
 document.getElementById("profileButton").onclick = () => {
-  location.href = "profile.html";
+  location.href = document.documentElement.dataset.caremateRole === "admin" ? "admin.html" : "settings.html";
 };
 
 await initializePage([loadProfileImage(topProfileImage), loadQuestions()]);

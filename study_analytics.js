@@ -64,8 +64,8 @@ let catalogUnits = [];
 let timerTicker = null;
 
 setupTheme(byId("themeButton"));
-byId("backButton").onclick = () => location.href = "index.html";
-byId("profileButton").onclick = () => location.href = "profile.html";
+byId("backButton").onclick = () => location.href = "app.html";
+byId("profileButton").onclick = () => location.href = "settings.html";
 
 setupEvents();
 await initializePage([

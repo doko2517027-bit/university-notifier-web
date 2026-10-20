@@ -1,486 +1,113 @@
-import { VERSION } from "./version.js";
+import { auth, db, functions, signOutCareMate } from "./auth_core.js";
+import { encryptData } from "./common.js";
 import { savedExternalPasswordFields } from "./settings_password_fields.mjs";
-import { academicYearAt, canReviseAnnualResponse, daysAfterDate, isLeaveActive } from "./academic_lifecycle.mjs";
-import {
-  db,
-  auth,
-  functions,
-  studentNumber,
-  setupTheme,
-  initializePage,
-  loadProfileImage,
-  loadUserName,
-  loadMyRanking,
-  setupAdminTab,
-  setupOfflineAlert,
-  updateAssignmentNavBadge,
-  updateNewsNavBadge,
-  encryptData,
-  clearCareMateStoragePreservingDeviceId,
-  logoutCareMateSession,
-  removeCurrentCareMatePresence,
-} from "./common.js";
-
-import {
-  doc,
-  getDoc,
-  getDocFromServer,
-  updateDoc,
-  addDoc,
-  collection,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-import { signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js";
 
-import {
-  getCareMatePushRegistrationStatus,
-  registerDevicePushSubscription,
-  requestPushPermissionWithEducation,
-} from "./push_subscription.js?v=20261008-1";
-
-const root = document.documentElement;
-
-const department = localStorage.getItem("department");
-
-const major = localStorage.getItem("major");
-
-if (department === "看護学科") {
-  root.style.setProperty("--accent", "#F7EAC5");
-} else if (major === "理学療法学専攻") {
-  root.style.setProperty("--accent", "#DDEBF7");
-} else if (major === "作業療法学専攻") {
-  root.style.setProperty("--accent", "#E2EFDA");
-}
-
-const notifySchedule = document.getElementById("notifySchedule");
+const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
+const userRef = doc(db, "users", studentNumber);
+const accountSummary = document.getElementById("accountSummary");
+const manabaStatus = document.getElementById("manabaStatus");
+const pushStatus = document.getElementById("pushStatus");
 const notifyAssignment = document.getElementById("notifyAssignment");
 const notifyReminder = document.getElementById("notifyReminder");
-const notifyCourseNews = document.getElementById("notifyCourseNews");
-const notifySystemNews = document.getElementById("notifySystemNews");
-const enablePushButton = document.getElementById("enablePushButton");
-const pushRegistrationStatus = document.getElementById("pushRegistrationStatus");
 
-const topProfileImage = document.getElementById("topProfileImage");
-const themeButton = document.getElementById("themeButton");
-const userName = document.getElementById("userName");
-const annualResponseSettings = document.getElementById("annualResponseSettings");
-const annualResponseChoice = document.getElementById("annualResponseChoice");
-const annualResponseReason = document.getElementById("annualResponseReason");
-const annualResponseEffectiveDate = document.getElementById("annualResponseEffectiveDate");
-const annualResponseLeaveStartDate = document.getElementById("annualResponseLeaveStartDate");
-let annualResponseOriginal = null;
-
-setupTheme(themeButton);
-
-// 初期データの取得が遅くても、パスワード変更ボタンはすぐ使えるようにする。
-void initializePage([
-  setupAdminTab(),
-  loadUserName(userName),
-  loadMyRanking(),
-  loadProfileImage(topProfileImage),
-  loadnotificationSettings(),
-  loadRegistrationInfo(),
-  updateAssignmentNavBadge(),
-  updateNewsNavBadge(),
-]);
-
-setupNotificationEvents();
-
-document.getElementById("departmentText").textContent =
-  localStorage.getItem("department") || "未登録";
-
-document.getElementById("majorText").textContent =
-  localStorage.getItem("major") || "なし";
-
-document.getElementById("gradeText").textContent =
-  localStorage.getItem("grade") || "未登録";
-
-async function loadRegistrationInfo() {
-  document.getElementById("studentNumberText").textContent =
-    studentNumber || "未登録";
-  const [userSnap, publicSnap, systemSnap] = await Promise.all([
-    getDocFromServer(doc(db, "users", studentNumber))
-      .catch(() => getDoc(doc(db, "users", studentNumber))),
-    getDoc(doc(db, "publicUsers", studentNumber)),
-    getDoc(doc(db, "system", "app")).catch(() => null),
-  ]);
-  const data = userSnap.data() || {};
-  const gradeValue = String(data.grade || localStorage.getItem("grade") || "");
-  const currentGrade = Number(gradeValue.replace("年", ""));
-  if (data.grade) localStorage.setItem("grade", gradeValue);
-  if (data.department) localStorage.setItem("department", data.department);
-  if (data.major) localStorage.setItem("major", data.major);
-  document.getElementById("gradeText").textContent = currentGrade ? `${currentGrade}年` : "未登録";
-  document.getElementById("departmentText").textContent = data.department || localStorage.getItem("department") || "未登録";
-  document.getElementById("majorText").textContent = data.major || localStorage.getItem("major") || "なし";
-  document.getElementById("registeredNameText").textContent =
-    publicSnap.data()?.name || data.name || "未登録";
-  const academicYear = academicYearAt();
-  document.getElementById("graduationText").textContent = data.academicStatus === "leave"
-    ? isLeaveActive(data) ? "休学中のため未定" : "休学予定のため未定"
-    : ["graduated", "withdrawn"].includes(data.academicStatus)
-      ? "－"
-      : currentGrade
-    ? `${academicYear + (4 - currentGrade) + 1}年3月予定`
-    : "未登録";
-  document.getElementById("academicStatusText").textContent =
-    data.academicStatus === "leave"
-      ? isLeaveActive(data) ? "休学中" : `休学予定（${data.leaveStartDate || "開始日未設定"}から）`
-      : ({ repeat: "同学年を継続", graduated: "卒業", withdrawn: "退学" }[data.academicStatus] || "在籍中");
-  renderAnnualResponseEditor(data, systemSnap?.data()?.annualTransition);
-  document.getElementById("contactInboxLink").hidden =
-    studentNumber !== "2510044";
+try {
+  const snapshot = await getDoc(userRef);
+  const user = snapshot.data() || {};
+  accountSummary.textContent = `${user.name || "学生"}（${studentNumber}）`;
+  manabaStatus.textContent = user.manabaResetRequired ? "連携の再設定が必要です。" : user.manabaVerified === true ? "連携済み" : user.manabaVerificationError ? "前回の確認に失敗しました。パスワードを確認してください。" : "次回の課題取得時に連携状態を確認します。";
+  notifyAssignment.checked = user.notificationSettings?.assignment !== false;
+  notifyReminder.checked = user.notificationSettings?.reminder !== false;
+} catch (error) {
+  console.error("設定の読み込みエラー:", error);
+  accountSummary.textContent = "アカウント情報を取得できませんでした。";
+  manabaStatus.textContent = "連携状態を確認できませんでした。";
 }
 
-function updateAnnualResponseRows() {
-  const action = annualResponseChoice.value;
-  const recommended = annualResponseOriginal?.recommendedAction || "";
-  const changed = action !== annualResponseOriginal?.action;
-  document.getElementById("annualResponseReasonRow").hidden = !changed && Boolean(recommended && action === recommended);
-  document.getElementById("annualResponseEffectiveRow").hidden = !["graduate", "withdraw"].includes(action);
-  document.getElementById("annualResponseLeaveRow").hidden = action !== "leave";
-}
-
-function renderAnnualResponseEditor(user, transition) {
-  annualResponseSettings.hidden = !canReviseAnnualResponse(transition, user);
-  if (annualResponseSettings.hidden) return;
-  annualResponseOriginal = user.annualTransitionResponse;
-  const grade = Number(String(user.grade || "").replace("年", ""));
-  const choices = grade === 4
-    ? [["graduate", "卒業"], ["repeat", "同学年を継続"], ["leave", "休学"], ["withdraw", "退学"]]
-    : [["promote", "進級"], ["repeat", "同学年を継続"], ["leave", "休学"], ["withdraw", "退学"]];
-  annualResponseChoice.innerHTML = choices.map(([value, label]) =>
-    `<option value="${value}">${label}</option>`).join("");
-  annualResponseChoice.value = annualResponseOriginal.action;
-  annualResponseReason.value = annualResponseOriginal.overrideReason || "";
-  annualResponseEffectiveDate.value = annualResponseOriginal.effectiveDate || "";
-  annualResponseLeaveStartDate.value = annualResponseOriginal.leaveStartDate || "";
-  const assessment = ({ eligible: "進級要件を満たす見込み", ineligible: "進級要件を満たさない見込み" })[annualResponseOriginal.automaticAssessment] || "判定保留";
-  document.getElementById("annualResponseAssessment").textContent = `前回の自動判定：${assessment}。現在の回答は設定から変更できます。`;
-  updateAnnualResponseRows();
-}
-
-annualResponseChoice.addEventListener("change", () => {
-  if (annualResponseChoice.value !== annualResponseOriginal?.action) annualResponseReason.value = "";
-  updateAnnualResponseRows();
-});
-
-document.getElementById("saveAnnualResponse").addEventListener("click", async (event) => {
-  const button = event.currentTarget;
-  const action = annualResponseChoice.value;
-  const reason = annualResponseReason.value.trim();
-  const changed = action !== annualResponseOriginal?.action;
-  const recommended = annualResponseOriginal?.recommendedAction || "";
-  if (!action || ((changed || !recommended || action !== recommended) && !reason)) {
-    alert("回答を変更する場合や自動判定と異なる場合は、理由を入力してください。");
+document.getElementById("passwordForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = document.getElementById("passwordStatus");
+  const currentPassword = document.getElementById("currentPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+  if (newPassword !== document.getElementById("confirmPassword").value) {
+    status.textContent = "確認用パスワードが一致しません。";
     return;
   }
-  const effectiveDate = annualResponseEffectiveDate.value;
-  const leaveStartDate = annualResponseLeaveStartDate.value;
-  if (["graduate", "withdraw"].includes(action) && !daysAfterDate(effectiveDate, 0)) {
-    alert("大学の正式な卒業日・退学日を選択してください。");
-    return;
-  }
-  if (action === "leave" && !daysAfterDate(leaveStartDate, 0)) {
-    alert("休学開始日を選択してください。");
-    return;
-  }
-  if (!confirm("年度末の最終回答を変更しますか？")) return;
+  const button = form.querySelector("button");
   button.disabled = true;
+  status.textContent = "変更中…";
   try {
-    await requireOwnLogin();
-    const [userSnap, systemSnap] = await Promise.all([
-      getDoc(doc(db, "users", studentNumber)),
-      getDoc(doc(db, "system", "app")),
-    ]);
-    const user = userSnap.data() || {};
-    const transition = systemSnap.data()?.annualTransition;
-    if (!canReviseAnnualResponse(transition, user)) throw new Error("受付期間外、または既に反映済みです");
-    const response = user.annualTransitionResponse;
-    await updateDoc(doc(db, "users", studentNumber), {
-      annualTransitionResponse: {
-        ...response,
-        action,
-        overrideReason: reason,
-        effectiveDate: ["graduate", "withdraw"].includes(action) ? effectiveDate : null,
-        leaveStartDate: action === "leave" ? leaveStartDate : null,
-        revisedAt: new Date().toISOString(),
-        submittedAt: new Date().toISOString(),
-      },
-      updatedAt: serverTimestamp(),
-    });
-    annualResponseOriginal = { ...response, action, overrideReason: reason, effectiveDate, leaveStartDate };
-    updateAnnualResponseRows();
-    alert("回答を更新しました。反映予定日までは現在の学年・在籍状態のままです。");
+    await httpsCallable(functions, "changeCareMatePassword")({ currentPassword, newPassword });
+    form.reset();
+    status.textContent = "変更しました。新しいパスワードでログインし直してください。";
+    await signOutCareMate();
   } catch (error) {
-    console.error("年度末回答の変更エラー:", error);
-    alert("回答を更新できませんでした。受付期間と通信状態を確認してください。");
-  } finally {
-    button.disabled = false;
-  }
+    console.error("パスワード変更エラー:", error);
+    status.textContent = error.code === "functions/permission-denied" ? "現在のパスワードが違います。" : "変更できませんでした。入力と通信状態を確認してください。";
+  } finally { button.disabled = false; }
 });
 
-document.getElementById("savemanabaPassword").onclick = () =>
-  saveExternalPassword("manaba");
-document.getElementById("saveActiveMailPassword").onclick = () =>
-  saveExternalPassword("activeMail");
-async function requireOwnLogin() {
-  await auth.authStateReady();
-  if (!studentNumber || auth.currentUser?.uid !== `caremate-${studentNumber}`) {
-    throw new Error("ログイン状態を確認できません");
-  }
-}
-async function saveExternalPassword(kind) {
-  const button = document.getElementById(
-    kind === "manaba" ? "savemanabaPassword" : "saveActiveMailPassword",
-  );
-  const input = document.getElementById(
-    kind === "manaba" ? "newmanabaPassword" : "newActiveMailPassword",
-  );
-  if (!input.value.trim()) {
-    alert("新しいパスワードを入力してください。");
-    return;
-  }
-  if (
-    !confirm(
-      `${kind === "manaba" ? "manaba" : "ActiveMail"}の保存パスワードを変更しますか？`,
-    )
-  )
-    return;
+document.getElementById("manabaForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  const status = document.getElementById("manabaSaveStatus");
+  const input = document.getElementById("manabaPassword");
   button.disabled = true;
+  status.textContent = "保存中…";
   try {
-    await requireOwnLogin();
     const encrypted = await encryptData(input.value);
-    const fields = savedExternalPasswordFields(kind, encrypted);
-    await updateDoc(doc(db, "users", studentNumber), fields);
+    await updateDoc(userRef, savedExternalPasswordFields("manaba", encrypted));
     input.value = "";
-    alert("CareMateに保存したパスワードを更新しました。次回の連携時に確認されます。");
+    manabaStatus.textContent = "次回の課題取得時に確認します。";
+    status.textContent = "保存しました。";
   } catch (error) {
-    console.error("保存パスワード更新エラー:", error);
-    alert("保存できませんでした。通信状態とログイン状態を確認して再度お試しください。");
-  } finally {
-    button.disabled = false;
-  }
-}
-document.getElementById("saveCareMatePassword").onclick = async () => {
-  const button = document.getElementById("saveCareMatePassword");
-  const currentInput = document.getElementById("currentCareMatePassword");
-  const newInput = document.getElementById("newCareMatePassword");
-  const confirmInput = document.getElementById("confirmCareMatePassword");
-  const pass = newInput.value;
-  const again = confirmInput.value;
-  if (!currentInput.value) {
-    alert("現在のパスワードを入力してください。");
-    return;
-  }
-  if (pass.length < 6) {
-    alert("6文字以上で入力してください。");
-    return;
-  }
-  if (pass.length > 128) {
-    alert("128文字以内で入力してください。");
-    return;
-  }
-  if (pass !== again) {
-    alert("確認入力が一致しません。");
-    return;
-  }
-  if (!confirm("CareMateのログインパスワードを変更しますか？")) return;
-  button.disabled = true;
-  try {
-    await requireOwnLogin();
-    const changePassword = httpsCallable(functions, "changeCareMatePassword");
-    await changePassword({ currentPassword: currentInput.value, newPassword: pass });
-    currentInput.value = "";
-    newInput.value = "";
-    confirmInput.value = "";
-    localStorage.removeItem("loggedIn");
-    try {
-      await removeCurrentCareMatePresence();
-      await signOut(auth);
-    } catch (signOutError) {
-      console.warn("パスワード変更後のログアウトエラー:", signOutError);
-    }
-    alert("CareMateのパスワードを変更しました。新しいパスワードでログインし直してください。");
-    location.href = "login.html";
-  } catch (error) {
-    console.error("CareMateパスワード変更エラー:", error);
-    alert(
-      error?.code === "functions/permission-denied"
-        ? "現在のパスワードが違います。"
-        : error?.code === "functions/invalid-argument"
-          ? "現在とは異なる新しいパスワードを入力してください。"
-        : "変更できませんでした。通信状態とログイン状態を確認して再度お試しください。",
-    );
-  } finally {
-    button.disabled = false;
-  }
-};
-document.getElementById("sendContact").onclick = async () => {
-  const message = document.getElementById("contactMessage").value.trim();
-  if (!message) {
-    alert("お問い合わせ内容を入力してください。");
-    return;
-  }
-  if (!confirm("この内容を管理者へ送信しますか？")) return;
-  try {
-    await addDoc(collection(db, "contacts"), {
-      studentNumber,
-      category: document.getElementById("contactCategory").value,
-      message,
-      status: "new",
-      createdAt: serverTimestamp(),
-    });
-    document.getElementById("contactMessage").value = "";
-    alert(
-      "送信しました。返信は『お問い合わせの履歴・返信を見る』から確認できます。",
-    );
-  } catch (error) {
-    console.error("お問い合わせ送信エラー:", error);
-    alert("送信できませんでした。ログインし直してからもう一度お試しください。");
-  }
-};
-
-document.getElementById("versionText").textContent = `Version ${VERSION}`;
-
-document.getElementById("unregister").addEventListener("click", async () => {
-  const button = document.getElementById("unregister");
-  if (!confirm("CareMateアカウントを完全に削除しますか？\nプロフィール、履修・出席・学習データ、通知設定、お問い合わせ履歴、メイトークのルーム・メッセージ・写真も削除されます。この操作は取り消せません。")) return;
-  const confirmation = prompt(`実行するには学籍番号 ${studentNumber} を入力してください。`);
-  if (confirmation !== studentNumber) {
-    if (confirmation !== null) alert("学籍番号が一致しないため、削除を中止しました。");
-    return;
-  }
-  const password = prompt("本人確認のため、現在のCareMateパスワードを入力してください。");
-  if (password === null || !password) return;
-  button.disabled = true;
-  button.textContent = "削除中...";
-  try {
-    await httpsCallable(functions, "deleteMyCareMateAccount", { timeout: 540000 })({ password });
-    try {
-      const registration = await navigator.serviceWorker?.ready;
-      const subscription = await registration?.pushManager?.getSubscription();
-      await subscription?.unsubscribe();
-    } catch (pushError) {
-      console.warn("通知購読の解除はスキップしました:", pushError);
-    }
-    await signOut(auth);
-    clearCareMateStoragePreservingDeviceId();
-    location.href = "register.html";
-  } catch (error) {
-    console.error("アカウント完全削除エラー:", error);
-    alert("削除を完了できませんでした。データはサーバーで削除確認されていません。時間をおいて再度お試しください。");
-    button.disabled = false;
-    button.textContent = "CareMateアカウントを完全削除";
-  }
+    console.error("manabaパスワード保存エラー:", error);
+    status.textContent = "保存できませんでした。通信状態を確認してください。";
+  } finally { button.disabled = false; }
 });
 
-document.getElementById("logout").addEventListener("click", async () => {
-  if (!confirm("ログアウトしますか？")) {
-    return;
-  }
-
-  await logoutCareMateSession();
-});
-
-async function loadnotificationSettings() {
-  if (!studentNumber) return;
-
-  const snap = await getDoc(doc(db, "users", studentNumber));
-
-  if (!snap.exists()) return;
-
-  const manabaVerified = snap.data().manabaVerified === true;
-
-  document.getElementById("systemNewsRow").style.display = manabaVerified
-    ? "flex"
-    : "none";
-
-  const switchs = snap.data().notificationSettings || {};
-
-  notifySchedule.checked = switchs.schedule ?? true;
-
-  notifyAssignment.checked = switchs.assignment ?? true;
-
-  notifyReminder.checked = switchs.reminder ?? true;
-
-  notifyCourseNews.checked = switchs.courseNews ?? true;
-
-  notifySystemNews.checked = switchs.systemNews ?? true;
-}
-
-function setupNotificationEvents() {
-  [
-    notifySchedule,
-    notifyAssignment,
-    notifyReminder,
-    notifyCourseNews,
-    notifySystemNews,
-  ].forEach((input) => {
-    input.addEventListener("change", savenotificationSettings);
+for (const input of [notifyAssignment, notifyReminder]) {
+  input.addEventListener("change", async () => {
+    input.disabled = true;
+    const value = input.checked;
+    try {
+      await updateDoc(userRef, { [`notificationSettings.${input === notifyAssignment ? "assignment" : "reminder"}`]: value });
+    } catch (error) {
+      console.error("通知設定保存エラー:", error);
+      input.checked = !value;
+      pushStatus.textContent = "通知設定を保存できませんでした。";
+    } finally { input.disabled = false; }
   });
 }
 
-async function savenotificationSettings() {
-  if (!studentNumber) return;
-
-  await updateDoc(doc(db, "users", studentNumber), {
-    notificationSettings: {
-      schedule: notifySchedule.checked,
-      assignment: notifyAssignment.checked,
-      reminder: notifyReminder.checked,
-      courseNews: notifyCourseNews.checked,
-      systemNews: notifySystemNews.checked,
-    },
-  });
-}
-
-document.getElementById("profileButton").onclick = () => {
-  location.href = "profile.html";
-};
-
-async function refreshPushRegistrationStatus() {
-  if (!studentNumber || !pushRegistrationStatus) return;
+async function refreshPushStatus() {
   try {
-    const status = await getCareMatePushRegistrationStatus(db, studentNumber, {
-      repair: true,
-    });
-    pushRegistrationStatus.dataset.registered = status.registered ? "true" : "false";
-    if (status.currentDeviceRegistered) {
-      pushRegistrationStatus.textContent = "✅ この端末のPush通知は登録済みです。";
-      enablePushButton.textContent = "🔔 通知を再登録する";
-    } else if (status.registered) {
-      pushRegistrationStatus.textContent = "✅ アカウントにはPush通知を受け取る端末が登録されています。";
-      enablePushButton.textContent = "🔔 この端末にも通知を登録する";
-    } else {
-      pushRegistrationStatus.textContent = "⚠️ Push通知はまだ登録されていません。";
-      enablePushButton.textContent = "🔔 通知を有効にする";
-    }
+    const status = await getCareMatePushRegistrationStatus(db, studentNumber, { repair: false });
+    pushStatus.textContent = status.currentDeviceRegistered ? "この端末は通知登録済みです。" : status.registered ? "別の端末に通知登録があります。この端末でも登録できます。" : "この端末はまだ通知を受け取れません。";
   } catch (error) {
-    console.warn("Push通知登録状態の表示に失敗しました:", error);
-    pushRegistrationStatus.textContent = "通知の登録状態を確認できませんでした。";
+    console.warn("通知状態確認エラー:", error);
+    pushStatus.textContent = "通知登録の状態を確認できませんでした。";
   }
 }
-
-void refreshPushRegistrationStatus();
-window.addEventListener("caremate:push-registration-changed", () => {
-  void refreshPushRegistrationStatus();
-});
-
-enablePushButton.onclick = async () => {
-  enablePushButton.disabled = true;
+void refreshPushStatus();
+document.getElementById("enablePushButton").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
   try {
-    const permission = await requestPushPermissionWithEducation({ force: true });
-    if (permission !== "granted") return;
+    if (await requestPushPermissionWithEducation({ force: true }) !== "granted") {
+      pushStatus.textContent = "端末の通知が許可されていません。";
+      return;
+    }
     await registerDevicePushSubscription(db, studentNumber, "settings", "sw.js");
-    alert("この端末のPush通知を登録しました。");
+    await refreshPushStatus();
   } catch (error) {
-    console.error("Push通知登録エラー:", error);
-    alert("通知を登録できませんでした。端末の通知設定と通信状態を確認してください。");
-  } finally {
-    enablePushButton.disabled = false;
-    await refreshPushRegistrationStatus();
-  }
-};
+    console.error("通知登録エラー:", error);
+    pushStatus.textContent = "通知登録に失敗しました。端末設定と通信状態を確認してください。";
+  } finally { button.disabled = false; }
+});
+
+document.getElementById("logoutButton").addEventListener("click", () => { void signOutCareMate(); });
