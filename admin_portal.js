@@ -1,6 +1,7 @@
 import { signOutCareMate } from "./auth_core.js";
-import { functions } from "./auth_core.js";
+import { db, functions } from "./auth_core.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const newAccountForm = document.getElementById("newAccountForm");
 const newAccountStatus = document.getElementById("newAccountStatus");
@@ -16,7 +17,17 @@ securityButton?.addEventListener("click", async () => {
   securityResults.replaceChildren();
   try {
     const response = await httpsCallable(functions, "adminRunSecurityCheck")();
-    const checks = response.data?.checks || [];
+    const checks = [...(response.data?.checks || [])];
+    try {
+      await getDoc(doc(db, "systemPrivate", "careMateCredentials"));
+      checks.push({ id: "rules", level: "fail", text: "Firestore機密領域が画面から読み取れます" });
+    } catch (error) {
+      checks.push({
+        id: "rules",
+        level: error?.code === "permission-denied" ? "pass" : "unknown",
+        text: error?.code === "permission-denied" ? "Firestore機密領域のアクセス拒否" : "Firestoreルールの通信確認",
+      });
+    }
     const labels = { pass: "良好", warn: "要改善", fail: "要修正", unknown: "未検査" };
     for (const check of checks) {
       const row = document.createElement("div");
@@ -28,8 +39,8 @@ securityButton?.addEventListener("click", async () => {
       row.append(level, text);
       securityResults.append(row);
     }
-    const concern = checks.some((check) => check.level === "warn" || check.level === "fail");
-    securityStatus.textContent = `${new Date(response.data?.checkedAt || Date.now()).toLocaleString("ja-JP")}に確認しました。${concern ? "要確認項目があります。安全が保証された状態ではありません。" : "この簡易点検で異常は見つかりませんでした。未検査項目もあります。"}`;
+    const concern = checks.some((check) => check.level !== "pass");
+    securityStatus.textContent = `${new Date(response.data?.checkedAt || Date.now()).toLocaleString("ja-JP")}に確認しました。${concern ? "要確認項目があります。" : "確認対象はすべて良好です。"}`;
   } catch (error) {
     console.error("セキュリティ確認エラー:", error);
     securityStatus.textContent = "確認を完了できませんでした。管理者権限と通信状態を確認してください。";

@@ -346,6 +346,20 @@ exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
     const user = users[allAccounts.indexOf(doc)]?.data() || {};
     return user.manabaCredentialConfigured === true && typeof privateManaba[index].data()?.password !== "string";
   }).length;
+  const cronHealth = (await db.collection("system").doc("assignmentCronHealth").get()).data() || {};
+  const cronAgeMs = Date.now() - Number(cronHealth.updatedAtMs || 0);
+  const cronHealthy = cronHealth.status === "success" && cronAgeMs >= 0 && cronAgeMs <= 10 * 60 * 60 * 1000;
+  let runtimeServiceAccount = "";
+  try {
+    const metadata = await fetch(
+      "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+      { headers: { "Metadata-Flavor": "Google" }, signal: AbortSignal.timeout(2000) }
+    );
+    if (metadata.ok) runtimeServiceAccount = (await metadata.text()).trim();
+  } catch {
+    runtimeServiceAccount = "";
+  }
+  const isolatedRuntime = runtimeServiceAccount === "caremate-functions@universitynotifier-67517.iam.gserviceaccount.com";
   return {
     checkedAt: new Date().toISOString(),
     checks: [
@@ -354,7 +368,8 @@ exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
       { id: "users", level: missingUsers ? "fail" : "pass", text: `有効な利用者の登録整合性（不一致 ${missingUsers} 件）` },
       { id: "hashes", level: readableHashes || missingOrWeakHashes ? "fail" : "pass", text: `ログイン認証情報の分離・強度（公開側 ${readableHashes} 件、未移行・不整合 ${missingOrWeakHashes} 件）` },
       { id: "manaba", level: legacyManaba || missingManaba ? "warn" : "pass", text: `manaba認証情報の分離（公開側 ${legacyManaba} 件、保存不整合 ${missingManaba} 件）` },
-      { id: "scope", level: "unknown", text: "Firestore/Storageの本番ルール・IAM・Renderはこのボタンでは検証できません" },
+      { id: "runtime", level: isolatedRuntime ? "pass" : "fail", text: `Firebase関数の専用実行権限（${isolatedRuntime ? "分離済み" : "要確認"}）` },
+      { id: "render", level: cronHealthy ? "pass" : "warn", text: `Render課題取得の最終実行（${cronHealth.status === "success" ? "成功" : "未確認または失敗"}）` },
     ],
   };
 });
