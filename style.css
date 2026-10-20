@@ -204,14 +204,14 @@ body:has(.admin-detail-grid) .admin-save-card {
 }
 
 .dark{
-    --bg:#181818;
-    --card:#2b2b2b;
+    --bg:#090909;
+    --card:#1c1c1c;
 
     --text:#ffffff;
-    --subtext:#CBD5E1;
+    --subtext:#c8c8c8;
     --text-secondary:#b5b5b5;
 
-    --border:#444444;
+    --border:#3d3d3d;
 
     --shadow:0 6px 18px rgba(0,0,0,.35);
 }

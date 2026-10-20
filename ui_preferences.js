@@ -2,6 +2,7 @@
 (function () {
   const storageKey = "theme";
   const root = document.documentElement;
+  let transitionTimer;
   let storedTheme = "light";
   try {
     storedTheme = localStorage.getItem(storageKey) === "dark" ? "dark" : "light";
@@ -14,11 +15,9 @@
     root.classList.toggle("dark", dark);
     root.style.colorScheme = dark ? "dark" : "light";
     const browserColor = document.querySelector('meta[name="theme-color"]');
-    if (browserColor) browserColor.content = dark ? "#121b28" : "#0f9d8a";
+    if (browserColor) browserColor.content = dark ? "#090909" : "#0f9d8a";
     document.querySelectorAll("[data-cm-theme-toggle]").forEach((button) => {
-      button.textContent = button.dataset.cmThemeFloating === "true"
-        ? (dark ? "☀️ ライト" : "🌙 ダーク")
-        : (dark ? "☀️" : "🌙");
+      button.textContent = dark ? "☀️" : "🌙";
       button.setAttribute("aria-label", dark ? "ライトモードに切り替える" : "ダークモードに切り替える");
       button.setAttribute("aria-pressed", String(dark));
       button.title = dark ? "ライトモードに切り替える" : "ダークモードに切り替える";
@@ -26,7 +25,22 @@
   }
 
   function setTheme(theme) {
+    const buttons = [...document.querySelectorAll("[data-cm-theme-toggle]")];
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (animate) {
+      root.classList.add("cm-theme-transition");
+      // Establish the starting colors before swapping the theme class.
+      void root.offsetWidth;
+    }
     paint(theme);
+    if (animate) {
+      buttons.forEach((button) => button.animate?.([
+        { opacity: 0.3, transform: "scale(0.88)" },
+        { opacity: 1, transform: "scale(1)" },
+      ], { duration: 320, easing: "ease-out" }));
+      clearTimeout(transitionTimer);
+      transitionTimer = setTimeout(() => root.classList.remove("cm-theme-transition"), 380);
+    }
     try { localStorage.setItem(storageKey, theme); } catch (_) { /* session only */ }
   }
 
@@ -45,16 +59,17 @@
   style.textContent = `
     html, body { touch-action: pan-x pan-y; }
     button, a, input, select, textarea { touch-action: manipulation; }
-    .cm-floating-theme { position: fixed; z-index: 90; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); min-height: 42px; padding: 8px 13px; border: 1px solid #b8c8d4; border-radius: 999px; background: #fff; color: #17304a; box-shadow: 0 3px 12px #17243c25; font: 700 13px/1.2 -apple-system, BlinkMacSystemFont, sans-serif; cursor: pointer; }
-    .dark .cm-floating-theme { background: #243444; color: #f3f7fb; border-color: #5b7286; }
+    .cm-floating-theme { position: fixed; z-index: 90; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; padding: 0; border: 0; border-radius: 50%; background: #fff; color: #111; box-shadow: 0 6px 18px #0002; font: 24px/1 -apple-system, BlinkMacSystemFont, sans-serif; cursor: pointer; }
+    .dark .cm-floating-theme { background: #1c1c1c; color: #f5f5f5; box-shadow: 0 6px 18px #0008; }
     .cm-floating-theme:focus-visible { outline: 3px solid #4f83d6; outline-offset: 2px; }
+    html.cm-theme-transition body, html.cm-theme-transition body *, html.cm-theme-transition body *::before, html.cm-theme-transition body *::after { transition: background-color .32s ease, color .32s ease, border-color .32s ease, box-shadow .32s ease; }
     body.cm-has-floating-theme { padding-top: max(74px, calc(env(safe-area-inset-top) + 58px)) !important; }
-    .dark body.cm-login-page { background: #111b29; color: #f3f7fb; }
-    .dark .notice, .dark .login-card, .dark .search-box { background: #1d2a3b; border-color: #41546c; color: #f3f7fb; }
+    .dark body.cm-login-page { background: #090909; color: #f5f5f5; }
+    .dark .notice, .dark .login-card, .dark .search-box { background: #1c1c1c; border-color: #3c3c3c; color: #f5f5f5; }
     .dark .login-header h1, .dark .login-card label { color: #f3f7fb; }
-    .dark .notice p, .dark .login-header p, .dark .entry-message { color: #b8c9db; }
-    .dark .login-card input, .dark .search-box input { background: #142132; border-color: #597087; color: #f3f7fb; }
-    .dark .search-box button { color: #d9e6f4; }
+    .dark .notice p, .dark .login-header p, .dark .entry-message { color: #bcbcbc; }
+    .dark .login-card input, .dark .search-box input { background: #101010; border-color: #555; color: #f5f5f5; }
+    .dark .search-box button { color: #ddd; }
     .cm-entry-notice .cm-floating-theme { display: none; }
     body.cm-entry-notice.cm-has-floating-theme { padding-top: max(24px, env(safe-area-inset-top)) !important; }
     .dark body.cm-entry-notice { background: #f8fafc; color: #1e293b; color-scheme: light; }
@@ -62,9 +77,9 @@
     .dark body.cm-entry-notice .notice p, .dark body.cm-entry-notice .entry-message { color: #64748b; }
     .dark body.cm-entry-notice .search-box input { background: transparent; color: #1e293b; }
     .dark body.cm-entry-notice .search-box button { color: #64748b; }
-    .dark body.cm-offline-page { background: #111b29; color: #f3f7fb; }
-    .dark body.cm-offline-page main { background: #1d2a3b; }
-    .dark body.cm-offline-page p { color: #b8c9db; }
+    .dark body.cm-offline-page { background: #090909; color: #f5f5f5; }
+    .dark body.cm-offline-page main { background: #1c1c1c; }
+    .dark body.cm-offline-page p { color: #bcbcbc; }
   `;
   document.head.append(style);
 
@@ -76,7 +91,7 @@
       return;
     }
     const button = document.createElement("button");
-    button.className = "cm-floating-theme";
+    button.className = "circle-button cm-floating-theme";
     button.dataset.cmThemeFloating = "true";
     document.body.classList.add("cm-has-floating-theme");
     document.body.append(button);
