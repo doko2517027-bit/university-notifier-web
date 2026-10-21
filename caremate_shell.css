@@ -112,6 +112,9 @@ body.caremate-renewed {
 .cm-calendar-day-items { display: grid; gap: 2px; width: 100%; margin-top: 3px; }
 .cm-calendar-chip { display: block; width: 100%; min-width: 0; overflow: hidden; padding: 3px 4px; border-radius: 4px; font-size: 10px; font-weight: 750; line-height: 1.25; text-overflow: clip; white-space: nowrap; }
 .cm-calendar-chip.assignment { color: #a54b50; background: #ffe7e8; }
+.cm-calendar-chip.assignment.is-submitted { color: #fff; background: #2563eb; }
+.cm-calendar-chip.assignment.is-overdue { color: #fff; background: #d92f4c; }
+.cm-calendar-chip.assignment.is-pending { color: #fff; background: #151515; }
 .cm-calendar-chip.personal { color: #146c5b; background: #dff5ef; }
 .cm-calendar-more { color: var(--cm-muted); font-size: 10px; }
 .cm-item-kicker { display: block; margin-bottom: 5px; color: var(--cm-primary); font-size: 12px; font-weight: 800; }
@@ -132,6 +135,13 @@ body.caremate-renewed {
 .cm-dialog-form textarea { resize: vertical; }
 .cm-calendar-personal { border-left: 4px solid #62c4a8; }
 .cm-calendar-task { border-left: 4px solid #f0a284; }
+.cm-calendar-task.is-submitted { border-left-color: #2563eb; }
+.cm-calendar-task.is-overdue { border-left-color: #d92f4c; }
+.cm-calendar-task.is-pending { border-left-color: #151515; }
+.cm-calendar-task .cm-item-kicker { display: inline-flex; width: fit-content; padding: 3px 8px; border-radius: 999px; }
+.cm-calendar-task.is-submitted .cm-item-kicker { color: #fff; background: #2563eb; }
+.cm-calendar-task.is-overdue .cm-item-kicker { color: #fff; background: #d92f4c; }
+.cm-calendar-task.is-pending .cm-item-kicker { color: #fff; background: #151515; }
 @media (max-width: 600px) {
   .cm-calendar-day { min-height: 72px; }
   .cm-calendar-chip { font-size: 9px; }
@@ -168,7 +178,16 @@ body.caremate-renewed {
 .dark .cm-status, .dark .cm-item p, .dark .cm-calendar-weekdays { color: var(--cm-muted); }
 .dark .cm-calendar-day.has-items { background: #1a3a3c; border-color: #37786f; }
 .dark .cm-calendar-chip.assignment { background: #66343d; color: #ffe3e5; }
+.dark .cm-calendar-chip.assignment.is-submitted { color: #fff; background: #3b73e8; }
+.dark .cm-calendar-chip.assignment.is-overdue { color: #fff; background: #e0445e; }
+.dark .cm-calendar-chip.assignment.is-pending { color: #111; background: #f5f5f5; }
 .dark .cm-calendar-chip.personal { background: #23554b; color: #dcfff4; }
+.dark .cm-calendar-task.is-submitted { border-left-color: #3b73e8; }
+.dark .cm-calendar-task.is-overdue { border-left-color: #e0445e; }
+.dark .cm-calendar-task.is-pending { border-left-color: #f5f5f5; }
+.dark .cm-calendar-task.is-submitted .cm-item-kicker { color: #fff; background: #3b73e8; }
+.dark .cm-calendar-task.is-overdue .cm-item-kicker { color: #fff; background: #e0445e; }
+.dark .cm-calendar-task.is-pending .cm-item-kicker { color: #111; background: #f5f5f5; }
 .dark .cm-details { border-color: var(--cm-border); }
 .dark .cm-details > summary { color: #9ccaff; }
 .dark .cm-dialog-close { background: #333; color: var(--cm-text); }

@@ -12,7 +12,9 @@ test("課題カレンダーはホームにあり、日別詳細と自分の予�
   assert.match(script, /manabaの課題を開く/);
   assert.match(script, /calendarPersonal/);
   assert.match(home, /data-entry="\.\/home\.js\?v=/);
-  assert.match(script, /for \(const task of tasks\) labels\.append/);
+  assert.match(script, /for \(const task of tasks\) \{/);
+  assert.match(script, /assignmentState\(task\)/);
+  assert.match(script, /cm-calendar-chip assignment is-\$\{state\}/);
   assert.doesNotMatch(script, /ほか .*件|\$\{count\}件/);
   assert.match(rules, /match \/calendarPersonal\/\{studentNumber\}\/items\/\{id\}/);
   assert.match(rules, /allow get, list: if owner\(studentNumber\)/);

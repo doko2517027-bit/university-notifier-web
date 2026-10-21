@@ -32,7 +32,15 @@ function deadlineDate(item) {
   if (item.deadlineAt?.toDate) return item.deadlineAt.toDate();
   const raw = String(item.deadlineText || item.deadline || "");
   const date = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
-  if (date) return new Date(Number(date[1]), Number(date[2]) - 1, Number(date[3]));
+  const timeMatches = [...raw.matchAll(/(\d{1,2}):(\d{2})/g)];
+  const time = timeMatches.at(-1) || null;
+  if (date) return new Date(
+    Number(date[1]),
+    Number(date[2]) - 1,
+    Number(date[3]),
+    time ? Number(time[1]) : 23,
+    time ? Number(time[2]) : 59,
+  );
   return null;
 }
 function keyFor(item) {
@@ -45,6 +53,25 @@ function safeManabaUrl(raw) {
     return url.protocol === "https:" && url.hostname === "sums.manaba.jp" ? url.href : "";
   } catch { return ""; }
 }
+function assignmentIdentity(item) {
+  return `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
+}
+function hasSubmittedStatus(item) {
+  if (typeof item._isSubmitted === "boolean") return item._isSubmitted;
+  if (item.submitted === true || item.isSubmitted === true || item.completed === true) return true;
+  const status = String(item.submissionStatus || item.status || "").toLowerCase();
+  return ["submitted", "completed", "done", "提出済み"].some((value) => status.includes(value));
+}
+function assignmentState(item) {
+  if (hasSubmittedStatus(item)) return "submitted";
+  const deadline = deadlineDate(item);
+  return deadline && deadline.getTime() < Date.now() ? "overdue" : "pending";
+}
+function assignmentStatusLabel(state) {
+  if (state === "submitted") return "提出済み";
+  if (state === "overdue") return "期限切れ・未提出";
+  return "期限内・未提出";
+}
 function openDay(key) {
   selected = key;
   dayTitle.textContent = `${key.replaceAll("-", "/")} の予定`;
@@ -53,8 +80,9 @@ function openDay(key) {
   const events = personalEvents.filter((item) => item.date === key).sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
   if (!tasks.length && !events.length) dayItems.append(el("p", assignmentAccess ? "この日の課題・予定はありません。" : "この日の予定はありません。", "cm-subtitle"));
   for (const item of tasks) {
-    const card = el("article", "", "cm-item cm-calendar-task");
-    card.append(el("span", "manaba課題", "cm-item-kicker"), el("h3", item.title || "課題"), el("p", item.course || "科目名なし"));
+    const state = assignmentState(item);
+    const card = el("article", "", `cm-item cm-calendar-task is-${state}`);
+    card.append(el("span", assignmentStatusLabel(state), "cm-item-kicker"), el("h3", item.title || "課題"), el("p", item.course || "科目名なし"));
     card.append(el("p", `締切：${item.deadlineText || item.deadline || "日付未設定"}`));
     const url = safeManabaUrl(item.url);
     if (url) {
@@ -101,7 +129,12 @@ function renderCalendar() {
     button.setAttribute("aria-label", assignmentAccess ? `${monthIndex + 1}月${day}日、課題${tasks.length}件、予定${events.length}件` : `${monthIndex + 1}月${day}日、予定${events.length}件`);
     button.append(el("span", day, "cm-calendar-day-number"));
     const labels = el("span", "", "cm-calendar-day-items");
-    for (const task of tasks) labels.append(el("small", task.title || "課題", "cm-calendar-chip assignment"));
+    for (const task of tasks) {
+      const state = assignmentState(task);
+      const chip = el("small", task.title || "課題", `cm-calendar-chip assignment is-${state}`);
+      chip.title = `${task.title || "課題"}（${assignmentStatusLabel(state)}）`;
+      labels.append(chip);
+    }
     for (const event of events) labels.append(el("small", event.title, "cm-calendar-chip personal"));
     button.append(labels);
     button.addEventListener("click", () => openDay(key));
@@ -162,11 +195,23 @@ const currentItems = currentResult.status === "fulfilled" && Array.isArray(curre
 const archivedItems = archivedResult.status === "fulfilled"
   ? (archivedResult.value?.docs || []).map((snapshot) => snapshot.data()) : [];
 const unique = new Map();
-[...archivedItems, ...currentItems].forEach((item) => {
-  const key = `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
-  unique.set(key, { ...unique.get(key), ...item });
+[...archivedItems].forEach((item) => {
+  const key = assignmentIdentity(item);
+  unique.set(key, { ...unique.get(key), ...item, _isCurrent: false });
 });
-assignments = [...unique.values()];
+[...currentItems].forEach((item) => {
+  const key = assignmentIdentity(item);
+  unique.set(key, { ...unique.get(key), ...item, _isCurrent: true });
+});
+assignments = [...unique.values()].map((item) => ({
+  ...item,
+  _isSubmitted:
+    typeof item.submitted === "boolean"
+      ? item.submitted
+      : typeof item.isSubmitted === "boolean"
+        ? item.isSubmitted
+        : !item._isCurrent,
+}));
 personalEvents = personalResult.status === "fulfilled"
   ? personalResult.value.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))
     .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.date || ""))
