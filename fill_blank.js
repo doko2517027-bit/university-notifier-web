@@ -5,7 +5,7 @@ import {
   getDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import { reportWrongAnswer } from "./question_report.js";
+import { reportWrongAnswer } from "./question_report.js?v=20261021-2";
 import { awardDailyQuestionPoints } from "./test_points.js";
 import {
   loadTestSession,
@@ -14,7 +14,7 @@ import {
   scrubberHtml,
   setupScrubber,
   finishTest,
-} from "./test_session.js";
+} from "./test_session.js?v=20261021-2";
 import {
   studyPointHtml,
   studySearchHtml,
@@ -267,7 +267,7 @@ function renderFillQuestion() {
                     type="button"
                     class="test-report-link report-wrong-answer"
                     data-question-index="${currentFillIndex}">
-                    答えが違います
+                    違います
                 </button>
             </div>${scrubberHtml(currentFillIndex, visibleFillBlank.length)}${studySearchHtml()}
         `;

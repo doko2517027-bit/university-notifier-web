@@ -5,6 +5,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { confirmStudentDialog } from "./student_modal.mjs?v=20261021-1";
 
 async function idFor(type, subjectId, unitId) {
   const data = new TextEncoder().encode(`${type}|${subjectId}|${unitId}`);
@@ -29,9 +30,12 @@ export async function loadTestProgress(type, subjectId, unitId, total) {
     0,
     Math.min(total - 1, Number(snap.data().currentIndex || 0)),
   );
-  return confirm(
-    `前回は問題${index + 1}まで進みました。\nOK：続きから　キャンセル：最初から`,
-  )
+  return (await confirmStudentDialog({
+    title: "前回の続きから始めますか？",
+    message: `前回は問題 ${index + 1} まで進みました。`,
+    confirmLabel: "続きから始める",
+    cancelLabel: "最初から始める",
+  }))
     ? index
     : 0;
 }
@@ -101,9 +105,12 @@ export async function loadTestSession(type, subjectId, subjectName, unitId, item
     ? validSession(snap.data(), items)
     : null;
   if (restored) {
-    const continueFromHere = confirm(
-      `前回は問題${restored.currentIndex + 1}まで進みました。\nOK：続きから　キャンセル：新しく始める`,
-    );
+    const continueFromHere = await confirmStudentDialog({
+      title: "前回の続きから始めますか？",
+      message: `前回は問題 ${restored.currentIndex + 1} まで進みました。`,
+      confirmLabel: "続きから始める",
+      cancelLabel: "新しく始める",
+    });
     if (continueFromHere) return restored;
   }
   const session = newSession(items);
@@ -175,12 +182,13 @@ export function setupScrubber(root, onMove) {
   };
   input.onchange = () => onMove(Number(input.value) - 1);
 }
-export function finishTest(sessionPoints, retry, back) {
-  if (
-    confirm(
-      "全問終了！\n\nOK：もう一度解く\nキャンセル：問題選択へ",
-    )
-  )
-    retry();
+export async function finishTest(sessionPoints, retry, back) {
+  const retrySelected = await confirmStudentDialog({
+    title: "全問終了！",
+    message: sessionPoints > 0 ? `今回の獲得ポイント：${sessionPoints}pt` : "おつかれさまでした。",
+    confirmLabel: "もう一度解く",
+    cancelLabel: "問題選択へ",
+  });
+  if (retrySelected) retry();
   else back();
 }

@@ -13,7 +13,7 @@ export function normalizeNavigation() {
   const current = location.pathname.split("/").pop();
   const assignmentAccess = document.documentElement.dataset.assignmentAccess !== "false";
   const entries = [
-    { href: "exam.html", icon: "📖", label: "勉強", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "study_analytics.html", "must_remember.html"] },
+    { href: "exam.html", icon: "📖", label: "勉強", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "question_list.html", "study_analytics.html", "must_remember.html"] },
     ...(assignmentAccess ? [{ href: "assignments.html", icon: "📚", label: "課題", pages: ["assignments.html"] }] : []),
     { href: "home.html", icon: "🏠", label: "ホーム", pages: ["home.html"] },
     { href: role === "admin" ? "admin.html" : "settings.html", icon: role === "admin" ? "👑" : "⚙️", label: role === "admin" ? "管理" : "設定", pages: role === "admin" ? ["admin.html", "admin_users.html", "exam_admin.html", "exam_questions_admin.html", "exam_materials_admin.html", "reports_admin.html", "question_report_edit.html", "entrance_admin.html", "settings.html"] : ["settings.html"] },

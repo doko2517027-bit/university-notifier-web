@@ -1735,6 +1735,17 @@ function createUnitHtml(unit) {
 
             </div>
 
+            <a
+                class="exam-unit-question-list-link"
+                href="${escapeAttribute(createLearningUrl("question_list.html", unit.subjectId, unit.id))}">
+                <span aria-hidden="true">☷</span>
+                <span>
+                    <strong>登録問題を一覧で見る</strong>
+                    <small>問題・選択肢・答え・解説を確認</small>
+                </span>
+                <b aria-hidden="true">→</b>
+            </a>
+
 
             <div class="exam-format-grid">
 

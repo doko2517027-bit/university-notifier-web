@@ -9,7 +9,7 @@ import {
   saveTestProgress,
   scrubberHtml,
   setupScrubber,
-} from "./test_session.js";
+} from "./test_session.js?v=20261021-2";
 import { studySearchHtml, setupStudyTools } from "./study_tools.js";
 import {
   startStudyTimer,
