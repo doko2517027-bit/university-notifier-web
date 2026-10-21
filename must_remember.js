@@ -72,11 +72,12 @@ async function loadRemember() {
   }
 
   rememberArea.innerHTML = `
-        <div class="card setting-card">
+        <div class="card setting-card test-focus-card">
 
-            <h3>
-                ⭐ 試験前にここだけ確認
-            </h3>
+            <div class="test-question-heading">
+              <span class="test-content-label">重要ポイント</span>
+              <div class="test-question-number">試験前の確認</div>
+            </div>
 
             ${
               points.length

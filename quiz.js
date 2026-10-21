@@ -25,6 +25,11 @@ import {
   markQuestionShown,
   recordQuestionAttempt,
 } from "./study_tracking.js?v=20261009-2";
+import {
+  answerLinesForChoices,
+  questionExplanation,
+  renderAnswerExplanation,
+} from "./student_test_view.mjs?v=20261021-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -183,17 +188,27 @@ function renderQuestion() {
       ? q.answers.map(Number)
       : [Number(q.answer)];
   const isMultiple = correctAnswers.length > 1;
+  const correctAnswerLines = answerLinesForChoices(q, correctAnswers);
   quizArea.innerHTML = `
         <div class="test-progress"><span style="width:${((currentIndex + 1) / visibleQuiz.length) * 100}%"></span></div>
         <div class="card setting-card test-focus-card quiz-card" data-answers='${JSON.stringify(correctAnswers)}' data-multiple="${isMultiple}">
-            <div class="test-question-number">問題 ${currentIndex + 1} / ${visibleQuiz.length}</div>
+            <div class="test-context-line"><b>${escapeHtml(subjectName)}</b><span>›</span><span>${escapeHtml(unitName)}</span></div>
+            <div class="test-question-heading">
+              <span class="test-content-label">問題</span>
+              <div class="test-question-number">${currentIndex + 1} / ${visibleQuiz.length}</div>
+            </div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
             ${studyPointHtml(2)}
 
             ${renderQuestionImage(q)}
 
-            <div class="test-choice-list">
+            <section class="test-content-section">
+              <div class="test-content-section-heading">
+                <span class="test-content-label">選択肢</span>
+                <small>${isMultiple ? "当てはまるものをすべて選択" : "1つ選択"}</small>
+              </div>
+              <div class="test-choice-list">
                 ${choiceOrder.map(
                   (choiceIndex, displayIndex) => `
                     <button
@@ -207,12 +222,18 @@ function renderQuestion() {
                     </button>
                   `,
                 ).join("")}
-            </div>
+              </div>
+            </section>
             ${isMultiple ? '<button class="btn btn-primary check-quiz" disabled>選択した答えを判定</button>' : ""}
             <div class="test-result-panel" hidden>
-                <div class="test-mark" aria-hidden="true"></div>
-                <div class="test-result-label"></div>
-                ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${escapeHtml(q.explanation)}</p></div>` : ""}
+                <div class="test-result-summary">
+                  <div class="test-mark" aria-hidden="true"></div>
+                  <div class="test-result-label"></div>
+                </div>
+                ${renderAnswerExplanation({
+                  answerLines: correctAnswerLines,
+                  explanation: questionExplanation(q),
+                })}
                 <button class="btn btn-primary next-question">${currentIndex + 1 < visibleQuiz.length ? "次の問題" : "結果を終了"}</button>
             </div>
             <button type="button" class="test-report-link report-wrong-answer">答えが違います</button>

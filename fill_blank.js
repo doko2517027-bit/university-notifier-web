@@ -27,6 +27,10 @@ import {
   markQuestionShown,
   recordQuestionAttempt,
 } from "./study_tracking.js?v=20261009-2";
+import {
+  questionExplanation,
+  renderAnswerExplanation,
+} from "./student_test_view.mjs?v=20261021-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -208,10 +212,14 @@ function renderFillQuestion() {
             <div
                 class="card setting-card fill-card test-focus-card"
                 data-question="${currentFillIndex}"
-                data-answer="${q.answer || answers.join("・")}"
-                data-answers='${JSON.stringify(answers)}'>
+                data-answer="${escapeHtml(q.answer || answers.join("・"))}"
+                data-answers='${escapeHtml(JSON.stringify(answers))}'>
 
-                <div class="test-question-number">問題 ${currentFillIndex + 1} / ${visibleFillBlank.length}</div>
+                <div class="test-context-line"><b>${escapeHtml(subjectName)}</b><span>›</span><span>${escapeHtml(unitName)}</span></div>
+                <div class="test-question-heading">
+                  <span class="test-content-label">問題</span>
+                  <div class="test-question-number">${currentFillIndex + 1} / ${visibleFillBlank.length}</div>
+                </div>
 
                 <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
@@ -219,26 +227,39 @@ function renderFillQuestion() {
 
                 ${renderQuestionImage(q)}
 
-                ${answers
-                  .map(
-                    (answer, answerIndex) => `
-                    <input
-                        class="fill-answer"
-                        type="text"
-                        placeholder="解答 ${answerIndex + 1}">
-                    <br><br>
-                `,
-                  )
-                  .join("")}
+                <section class="test-content-section">
+                  <div class="test-content-section-heading">
+                    <span class="test-content-label">解答欄</span>
+                    <small>${answers.length > 1 ? `${answers.length}か所すべて入力` : "答えを入力"}</small>
+                  </div>
+                  <div class="test-fill-inputs">
+                    ${answers
+                      .map(
+                        (_answer, answerIndex) => `
+                        <input
+                            class="fill-answer"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="解答 ${answerIndex + 1}">
+                    `,
+                      )
+                      .join("")}
+                  </div>
+                </section>
 
                 <button class="btn btn-primary check-fill">
                     判定
                 </button>
 
                 <div class="test-result-panel" hidden>
-                    <div class="test-mark"></div>
-                    <div class="fill-result test-result-label"></div>
-                    ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${q.explanation}</p></div>` : ""}
+                    <div class="test-result-summary">
+                      <div class="test-mark"></div>
+                      <div class="fill-result test-result-label"></div>
+                    </div>
+                    ${renderAnswerExplanation({
+                      answerLines: answers,
+                      explanation: questionExplanation(q),
+                    })}
                     <button class="btn btn-primary next-fill-question">${currentFillIndex + 1 < visibleFillBlank.length ? "次の問題" : "結果を終了"}</button>
                 </div>
 
@@ -394,7 +415,7 @@ document.addEventListener("click", async (e) => {
       await refreshTotalPoints(questions);
     }
   } else {
-    result.textContent = `不正解　正解：${card.dataset.answer}`;
+    result.textContent = "不正解";
     panel.classList.add("wrong");
     panel.querySelector(".test-mark").textContent = "×";
   }

@@ -23,6 +23,11 @@ import {
   markQuestionShown,
   recordQuestionAttempt,
 } from "./study_tracking.js?v=20261009-2";
+import {
+  answerLinesForChoices,
+  questionExplanation,
+  renderAnswerExplanation,
+} from "./student_test_view.mjs?v=20261021-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -151,17 +156,27 @@ async function loadDailyQuestion() {
   }
 
   visibleDailyQuestion = q;
+  const correctAnswerLines = answerLinesForChoices(q, [Number(q.answer)]);
 
   questionArea.innerHTML = `
         <div class="card setting-card test-focus-card" data-answer="${q.answer}">
-            <div class="test-question-number">今日の1問</div>
+            <div class="test-context-line"><b>${escapeHtml(subjectName)}</b><span>›</span><span>${escapeHtml(unitName)}</span></div>
+            <div class="test-question-heading">
+              <span class="test-content-label">今日の1問</span>
+              <div class="test-question-number">毎日更新</div>
+            </div>
             <h2 class="test-question-text">${escapeHtml(q.question)}</h2>
 
             ${studyPointHtml(3)}
 
             ${renderQuestionImage(q)}
 
-            <div class="test-choice-list">${q.choices
+            <section class="test-content-section">
+              <div class="test-content-section-heading">
+                <span class="test-content-label">選択肢</span>
+                <small>1つ選択</small>
+              </div>
+              <div class="test-choice-list">${q.choices
               .map(
                 (choice, index) => `
                 <button
@@ -172,11 +187,17 @@ async function loadDailyQuestion() {
             `,
               )
               .join("")}</div>
+            </section>
 
             <div class="test-result-panel" hidden>
-                <div class="test-mark"></div>
-                <div id="result" class="test-result-label"></div>
-                ${q.explanation ? `<div class="test-explanation"><b>解説</b><p>${q.explanation}</p></div>` : ""}
+                <div class="test-result-summary">
+                  <div class="test-mark"></div>
+                  <div id="result" class="test-result-label"></div>
+                </div>
+                ${renderAnswerExplanation({
+                  answerLines: correctAnswerLines,
+                  explanation: questionExplanation(q),
+                })}
             </div>
 
             <button

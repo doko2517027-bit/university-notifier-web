@@ -17,6 +17,10 @@ import {
   markQuestionShown,
   recordQuestionAttempt,
 } from "./study_tracking.js?v=20261009-2";
+import {
+  questionExplanation,
+  renderAnswerExplanation,
+} from "./student_test_view.mjs?v=20261021-1";
 
 const themeButton = document.getElementById("themeButton");
 const topProfileImage = document.getElementById("topProfileImage");
@@ -112,12 +116,18 @@ function renderQuestion() {
   qaArea.innerHTML = `
         <div class="test-progress"><span style="width:${((currentIndex + 1) / questions.length) * 100}%"></span></div>
         <article class="card setting-card test-focus-card qa-card">
-            <div class="test-question-number">問題 ${currentIndex + 1} / ${questions.length}</div>
+            <div class="test-context-line"><b>${escapeHtml(subjectName)}</b><span>›</span><span>${escapeHtml(unitName)}</span></div>
+            <div class="test-question-heading">
+              <span class="test-content-label">問題</span>
+              <div class="test-question-number">${currentIndex + 1} / ${questions.length}</div>
+            </div>
             <h2 class="test-question-text">${escapeHtml(item.question)}</h2>
             <button type="button" class="btn btn-primary qa-show-answer">答えを見る</button>
             <section class="test-result-panel qa-answer" hidden>
-                <b>答え</b>
-                <p>${escapeHtml(item.answer)}</p>
+                ${renderAnswerExplanation({
+                  answerLines: [item.answer],
+                  explanation: questionExplanation(item),
+                })}
             </section>
             <button type="button" class="btn qa-next">${currentIndex + 1 < questions.length ? "次の問題" : "最初に戻る"}</button>
         </article>
