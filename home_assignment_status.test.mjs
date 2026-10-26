@@ -31,6 +31,12 @@ test("確認済みの提出状態は古い未提出データやURL表記の違�
   const unsubmitted = context.mergeCalendarAssignments([{ url: "course_1_report_3", submitted: false }], []);
   assert.equal(context.assignmentState(unsubmitted[0]), "overdue");
   assert.equal(context.assignmentState({ submissionConfirmed: true, submitted: false, _isSubmitted: false }), "submitted");
+  const group = context.mergeCalendarAssignments(
+    [{ url: "course_1_project_2_teamtop_3", submitted: true }],
+    [{ url: "course_1_project_2", submitted: false }],
+  );
+  assert.equal(group.length, 1);
+  assert.equal(context.assignmentState(group[0]), "submitted");
 });
 
 test("課題カレンダーは提出済み・期限切れ・期限内を判定する", async () => {

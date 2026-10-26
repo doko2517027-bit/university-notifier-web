@@ -48,7 +48,10 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function assignmentIdentity(item) {
-  return (item.url && safeManabaUrl(item.url)) || `${item.course || ""}|${item.title || ""}`;
+  const url = item.url && safeManabaUrl(item.url);
+  if (!url) return `${item.course || ""}|${item.title || ""}`;
+  const identity = new URL(url).pathname.match(/\/(course_\d+_(?:report|query|survey|project)_\d+)(?:_|$)/);
+  return identity ? identity[1] : url;
 }
 function hasSubmittedStatus(item) {
   if (item.submissionConfirmed === true || item.submissionConfirmedAt) return true;
