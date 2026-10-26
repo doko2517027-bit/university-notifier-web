@@ -48,15 +48,32 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function assignmentIdentity(item) {
-  return item.url || `${item.course || ""}|${item.title || ""}`;
+  return (item.url && safeManabaUrl(item.url)) || `${item.course || ""}|${item.title || ""}`;
 }
 function hasSubmittedStatus(item) {
+  if (item.submissionConfirmed === true || item.submissionConfirmedAt) return true;
   if (typeof item._isSubmitted === "boolean") return item._isSubmitted;
   for (const field of ["submitted", "isSubmitted", "completed"]) {
     if (typeof item[field] === "boolean") return item[field];
   }
   const status = String(item.submissionStatus || item.status || "").toLowerCase();
   return ["submitted", "completed", "done", "提出済み", "提出済"].includes(status);
+}
+function mergeCalendarAssignments(archivedItems, currentItems) {
+  const unique = new Map();
+  for (const item of archivedItems) {
+    const key = assignmentIdentity(item);
+    const previous = unique.get(key) || {};
+    unique.set(key, { ...previous, ...item, _isCurrent: false,
+      submissionConfirmed: hasSubmittedStatus(previous) || hasSubmittedStatus(item) });
+  }
+  for (const item of currentItems) {
+    const key = assignmentIdentity(item);
+    const previous = unique.get(key) || {};
+    unique.set(key, { ...previous, ...item, _isCurrent: true,
+      submissionConfirmed: hasSubmittedStatus(previous) || hasSubmittedStatus(item) });
+  }
+  return [...unique.values()];
 }
 function assignmentState(item) {
   if (hasSubmittedStatus(item)) return "submitted";
@@ -191,20 +208,7 @@ const currentItems = currentResult.status === "fulfilled" && Array.isArray(curre
   ? currentResult.value.data().assignments : [];
 const archivedItems = archivedResult.status === "fulfilled"
   ? (archivedResult.value?.docs || []).map((snapshot) => snapshot.data()) : [];
-const unique = new Map();
-[...archivedItems].forEach((item) => {
-  const key = assignmentIdentity(item);
-  unique.set(key, { ...unique.get(key), ...item, _isCurrent: false });
-});
-[...currentItems].forEach((item) => {
-  const key = assignmentIdentity(item);
-  unique.set(key, { ...unique.get(key), ...item, _isCurrent: true });
-});
-assignments = [...unique.values()].map((item) => ({
-  ...item,
-  // Disappearance can also mean withdrawal or expiry. Only confirmed submission is blue.
-  _isSubmitted: item._isCurrent ? false : hasSubmittedStatus(item),
-}));
+assignments = mergeCalendarAssignments(archivedItems, currentItems);
 personalEvents = personalResult.status === "fulfilled"
   ? personalResult.value.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))
     .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.date || ""))

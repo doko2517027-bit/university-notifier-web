@@ -16,6 +16,23 @@ test("削除や一覧からの消失を提出済みにせず、確認済みの�
   assert.equal(context.deadlineDate({ deadline: "2026-10-27 18:20" }).toISOString(), "2026-10-27T09:20:00.000Z");
 });
 
+test("確認済みの提出状態は古い未提出データやURL表記の違いで上書きされない", async () => {
+  const source = await read("home.js");
+  const context = vm.createContext({ Date, URL });
+  vm.runInContext(source.slice(source.indexOf("function deadlineDate"), source.indexOf("function openDay")), context);
+  const archive = [{ url: "course_1_report_2", title: "過去の課題", submitted: true }];
+  const current = [{ url: "https://sums.manaba.jp/ct/course_1_report_2", submitted: false }];
+  const merged = context.mergeCalendarAssignments(archive, current);
+  assert.equal(merged.length, 1);
+  assert.equal(context.assignmentState(merged[0]), "submitted");
+  const deleted = context.mergeCalendarAssignments(merged, []);
+  assert.equal(deleted.length, 1);
+  assert.equal(context.assignmentState(deleted[0]), "submitted");
+  const unsubmitted = context.mergeCalendarAssignments([{ url: "course_1_report_3", submitted: false }], []);
+  assert.equal(context.assignmentState(unsubmitted[0]), "overdue");
+  assert.equal(context.assignmentState({ submissionConfirmed: true, submitted: false, _isSubmitted: false }), "submitted");
+});
+
 test("課題カレンダーは提出済み・期限切れ・期限内を判定する", async () => {
   const source = await read("home.js");
   assert.match(source, /return "submitted"/);
