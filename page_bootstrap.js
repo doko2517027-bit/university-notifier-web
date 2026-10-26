@@ -1,4 +1,4 @@
-import { auth, functions } from "./auth_core.js";
+import { auth, db, functions } from "./auth_core.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261021-2";
@@ -48,6 +48,11 @@ try {
     tab.hidden = tab.dataset.roleTab !== role;
   });
   pageAuthorized = true;
+  if (access.data?.assignmentAccess !== false && "Notification" in window && Notification.permission === "granted") {
+    void import("./push_subscription.js?v=20261026-1")
+      .then(({ getCareMatePushRegistrationStatus }) => getCareMatePushRegistrationStatus(db, studentNumber))
+      .catch((error) => console.warn("通知登録の更新に失敗しました:", error));
+  }
 } catch (error) {
   console.error("CareMate画面認証エラー:", error);
   if (!error?.redirecting) location.replace("index.html");

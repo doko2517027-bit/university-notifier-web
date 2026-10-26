@@ -34,13 +34,7 @@ function deadlineDate(item) {
   const date = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
   const timeMatches = [...raw.matchAll(/(\d{1,2}):(\d{2})/g)];
   const time = timeMatches.at(-1) || null;
-  if (date) return new Date(
-    Number(date[1]),
-    Number(date[2]) - 1,
-    Number(date[3]),
-    time ? Number(time[1]) : 23,
-    time ? Number(time[2]) : 59,
-  );
+  if (date) return new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${time ? time[1].padStart(2, "0") : "23"}:${time ? time[2] : "59"}:00+09:00`);
   return null;
 }
 function keyFor(item) {
@@ -54,22 +48,25 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function assignmentIdentity(item) {
-  return `${item.url || ""}|${item.course || ""}|${item.title || ""}|${keyFor(item)}`;
+  return item.url || `${item.course || ""}|${item.title || ""}`;
 }
 function hasSubmittedStatus(item) {
   if (typeof item._isSubmitted === "boolean") return item._isSubmitted;
-  if (item.submitted === true || item.isSubmitted === true || item.completed === true) return true;
+  for (const field of ["submitted", "isSubmitted", "completed"]) {
+    if (typeof item[field] === "boolean") return item[field];
+  }
   const status = String(item.submissionStatus || item.status || "").toLowerCase();
-  return ["submitted", "completed", "done", "提出済み"].some((value) => status.includes(value));
+  return ["submitted", "completed", "done", "提出済み", "提出済"].includes(status);
 }
 function assignmentState(item) {
   if (hasSubmittedStatus(item)) return "submitted";
+  if (item._isCurrent === false) return "overdue";
   const deadline = deadlineDate(item);
   return deadline && deadline.getTime() < Date.now() ? "overdue" : "pending";
 }
 function assignmentStatusLabel(state) {
   if (state === "submitted") return "提出済み";
-  if (state === "overdue") return "期限切れ・未提出";
+  if (state === "overdue") return "未提出";
   return "期限内・未提出";
 }
 function openDay(key) {
@@ -205,12 +202,8 @@ const unique = new Map();
 });
 assignments = [...unique.values()].map((item) => ({
   ...item,
-  _isSubmitted:
-    typeof item.submitted === "boolean"
-      ? item.submitted
-      : typeof item.isSubmitted === "boolean"
-        ? item.isSubmitted
-        : !item._isCurrent,
+  // Disappearance can also mean withdrawal or expiry. Only confirmed submission is blue.
+  _isSubmitted: item._isCurrent ? false : hasSubmittedStatus(item),
 }));
 personalEvents = personalResult.status === "fulfilled"
   ? personalResult.value.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))

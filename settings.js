@@ -1,7 +1,7 @@
 import { auth, db, functions, signOutCareMate } from "./auth_core.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
-import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js";
+import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js?v=20261026-1";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
 const assignmentAccess = document.documentElement.dataset.assignmentAccess !== "false";
@@ -112,7 +112,7 @@ for (const input of [notifyAssignment, notifyReminder]) {
 
 async function refreshPushStatus() {
   try {
-    const status = await getCareMatePushRegistrationStatus(db, studentNumber, { repair: false });
+    const status = await getCareMatePushRegistrationStatus(db, studentNumber, { repair: assignmentAccess });
     pushStatus.textContent = status.currentDeviceRegistered ? "この端末は通知登録済みです。" : status.registered ? "別の端末に通知登録があります。この端末でも登録できます。" : "この端末はまだ通知を受け取れません。";
   } catch (error) {
     console.warn("通知状態確認エラー:", error);

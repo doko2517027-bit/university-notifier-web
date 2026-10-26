@@ -224,7 +224,7 @@ export async function ensurePushSubscription(
     throw new Error("この端末はWeb Pushに対応していません。");
   }
 
-  const permission = await Notification.requestPermission();
+  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
 
   if (permission !== "granted") {
     throw new Error("通知が許可されていません。");
@@ -238,9 +238,7 @@ export async function ensurePushSubscription(
 
   // 失効した古い購読を、既存利用者がアプリを開いた時に一度だけ更新する。
   if (
-    subscription &&
-    (!applicationServerKeyMatches(subscription) ||
-      localStorage.getItem(PUSH_RENEWAL_STORAGE_KEY) !== PUSH_RENEWAL_VERSION)
+    subscription && !applicationServerKeyMatches(subscription)
   ) {
     await subscription.unsubscribe();
     subscription = null;

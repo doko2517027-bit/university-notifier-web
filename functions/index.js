@@ -724,3 +724,5 @@ exports.issueEntrancePhrase =
 // 認証文言の照合・使用済み処理
 exports.redeemEntrancePhrase =
   redeemEntrancePhrase;
+
+exports.assignmentReminderTick = require("./assignment_notifications.js").assignmentReminderTick;
