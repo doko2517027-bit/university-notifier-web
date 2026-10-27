@@ -223,6 +223,8 @@ async function handleLogin() {
 
         appPasswordInput.value = "";
 
+        try { sessionStorage.removeItem(`carematePushBannerDeferred:${studentNumber}`); } catch { /* Optional preference. */ }
+
         location.replace("home.html");
 
 

@@ -52,6 +52,10 @@ try {
     void import("./push_subscription.js?v=20261026-1")
       .then(({ getCareMatePushRegistrationStatus }) => getCareMatePushRegistrationStatus(db, studentNumber))
       .catch((error) => console.warn("通知登録の更新に失敗しました:", error));
+  } else if (access.data?.assignmentAccess !== false) {
+    void import("./push_permission_banner.js?v=20261027-1")
+      .then(({ showAssignmentPushBanner }) => showAssignmentPushBanner(db, studentNumber))
+      .catch((error) => console.warn("通知案内を表示できませんでした:", error));
   }
 } catch (error) {
   console.error("CareMate画面認証エラー:", error);
