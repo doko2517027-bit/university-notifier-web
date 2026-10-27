@@ -1,5 +1,5 @@
 import { auth, db } from "./auth_core.js";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
 const byId = (id) => document.getElementById(id);
@@ -89,7 +89,7 @@ function assignmentStatusLabel(state) {
   if (state === "overdue") return "未提出";
   return "期限内・未提出";
 }
-function openDay(key) {
+function openDay(key, focusCloseButton = true) {
   selected = key;
   dayTitle.textContent = `${key.replaceAll("-", "/")} の予定`;
   dayItems.replaceChildren();
@@ -129,7 +129,7 @@ function openDay(key) {
     dayItems.append(card);
   }
   dayOverlay.hidden = false;
-  byId("closeCalendarDialog").focus();
+  if (focusCloseButton) byId("closeCalendarDialog").focus();
 }
 function renderCalendar() {
   const year = month.getFullYear();
@@ -217,3 +217,38 @@ personalEvents = personalResult.status === "fulfilled"
     .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.date || ""))
   : [];
 renderCalendar();
+
+// Keep the visible calendar and open day in sync when the hourly server check
+// confirms submission. A page opened before submission must not stay red.
+if (assignmentAccess) {
+  let liveCurrentItems = currentItems;
+  let liveArchivedItems = archivedItems;
+  const syncStatus = byId("calendarSyncStatus");
+  const updateSyncStatus = (data) => {
+    const updatedAt = data?.updatedAt?.toDate?.();
+    syncStatus.textContent = updatedAt
+      ? `課題の最終取得：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updatedAt)}（提出状況は毎時更新）`
+      : "提出状況は毎時更新されます。";
+  };
+  const repaint = () => {
+    assignments = mergeCalendarAssignments(liveArchivedItems, liveCurrentItems);
+    renderCalendar();
+    if (!dayOverlay.hidden && eventOverlay.hidden) openDay(selected, false);
+  };
+  updateSyncStatus(currentResult.status === "fulfilled" ? currentResult.value?.data?.() : null);
+  const subscriptions = [
+    onSnapshot(doc(db, "assignments", studentNumber), (snapshot) => {
+      const data = snapshot.data() || {};
+      liveCurrentItems = Array.isArray(data.assignments) ? data.assignments : [];
+      updateSyncStatus(data);
+      repaint();
+    }, (error) => { console.warn("課題の更新確認に失敗しました:", error); syncStatus.textContent = "更新を確認できません。通信状態をご確認ください。"; }),
+    onSnapshot(collection(db, "calendarAssignments", studentNumber, "items"), (snapshot) => {
+      liveArchivedItems = snapshot.docs.map((item) => item.data());
+      repaint();
+    }, (error) => console.warn("提出状況の更新確認に失敗しました:", error)),
+  ];
+  window.addEventListener("pagehide", (event) => {
+    if (!event.persisted) subscriptions.forEach((unsubscribe) => unsubscribe());
+  });
+}
