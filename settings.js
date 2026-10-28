@@ -1,6 +1,6 @@
 import { auth, db, signOutCareMate } from "./auth_core.js?v=20261028-2";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { callCareMate } from "./backend_client.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-3";
 import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js?v=20261026-1";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");

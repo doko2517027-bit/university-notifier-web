@@ -1,4 +1,4 @@
-import { callCareMate } from "./backend_client.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-3";
 
 document.getElementById("issueForm").addEventListener("submit", async (event) => {
   event.preventDefault();

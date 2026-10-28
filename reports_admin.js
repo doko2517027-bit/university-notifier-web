@@ -6,7 +6,7 @@ import {
   setupAdminTab,
   showPage,
   showToast,
-} from "./common.js";
+} from "./common.js?v=20261028-3";
 import {
   collection,
   doc,

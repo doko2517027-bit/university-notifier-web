@@ -1,4 +1,4 @@
-import { callCareMate } from "./backend_client.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-3";
 
 const list = document.getElementById("adminUserList");
 const status = document.getElementById("adminUsersStatus");

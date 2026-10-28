@@ -1,4 +1,4 @@
-import { db, studentNumber } from "./common.js";
+import { db, studentNumber } from "./common.js?v=20261028-3";
 import {
   doc,
   getDoc,

@@ -4,7 +4,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import { db, studentNumber } from "./common.js";
+import { db, studentNumber } from "./common.js?v=20261028-3";
 import {
   openStudentDialog,
   showStudentNotice,

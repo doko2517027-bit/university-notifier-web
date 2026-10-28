@@ -27,6 +27,15 @@ async function ensureReady(signal) {
   await warming;
 }
 
+// Start only when the login UI is opened, never periodically or on the public
+// service-ended page. This overlaps cold startup with typing the credentials.
+export async function warmCareMateBackend() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  try { await ensureReady(controller.signal); }
+  finally { clearTimeout(timeout); }
+}
+
 // Preserve the existing callable result/error shape without depending on
 // billable Cloud Functions. The fixed HTTPS endpoint cannot be overridden by
 // URL parameters or localStorage.

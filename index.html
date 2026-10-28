@@ -2,7 +2,7 @@
 <html lang="ja">
 
 <head>
-    <script src="ui_preferences.js?v=20261028-2"></script>
+    <script src="ui_preferences.js?v=20261028-3"></script>
     <meta charset="UTF-8">
 
     <meta
@@ -452,7 +452,7 @@
 
                 // 既存のログイン処理を読み込む
                 await import(
-                    "./login.js?v=20261028-2"
+                    "./login.js?v=20261028-3"
                 );
 
             } catch (error) {
@@ -523,7 +523,7 @@
                     // Firebaseを読み込む
                     // ====================================
 
-                    const { callCareMate } = await import("./backend_client.js?v=20261028-2");
+                    const { callCareMate } = await import("./backend_client.js?v=20261028-3");
                     const result = await callCareMate("redeemEntrancePhrase", { phrase });
 
 

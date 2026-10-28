@@ -1,4 +1,4 @@
-import { db, studentNumber, isAdmin, showPage } from "./common.js";
+import { db, studentNumber, isAdmin, showPage } from "./common.js?v=20261028-3";
 import {
   doc,
   getDoc,

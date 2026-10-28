@@ -12,13 +12,16 @@ import {
     signInCareMateAuth
 } from "./auth_core.js?v=20261028-2";
 import { loginErrorMessage } from "./login_error.js?v=20261028-1";
+import { warmCareMateBackend } from "./backend_client.js?v=20261028-3";
 
 import {
     doc,
-    getDoc,
+    getDocFromCache,
     updateDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+void warmCareMateBackend().catch(() => { /* The submit handler shows failures. */ });
 
 
 // ========================================
@@ -131,7 +134,7 @@ async function handleLogin() {
         try {
 
             const userSnap =
-                await getDoc(userRef);
+                await getDocFromCache(userRef);
 
             if (userSnap.exists()) {
                 user = userSnap.data();
@@ -198,18 +201,10 @@ async function handleLogin() {
 
         try {
 
-            await Promise.race([
-
-                updateDoc(userRef, {
+            void updateDoc(userRef, {
                     lastLoginAt: serverTimestamp(),
                     lastActiveAt: serverTimestamp()
-                }),
-
-                new Promise((resolve) =>
-                    setTimeout(resolve, 1500)
-                )
-
-            ]);
+                }).catch(() => { /* Activity metadata never blocks login. */ });
 
         } catch (error) {
 

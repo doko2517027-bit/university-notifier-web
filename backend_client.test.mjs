@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 const source = (await readFile(new URL('./backend_client.js', import.meta.url), 'utf8'))
-  .replace(/^import .*;\n/gm, '').replace('export async function', 'async function') + '\nglobalThis.call = callCareMate;';
+  .replace(/^import .*;\n/gm, '').replaceAll('export async function', 'async function') + '\nglobalThis.call = callCareMate;';
 function client(fetch, currentUser = null) {
   const transport = (url, options) => url.endsWith('/health')
     ? Promise.resolve({ ok: true, json: async () => ({ ready: true }) }) : fetch(url, options);

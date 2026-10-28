@@ -5,7 +5,7 @@ import {
   initializePage,
   loadProfileImage,
   isAdmin,
-} from "./common.js";
+} from "./common.js?v=20261028-3";
 
 import {
   doc,

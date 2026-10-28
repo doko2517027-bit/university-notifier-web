@@ -1,4 +1,4 @@
-import { db, setupTheme, initializePage, loadProfileImage } from "./common.js";
+import { db, setupTheme, initializePage, loadProfileImage } from "./common.js?v=20261028-3";
 
 import {
   doc,

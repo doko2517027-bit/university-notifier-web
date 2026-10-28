@@ -1,7 +1,7 @@
 import { auth, db } from "./auth_core.js?v=20261028-2";
-import { callCareMate } from "./backend_client.js?v=20261028-2";
+import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261021-2";
+import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261028-3";
 
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";
@@ -13,8 +13,15 @@ try {
   const user = auth.currentUser;
   if (!user) throw new Error("ログインが必要です。");
 
-  // A previously issued token alone cannot keep an account active.
-  const access = await callCareMate("checkCareMateAccess");
+  // Firestore Security Rules check the live allow-list on the server. Never
+  // authorize a page from cached/localStorage role data or wake Render per tab.
+  const snapshot = await getDocFromServer(doc(db, "access", user.uid));
+  const currentAccess = snapshot.data();
+  const access = { data: {
+    active: snapshot.exists() && currentAccess?.active === true,
+    role: currentAccess?.role,
+    assignmentAccess: !["study-only", "pending"].includes(currentAccess?.experienceMode),
+  } };
   const role = access.data?.role;
   if (access.data?.active !== true || !["admin", "member"].includes(role)) {
     throw new Error("利用が許可されていません。");

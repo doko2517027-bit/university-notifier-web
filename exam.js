@@ -5,7 +5,7 @@ import {
   isAdmin,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
-} from "./common.js";
+} from "./common.js?v=20261028-3";
 
 import {
   doc,

@@ -29,7 +29,7 @@ import {
     getFirestore
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import { callCareMate } from "./backend_client.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-3";
 
 
 // ========================================

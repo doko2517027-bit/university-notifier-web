@@ -1,9 +1,9 @@
 // Shared client helpers for the three role-specific CareMate tabs.
-import { auth, db, functions } from "./auth_core.js?v=20261028-2";
+import { auth, db } from "./auth_core.js?v=20261028-2";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { initializeGlobalStudyTracking } from "./study_tracking.js";
 
-export { auth, db, functions };
+export { auth, db };
 export let studentNumber = localStorage.getItem("studentNumber");
 export function setStudentNumber(value) { studentNumber = String(value || ""); }
 
