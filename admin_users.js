@@ -1,5 +1,4 @@
-import { functions } from "./auth_core.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 
 const list = document.getElementById("adminUserList");
 const status = document.getElementById("adminUsersStatus");
@@ -8,7 +7,7 @@ const filter = document.getElementById("userRoleFilter");
 let allAccounts = [];
 let canManageRoles = false;
 let currentStudentNumber = "";
-const call = (name, data = {}) => httpsCallable(functions, name)(data);
+const call = (name, data = {}) => callCareMate(name, data);
 const node = (tag, value = "", className = "") => {
   const element = document.createElement(tag);
   element.textContent = value;

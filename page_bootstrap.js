@@ -1,5 +1,5 @@
-import { auth, db, functions } from "./auth_core.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { auth, db } from "./auth_core.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261021-2";
 
@@ -14,7 +14,7 @@ try {
   if (!user) throw new Error("ログインが必要です。");
 
   // A previously issued token alone cannot keep an account active.
-  const access = await httpsCallable(functions, "checkCareMateAccess")();
+  const access = await callCareMate("checkCareMateAccess");
   const role = access.data?.role;
   if (access.data?.active !== true || !["admin", "member"].includes(role)) {
     throw new Error("利用が許可されていません。");

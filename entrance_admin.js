@@ -1,5 +1,4 @@
-import { functions } from "./auth_core.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 
 document.getElementById("issueForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -12,7 +11,7 @@ document.getElementById("issueForm").addEventListener("submit", async (event) =>
   status.textContent = "発行中…";
   try {
     const experienceMode = new FormData(form).get("experienceMode") || "assignments";
-    await httpsCallable(functions, "issueEntrancePhrase")({ phrase: input.value.trim(), experienceMode });
+    await callCareMate("issueEntrancePhrase", { phrase: input.value.trim(), experienceMode });
     status.textContent = `発行しました。10分以内に1回だけ使用できます（${experienceMode === "study-only" ? "課題通知なし" : "課題通知あり"}）。`;
     input.value = "";
   } catch (error) {

@@ -1,6 +1,6 @@
-import { signOutCareMate } from "./auth_core.js";
-import { db, functions } from "./auth_core.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { signOutCareMate } from "./auth_core.js?v=20261028-2";
+import { db } from "./auth_core.js?v=20261028-2";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const newAccountForm = document.getElementById("newAccountForm");
@@ -16,7 +16,7 @@ securityButton?.addEventListener("click", async () => {
   securityStatus.textContent = "権限と登録データを確認中…";
   securityResults.replaceChildren();
   try {
-    const response = await httpsCallable(functions, "adminRunSecurityCheck")();
+    const response = await callCareMate("adminRunSecurityCheck");
     const checks = [...(response.data?.checks || [])];
     try {
       await getDoc(doc(db, "systemPrivate", "careMateCredentials"));
@@ -57,7 +57,7 @@ newAccountForm?.addEventListener("submit", async (event) => {
   button.disabled = true;
   newAccountStatus.textContent = "登録しています…";
   try {
-    await httpsCallable(functions, "createCareMateAccount")({
+    await callCareMate("createCareMateAccount", {
       studentNumber, name, password: passwordInput.value,
     });
     passwordInput.value = "";

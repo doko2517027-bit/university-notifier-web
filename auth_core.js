@@ -29,10 +29,7 @@ import {
     getFirestore
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import {
-    getFunctions,
-    httpsCallable
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 
 
 // ========================================
@@ -67,10 +64,7 @@ export const auth = getAuth(app);
 
 export const db = getFirestore(app);
 
-export const functions = getFunctions(
-    app,
-    "asia-northeast1"
-);
+
 
 
 // ========================================
@@ -98,15 +92,7 @@ export async function signInCareMateAuth(
     }
 
     // サーバー側で認証と利用許可を確認
-    const authenticateCareMate = httpsCallable(
-        functions,
-        "authenticateCareMate",
-        {
-            timeout: 30000
-        }
-    );
-
-    const result = await authenticateCareMate({
+    const result = await callCareMate("authenticateCareMate", {
         studentNumber: normalizedStudentNumber,
         password,
         entranceGrant: localStorage.getItem("caremateEntranceGrant") || ""

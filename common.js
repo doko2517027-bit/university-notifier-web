@@ -1,5 +1,5 @@
 // Shared client helpers for the three role-specific CareMate tabs.
-import { auth, db, functions } from "./auth_core.js";
+import { auth, db, functions } from "./auth_core.js?v=20261028-2";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { initializeGlobalStudyTracking } from "./study_tracking.js";
 

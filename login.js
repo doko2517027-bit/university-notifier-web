@@ -10,7 +10,7 @@
 import {
     db,
     signInCareMateAuth
-} from "./auth_core.js";
+} from "./auth_core.js?v=20261028-2";
 import { loginErrorMessage } from "./login_error.js?v=20261028-1";
 
 import {
@@ -93,6 +93,9 @@ async function handleLogin() {
     loginButton.textContent = "ログイン中…";
 
     showLoginMessage("");
+    const wakeupMessage = setTimeout(() => {
+        showLoginMessage("認証サービスを起動しています。そのままお待ちください。");
+    }, 10000);
 
 
     try {
@@ -239,6 +242,7 @@ async function handleLogin() {
         showLoginMessage(loginErrorMessage(error));
 
     } finally {
+        clearTimeout(wakeupMessage);
 
         loginButton.disabled = false;
         loginButton.textContent = "ログイン";

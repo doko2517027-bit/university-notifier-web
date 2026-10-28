@@ -2,7 +2,7 @@
 <html lang="ja">
 
 <head>
-    <script src="ui_preferences.js?v=20261020-3"></script>
+    <script src="ui_preferences.js?v=20261028-2"></script>
     <meta charset="UTF-8">
 
     <meta
@@ -452,7 +452,7 @@
 
                 // 既存のログイン処理を読み込む
                 await import(
-                    "./login.js?v=20261028-1"
+                    "./login.js?v=20261028-2"
                 );
 
             } catch (error) {
@@ -523,33 +523,8 @@
                     // Firebaseを読み込む
                     // ====================================
 
-                    const {
-                        functions
-                    } = await import(
-                        "./auth_core.js"
-                    );
-
-                    const {
-                        httpsCallable
-                    } = await import(
-                        "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js"
-                    );
-
-
-                    // ====================================
-                    // サーバー側のワンタイム認証
-                    // ====================================
-
-                    const redeemEntrancePhrase =
-                        httpsCallable(
-                            functions,
-                            "redeemEntrancePhrase"
-                        );
-
-                    const result =
-                        await redeemEntrancePhrase({
-                            phrase: phrase
-                        });
+                    const { callCareMate } = await import("./backend_client.js?v=20261028-2");
+                    const result = await callCareMate("redeemEntrancePhrase", { phrase });
 
 
                     // ====================================

@@ -1,6 +1,6 @@
-import { auth, db, functions, signOutCareMate } from "./auth_core.js";
+import { auth, db, signOutCareMate } from "./auth_core.js?v=20261028-2";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+import { callCareMate } from "./backend_client.js?v=20261028-2";
 import { getCareMatePushRegistrationStatus, registerDevicePushSubscription, requestPushPermissionWithEducation } from "./push_subscription.js?v=20261026-1";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
@@ -46,7 +46,7 @@ document.getElementById("passwordForm").addEventListener("submit", async (event)
   button.disabled = true;
   status.textContent = "変更中…";
   try {
-    await httpsCallable(functions, "changeCareMatePassword")({ currentPassword, newPassword });
+    await callCareMate("changeCareMatePassword", { currentPassword, newPassword });
     form.reset();
     status.textContent = "変更しました。新しいパスワードでログインし直してください。";
     await signOutCareMate();
@@ -65,7 +65,7 @@ document.getElementById("manabaForm").addEventListener("submit", async (event) =
   button.disabled = true;
   status.textContent = "保存中…";
   try {
-    await httpsCallable(functions, "setMyManabaPassword")({ password: input.value });
+    await callCareMate("setMyManabaPassword", { password: input.value });
     input.value = "";
     removeManabaButton.hidden = false;
     manabaLabel.textContent = "manabaパスワードを変更";
@@ -84,7 +84,7 @@ removeManabaButton.addEventListener("click", async () => {
   const status = document.getElementById("manabaSaveStatus");
   status.textContent = "削除中…";
   try {
-    await httpsCallable(functions, "removeMyManabaPassword")();
+    await callCareMate("removeMyManabaPassword");
     removeManabaButton.hidden = true;
     manabaLabel.textContent = "manabaパスワードを登録";
     document.getElementById("manabaSaveButton").textContent = "パスワードを登録";
@@ -145,7 +145,7 @@ document.getElementById("deactivateButton").addEventListener("click", async (eve
   const status = document.getElementById("deactivateStatus");
   status.textContent = "登録を解除しています…";
   try {
-    await httpsCallable(functions, "deactivateMyCareMateAccount")();
+    await callCareMate("deactivateMyCareMateAccount");
     status.textContent = "登録を解除しました。";
     await signOutCareMate();
   } catch (error) {

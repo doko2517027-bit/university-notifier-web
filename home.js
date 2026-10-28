@@ -1,4 +1,4 @@
-import { auth, db } from "./auth_core.js";
+import { auth, db } from "./auth_core.js?v=20261028-2";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
