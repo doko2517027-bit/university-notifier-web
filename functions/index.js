@@ -349,13 +349,15 @@ exports.adminRunSecurityCheck = onCall(CALL_OPTIONS, async (request) => {
   const cronHealth = (await db.collection("system").doc("assignmentCronHealth").get()).data() || {};
   const cronAgeMs = Date.now() - Number(cronHealth.updatedAtMs || 0);
   const cronHealthy = cronHealth.status === "success" && cronAgeMs >= 0 && cronAgeMs <= 10 * 60 * 60 * 1000;
-  let runtimeServiceAccount = "";
+  let runtimeServiceAccount = process.env.CAREMATE_RUNTIME_SERVICE_ACCOUNT || "";
   try {
+    if (!runtimeServiceAccount) {
     const metadata = await fetch(
       "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
       { headers: { "Metadata-Flavor": "Google" }, signal: AbortSignal.timeout(2000) }
     );
     if (metadata.ok) runtimeServiceAccount = (await metadata.text()).trim();
+    }
   } catch {
     runtimeServiceAccount = "";
   }
