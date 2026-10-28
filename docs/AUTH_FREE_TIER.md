@@ -62,3 +62,26 @@ Git history retains the prior client and Cloud Functions definitions. Restoring
 the old client requires a functioning Cloud Functions deployment, which is not
 available on Spark. Do not restore the old transport alone. Keep the free HTTP
 gateway live and roll back to a known-good HTTP gateway/client commit together.
+
+## 2026-10-28 page-loading correction
+
+A stale named import (`functions`) in `common.js` prevented the authenticated
+page module graph from linking. Removed that obsolete import/re-export and
+unified versioned common-module imports. A VM linking regression test now
+checks every client module's local imports before evaluation.
+
+Protected page authorization now reads the current user's `access` document
+with `getDocFromServer`. Firebase Security Rules validate the current allow-list
+on the server; a cached client role or localStorage flag is never sufficient.
+This avoids waking the free HTTP gateway on every page/tab change. Privileged
+operations still go through the HTTP gateway and its token/role checks.
+
+Opening the login UI starts a one-shot health warm-up. There are no periodic
+keep-alive requests. Profile-cache reads and activity metadata no longer add
+network waits before navigating to Home. A separate classic-script status
+message remains visible if page modules fail before protected content can show.
+
+Browser verification used local-only sample auth/data (no real accounts, keys
+or Firestore writes): Home, day-detail popup, Study, Assignments and Settings
+rendered and navigation succeeded. Production users' credentials were not used
+for this local UI verification.
