@@ -555,7 +555,8 @@ exports.authenticateCareMate = onCall(
     if (
       !STUDENT_NUMBER_PATTERN.test(studentNumber) ||
       typeof password !== "string" ||
-      !password
+      !password ||
+      password.length > 128
     ) {
       throw new HttpsError(
         "invalid-argument",

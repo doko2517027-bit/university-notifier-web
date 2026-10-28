@@ -11,6 +11,7 @@ import {
     db,
     signInCareMateAuth
 } from "./auth_core.js";
+import { loginErrorMessage } from "./login_error.js?v=20261028-1";
 
 import {
     doc,
@@ -235,31 +236,7 @@ async function handleLogin() {
             error
         );
 
-        if (
-            error?.code ===
-            "functions/unauthenticated"
-        ) {
-
-            showLoginMessage(
-                "学籍番号またはパスワードが違います。"
-            );
-
-        } else if (
-            error?.code ===
-            "functions/permission-denied"
-        ) {
-
-            showLoginMessage(
-                "このアカウントは利用が許可されていません。"
-            );
-
-        } else {
-
-            showLoginMessage(
-                "ログインできませんでした。通信状態を確認してください。"
-            );
-
-        }
+        showLoginMessage(loginErrorMessage(error));
 
     } finally {
 
