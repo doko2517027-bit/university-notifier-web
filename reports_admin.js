@@ -6,7 +6,7 @@ import {
   setupAdminTab,
   showPage,
   showToast,
-} from "./common.js?v=20261028-3";
+} from "./common.js?v=20261029-1";
 import {
   collection,
   doc,
@@ -122,15 +122,35 @@ async function render() {
     resolved.map((item) => card(item, names, true)).join("") ||
     '<div class="card setting-card">解決済みの履歴はありません。</div>';
 }
-onSnapshot(
-  query(collection(db, "reports"), orderBy("createdAt", "desc")),
-  (snapshot) => {
-    reports = snapshot.docs
-      .map((item) => ({ id: item.id, data: item.data() }))
-      .filter((item) => item.data.type === "questionAnswer");
-    render().catch(console.error);
-  },
-);
+await new Promise((resolve) => {
+  let firstSnapshot = true;
+  onSnapshot(
+    query(collection(db, "reports"), orderBy("createdAt", "desc")),
+    async (snapshot) => {
+      reports = snapshot.docs
+        .map((item) => ({ id: item.id, data: item.data() }))
+        .filter((item) => item.data.type === "questionAnswer");
+      try {
+        await render();
+      } catch (error) {
+        console.error("報告一覧の表示エラー:", error);
+      } finally {
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          resolve();
+        }
+      }
+    },
+    (error) => {
+      console.error("報告一覧の読み込みエラー:", error);
+      openList.textContent = "報告一覧を読み込めませんでした。";
+      if (firstSnapshot) {
+        firstSnapshot = false;
+        resolve();
+      }
+    },
+  );
+});
 document.addEventListener("click", async (event) => {
   const close = event.target.closest(".close-report"),
     reopen = event.target.closest(".reopen-report");

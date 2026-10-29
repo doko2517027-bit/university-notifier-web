@@ -94,11 +94,15 @@ async function handleLogin() {
 
     loginButton.disabled = true;
     loginButton.textContent = "ログイン中…";
+    window.CareMateLoading?.show("ログインしています…");
 
     showLoginMessage("");
     const wakeupMessage = setTimeout(() => {
         showLoginMessage("認証サービスを起動しています。そのままお待ちください。");
+        window.CareMateLoading?.show("認証サービスを起動しています。そのままお待ちください…");
     }, 10000);
+
+    let loginSucceeded = false;
 
 
     try {
@@ -224,6 +228,8 @@ async function handleLogin() {
 
         try { sessionStorage.removeItem(`carematePushBannerDeferred:${studentNumber}`); } catch { /* Optional preference. */ }
 
+        loginSucceeded = true;
+        window.CareMateLoading?.show("ホーム画面を読み込んでいます…");
         location.replace("home.html");
 
 
@@ -235,12 +241,14 @@ async function handleLogin() {
         );
 
         showLoginMessage(loginErrorMessage(error));
+        window.CareMateLoading?.hide();
 
     } finally {
         clearTimeout(wakeupMessage);
 
         loginButton.disabled = false;
         loginButton.textContent = "ログイン";
+        if (!loginSucceeded) window.CareMateLoading?.hide();
 
     }
 

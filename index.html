@@ -2,6 +2,7 @@
 <html lang="ja">
 
 <head>
+    <script src="page_status.js?v=20261029-1"></script>
     <script src="ui_preferences.js?v=20261028-3"></script>
     <meta charset="UTF-8">
 
@@ -447,12 +448,13 @@
             }
 
             loginInitialized = true;
+            window.CareMateLoading?.show("ログイン画面を読み込んでいます…");
 
             try {
 
                 // 既存のログイン処理を読み込む
                 await import(
-                    "./login.js?v=20261028-3"
+                    "./login.js?v=20261029-1"
                 );
 
             } catch (error) {
@@ -464,6 +466,10 @@
 
                 loginMessage.textContent =
                     "ログイン機能を読み込めませんでした。ページを再読み込みしてください。";
+
+            } finally {
+
+                window.CareMateLoading?.hide();
 
             }
 
@@ -509,6 +515,7 @@
 
                 // 二重送信防止
                 entryButton.disabled = true;
+                window.CareMateLoading?.show("入口を確認しています…");
 
                 entryMessage.textContent =
                     "検索中…";
@@ -575,6 +582,8 @@
 
                     entryMessage.textContent =
                         "検索を完了できませんでした。通信状態をご確認ください。";
+
+                    window.CareMateLoading?.hide();
 
                 } finally {
 

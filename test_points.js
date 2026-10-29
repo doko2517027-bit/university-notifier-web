@@ -1,6 +1,6 @@
 // Legacy export name is retained for existing answer screens. The renewed
 // CareMate records solved questions but does not grant ranking/shop points.
-import { db, studentNumber } from "./common.js?v=20261028-3";
+import { db, studentNumber } from "./common.js?v=20261029-1";
 import { doc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 export function localDateKey(date = new Date()) {

@@ -1,7 +1,7 @@
 import { auth, db } from "./auth_core.js?v=20261028-2";
 import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261028-3";
+import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261029-1";
 
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";
@@ -9,6 +9,7 @@ const entry = pageScript?.dataset.entry || "";
 let pageAuthorized = false;
 
 try {
+  window.CareMatePageStatus?.show("利用権限を確認しています…");
   await auth.authStateReady();
   const user = auth.currentUser;
   if (!user) throw new Error("ログインが必要です。");
@@ -48,6 +49,7 @@ try {
   }
   normalizeNavigation();
   document.documentElement.classList.add("caremate-access-approved");
+  window.CareMatePageStatus?.show("画面を読み込んでいます…");
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch((error) => console.warn("更新確認に失敗しました:", error));
   }
@@ -72,12 +74,11 @@ try {
 if (pageAuthorized && entry) {
   try {
     await import(entry);
+    window.CareMatePageStatus?.ready();
   } catch (error) {
     console.error("CareMate画面読み込みエラー:", error);
-    const message = document.createElement("p");
-    message.className = "cm-status";
-    message.setAttribute("role", "alert");
-    message.textContent = "画面を読み込めませんでした。更新してもう一度お試しください。";
-    document.querySelector("main")?.prepend(message);
+    window.CareMatePageStatus?.fail("画面を読み込めませんでした。通信状態を確認して、もう一度お試しください。");
   }
+} else if (pageAuthorized) {
+  window.CareMatePageStatus?.ready();
 }

@@ -62,12 +62,12 @@ export function showPage() {
 
 export async function initializePage(tasks = []) {
   normalizeNavigation();
-  showPage();
   initializeGlobalStudyTracking({ db, studentNumber, loggedIn: true });
   const outcomes = await Promise.allSettled(tasks);
   for (const outcome of outcomes) {
     if (outcome.status === "rejected") console.error("画面の初期読み込みエラー:", outcome.reason);
   }
+  showPage();
 }
 
 export async function loadProfileImage(img) {

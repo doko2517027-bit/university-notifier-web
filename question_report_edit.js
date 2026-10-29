@@ -1,4 +1,4 @@
-import { db, studentNumber, isAdmin, showPage } from "./common.js?v=20261028-3";
+import { db, studentNumber, isAdmin, showPage } from "./common.js?v=20261029-1";
 import {
   doc,
   getDoc,
@@ -160,9 +160,11 @@ document.getElementById("saveReportedQuestion").onclick = async () => {
 };
 document.getElementById("backButton").onclick = () =>
   history.length > 1 ? history.back() : location.replace("admin.html");
-load().catch((error) => {
+try {
+  await load();
+  showPage();
+} catch (error) {
   console.error(error);
   alert(error.message);
   location.replace("admin.html");
-});
-showPage();
+}

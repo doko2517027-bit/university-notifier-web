@@ -7,7 +7,7 @@ import {
   setupAdminTab,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
-} from "./common.js?v=20261028-3";
+} from "./common.js?v=20261029-1";
 import {
   collection,
   collectionGroup,
