@@ -275,8 +275,10 @@ service cloud.firestore {
         allow read: if studyUser() && request.auth.uid == uid;
         allow create, update: if studyUser()
           && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['announcementId', 'readAt'])
+          && request.resource.data.keys().hasOnly(['announcementId', 'notificationRevision', 'readAt'])
           && request.resource.data.announcementId == announcementId
+          && request.resource.data.notificationRevision is int
+          && request.resource.data.notificationRevision >= 0
           && request.resource.data.readAt is timestamp;
         allow delete: if studyUser() && request.auth.uid == uid;
       }
