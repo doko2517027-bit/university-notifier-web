@@ -270,6 +270,16 @@ service cloud.firestore {
         allow create, update: if studyUser() && request.auth.uid == uid;
         allow delete: if studyPrimaryAdmin();
       }
+
+      match /announcementReads/{announcementId} {
+        allow read: if studyUser() && request.auth.uid == uid;
+        allow create, update: if studyUser()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['announcementId', 'readAt'])
+          && request.resource.data.announcementId == announcementId
+          && request.resource.data.readAt is timestamp;
+        allow delete: if studyUser() && request.auth.uid == uid;
+      }
     }
 
     match /studyAppStudentNumbers/{studentNumber} {
@@ -341,6 +351,12 @@ service cloud.firestore {
       allow get: if studyAdmin()
         || (studyUser() && resource.data.reporterUid == request.auth.uid);
       allow list, update, delete: if studyAdmin();
+    }
+
+    match /studyAppAnnouncements/{announcementId} {
+      allow get, list: if studyAdmin()
+        || (studyUser() && resource.data.published == true);
+      allow create, update, delete: if studyAdmin();
     }
 
     // Old CareMate collections, private configuration and user-registration

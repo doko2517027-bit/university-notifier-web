@@ -599,6 +599,140 @@ exports.adminResetStudyAppPassword = onCall(CALL_OPTIONS, async (request) => {
   return { changed: true };
 });
 
+// CareMateUniv: a signed-in user changes their own password after the current
+// password has been verified by Firebase Authentication.  The browser signs in
+// with a custom token, so client-side reauthentication cannot be used here.
+exports.changeStudyAppPassword = onCall(CALL_OPTIONS, async (request) => {
+  const uid = String(request.auth?.uid || "");
+  const currentPassword = request.data?.currentPassword;
+  const nextPassword = request.data?.nextPassword;
+  if (!uid) throw new HttpsError("unauthenticated", "ログインが必要です。");
+  if (typeof currentPassword !== "string" || currentPassword.length < 8 || currentPassword.length > 128
+    || typeof nextPassword !== "string" || nextPassword.length < 8 || nextPassword.length > 128) {
+    throw new HttpsError("invalid-argument", "現在のパスワードと8文字以上の新しいパスワードを確認してください。");
+  }
+  if (currentPassword === nextPassword) {
+    throw new HttpsError("invalid-argument", "現在とは異なる新しいパスワードを設定してください。");
+  }
+  const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
+  const profile = profileSnapshot.data() || {};
+  if (!profileSnapshot.exists || profile.active !== true) {
+    throw new HttpsError("permission-denied", "このアカウントは利用できません。");
+  }
+  let authUser;
+  try { authUser = await adminAuth.getUser(uid); }
+  catch { throw new HttpsError("unauthenticated", "再度ログインしてください。"); }
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${STUDY_APP_WEB_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: authUser.email, password: currentPassword, returnSecureToken: true }),
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!response.ok) {
+      throw new HttpsError("unauthenticated", "現在のパスワードが違います。");
+    }
+    const verification = await response.json();
+    if (verification?.localId !== uid) {
+      throw new HttpsError("unauthenticated", "現在のパスワードが違います。");
+    }
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("unavailable", "認証サービスへ接続できませんでした。少し待ってからお試しください。");
+  }
+  await adminAuth.updateUser(uid, { password: nextPassword });
+  await profileSnapshot.ref.set({
+    mustChangePassword: false,
+    passwordChangedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return { changed: true };
+});
+
+// CareMateUniv: after an administrator removes or reorders questions, remove
+// orphan correction reports and rewrite per-question progress keys so every
+// analytics view continues to refer to the same remaining questions.
+exports.cleanupStudyAppQuestionDeletion = onCall(CALL_OPTIONS, async (request) => {
+  await requireStudyAppAdministrator(request);
+  const subjectId = String(request.data?.subjectId || "").trim();
+  const unitId = String(request.data?.unitId || "").trim();
+  const maps = request.data?.maps;
+  const total = Number(request.data?.total);
+  const validId = (value) => /^[A-Za-z0-9_-]{1,180}$/.test(value);
+  const validMap = (value) => Array.isArray(value) && value.length <= 500
+    && value.every((entry) => Number.isInteger(entry) && entry >= -1 && entry < 500);
+  if (!validId(subjectId) || !validId(unitId) || !maps
+    || !validMap(maps.quiz) || !validMap(maps.fill_blank)
+    || !Number.isInteger(total) || total < 0 || total > 1000) {
+    throw new HttpsError("invalid-argument", "問題削除の連動情報が正しくありません。");
+  }
+
+  const [reportsSnapshot, progressSnapshot] = await Promise.all([
+    db.collection("studyAppReports").where("subjectId", "==", subjectId).get(),
+    db.collectionGroup("progress").where("unitId", "==", unitId).get(),
+  ]);
+  const writer = db.bulkWriter();
+  let deletedReports = 0;
+  let updatedReports = 0;
+  let updatedProgress = 0;
+
+  reportsSnapshot.docs.forEach((snapshot) => {
+    const report = snapshot.data() || {};
+    if (report.unitId !== unitId || !Object.hasOwn(maps, report.type)) return;
+    const oldIndex = Number(report.index);
+    const nextIndex = Number.isInteger(oldIndex) ? maps[report.type][oldIndex] : -1;
+    if (!Number.isInteger(nextIndex) || nextIndex < 0) {
+      writer.delete(snapshot.ref);
+      deletedReports += 1;
+    } else if (nextIndex !== oldIndex) {
+      writer.update(snapshot.ref, { index: nextIndex, updatedAt: FieldValue.serverTimestamp() });
+      updatedReports += 1;
+    }
+  });
+
+  progressSnapshot.docs.forEach((snapshot) => {
+    const progress = snapshot.data() || {};
+    if (progress.subjectId !== subjectId) return;
+    const oldStats = progress.questionStats && typeof progress.questionStats === "object"
+      ? progress.questionStats : {};
+    const nextStats = {};
+    let removedAttempts = 0;
+    let removedCorrect = 0;
+    let changed = false;
+    Object.entries(oldStats).forEach(([key, value]) => {
+      const match = /^(quiz|fill_blank):(\d+)$/.exec(key);
+      if (!match) { nextStats[key] = value; return; }
+      const oldIndex = Number(match[2]);
+      const nextIndex = maps[match[1]][oldIndex];
+      if (!Number.isInteger(nextIndex) || nextIndex < 0) {
+        removedAttempts += Math.max(0, Number(value?.attempts || 0));
+        removedCorrect += Math.max(0, Number(value?.correct || 0));
+        changed = true;
+        return;
+      }
+      const nextKey = `${match[1]}:${nextIndex}`;
+      nextStats[nextKey] = value;
+      if (nextKey !== key) changed = true;
+    });
+    if (!changed && Number(progress.total) === total) return;
+    const answeredKeys = Object.keys(nextStats).filter((key) => /^(quiz|fill_blank):\d+$/.test(key)).length;
+    writer.update(snapshot.ref, {
+      questionStats: nextStats,
+      attemptCount: Math.max(0, Number(progress.attemptCount || 0) - removedAttempts),
+      correctCount: Math.max(0, Number(progress.correctCount || 0) - removedCorrect),
+      answered: Math.min(total, answeredKeys),
+      total,
+      position: total ? Math.min(Math.max(0, Number(progress.position || 0)), total - 1) : 0,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    updatedProgress += 1;
+  });
+  await writer.close();
+  return { deletedReports, updatedReports, updatedProgress };
+});
+
 // The public form never reveals whether a student number exists. Firebase sends
 // its standard one-time reset link directly to the registered Active!Mail inbox;
 // passwords are never emailed in plain text.
@@ -621,7 +755,7 @@ exports.requestStudyAppPasswordReset = onCall(CALL_OPTIONS, async (request) => {
   try {
     const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${STUDY_APP_WEB_API_KEY}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "X-Firebase-Locale": "ja" },
       body: JSON.stringify({ requestType: "PASSWORD_RESET", email: user.email }),
       signal: AbortSignal.timeout(8_000),
     });
