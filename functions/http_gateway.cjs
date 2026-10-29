@@ -3,7 +3,7 @@
 const http = require("node:http");
 const { isIP } = require("node:net");
 
-const PUBLIC_METHODS = new Set(["authenticateCareMate", "authenticateStudyApp", "redeemEntrancePhrase"]);
+const PUBLIC_METHODS = new Set(["authenticateCareMate", "authenticateStudyApp", "redeemEntrancePhrase", "requestStudyAppPasswordReset"]);
 const ERROR_STATUS = {
   "invalid-argument": 400, unauthenticated: 401, "permission-denied": 403,
   "not-found": 404, "already-exists": 409, "failed-precondition": 400,

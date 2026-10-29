@@ -563,6 +563,75 @@ exports.deleteStudyAppUser = onCall(CALL_OPTIONS, async (request) => {
   return { deleted: true };
 });
 
+async function requireStudyAppAdministrator(request) {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "ログインが必要です。");
+  const snapshot = await db.collection("studyAppUsers").doc(uid).get();
+  const profile = snapshot.data() || {};
+  if (!snapshot.exists || profile.active !== true || profile.role !== "admin") {
+    throw new HttpsError("permission-denied", "管理者権限がありません。");
+  }
+  return { uid, profile };
+}
+
+// CareMateUniv: administrators can issue a temporary password without knowing
+// the old one. Delegated administrators cannot take over the primary admin or
+// another delegated administrator account.
+exports.adminResetStudyAppPassword = onCall(CALL_OPTIONS, async (request) => {
+  const actor = await requireStudyAppAdministrator(request);
+  const targetUid = String(request.data?.targetUid || "").trim();
+  const nextPassword = request.data?.nextPassword;
+  if (!/^[A-Za-z0-9_-]{6,128}$/.test(targetUid)
+    || typeof nextPassword !== "string" || nextPassword.length < 8 || nextPassword.length > 128) {
+    throw new HttpsError("invalid-argument", "対象者と8文字以上の仮パスワードを確認してください。");
+  }
+  const targetSnapshot = await db.collection("studyAppUsers").doc(targetUid).get();
+  const target = targetSnapshot.data() || {};
+  if (!targetSnapshot.exists || target.active !== true) throw new HttpsError("not-found", "利用中のアカウントが見つかりません。");
+  const actorIsPrimary = actor.profile.studentNumber === "2510044";
+  const changingSelf = actor.uid === targetUid;
+  if (!actorIsPrimary && (target.studentNumber === "2510044" || (target.role === "admin" && !changingSelf))) {
+    throw new HttpsError("permission-denied", "この管理者アカウントのパスワードは変更できません。");
+  }
+  await adminAuth.updateUser(targetUid, { password: nextPassword });
+  await adminAuth.revokeRefreshTokens(targetUid);
+  await targetSnapshot.ref.set({ mustChangePassword: true, passwordResetAt: FieldValue.serverTimestamp(), passwordResetBy: actor.profile.studentNumber }, { merge: true });
+  return { changed: true };
+});
+
+// The public form never reveals whether a student number exists. Firebase sends
+// its standard one-time reset link directly to the registered Active!Mail inbox;
+// passwords are never emailed in plain text.
+exports.requestStudyAppPasswordReset = onCall(CALL_OPTIONS, async (request) => {
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)) {
+    throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+  }
+  await reserveLoginAttempt(request, `study-reset-${studentNumber}`);
+  const genericResult = { accepted: true };
+  const numberSnapshot = await db.collection("studyAppStudentNumbers").doc(studentNumber).get();
+  const uid = String(numberSnapshot.data()?.uid || "");
+  if (!numberSnapshot.exists || numberSnapshot.data()?.deleted === true || !uid) return genericResult;
+  const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
+  const profile = profileSnapshot.data() || {};
+  if (!profileSnapshot.exists || profile.active !== true || profile.role === "admin") return genericResult;
+  let user;
+  try { user = await adminAuth.getUser(uid); } catch { return genericResult; }
+  if (!String(user.email || "").toLowerCase().endsWith("@sums.ac.jp")) return genericResult;
+  try {
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${STUDY_APP_WEB_API_KEY}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requestType: "PASSWORD_RESET", email: user.email }),
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) throw new Error("password reset email rejected");
+  } catch {
+    throw new HttpsError("unavailable", "メール送信サービスへ接続できませんでした。少し待ってからお試しください。");
+  }
+  return genericResult;
+});
+
 
 // ========================================
 // Firebase認証済みユーザーを確認
