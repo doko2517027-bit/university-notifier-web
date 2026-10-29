@@ -13,6 +13,11 @@ import {
   setDoc,
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import {
+  buildContentSectionPatch,
+  parseEditableLines,
+} from "./exam_question_content_model.mjs?v=20261029-1";
+
 const params = new URLSearchParams(location.search);
 
 const subjectId = params.get("subjectId");
@@ -179,6 +184,17 @@ function renderQuestions(data) {
                 rows="6"
                 placeholder="例：心不全では心拍出量が低下する。">${summary.join("\n")}</textarea>
 
+            <div class="exam-editor-inline-save">
+                <button
+                    type="button"
+                    class="btn btn-primary save-content-section"
+                    data-field="summary"
+                    data-input-id="editSummary">
+                    要約を保存
+                </button>
+                <small>すべて消して保存すると、要約を0件にできます。</small>
+            </div>
+
         </details>
 
 
@@ -194,6 +210,17 @@ function renderQuestions(data) {
                 id="editImportantPoints"
                 rows="6"
                 placeholder="例：左心不全では肺うっ血が起こりやすい。">${importantPoints.join("\n")}</textarea>
+
+            <div class="exam-editor-inline-save">
+                <button
+                    type="button"
+                    class="btn btn-primary save-content-section"
+                    data-field="important_points"
+                    data-input-id="editImportantPoints">
+                    重要ポイントを保存
+                </button>
+                <small>すべて消して保存すると、重要ポイントを0件にできます。</small>
+            </div>
 
             <hr>
 
@@ -879,15 +906,9 @@ saveEditedQuestions.onclick = async () => {
     return;
   }
 
-  const summary = summaryInput.value
-    .split("\n")
-    .map((text) => text.trim())
-    .filter((text) => text !== "");
+  const summary = parseEditableLines(summaryInput.value);
 
-  const important_points = importantPointsInput.value
-    .split("\n")
-    .map((text) => text.trim())
-    .filter((text) => text !== "");
+  const important_points = parseEditableLines(importantPointsInput.value);
 
   const important_point_images = Array.from(
     document.querySelectorAll(".important-point-image-card"),
@@ -1078,6 +1099,7 @@ saveEditedQuestions.onclick = async () => {
   await setDoc(editedRef, {
     ...current,
 
+    summary,
     important_points,
     important_point_images,
     fill_blank,
@@ -1100,7 +1122,61 @@ saveEditedQuestions.onclick = async () => {
   await loadQuestions();
 };
 
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
+  const contentSaveButton = e.target.closest(".save-content-section");
+
+  if (contentSaveButton) {
+    const field = contentSaveButton.dataset.field;
+    const input = document.getElementById(contentSaveButton.dataset.inputId);
+
+    if (!input) {
+      alert("入力欄を読み込めませんでした。");
+      return;
+    }
+
+    const label = field === "summary" ? "要約" : "重要ポイント";
+    const patch = buildContentSectionPatch(field, input.value);
+    const count = patch[field].length;
+
+    if (!confirm(`${label}を${count}件で保存しますか？`)) {
+      return;
+    }
+
+    contentSaveButton.disabled = true;
+    const originalText = contentSaveButton.textContent;
+    contentSaveButton.textContent = "保存中…";
+
+    try {
+      await setDoc(
+        doc(
+          db,
+          "examSubjects",
+          subjectId,
+          "units",
+          unitId,
+          "ai",
+          "edited",
+        ),
+        {
+          ...patch,
+          editedAt: new Date(),
+          editedBy: studentNumber,
+        },
+        { merge: true },
+      );
+
+      alert(count === 0 ? `${label}をすべて削除しました。` : `${label}を保存しました。`);
+      await loadQuestions();
+    } catch (error) {
+      console.error(`${label}保存エラー:`, error);
+      alert(`${label}を保存できませんでした。通信状態を確認してください。`);
+      contentSaveButton.disabled = false;
+      contentSaveButton.textContent = originalText;
+    }
+
+    return;
+  }
+
   if (e.target.classList.contains("remove-question-image")) {
     const editor = e.target.closest(".question-image-editor");
 

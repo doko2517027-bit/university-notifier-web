@@ -11435,6 +11435,9 @@ body.exam-editor-body { width: min(100%, 1100px); max-width: 1100px; box-sizing:
 .exam-editor-question-panel textarea, .exam-editor-question-panel input, .exam-editor-question-panel select { min-width: 0; box-sizing: border-box; }
 .exam-editor-question-panel textarea { width: 100%; }
 .exam-editor-question-panel > .btn { width: auto; min-width: 160px; height: 40px; padding: 0 14px; font-size: 13px; }
+.exam-editor-inline-save { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 12px; margin-top: 10px; }
+.exam-editor-inline-save .btn { width: auto; min-width: 150px; height: 40px; padding: 0 15px; font-size: 13px; }
+.exam-editor-inline-save small { color: var(--subtext); font-size: 11px; line-height: 1.5; }
 
 @media (max-width: 620px) {
     .exam-editor-top-grid, .exam-editor-material-grid, .exam-editor-question-list { grid-template-columns: 1fr; }
@@ -11443,6 +11446,7 @@ body.exam-editor-body { width: min(100%, 1100px); max-width: 1100px; box-sizing:
     .exam-editor-section-heading { display: block; }
     .exam-editor-section-heading p { margin-top: 3px; }
     .exam-editor-question-panel[open] { grid-column: auto; }
+    .exam-editor-inline-save .btn { width: 100%; }
     .exam-editor-actions .btn { flex: 1; }
 }
 
