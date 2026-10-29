@@ -512,6 +512,54 @@ exports.deactivateMyCareMateAccount = onCall(CALL_OPTIONS, async (request) => {
   return { deactivated: true };
 });
 
+// CareMateUniv: only the fixed primary administrator may permanently remove
+// another study-app account. The browser never receives Admin SDK privileges.
+exports.deleteStudyAppUser = onCall(CALL_OPTIONS, async (request) => {
+  const actorUid = request.auth?.uid;
+  const targetUid = String(request.data?.targetUid || "").trim();
+  if (!actorUid) throw new HttpsError("unauthenticated", "ログインが必要です。");
+  if (!/^[A-Za-z0-9_-]{6,128}$/.test(targetUid)) {
+    throw new HttpsError("invalid-argument", "削除対象を確認してください。");
+  }
+
+  const actorSnapshot = await db.collection("studyAppUsers").doc(actorUid).get();
+  const actor = actorSnapshot.data() || {};
+  if (actor.active !== true || actor.role !== "admin" || actor.studentNumber !== "2510044") {
+    throw new HttpsError("permission-denied", "主管理者だけが登録を削除できます。");
+  }
+  if (targetUid === actorUid) {
+    throw new HttpsError("permission-denied", "主管理者は削除できません。");
+  }
+
+  const targetRef = db.collection("studyAppUsers").doc(targetUid);
+  const targetSnapshot = await targetRef.get();
+  if (!targetSnapshot.exists) throw new HttpsError("not-found", "対象ユーザーが見つかりません。");
+  const target = targetSnapshot.data() || {};
+  if (target.studentNumber === "2510044") {
+    throw new HttpsError("permission-denied", "主管理者は削除できません。");
+  }
+
+  const [progressSnapshot, reportsSnapshot] = await Promise.all([
+    targetRef.collection("progress").get(),
+    db.collection("studyAppReports").where("reporterUid", "==", targetUid).get(),
+  ]);
+  const writer = db.bulkWriter();
+  progressSnapshot.docs.forEach((item) => writer.delete(item.ref));
+  reportsSnapshot.docs.forEach((item) => writer.delete(item.ref));
+  if (typeof target.studentNumber === "string") {
+    writer.delete(db.collection("studyAppStudentNumbers").doc(target.studentNumber));
+  }
+  writer.delete(targetRef);
+  await writer.close();
+
+  try {
+    await adminAuth.deleteUser(targetUid);
+  } catch (error) {
+    if (error?.code !== "auth/user-not-found") throw new HttpsError("internal", "ログイン情報を削除できませんでした。");
+  }
+  return { deleted: true };
+});
+
 
 // ========================================
 // Firebase認証済みユーザーを確認
