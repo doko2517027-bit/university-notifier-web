@@ -181,6 +181,168 @@ service cloud.firestore {
       allow list, update, delete: if admin();
     }
 
+    // CareMate Test is a separate, email-verified study app. Its data is kept
+    // under the studyApp* namespace and does not share users or questions with
+    // the existing CareMate application above.
+    function studyStudentEmail() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('^[^@\\s]+@sums\\.ac\\.jp$');
+    }
+
+    function studyAdminEmail() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('^[0-9]{7}@admin\\.caremateuniv\\.app$');
+    }
+
+    function studyIdentity() {
+      return studyStudentEmail() || studyAdminEmail();
+    }
+
+    function studyUser() {
+      return studyIdentity()
+        && exists(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.active == true
+        && (
+          get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role == 'admin'
+          || (studyStudentEmail() && request.auth.token.email_verified == true)
+        );
+    }
+
+    function studyAdmin() {
+      return studyUser()
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function studyPrimaryAdmin() {
+      return studyAdmin()
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.studentNumber == '2510044';
+    }
+
+    function validStudyAdminInvite(code) {
+      let invite = get(/databases/$(database)/documents/studyAppInvites/$(code)).data;
+      return exists(/databases/$(database)/documents/studyAppInvites/$(code))
+        && invite.active == true
+        && invite.studentNumber == request.resource.data.studentNumber
+        && invite.role == 'admin';
+    }
+
+    match /studyAppUsers/{uid} {
+      allow get: if studyIdentity() && (request.auth.uid == uid || studyAdmin());
+      allow list: if studyAdmin();
+      allow create: if studyIdentity()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'studentNumber', 'name', 'email', 'role', 'active', 'inviteCode',
+          'emailVerified', 'createdAt', 'verifiedAt'
+        ])
+        && request.resource.data.studentNumber is string
+        && request.resource.data.studentNumber.matches('^[0-9]{7}$')
+        && request.resource.data.role in ['student', 'admin']
+        && request.resource.data.active == true
+        && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.deleted == false
+        && (
+          (request.resource.data.role == 'student'
+            && studyStudentEmail()
+            && request.auth.token.email_verified == true
+            && request.resource.data.email == request.auth.token.email
+            && request.resource.data.emailVerified == true
+            && !('inviteCode' in request.resource.data))
+          ||
+          (request.resource.data.role == 'admin'
+            && studyAdminEmail()
+            && !('email' in request.resource.data)
+            && !('emailVerified' in request.resource.data)
+            && request.resource.data.inviteCode is string
+            && validStudyAdminInvite(request.resource.data.inviteCode))
+        );
+      allow update: if studyAdmin()
+        && resource.data.studentNumber != '2510044'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt'])
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.studentNumber == resource.data.studentNumber;
+      allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
+
+      match /progress/{progressId} {
+        allow read: if (studyUser() && request.auth.uid == uid) || studyPrimaryAdmin();
+        allow create, update: if studyUser() && request.auth.uid == uid;
+        allow delete: if studyPrimaryAdmin();
+      }
+    }
+
+    match /studyAppStudentNumbers/{studentNumber} {
+      allow get, list: if studyAdmin();
+      allow create: if (
+          request.auth != null
+          && studyIdentity()
+          && request.resource.data.keys().hasOnly(['uid', 'studentNumber', 'deleted', 'createdAt', 'deletedAt'])
+          && request.resource.data.studentNumber == studentNumber
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.deleted == false
+          && getAfter(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.studentNumber == studentNumber
+        ) || (
+          studyPrimaryAdmin()
+          && request.resource.data.uid is string
+          && request.resource.data.studentNumber == studentNumber
+          && request.resource.data.deleted == true
+          && exists(/databases/$(database)/documents/studyAppUsers/$(request.resource.data.uid))
+          && get(/databases/$(database)/documents/studyAppUsers/$(request.resource.data.uid)).data.studentNumber == studentNumber
+        );
+      allow update: if studyPrimaryAdmin()
+        && resource.data.uid == request.resource.data.uid
+        && resource.data.studentNumber == request.resource.data.studentNumber
+        && request.resource.data.deleted == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'deletedAt']);
+      allow delete: if false;
+    }
+
+    match /studyAppInvites/{code} {
+      // The code is high entropy and can only be checked after Firebase Auth has
+      // created the short-lived internal administrator identity.
+      allow get: if studyIdentity();
+      allow list: if studyAdmin();
+      allow create: if studyAdmin()
+        && request.resource.data.keys().hasOnly([
+          'studentNumber', 'name', 'role', 'active', 'bootstrap', 'createdAt'
+        ])
+        && request.resource.data.studentNumber is string
+        && request.resource.data.studentNumber.matches('^[0-9]{7}$')
+        && request.resource.data.role == 'admin'
+        && request.resource.data.active == true
+        && request.resource.data.bootstrap == false;
+      allow update: if false;
+      allow delete: if studyAdmin()
+        || (studyAdminEmail()
+          && existsAfter(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid))
+          && getAfter(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.inviteCode == code);
+    }
+
+    match /studyAppCategories/{categoryId} {
+      allow read: if studyUser();
+      allow create, update, delete: if studyAdmin();
+    }
+
+    match /studyAppSubjects/{subjectId} {
+      allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
+      allow create, update, delete: if studyAdmin();
+
+      match /units/{unitId} {
+        allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
+        allow create, update, delete: if studyAdmin();
+      }
+    }
+
+    match /studyAppReports/{reportId} {
+      allow create: if studyUser()
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow get: if studyAdmin()
+        || (studyUser() && resource.data.reporterUid == request.auth.uid);
+      allow list, update, delete: if studyAdmin();
+    }
+
     // Old CareMate collections, private configuration and user-registration
     // paths have no client access. Existing documents are not deleted.
     match /{document=**} {
