@@ -266,7 +266,7 @@ service cloud.firestore {
       allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
 
       match /progress/{progressId} {
-        allow read: if (studyUser() && request.auth.uid == uid) || studyPrimaryAdmin();
+        allow read: if (studyUser() && request.auth.uid == uid) || studyAdmin();
         allow create, update: if studyUser() && request.auth.uid == uid;
         allow delete: if studyPrimaryAdmin();
       }

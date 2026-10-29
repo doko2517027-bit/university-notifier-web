@@ -83,6 +83,9 @@ const CALL_OPTIONS = {
 };
 
 const STUDENT_NUMBER_PATTERN = /^\d{7}$/;
+// Firebase Web API keys identify a project; they are not privileged secrets.
+// Password verification is performed only from this rate-limited backend.
+const STUDY_APP_WEB_API_KEY = "AIzaSyAEtS2NGZKqHFh29kmR9OjEpshbC1yvjFY";
 const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 8;
 const credentialRef = (studentNumber) => db.collection("systemPrivate").doc("careMateCredentials")
@@ -584,6 +587,71 @@ function authenticatedStudentNumber(request) {
 
   return studentNumber;
 }
+
+
+// ========================================
+// CareMateUniv: 学籍番号とパスワードによるログイン
+// ========================================
+
+exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const password = request.data?.password;
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber)
+    || typeof password !== "string"
+    || password.length < 8
+    || password.length > 128) {
+    throw new HttpsError("invalid-argument", "学籍番号またはパスワードを確認してください。");
+  }
+
+  const attemptRef = await reserveLoginAttempt(request, `study-${studentNumber}`);
+  const numberSnapshot = await db.collection("studyAppStudentNumbers").doc(studentNumber).get();
+  const uid = String(numberSnapshot.data()?.uid || "");
+  if (!numberSnapshot.exists || numberSnapshot.data()?.deleted === true || !uid) throw unauthorized();
+
+  const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
+  const profile = profileSnapshot.data() || {};
+  if (!profileSnapshot.exists || profile.active !== true || profile.studentNumber !== studentNumber) {
+    throw unauthorized();
+  }
+
+  let authUser;
+  try {
+    authUser = await adminAuth.getUser(uid);
+  } catch {
+    throw unauthorized();
+  }
+  if (!authUser.email || authUser.disabled
+    || (profile.role !== "admin" && authUser.emailVerified !== true)) {
+    throw unauthorized();
+  }
+
+  let verification;
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${STUDY_APP_WEB_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: authUser.email, password, returnSecureToken: true }),
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!response.ok) throw unauthorized();
+    verification = await response.json();
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("unavailable", "認証サービスへ接続できませんでした。少し待ってからお試しください。");
+  }
+  if (verification?.localId !== uid) throw unauthorized();
+
+  const token = await adminAuth.createCustomToken(uid, {
+    studyApp: true,
+    studentNumber,
+    role: profile.role === "admin" ? "admin" : "student",
+  });
+  await attemptRef.delete();
+  return { token, role: profile.role === "admin" ? "admin" : "student" };
+});
 
 
 // ========================================

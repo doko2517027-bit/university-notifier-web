@@ -8,6 +8,7 @@ async function setup(t, options = {}) {
   const server = createGateway({
     handlers: {
       authenticateCareMate: { run: async ({ data }) => ({ accepted: data.studentNumber }) },
+      authenticateStudyApp: { run: async ({ data }) => ({ accepted: data.studentNumber }) },
       checkCareMateAccess: { run: async ({ auth }) => { calls++; return { uid: auth.uid }; } },
       issueEntrancePhrase: { run: async () => { throw { code: "permission-denied", message: "管理者のみ" }; } },
       faulty: { run: async () => { throw new Error("secret must never be returned"); } },
@@ -36,6 +37,10 @@ test("public login and health work without a token", async t => {
   assert.deepEqual(await response.json(), { data: { accepted: "2510044" } });
   assert.equal(response.headers.get("access-control-allow-origin"), origin);
   assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.match(response.headers.get("strict-transport-security"), /max-age=31536000/);
+  const study = await post("authenticateStudyApp", { data: { studentNumber: "2510044" } });
+  assert.equal(study.status, 200);
   assert.deepEqual(await (await fetch(`${url}/health`)).json(), { ready: true });
 });
 test("protected operations reject missing, forged and revoked tokens before handler execution", async t => {

@@ -3,7 +3,7 @@
 const http = require("node:http");
 const { isIP } = require("node:net");
 
-const PUBLIC_METHODS = new Set(["authenticateCareMate", "redeemEntrancePhrase"]);
+const PUBLIC_METHODS = new Set(["authenticateCareMate", "authenticateStudyApp", "redeemEntrancePhrase"]);
 const ERROR_STATUS = {
   "invalid-argument": 400, unauthenticated: 401, "permission-denied": 403,
   "not-found": 404, "already-exists": 409, "failed-precondition": 400,
@@ -18,7 +18,12 @@ function createGateway({ handlers, verifyIdToken, allowedOrigin, maxRequests = 6
   const server = http.createServer(async (req, res) => {
     const origin = req.headers.origin;
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-DNS-Prefetch-Control", "off");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
     const send = (status, body) => {
