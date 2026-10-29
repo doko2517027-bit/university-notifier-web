@@ -31,12 +31,12 @@ function createGateway({ handlers, verifyIdToken, allowedOrigin, maxRequests = 6
       res.end(JSON.stringify(body));
     };
     const fail = (code, message) => send(ERROR_STATUS[code] || 500, { error: { status: code, message } });
-    if (origin && origin !== allowedOrigin) return fail("permission-denied", "許可されていない接続元です。");
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      res.setHeader("Vary", "Origin");
-    }
     if (req.url === "/health" && req.method === "GET") return send(200, { ready: true });
+    // Every application API call must come from the published CMU origin.
+    // Health monitoring remains origin-free above.
+    if (origin !== allowedOrigin) return fail("permission-denied", "許可されていない接続元です。");
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Vary", "Origin");
     const match = /^\/api\/([A-Za-z][A-Za-z0-9]{0,63})$/.exec(req.url || "");
     const method = match?.[1];
     const handler = method && Object.hasOwn(handlers, method) ? handlers[method] : null;

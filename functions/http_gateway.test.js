@@ -53,8 +53,9 @@ test("protected operations reject missing, forged and revoked tokens before hand
   assert.equal(calls(), 1);
 });
 test("cross-origin, unknown routes, malformed and oversized requests are rejected", async t => {
-  const { post } = await setup(t);
+  const { post, url } = await setup(t);
   assert.equal((await post("authenticateCareMate", { data: {} }, { Origin: "https://attacker.invalid" })).status, 403);
+  assert.equal((await fetch(`${url}/api/authenticateCareMate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: {} }) })).status, 403);
   assert.equal((await post("constructor")).status, 404);
   assert.equal((await post("authenticateCareMate", "not json")).status, 400);
   assert.equal((await post("authenticateCareMate", { data: [] })).status, 400);
