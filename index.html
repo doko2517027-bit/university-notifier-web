@@ -454,7 +454,7 @@
 
                 // 既存のログイン処理を読み込む
                 await import(
-                    "./login.js?v=20261029-1"
+                    "./login.js?v=20261030-1"
                 );
 
             } catch (error) {
@@ -530,7 +530,7 @@
                     // Firebaseを読み込む
                     // ====================================
 
-                    const { callCareMate } = await import("./backend_client.js?v=20261028-3");
+                    const { callCareMate } = await import("./backend_client.js?v=20261030-1");
                     const result = await callCareMate("redeemEntrancePhrase", { phrase });
 
 

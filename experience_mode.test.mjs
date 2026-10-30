@@ -43,7 +43,7 @@ test("表示されるタブ数に合わせて下部ナビを均等配置する",
 test("新規アカウントは入口の一回限りgrantで利用形態を確定する", async () => {
   const functions = await source("./functions/index.js");
   assert.match(functions, /experienceMode: "pending"/);
-  assert.match(functions, /resolveExperienceMode\(studentNumber, request\.data\?\.entranceGrant\)/);
+  assert.match(functions, /resolveExperienceMode\(studentNumber, request\.data\?\.entranceGrant(?:, access)?\)/);
   assert.match(functions, /transaction\.update\(grantRef, \{ usedAt:/);
   assert.match(functions, /assignmentAccess: experienceMode === "assignments"/);
 });

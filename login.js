@@ -10,9 +10,9 @@
 import {
     db,
     signInCareMateAuth
-} from "./auth_core.js?v=20261028-2";
+} from "./auth_core.js?v=20261030-1";
 import { loginErrorMessage } from "./login_error.js?v=20261028-1";
-import { warmCareMateBackend } from "./backend_client.js?v=20261028-3";
+import { warmCareMateBackend } from "./backend_client.js?v=20261030-1";
 
 import {
     doc,
@@ -100,7 +100,7 @@ async function handleLogin() {
     const wakeupMessage = setTimeout(() => {
         showLoginMessage("認証サービスを起動しています。そのままお待ちください。");
         window.CareMateLoading?.show("認証サービスを起動しています。そのままお待ちください…");
-    }, 10000);
+    }, 5000);
 
     let loginSucceeded = false;
 

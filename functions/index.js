@@ -149,15 +149,9 @@ function authUidForStudent(studentNumber) {
 // 利用許可の確認
 // ========================================
 
-async function requireApprovedStudent(studentNumber) {
+function approvedStudentFromSnapshot(studentNumber, snapshot) {
 
   const uid = authUidForStudent(studentNumber);
-
-  const snapshot = await db
-    .collection("access")
-    .doc(uid)
-    .get();
-
   const access = snapshot.data();
 
   if (
@@ -176,13 +170,18 @@ async function requireApprovedStudent(studentNumber) {
       access?.role === "admin"
         ? "admin"
         : "member",
+    access,
   };
 }
 
-async function resolveExperienceMode(studentNumber, grant) {
+async function requireApprovedStudent(studentNumber) {
+  const snapshot = await db.collection("access").doc(authUidForStudent(studentNumber)).get();
+  return approvedStudentFromSnapshot(studentNumber, snapshot);
+}
+
+async function resolveExperienceMode(studentNumber, grant, knownAccess) {
   const accessRef = db.collection("access").doc(authUidForStudent(studentNumber));
-  const access = await accessRef.get();
-  const current = access.data()?.experienceMode;
+  const current = knownAccess?.experienceMode;
   if (["assignments", "study-only"].includes(current)) return current;
   // Existing users predate the two-route entry and retain their assignment access.
   if (current !== "pending") return "assignments";
@@ -885,15 +884,14 @@ exports.authenticateCareMate = onCall(
       );
     }
 
-    const attemptRef = await reserveLoginAttempt(request, studentNumber);
-
-    // Firestoreから既存の登録情報を取得
-    const userSnapshot = await db
-      .collection("users")
-      .doc(studentNumber)
-      .get();
-
-    const privateCredential = await credentialRef(studentNumber).get();
+    // These independent reads used to run one after another. Starting them
+    // together preserves the checks while removing several network round trips.
+    const [attemptRef, userSnapshot, privateCredential, accessSnapshot] = await Promise.all([
+      reserveLoginAttempt(request, studentNumber),
+      db.collection("users").doc(studentNumber).get(),
+      credentialRef(studentNumber).get(),
+      db.collection("access").doc(authUidForStudent(studentNumber)).get(),
+    ]);
     const storedHash = privateCredential.data()?.hash;
     if (!userSnapshot.exists || !matchesPasswordHash(password, storedHash)) {
       throw unauthorized();
@@ -903,33 +901,35 @@ exports.authenticateCareMate = onCall(
     const {
       uid,
       role,
-    } = await requireApprovedStudent(studentNumber);
+      access,
+    } = approvedStudentFromSnapshot(studentNumber, accessSnapshot);
 
-    const experienceMode = await resolveExperienceMode(studentNumber, request.data?.entranceGrant);
+    const experienceMode = await resolveExperienceMode(studentNumber, request.data?.entranceGrant, access);
     const isAdmin = role === "admin";
 
-    if (needsPasswordUpgrade(storedHash)) {
-      const upgradedHash = hashPassword(password);
-      await db.runTransaction(async (transaction) => {
+    const passwordUpgrade = needsPasswordUpgrade(storedHash)
+      ? db.runTransaction(async (transaction) => {
         const currentSecret = await transaction.get(credentialRef(studentNumber));
         const currentHash = currentSecret.data()?.hash;
         if (currentHash === storedHash) {
-          transaction.set(credentialRef(studentNumber), { hash: upgradedHash, passwordChangedAt: FieldValue.serverTimestamp() }, { merge: true });
+          transaction.set(credentialRef(studentNumber), {
+            hash: hashPassword(password),
+            passwordChangedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
         }
-      });
-    }
+      })
+      : Promise.resolve();
 
     // Firebase Authentication用トークンを発行
-    const token = await adminAuth.createCustomToken(
-      uid,
-      {
+    const [token] = await Promise.all([
+      adminAuth.createCustomToken(uid, {
         studentNumber,
         admin: isAdmin,
         assignmentAccess: experienceMode === "assignments",
-      }
-    );
-
-    await attemptRef.delete();
+      }),
+      attemptRef.delete(),
+      passwordUpgrade,
+    ]);
 
     return {
       token,

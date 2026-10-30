@@ -1,4 +1,4 @@
-import { auth, db } from "./auth_core.js?v=20261028-2";
+import { auth, db } from "./auth_core.js?v=20261030-1";
 import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261029-1";
@@ -16,7 +16,10 @@ try {
 
   // Firestore Security Rules check the live allow-list on the server. Never
   // authorize a page from cached/localStorage role data or wake Render per tab.
-  const snapshot = await getDocFromServer(doc(db, "access", user.uid));
+  const [snapshot, token] = await Promise.all([
+    getDocFromServer(doc(db, "access", user.uid)),
+    getIdTokenResult(user),
+  ]);
   const currentAccess = snapshot.data();
   const access = { data: {
     active: snapshot.exists() && currentAccess?.active === true,
@@ -32,7 +35,6 @@ try {
     // Redirect before loading any privileged page module.
     throw Object.assign(new Error("この画面の利用権限がありません。"), { redirecting: true });
   }
-  const token = await getIdTokenResult(user);
   const studentNumber = String(token.claims.studentNumber || "");
   if (user.uid !== `caremate-${studentNumber}` || !/^\d{7}$/.test(studentNumber)) {
     throw new Error("アカウントを確認できません。");

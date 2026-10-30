@@ -5,9 +5,7 @@ import vm from 'node:vm';
 const source = (await readFile(new URL('./backend_client.js', import.meta.url), 'utf8'))
   .replace(/^import .*;\n/gm, '').replaceAll('export async function', 'async function') + '\nglobalThis.call = callCareMate;';
 function client(fetch, currentUser = null) {
-  const transport = (url, options) => url.endsWith('/health')
-    ? Promise.resolve({ ok: true, json: async () => ({ ready: true }) }) : fetch(url, options);
-  const context = vm.createContext({ fetch: transport, AbortController, DOMException, setTimeout, clearTimeout, getApp: () => ({}), getAuth: () => ({ authStateReady: async () => {}, currentUser }) });
+  const context = vm.createContext({ fetch, AbortController, DOMException, setTimeout, clearTimeout, getApp: () => ({}), getAuth: () => ({ authStateReady: async () => {}, currentUser }) });
   vm.runInContext(source, context);
   return context.call;
 }
