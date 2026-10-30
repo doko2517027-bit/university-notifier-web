@@ -220,6 +220,41 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.studentNumber == '2510044';
     }
 
+    function validStudyProgress() {
+      return request.resource.data.keys().hasOnly([
+          'subjectId', 'unitId', 'position', 'answered', 'total', 'lastScore',
+          'attemptCount', 'correctCount', 'questionStats', 'studySession', 'updatedAt'
+        ])
+        && request.resource.data.subjectId is string
+        && request.resource.data.subjectId.size() > 0
+        && request.resource.data.subjectId.size() <= 160
+        && request.resource.data.unitId is string
+        && request.resource.data.unitId.size() > 0
+        && request.resource.data.unitId.size() <= 160
+        && (!('position' in request.resource.data) || (request.resource.data.position is int && request.resource.data.position >= 0 && request.resource.data.position <= 5000))
+        && (!('answered' in request.resource.data) || (request.resource.data.answered is int && request.resource.data.answered >= 0 && request.resource.data.answered <= 5000))
+        && (!('total' in request.resource.data) || (request.resource.data.total is int && request.resource.data.total >= 0 && request.resource.data.total <= 5000))
+        && (!('lastScore' in request.resource.data) || (request.resource.data.lastScore is int && request.resource.data.lastScore >= 0 && request.resource.data.lastScore <= 5000))
+        && (!('attemptCount' in request.resource.data) || (request.resource.data.attemptCount is int && request.resource.data.attemptCount >= 0))
+        && (!('correctCount' in request.resource.data) || (request.resource.data.correctCount is int && request.resource.data.correctCount >= 0))
+        && (!('questionStats' in request.resource.data) || (request.resource.data.questionStats is map && request.resource.data.questionStats.size() <= 5000))
+        && (!('studySession' in request.resource.data) || (
+          request.resource.data.studySession is map
+          && request.resource.data.studySession.keys().hasOnly(['version', 'active', 'position', 'order', 'choiceOrders', 'results', 'startedAtMs'])
+          && request.resource.data.studySession.version == 1
+          && request.resource.data.studySession.active is bool
+          && request.resource.data.studySession.position is int
+          && request.resource.data.studySession.position >= 0
+          && request.resource.data.studySession.position <= 5000
+          && request.resource.data.studySession.order is list
+          && request.resource.data.studySession.order.size() <= 5000
+          && request.resource.data.studySession.choiceOrders is map
+          && request.resource.data.studySession.results is map
+          && request.resource.data.studySession.startedAtMs is number
+        ))
+        && request.resource.data.updatedAt is timestamp;
+    }
+
     function validStudyAdminInvite(code) {
       let invite = get(/databases/$(database)/documents/studyAppInvites/$(code)).data;
       return exists(/databases/$(database)/documents/studyAppInvites/$(code))
@@ -243,21 +278,12 @@ service cloud.firestore {
         && request.resource.data.active == true
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.uid == request.auth.uid
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.deleted == false
-        && (
-          (request.resource.data.role == 'student'
-            && studyStudentEmail()
-            && request.auth.token.email_verified == true
-            && request.resource.data.email == request.auth.token.email
-            && request.resource.data.emailVerified == true
-            && !('inviteCode' in request.resource.data))
-          ||
-          (request.resource.data.role == 'admin'
+        && request.resource.data.role == 'admin'
             && studyAdminEmail()
             && !('email' in request.resource.data)
             && !('emailVerified' in request.resource.data)
             && request.resource.data.inviteCode is string
-            && validStudyAdminInvite(request.resource.data.inviteCode))
-        );
+            && validStudyAdminInvite(request.resource.data.inviteCode);
       allow update: if studyAdmin()
         && resource.data.studentNumber != '2510044'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt'])
@@ -267,7 +293,7 @@ service cloud.firestore {
 
       match /progress/{progressId} {
         allow read: if (studyUser() && request.auth.uid == uid) || studyAdmin();
-        allow create, update: if studyUser() && request.auth.uid == uid;
+        allow create, update: if studyUser() && request.auth.uid == uid && validStudyProgress();
         allow delete: if studyPrimaryAdmin();
       }
 
@@ -288,7 +314,7 @@ service cloud.firestore {
       allow get, list: if studyAdmin();
       allow create: if (
           request.auth != null
-          && studyIdentity()
+          && studyAdminEmail()
           && request.resource.data.keys().hasOnly(['uid', 'studentNumber', 'deleted', 'createdAt', 'deletedAt'])
           && request.resource.data.studentNumber == studentNumber
           && request.resource.data.uid == request.auth.uid
@@ -343,13 +369,45 @@ service cloud.firestore {
       match /units/{unitId} {
         allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
         allow create, update, delete: if studyAdmin();
+
+        // Editing drafts are never exposed to students. Publishing copies the
+        // validated snapshot to the parent unit document.
+        match /drafts/{draftId} {
+          allow read, write: if studyAdmin();
+        }
       }
     }
 
     match /studyAppReports/{reportId} {
       allow create: if studyUser()
         && request.resource.data.reporterUid == request.auth.uid
-        && request.resource.data.status == 'open';
+        && request.resource.data.status == 'open'
+        && request.resource.data.keys().hasOnly([
+          'reporterUid', 'reporterStudentNumber', 'reporterName', 'subjectId',
+          'unitId', 'type', 'index', 'questionId', 'reason', 'details',
+          'question', 'status', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.reporterStudentNumber is string
+        && request.resource.data.reporterStudentNumber.size() == 7
+        && request.resource.data.subjectId is string
+        && request.resource.data.subjectId.size() <= 160
+        && request.resource.data.unitId is string
+        && request.resource.data.unitId.size() <= 160
+        && request.resource.data.type in ['quiz', 'fill_blank']
+        && request.resource.data.index is int
+        && request.resource.data.index >= 0
+        && request.resource.data.index <= 5000
+        && request.resource.data.questionId is string
+        && request.resource.data.questionId.size() <= 80
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 80
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 1200
+        && request.resource.data.question is string
+        && request.resource.data.question.size() <= 1000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
       allow get: if studyAdmin()
         || (studyUser() && resource.data.reporterUid == request.auth.uid);
       allow list, update, delete: if studyAdmin();

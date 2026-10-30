@@ -92,7 +92,7 @@ const credentialRef = (studentNumber) => db.collection("systemPrivate").doc("car
   .collection("accounts").doc(studentNumber);
 const manabaRef = (studentNumber) => db.collection("systemPrivate").doc("manabaCredentials")
   .collection("accounts").doc(studentNumber);
-async function reserveLoginAttempt(request, studentNumber) {
+async function reserveLoginAttempt(request, studentNumber, { maxAttempts = MAX_LOGIN_ATTEMPTS, windowMs = LOGIN_ATTEMPT_WINDOW_MS } = {}) {
   const source = String(
     request.rawRequest?.ip ||
     request.rawRequest?.socket?.remoteAddress ||
@@ -109,7 +109,7 @@ async function reserveLoginAttempt(request, studentNumber) {
     const existing = snapshot.data() || {};
     const activeWindow = Number(existing.windowEndMs || 0) > now;
     const count = activeWindow ? Number(existing.count || 0) : 0;
-    if (count >= MAX_LOGIN_ATTEMPTS) {
+    if (count >= maxAttempts) {
       throw new HttpsError(
         "resource-exhausted",
         "試行回数が多すぎます。15分後にお試しください。"
@@ -117,7 +117,7 @@ async function reserveLoginAttempt(request, studentNumber) {
     }
     transaction.set(ref, {
       count: count + 1,
-      windowEndMs: activeWindow ? existing.windowEndMs : now + LOGIN_ATTEMPT_WINDOW_MS,
+      windowEndMs: activeWindow ? existing.windowEndMs : now + windowMs,
     });
   });
   return ref;
@@ -573,6 +573,52 @@ async function requireStudyAppAdministrator(request) {
   return { uid, profile };
 }
 
+// Cloudinary upload signatures are short-lived and only issued to active
+// CareMateUniv administrators. The API secret stays in Render and is never
+// returned to the browser or committed to Git.
+exports.createStudyAppUploadSignature = onCall(CALL_OPTIONS, async (request) => {
+  const actor = await requireStudyAppAdministrator(request);
+  const cloudName = String(process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+  const apiKey = String(process.env.CLOUDINARY_API_KEY || "").trim();
+  const apiSecret = String(process.env.CLOUDINARY_API_SECRET || "").trim();
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new HttpsError("failed-precondition", "安全なファイルアップロードの設定が完了していません。");
+  }
+  const purpose = request.data?.purpose === "notice" ? "notice" : "question";
+  const contentType = String(request.data?.contentType || "").toLowerCase();
+  const size = Number(request.data?.size);
+  const isPdf = purpose === "notice" && contentType === "application/pdf";
+  const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if ((!isPdf && !allowedImageTypes.has(contentType)) || !Number.isFinite(size) || size <= 0
+    || size > (isPdf ? 20 : 10) * 1024 * 1024) {
+    throw new HttpsError("invalid-argument", isPdf ? "PDFは20MB以下にしてください。" : "画像はJPEG・PNG・WebPの10MB以下にしてください。");
+  }
+  await reserveLoginAttempt(request, `study-upload-${actor.uid}`, { maxAttempts: 36, windowMs: 15 * 60 * 1000 });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = purpose === "notice" ? "caremate-univ/notices" : "caremate-univ/questions";
+  const publicId = `${timestamp}-${crypto.randomUUID()}`;
+  const allowedFormats = isPdf ? "pdf" : "jpg,png,webp";
+  const parameters = {
+    allowed_formats: allowedFormats,
+    folder,
+    overwrite: "false",
+    public_id: publicId,
+    timestamp: String(timestamp),
+  };
+  const canonical = Object.keys(parameters).sort().map((key) => `${key}=${parameters[key]}`).join("&");
+  const signature = crypto.createHash("sha1").update(`${canonical}${apiSecret}`).digest("hex");
+  return {
+    cloudName,
+    apiKey,
+    signature,
+    timestamp,
+    folder,
+    publicId,
+    allowedFormats,
+    resourceType: isPdf ? "raw" : "image",
+  };
+});
+
 // CareMateUniv: administrators can issue a temporary password without knowing
 // the old one. Delegated administrators cannot take over the primary admin or
 // another delegated administrator account.
@@ -742,27 +788,133 @@ exports.requestStudyAppPasswordReset = onCall(CALL_OPTIONS, async (request) => {
   }
   await reserveLoginAttempt(request, `study-reset-${studentNumber}`);
   const genericResult = { accepted: true };
+  // Always make the same provider request shape, even when the number is not
+  // registered. This prevents the public response and broad timing profile
+  // from becoming an account-enumeration oracle.
+  let resetEmail = `${studentNumber}@sums.ac.jp`;
   const numberSnapshot = await db.collection("studyAppStudentNumbers").doc(studentNumber).get();
   const uid = String(numberSnapshot.data()?.uid || "");
-  if (!numberSnapshot.exists || numberSnapshot.data()?.deleted === true || !uid) return genericResult;
-  const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
-  const profile = profileSnapshot.data() || {};
-  if (!profileSnapshot.exists || profile.active !== true || profile.role === "admin") return genericResult;
-  let user;
-  try { user = await adminAuth.getUser(uid); } catch { return genericResult; }
-  if (!String(user.email || "").toLowerCase().endsWith("@sums.ac.jp")) return genericResult;
+  if (numberSnapshot.exists && numberSnapshot.data()?.deleted !== true && uid) {
+    const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
+    const profile = profileSnapshot.data() || {};
+    if (profileSnapshot.exists && profile.active === true && profile.role !== "admin") {
+      try {
+        const user = await adminAuth.getUser(uid);
+        if (String(user.email || "").toLowerCase().endsWith("@sums.ac.jp")) resetEmail = user.email;
+      } catch { /* Public response remains intentionally identical. */ }
+    }
+  }
   try {
     const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${STUDY_APP_WEB_API_KEY}`, {
       method: "POST",
       headers: { "content-type": "application/json", "X-Firebase-Locale": "ja" },
-      body: JSON.stringify({ requestType: "PASSWORD_RESET", email: user.email }),
+      body: JSON.stringify({ requestType: "PASSWORD_RESET", email: resetEmail }),
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) throw new Error("password reset email rejected");
-  } catch {
+    if (!response.ok) {
+      const providerError = await response.json().catch(() => ({}));
+      const providerCode = String(providerError?.error?.message || "unknown").split(" : ")[0];
+      // EMAIL_NOT_FOUND is deliberately indistinguishable from success.
+      if (["EMAIL_NOT_FOUND", "USER_NOT_FOUND"].includes(providerCode)) return genericResult;
+      console.warn("Study app password reset provider rejected request", response.status, providerCode);
+      throw new Error("password reset email rejected");
+    }
+  } catch (error) {
+    console.warn("Study app password reset delivery failed", error?.name || "Error");
     throw new HttpsError("unavailable", "メール送信サービスへ接続できませんでした。少し待ってからお試しください。");
   }
   return genericResult;
+});
+
+async function ensureVerifiedStudentProfile({ uid, studentNumber, email }) {
+  const profileRef = db.collection("studyAppUsers").doc(uid);
+  const numberRef = db.collection("studyAppStudentNumbers").doc(studentNumber);
+  await db.runTransaction(async (transaction) => {
+    const [profileSnapshot, numberSnapshot] = await Promise.all([
+      transaction.get(profileRef),
+      transaction.get(numberRef),
+    ]);
+    if (profileSnapshot.exists) {
+      const profile = profileSnapshot.data() || {};
+      if (profile.studentNumber !== studentNumber || profile.role !== "student") {
+        throw new HttpsError("permission-denied", "このアカウントでは登録できません。");
+      }
+      if (profile.active !== true) throw new HttpsError("permission-denied", "このアカウントは利用できません。");
+    }
+    if (numberSnapshot.exists) {
+      const indexed = numberSnapshot.data() || {};
+      if (indexed.uid !== uid || indexed.deleted === true) {
+        throw new HttpsError("already-exists", "この学籍番号はすでに登録されています。");
+      }
+    }
+    if (!profileSnapshot.exists) {
+      transaction.set(profileRef, {
+        studentNumber,
+        name: "学生",
+        email,
+        emailVerified: true,
+        role: "student",
+        active: true,
+        createdAt: FieldValue.serverTimestamp(),
+        verifiedAt: FieldValue.serverTimestamp(),
+      });
+    }
+    if (!numberSnapshot.exists) {
+      transaction.set(numberRef, {
+        uid,
+        studentNumber,
+        deleted: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+  });
+}
+
+async function verifyStudyAppPassword(email, password, expectedUid) {
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${STUDY_APP_WEB_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!response.ok) throw unauthorized();
+    const verification = await response.json();
+    if (verification?.localId !== expectedUid) throw unauthorized();
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("unavailable", "認証サービスへ接続できませんでした。少し待ってからお試しください。");
+  }
+}
+
+// Email verification proves possession of the fixed university mailbox. The
+// profile and student-number index are created together on the server so an
+// interrupted browser transaction cannot leave a duplicate or impersonated
+// registration behind.
+exports.completeStudyAppRegistration = onCall(CALL_OPTIONS, async (request) => {
+  const uid = String(request.auth?.uid || "");
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  const tokenEmail = String(request.auth?.token?.email || "").toLowerCase();
+  if (!uid || !STUDENT_NUMBER_PATTERN.test(studentNumber)) {
+    throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+  }
+  if (request.auth?.token?.email_verified !== true
+    || tokenEmail !== `${studentNumber}@sums.ac.jp`) {
+    throw new HttpsError("failed-precondition", "大学メールの確認を完了してください。");
+  }
+  await reserveLoginAttempt(request, `study-register-${studentNumber}`);
+  let authUser;
+  try { authUser = await adminAuth.getUser(uid); }
+  catch { throw new HttpsError("unauthenticated", "登録を最初からやり直してください。"); }
+  if (authUser.disabled || authUser.emailVerified !== true
+    || String(authUser.email || "").toLowerCase() !== tokenEmail) {
+    throw new HttpsError("failed-precondition", "大学メールの確認を完了してください。");
+  }
+  await ensureVerifiedStudentProfile({ uid, studentNumber, email: tokenEmail });
+  return { registered: true, studentNumber, role: "student" };
 });
 
 
@@ -807,44 +959,37 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
 
   const attemptRef = await reserveLoginAttempt(request, `study-${studentNumber}`);
   const numberSnapshot = await db.collection("studyAppStudentNumbers").doc(studentNumber).get();
-  const uid = String(numberSnapshot.data()?.uid || "");
-  if (!numberSnapshot.exists || numberSnapshot.data()?.deleted === true || !uid) throw unauthorized();
-
-  const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
-  const profile = profileSnapshot.data() || {};
-  if (!profileSnapshot.exists || profile.active !== true || profile.studentNumber !== studentNumber) {
-    throw unauthorized();
+  if (numberSnapshot.exists && numberSnapshot.data()?.deleted === true) throw unauthorized();
+  let uid = String(numberSnapshot.data()?.uid || "");
+  let profile = {};
+  let profileExists = false;
+  if (uid) {
+    const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
+    profileExists = profileSnapshot.exists;
+    profile = profileSnapshot.data() || {};
+    if (!profileExists || profile.active !== true || profile.studentNumber !== studentNumber) throw unauthorized();
   }
 
   let authUser;
   try {
-    authUser = await adminAuth.getUser(uid);
+    authUser = uid
+      ? await adminAuth.getUser(uid)
+      : await adminAuth.getUserByEmail(`${studentNumber}@sums.ac.jp`);
   } catch {
     throw unauthorized();
   }
+  uid ||= authUser.uid;
   if (!authUser.email || authUser.disabled
-    || (profile.role !== "admin" && authUser.emailVerified !== true)) {
+    || ((!profileExists || profile.role !== "admin") && authUser.emailVerified !== true)) {
     throw unauthorized();
   }
-
-  let verification;
-  try {
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${STUDY_APP_WEB_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: authUser.email, password, returnSecureToken: true }),
-        signal: AbortSignal.timeout(8_000),
-      }
-    );
-    if (!response.ok) throw unauthorized();
-    verification = await response.json();
-  } catch (error) {
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError("unavailable", "認証サービスへ接続できませんでした。少し待ってからお試しください。");
+  await verifyStudyAppPassword(authUser.email, password, uid);
+  if (!profileExists) {
+    const expectedEmail = `${studentNumber}@sums.ac.jp`;
+    if (String(authUser.email).toLowerCase() !== expectedEmail) throw unauthorized();
+    await ensureVerifiedStudentProfile({ uid, studentNumber, email: expectedEmail });
+    profile = { role: "student" };
   }
-  if (verification?.localId !== uid) throw unauthorized();
 
   const token = await adminAuth.createCustomToken(uid, {
     studyApp: true,

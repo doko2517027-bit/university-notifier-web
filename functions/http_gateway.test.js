@@ -10,6 +10,8 @@ async function setup(t, options = {}) {
       authenticateCareMate: { run: async ({ data }) => ({ accepted: data.studentNumber }) },
       authenticateStudyApp: { run: async ({ data }) => ({ accepted: data.studentNumber }) },
       requestStudyAppPasswordReset: { run: async ({ data }) => ({ accepted: Boolean(data.studentNumber) }) },
+      completeStudyAppRegistration: { run: async ({ auth, data }) => ({ uid: auth.uid, studentNumber: data.studentNumber }) },
+      createStudyAppUploadSignature: { run: async ({ auth }) => ({ uid: auth.uid, signature: "hidden" }) },
       checkCareMateAccess: { run: async ({ auth }) => { calls++; return { uid: auth.uid }; } },
       issueEntrancePhrase: { run: async () => { throw { code: "permission-denied", message: "管理者のみ" }; } },
       faulty: { run: async () => { throw new Error("secret must never be returned"); } },
@@ -55,6 +57,12 @@ test("protected operations reject missing, forged and revoked tokens before hand
   const r = await post("checkCareMateAccess", { data: {} }, { Authorization: "Bearer valid" });
   assert.deepEqual(await r.json(), { data: { uid: "caremate-2510044" } });
   assert.equal(calls(), 1);
+  assert.equal((await post("completeStudyAppRegistration", { data: { studentNumber: "2510147" } })).status, 401);
+  const registration = await post("completeStudyAppRegistration", { data: { studentNumber: "2510147" } }, { Authorization: "Bearer valid" });
+  assert.deepEqual(await registration.json(), { data: { uid: "caremate-2510044", studentNumber: "2510147" } });
+  assert.equal((await post("createStudyAppUploadSignature", { data: { purpose: "question" } })).status, 401);
+  const upload = await post("createStudyAppUploadSignature", { data: { purpose: "question" } }, { Authorization: "Bearer valid" });
+  assert.deepEqual(await upload.json(), { data: { uid: "caremate-2510044", signature: "hidden" } });
 });
 test("cross-origin, unknown routes, malformed and oversized requests are rejected", async t => {
   const { post, url } = await setup(t);
