@@ -47,7 +47,10 @@ test("public login and health work without a token", async t => {
   const reset = await post("requestStudyAppPasswordReset", { data: { studentNumber: "2510147" } });
   assert.equal(reset.status, 200);
   assert.deepEqual(await reset.json(), { data: { accepted: true } });
-  assert.deepEqual(await (await fetch(`${url}/health`)).json(), { ready: true });
+  assert.deepEqual(await (await fetch(`${url}/health`)).json(), {
+    ready: true,
+    cloudinaryConfigured: false,
+  });
 });
 test("protected operations reject missing, forged and revoked tokens before handler execution", async t => {
   const { post, calls } = await setup(t);

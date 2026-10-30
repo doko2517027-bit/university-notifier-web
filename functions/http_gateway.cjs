@@ -31,7 +31,14 @@ function createGateway({ handlers, verifyIdToken, allowedOrigin, maxRequests = 6
       res.end(JSON.stringify(body));
     };
     const fail = (code, message) => send(ERROR_STATUS[code] || 500, { error: { status: code, message } });
-    if (req.url === "/health" && req.method === "GET") return send(200, { ready: true });
+    if (req.url === "/health" && req.method === "GET") {
+      const cloudinaryConfigured = [
+        process.env.CLOUDINARY_CLOUD_NAME,
+        process.env.CLOUDINARY_API_KEY,
+        process.env.CLOUDINARY_API_SECRET,
+      ].every((value) => String(value || "").trim().length > 0);
+      return send(200, { ready: true, cloudinaryConfigured });
+    }
     // Every application API call must come from the published CMU origin.
     // Health monitoring remains origin-free above.
     if (origin !== allowedOrigin) return fail("permission-denied", "許可されていない接続元です。");
