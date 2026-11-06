@@ -1,7 +1,7 @@
 import { auth, db } from "./auth_core.js?v=20261030-1";
 import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261029-1";
+import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261106-2";
 
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";
@@ -45,7 +45,7 @@ try {
   setStudentNumber(studentNumber);
   document.documentElement.dataset.caremateRole = role;
   document.documentElement.dataset.assignmentAccess = access.data?.assignmentAccess === false ? "false" : "true";
-  if (access.data?.assignmentAccess === false && location.pathname.endsWith("assignments.html")) {
+  if (access.data?.assignmentAccess === false && /\/(?:assignments|manaba)\.html$/.test(location.pathname)) {
     location.replace("home.html");
     throw Object.assign(new Error("課題なし画面では課題ページを利用できません。"), { redirecting: true });
   }

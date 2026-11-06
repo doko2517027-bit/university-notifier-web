@@ -45,6 +45,10 @@ async function seed() {
       setDoc(doc(db, "studyAppSubjects", "public-subject", "units", "public-unit", "drafts", "edited"), {
         name: "管理者だけの下書き", fill_blank: [], quiz: [],
       }),
+      setDoc(doc(db, "access", "caremate-2510044"), { active: true, role: "admin", experienceMode: "assignments" }),
+      setDoc(doc(db, "access", "caremate-2510147"), { active: true, role: "member", experienceMode: "study-only" }),
+      setDoc(doc(db, "manabaActivity", "2510044"), { baselineComplete: true }),
+      setDoc(doc(db, "manabaActivity", "2510044", "items", "news-1"), { category: "course_news", title: "更新" }),
     ]);
   });
 }
@@ -60,6 +64,8 @@ async function run() {
   const adminDb = environment.authenticatedContext(adminUid, claims("2510044@admin.caremateuniv.app", false)).firestore();
   const inactiveDb = environment.authenticatedContext("inactive-uid", claims("2510888@sums.ac.jp")).firestore();
   const anonymousDb = environment.unauthenticatedContext().firestore();
+  const caremateDb = environment.authenticatedContext("caremate-2510044", { studentNumber: "2510044" }).firestore();
+  const studyOnlyDb = environment.authenticatedContext("caremate-2510147", { studentNumber: "2510147" }).firestore();
 
   await assertSucceeds(getDoc(doc(studentDb, "studyAppSubjects", "public-subject")));
   await assertSucceeds(getDoc(doc(studentDb, "studyAppSubjects", "public-subject", "units", "public-unit")));
@@ -69,6 +75,12 @@ async function run() {
   await assertSucceeds(getDoc(doc(adminDb, "studyAppSubjects", "public-subject", "units", "public-unit", "drafts", "edited")));
   await assertFails(getDoc(doc(anonymousDb, "studyAppSubjects", "public-subject")));
   await assertFails(getDoc(doc(inactiveDb, "studyAppSubjects", "public-subject")));
+
+  await assertSucceeds(getDoc(doc(caremateDb, "manabaActivity", "2510044")));
+  await assertSucceeds(getDocs(collection(caremateDb, "manabaActivity", "2510044", "items")));
+  await assertFails(getDoc(doc(caremateDb, "manabaActivity", "2510147")));
+  await assertFails(getDoc(doc(studyOnlyDb, "manabaActivity", "2510147")));
+  await assertFails(setDoc(doc(caremateDb, "manabaActivity", "2510044", "items", "forged"), { title: "不正" }));
 
   await assertFails(setDoc(doc(studentDb, "studyAppSubjects", "forged"), { name: "不正", published: true }));
   await assertFails(getDocs(collection(studentDb, "studyAppUsers")));

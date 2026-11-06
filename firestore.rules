@@ -108,6 +108,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Compact, read-only Manaba index.  The server is the only writer and
+    // study-only accounts cannot inspect another user's course information.
+    match /manabaActivity/{studentNumber} {
+      allow get: if owner(studentNumber) && assignmentEnabled();
+      allow list, write: if false;
+
+      match /items/{id} {
+        allow get, list: if owner(studentNumber) && assignmentEnabled();
+        allow write: if false;
+      }
+    }
+
     match /calendarPersonal/{studentNumber}/items/{id} {
       allow get, list: if owner(studentNumber);
       allow create: if owner(studentNumber)

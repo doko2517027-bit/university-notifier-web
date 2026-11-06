@@ -9,6 +9,7 @@ exam_materials_admin.html
 exam_questions_admin.html
 fill_blank.html
 home.html
+manaba.html
 must_remember.html
 qa.html
 question_list.html

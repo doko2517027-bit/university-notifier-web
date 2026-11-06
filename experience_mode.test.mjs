@@ -26,13 +26,15 @@ test("課題通知なしでは課題・manaba導線と直接アクセスを無�
     source("./firestore.rules"),
   ]);
   assert.match(nav, /assignmentAccess \? \[\{ href: "assignments\.html"/);
-  assert.match(bootstrap, /assignmentAccess === false && location\.pathname\.endsWith\("assignments\.html"\)/);
+  assert.ok(bootstrap.includes('assignmentAccess === false && /\\/(?:assignments|manaba)\\.html$/.test'));
+  assert.match(nav, /assignmentAccess \? \[\{ href: "manaba\.html"/);
   assert.match(settings, /assignmentAccess && user\.manabaCredentialConfigured/);
   assert.match(home, /assignmentAccess \? getDoc\(doc\(db, "assignments"/);
   assert.match(rules, /assignmentEnabled\(\)/);
   assert.match(rules, /!\('experienceMode' in/);
   assert.match(rules, /experienceMode == 'assignments'/);
   assert.match(rules, /calendarAssignments/);
+  assert.match(rules, /manabaActivity/);
 });
 
 test("表示されるタブ数に合わせて下部ナビを均等配置する", async () => {
