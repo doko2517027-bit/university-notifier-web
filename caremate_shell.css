@@ -209,18 +209,51 @@ body.caremate-renewed {
 .dark .cm-assignment-deadline { color: #ffc299 !important; }
 [data-assignment-access="false"] [data-assignment-only] { display: none !important; }
 .cm-manaba-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 8px; margin: 14px 0 18px; }
-.cm-manaba-category { min-height: 46px; padding: 9px 10px; border: 1px solid var(--cm-border); border-radius: 12px; color: var(--cm-text); background: var(--cm-card); font: inherit; font-size: 13px; font-weight: 780; cursor: pointer; }
+.cm-manaba-category { min-height: 50px; padding: 10px 12px; border: 1px solid #cfe1de; border-radius: 13px; color: #24423d; background: #f1faf8; font: inherit; font-size: 14px; font-weight: 800; line-height: 1.35; cursor: pointer; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.cm-manaba-category:hover { transform: translateY(-1px); border-color: var(--cm-primary); background: #e3f6f2; }
 .cm-manaba-category[aria-pressed="true"] { color: #fff; border-color: var(--cm-primary); background: var(--cm-primary); }
 .cm-manaba-list { grid-template-columns: 1fr; }
-.cm-manaba-card { border-left: 5px solid var(--cm-primary-light); }
-.cm-manaba-card h3 { margin-bottom: 5px; }
-.cm-manaba-course { margin: 4px 0 !important; color: var(--cm-primary) !important; font-size: 13px; font-weight: 780; }
-.cm-manaba-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; }
-.cm-manaba-date { font-size: 12px; }
+.cm-manaba-card { padding: clamp(17px, 2.6vw, 23px); border: 1px solid var(--cm-border); border-left: 6px solid var(--cm-primary-light); border-radius: 16px; box-shadow: 0 4px 13px rgba(15, 23, 42, .055); }
+.cm-manaba-card h3 { margin: 8px 0 7px; font-size: clamp(17px, 2.3vw, 20px); line-height: 1.55; letter-spacing: -.01em; }
+.cm-manaba-card .cm-item-kicker { width: fit-content; margin: 0; padding: 4px 9px; border-radius: 999px; color: #087567; background: #e1f7f2; font-size: 12px; }
+.cm-manaba-course { margin: 6px 0 !important; color: var(--cm-primary) !important; font-size: 14px; font-weight: 800; line-height: 1.55 !important; }
+.cm-manaba-summary { display: -webkit-box; overflow: hidden; margin: 10px 0 !important; -webkit-box-orient: vertical; -webkit-line-clamp: 5; color: #455b75 !important; font-size: 14px; line-height: 1.75 !important; white-space: normal; }
+.cm-manaba-date { width: fit-content; margin-top: 12px !important; padding: 4px 8px; border-radius: 7px; color: #596b7d !important; background: #f0f4f6; font-size: 12px; }
+.cm-manaba-card .cm-button { margin-top: 14px; }
 .cm-manaba-status { display: inline-flex; margin: 0 0 8px; padding: 3px 8px; border-radius: 999px; color: #fff; background: #2563eb; font-size: 12px; }
-.dark .cm-manaba-category { background: #252525; color: var(--cm-text); }
+.cm-manaba-main { width: min(100%, 920px); }
+.cm-manaba-page > .cm-nav { max-width: 920px; }
+.cm-manaba-panel { padding: clamp(18px, 3vw, 30px); }
+.cm-manaba-panel .cm-calendar-header { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--cm-border); }
+.cm-manaba-panel #manabaCount { margin-bottom: 0; }
+.dark .cm-manaba-category { border-color: #35534f; background: #202c2a; color: var(--cm-text); }
+.dark .cm-manaba-category:hover { background: #273b38; }
 .dark .cm-manaba-category[aria-pressed="true"] { background: #087e71; color: #fff; }
-@media (max-width: 600px) { .cm-manaba-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dark .cm-manaba-card .cm-item-kicker { color: #9ef3e6; background: #16483f; }
+.dark .cm-manaba-summary { color: #d0d6db !important; }
+.dark .cm-manaba-date { color: #d8e0e5 !important; background: #303638; }
+@media (min-width: 761px) {
+  .cm-manaba-categories { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+  .cm-manaba-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 22px; align-items: start; }
+  .cm-manaba-card > :not(.cm-button) { grid-column: 1; }
+  .cm-manaba-card > .cm-button { grid-column: 2; grid-row: 1 / span 6; align-self: center; white-space: nowrap; }
+}
+@media (max-width: 760px) {
+  .cm-manaba-page { padding-right: max(12px, env(safe-area-inset-right)); padding-left: max(12px, env(safe-area-inset-left)); }
+  .cm-manaba-page .cm-header { margin-bottom: 8px; }
+  .cm-manaba-page .cm-title { font-size: 29px; }
+  .cm-manaba-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .cm-manaba-category { min-height: 54px; padding: 9px 8px; font-size: 13px; }
+  .cm-manaba-panel { margin-top: 14px; padding: 16px 13px 20px; }
+  .cm-manaba-card { padding: 16px 14px 17px; border-left-width: 5px; }
+  .cm-manaba-card h3 { font-size: 17px; line-height: 1.55; overflow-wrap: anywhere; }
+  .cm-manaba-summary { font-size: 13px; line-height: 1.7 !important; -webkit-line-clamp: 6; }
+  .cm-manaba-card .cm-button { width: 100%; }
+}
+@media (max-width: 360px) {
+  .cm-manaba-categories { grid-template-columns: 1fr; }
+  .cm-manaba-category { min-height: 48px; }
+}
 .cm-pagination { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; }
 .cm-pagination button { min-width: 42px; height: 42px; padding: 0 10px; border: 1px solid var(--cm-border); border-radius: 11px; color: var(--cm-text); background: var(--cm-card); font: inherit; font-weight: 800; cursor: pointer; }
 .cm-pagination button[aria-current="page"] { border-color: var(--cm-primary); color: #fff; background: var(--cm-primary); }

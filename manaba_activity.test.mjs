@@ -22,7 +22,11 @@ test("課題通知ありの利用者にはmanaba履歴タブと分類ボタン�
 });
 
 test("manabaリンクは大学manabaのHTTPSだけを開く", async () => {
-  const script = await read("./manaba.js");
+  const [script, html, styles] = await Promise.all([read("./manaba.js"), read("./manaba.html"), read("./caremate_shell.css")]);
   assert.match(script, /url\.protocol === "https:" && url\.hostname === "sums\.manaba\.jp"/);
   assert.match(script, /noopener noreferrer/);
+  assert.match(html, /cm-manaba-page/);
+  assert.match(styles, /@media \(min-width: 761px\)[\s\S]*\.cm-manaba-categories/);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*grid-template-columns: repeat\(2/);
+  assert.match(styles, /@media \(max-width: 360px\)[\s\S]*grid-template-columns: 1fr/);
 });
