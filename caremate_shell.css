@@ -221,6 +221,12 @@ body.caremate-renewed {
 .dark .cm-manaba-category { background: #252525; color: var(--cm-text); }
 .dark .cm-manaba-category[aria-pressed="true"] { background: #087e71; color: #fff; }
 @media (max-width: 600px) { .cm-manaba-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cm-pagination { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; }
+.cm-pagination button { min-width: 42px; height: 42px; padding: 0 10px; border: 1px solid var(--cm-border); border-radius: 11px; color: var(--cm-text); background: var(--cm-card); font: inherit; font-weight: 800; cursor: pointer; }
+.cm-pagination button[aria-current="page"] { border-color: var(--cm-primary); color: #fff; background: var(--cm-primary); }
+.cm-pagination button:disabled { opacity: .35; cursor: default; }
+.dark .cm-pagination button { color: var(--cm-text); background: #252525; }
+.dark .cm-pagination button[aria-current="page"] { color: #fff; background: #087e71; }
 
 /* Self-study is a first-class tab; keep six-tab layouts readable on phones. */
 @media (max-width: 600px) {

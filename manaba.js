@@ -7,6 +7,8 @@ const nav = document.getElementById("manabaCategoryNav");
 const title = document.getElementById("manabaListTitle");
 const count = document.getElementById("manabaCount");
 const sync = document.getElementById("manabaSyncStatus");
+const pagination = document.getElementById("manabaPagination");
+const PAGE_SIZE = 5;
 const categories = [
   ["all", "すべて"], ["course_news", "コースニュース"], ["portfolio", "ポートフォリオ"],
   ["thread", "掲示板"], ["content", "コンテンツ"], ["quiz", "小テスト"],
@@ -16,6 +18,7 @@ const categories = [
 const labels = Object.fromEntries(categories);
 const requested = new URL(location.href).searchParams.get("category") || "all";
 let selected = labels[requested] ? requested : "all";
+let currentPage = Math.max(1, Number.parseInt(new URL(location.href).searchParams.get("page") || "1", 10) || 1);
 let items = [];
 
 function node(tag, value, className = "") {
@@ -49,7 +52,8 @@ function renderNav() {
     button.setAttribute("aria-pressed", key === selected ? "true" : "false");
     button.addEventListener("click", () => {
       selected = key;
-      const url = new URL(location.href); url.searchParams.set("category", key);
+      currentPage = 1;
+      const url = new URL(location.href); url.searchParams.set("category", key); url.searchParams.delete("page");
       history.replaceState(null, "", url);
       renderNav(); renderList();
     });
@@ -73,15 +77,51 @@ function card(item) {
   }
   return article;
 }
+function goToPage(page, totalPages) {
+  currentPage = Math.max(1, Math.min(totalPages, page));
+  const url = new URL(location.href);
+  if (currentPage === 1) url.searchParams.delete("page");
+  else url.searchParams.set("page", String(currentPage));
+  history.replaceState(null, "", url);
+  renderList();
+  title.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderPagination(totalPages) {
+  pagination.replaceChildren();
+  pagination.hidden = totalPages <= 1;
+  if (totalPages <= 1) return;
+  const previous = node("button", "◀︎", "cm-pagination-arrow");
+  previous.type = "button"; previous.disabled = currentPage === 1; previous.setAttribute("aria-label", "前のページ");
+  previous.addEventListener("click", () => goToPage(currentPage - 1, totalPages));
+  pagination.append(previous);
+  const first = Math.max(1, Math.min(currentPage - 1, totalPages - 2));
+  const last = Math.min(totalPages, first + 2);
+  for (let page = first; page <= last; page += 1) {
+    const button = node("button", page, "cm-pagination-page");
+    button.type = "button";
+    button.setAttribute("aria-label", `${page}ページ目`);
+    if (page === currentPage) button.setAttribute("aria-current", "page");
+    button.addEventListener("click", () => goToPage(page, totalPages));
+    pagination.append(button);
+  }
+  const next = node("button", "▶︎", "cm-pagination-arrow");
+  next.type = "button"; next.disabled = currentPage === totalPages; next.setAttribute("aria-label", "次のページ");
+  next.addEventListener("click", () => goToPage(currentPage + 1, totalPages));
+  pagination.append(next);
+}
 function renderList() {
   const visible = items
     .filter((item) => selected === "all" || item.category === selected)
     .sort((a, b) => timeValue(b) - timeValue(a) || String(b.dateText || "").localeCompare(String(a.dateText || "")));
   title.textContent = selected === "all" ? "すべての情報" : labels[selected];
-  count.textContent = `${visible.length}件（取得済みの履歴を含む）`;
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  currentPage = Math.min(currentPage, totalPages);
+  const pageItems = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  count.textContent = `${visible.length}件・${currentPage}/${totalPages}ページ（取得済みの履歴を含む）`;
   list.replaceChildren();
   if (!visible.length) list.append(node("p", "この種類の情報はまだ取得されていません。", "cm-subtitle"));
-  else visible.forEach((item) => list.append(card(item)));
+  else pageItems.forEach((item) => list.append(card(item)));
+  renderPagination(visible.length ? totalPages : 0);
 }
 
 const unsubscribeMeta = onSnapshot(doc(db, "manabaActivity", studentNumber), (snapshot) => {

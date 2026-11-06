@@ -15,6 +15,10 @@ test("課題通知ありの利用者にはmanaba履歴タブと分類ボタン�
   }
   assert.match(script, /onSnapshot\(collection\(db, "manabaActivity"/);
   assert.match(script, /取得済みの履歴を含む/);
+  assert.match(html, /id="manabaPagination"/);
+  assert.match(script, /const PAGE_SIZE = 5/);
+  assert.match(script, /first \+ 2/);
+  assert.match(script, /visible\.slice\(\(currentPage - 1\) \* PAGE_SIZE/);
 });
 
 test("manabaリンクは大学manabaのHTTPSだけを開く", async () => {
