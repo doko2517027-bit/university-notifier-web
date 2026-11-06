@@ -20,12 +20,13 @@ test("課題カレンダーはホームにあり、日別詳細と自分の予�
   assert.match(rules, /allow get, list: if owner\(studentNumber\)/);
 });
 
-test("課題タブは締切順の一覧だけで、提出チェックを持たない", async () => {
+test("課題タブは状態・締切順の一覧だけで、提出チェックを持たない", async () => {
   const [html, script] = await Promise.all([read("./assignments.html"), read("./assignments.js")]);
   assert.doesNotMatch(html, /calendarGrid|課題カレンダー/);
   assert.match(script, /dueDate\(a\) - dueDate\(b\)/);
   assert.match(html, /data-entry="\.\/assignments\.js\?v=/);
-  assert.doesNotMatch(script, /calendarAssignments/);
+  assert.match(script, /calendarAssignments/);
+  assert.match(script, /upcoming/);
   assert.match(script, /課題を開く/);
   assert.doesNotMatch(script, /assignmentCompletions|checkbox|提出済みにする/);
 });

@@ -16,6 +16,7 @@ const categories = [
   ["grade", "成績"], ["coaching", "個別指導"], ["peer_review", "ピアレビュー"],
 ];
 const labels = Object.fromEntries(categories);
+const taskCategories = new Set(["quiz", "survey", "report", "project"]);
 const requested = new URL(location.href).searchParams.get("category") || "all";
 let selected = labels[requested] ? requested : "all";
 let currentPage = Math.max(1, Number.parseInt(new URL(location.href).searchParams.get("page") || "1", 10) || 1);
@@ -34,12 +35,38 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function timeValue(item) {
-  return item.lastSeenAt?.toMillis?.() || item.firstSeenAt?.toMillis?.() || 0;
+  return dateValue(item.start || item.startText)
+    || dateValue(item.dateText)
+    || item.firstSeenAt?.toMillis?.()
+    || 0;
 }
-function formatDate(item) {
+function dateValue(value) {
+  const raw = String(value || "").trim().replaceAll("/", "-");
+  const match = raw.match(/(20\d{2})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
+  return match ? new Date(`${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}T${match[4] ? match[4].padStart(2, "0") : "00"}:${match[5] || "00"}:00+09:00`).getTime() : 0;
+}
+function formatPostedDate(item) {
   if (item.dateText) return String(item.dateText);
-  const date = item.lastSeenAt?.toDate?.();
+  const date = item.firstSeenAt?.toDate?.();
   return date ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date) : "日時情報なし";
+}
+function taskState(item) {
+  if (item.submitted === true) return "submitted";
+  const start = dateValue(item.start || item.startText);
+  if (item.published === false || (start && start > Date.now())) return "upcoming";
+  const deadline = dateValue(item.deadline || item.deadlineText);
+  return deadline && deadline < Date.now() ? "overdue" : "pending";
+}
+function taskStateLabel(state) {
+  return ({ pending: "未提出（締切前）", upcoming: "公開前", overdue: "未提出（締切済み）", submitted: "提出済み" })[state] || "";
+}
+function taskSort(a, b) {
+  const rank = { pending: 0, upcoming: 1, overdue: 2, submitted: 3 };
+  const stateDifference = rank[taskState(a)] - rank[taskState(b)];
+  if (stateDifference) return stateDifference;
+  return (dateValue(a.deadline || a.deadlineText) || Number.MAX_SAFE_INTEGER)
+    - (dateValue(b.deadline || b.deadlineText) || Number.MAX_SAFE_INTEGER)
+    || timeValue(b) - timeValue(a);
 }
 function renderNav() {
   const totals = new Map(categories.map(([key]) => [key, 0]));
@@ -65,10 +92,17 @@ function card(item) {
   article.append(node("span", item.categoryLabel || labels[item.category] || "manaba", "cm-item-kicker"));
   article.append(node("h3", item.title || "名称なし"));
   article.append(node("p", item.course || "科目名なし", "cm-manaba-course"));
-  if (item.summary && item.summary !== item.title) article.append(node("p", item.summary, "cm-manaba-summary"));
-  const meta = node("p", formatDate(item), "cm-manaba-date");
-  article.append(meta);
-  if (item.submitted === true) article.append(node("strong", "提出済み", "cm-manaba-status is-submitted"));
+  if (taskCategories.has(item.category)) {
+    const state = taskState(item);
+    article.classList.add(`is-${state}`);
+    article.append(node("strong", taskStateLabel(state), `cm-manaba-status is-${state}`));
+    article.append(node("p", `公開：${item.start || item.startText || "日時未設定"}`, "cm-manaba-date"));
+    article.append(node("p", `締切：${item.deadline || item.deadlineText || "日時未設定"}`, "cm-manaba-date"));
+  } else {
+    // Long page-body text is intentionally not shown.  News, grades and
+    // coaching entries use the same compact title/date layout as threads.
+    article.append(node("p", `投稿日：${formatPostedDate(item)}`, "cm-manaba-date"));
+  }
   const href = safeManabaUrl(item.url);
   if (href) {
     const link = node("a", "manabaで開く　↗", "cm-button cm-button-primary cm-button-compact");
@@ -112,7 +146,9 @@ function renderPagination(totalPages) {
 function renderList() {
   const visible = items
     .filter((item) => selected === "all" || item.category === selected)
-    .sort((a, b) => timeValue(b) - timeValue(a) || String(b.dateText || "").localeCompare(String(a.dateText || "")));
+    .sort(taskCategories.has(selected)
+      ? taskSort
+      : (a, b) => timeValue(b) - timeValue(a) || String(b.dateText || "").localeCompare(String(a.dateText || "")));
   title.textContent = selected === "all" ? "すべての情報" : labels[selected];
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   currentPage = Math.min(currentPage, totalPages);

@@ -37,6 +37,13 @@ function deadlineDate(item) {
   if (date) return new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${time ? time[1].padStart(2, "0") : "23"}:${time ? time[2] : "59"}:00+09:00`);
   return null;
 }
+function startDate(item) {
+  if (item.startAt?.toDate) return item.startAt.toDate();
+  const raw = String(item.startText || item.start || "");
+  const date = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
+  const time = raw.match(/(\d{1,2}):(\d{2})/);
+  return date ? new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${time ? time[1].padStart(2, "0") : "00"}:${time ? time[2] : "00"}:00+09:00`) : null;
+}
 function keyFor(item) {
   const date = deadlineDate(item);
   return date ? dateKey(date) : "";
@@ -80,12 +87,15 @@ function mergeCalendarAssignments(archivedItems, currentItems) {
 }
 function assignmentState(item) {
   if (hasSubmittedStatus(item)) return "submitted";
+  const start = startDate(item);
+  if (start && start.getTime() > Date.now()) return "upcoming";
   if (item._isCurrent === false) return "overdue";
   const deadline = deadlineDate(item);
   return deadline && deadline.getTime() < Date.now() ? "overdue" : "pending";
 }
 function assignmentStatusLabel(state) {
   if (state === "submitted") return "提出済み";
+  if (state === "upcoming") return "公開前";
   if (state === "overdue") return "締切済み・未提出";
   return "受付中・未提出";
 }

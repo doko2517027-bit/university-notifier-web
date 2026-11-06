@@ -1,5 +1,5 @@
 import { auth, db } from "./auth_core.js?v=20261028-2";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { collection, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const studentNumber = String((await auth.currentUser.getIdTokenResult()).claims.studentNumber || "");
 const list = document.getElementById("assignmentList");
@@ -25,6 +25,14 @@ function dueDate(item) {
   const time = raw.match(/(\d{1,2}):(\d{2})/);
   return new Date(`${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}T${time ? `${time[1].padStart(2, "0")}:${time[2]}` : "23:59"}:00+09:00`).getTime();
 }
+function startDate(item) {
+  if (item.startAt?.toDate) return item.startAt.toDate().getTime();
+  const raw = String(item.startText || item.start || "");
+  const match = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
+  if (!match) return 0;
+  const time = raw.match(/(\d{1,2}):(\d{2})/);
+  return new Date(`${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}T${time ? `${time[1].padStart(2, "0")}:${time[2]}` : "00:00"}:00+09:00`).getTime();
+}
 function isSubmitted(item) {
   if (item.submissionConfirmed === true || item.submissionConfirmedAt) return true;
   for (const field of ["submitted", "isSubmitted", "completed"]) {
@@ -36,10 +44,12 @@ function isSubmitted(item) {
 }
 function assignmentState(item) {
   if (isSubmitted(item)) return "submitted";
+  if (startDate(item) > Date.now()) return "upcoming";
   return dueDate(item) < Date.now() ? "overdue" : "pending";
 }
 function statusLabel(state) {
   if (state === "submitted") return "提出済み";
+  if (state === "upcoming") return "公開前";
   if (state === "overdue") return "締切済み・未提出";
   return "受付中・未提出";
 }
@@ -61,17 +71,27 @@ function card(item) {
 }
 
 function render(current) {
-  const sorted = [...current].sort((a, b) => dueDate(a) - dueDate(b));
+  const order = { pending: 0, upcoming: 1, overdue: 2, submitted: 3 };
+  const sorted = [...current].sort((a, b) => order[assignmentState(a)] - order[assignmentState(b)] || dueDate(a) - dueDate(b));
   list.replaceChildren();
   if (!sorted.length) list.append(text("p", "課題はありません。", "cm-subtitle"));
   else sorted.forEach((item) => list.append(card(item)));
 }
 
 let currentItems = [];
-const unsubscribe = onSnapshot(doc(db, "assignments", studentNumber), (snapshot) => {
+let archivedItems = [];
+function identity(item) { return String(item.url || `${item.course || ""}|${item.title || ""}`); }
+function visibleItems() {
+  const merged = new Map(currentItems.map((item) => [identity(item), item]));
+  for (const item of archivedItems) {
+    if (assignmentState(item) === "upcoming" && !merged.has(identity(item))) merged.set(identity(item), item);
+  }
+  return [...merged.values()];
+}
+const unsubscribeCurrent = onSnapshot(doc(db, "assignments", studentNumber), (snapshot) => {
   const data = snapshot.data() || {};
   currentItems = Array.isArray(data.assignments) ? data.assignments : [];
-  render(currentItems);
+  render(visibleItems());
   const updatedAt = data.updatedAt?.toDate?.();
   syncStatus.textContent = updatedAt
     ? `最終確認：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updatedAt)}（新しい取得結果は自動反映）`
@@ -81,7 +101,13 @@ const unsubscribe = onSnapshot(doc(db, "assignments", studentNumber), (snapshot)
   syncStatus.textContent = "更新を確認できません。通信状態をご確認ください。";
   list.replaceChildren(text("p", "課題を読み込めませんでした。通信状態を確認してください。", "cm-subtitle"));
 });
+const unsubscribeArchive = onSnapshot(collection(db, "calendarAssignments", studentNumber, "items"), (snapshot) => {
+  archivedItems = snapshot.docs.map((entry) => entry.data());
+  render(visibleItems());
+}, (error) => console.warn("公開前課題の読み込みに失敗しました:", error));
 
 // 画面を開いたまま締切を跨いだ場合も、色と文言を自動更新する。
-setInterval(() => render(currentItems), 30 * 1000);
-window.addEventListener("pagehide", (event) => { if (!event.persisted) unsubscribe(); });
+setInterval(() => render(visibleItems()), 30 * 1000);
+window.addEventListener("pagehide", (event) => {
+  if (!event.persisted) { unsubscribeCurrent(); unsubscribeArchive(); }
+});
