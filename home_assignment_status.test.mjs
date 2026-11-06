@@ -45,7 +45,8 @@ test("課題カレンダーは提出済み・期限切れ・期限内を判定�
   assert.match(source, /return deadline && deadline\.getTime\(\) < Date\.now\(\) \? "overdue" : "pending"/);
   assert.match(source, /提出済み/);
   assert.match(source, /if \(item\._isCurrent === false\) return "overdue"/);
-  assert.match(source, /期限内・未提出/);
+  assert.match(source, /受付中・未提出/);
+  assert.match(source, /締切済み・未提出/);
 });
 
 test("カレンダーの色は提出済み青・期限切れ赤・期限内未提出を明暗反転する", async () => {

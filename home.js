@@ -86,8 +86,8 @@ function assignmentState(item) {
 }
 function assignmentStatusLabel(state) {
   if (state === "submitted") return "提出済み";
-  if (state === "overdue") return "未提出";
-  return "期限内・未提出";
+  if (state === "overdue") return "締切済み・未提出";
+  return "受付中・未提出";
 }
 function openDay(key, focusCloseButton = true) {
   selected = key;
@@ -167,6 +167,11 @@ function closeOverlay(overlay) { overlay.hidden = true; }
 
 updateClock();
 setInterval(updateClock, 1000);
+// 締切時刻はFirestoreの更新がなくても到来するため、表示中も再判定する。
+setInterval(() => {
+  renderCalendar();
+  if (!dayOverlay.hidden && eventOverlay.hidden) openDay(selected, false);
+}, 30 * 1000);
 byId("previousMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); renderCalendar(); });
 byId("nextMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); renderCalendar(); });
 byId("closeCalendarDialog").addEventListener("click", () => closeOverlay(dayOverlay));
@@ -227,8 +232,8 @@ if (assignmentAccess) {
   const updateSyncStatus = (data) => {
     const updatedAt = data?.updatedAt?.toDate?.();
     syncStatus.textContent = updatedAt
-      ? `課題の最終取得：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updatedAt)}（提出状況は毎時更新）`
-      : "提出状況は毎時更新されます。";
+      ? `課題の最終確認：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updatedAt)}（取得後は自動反映）`
+      : "課題の取得結果は自動で反映されます。";
   };
   const repaint = () => {
     assignments = mergeCalendarAssignments(liveArchivedItems, liveCurrentItems);
