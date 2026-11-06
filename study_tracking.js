@@ -11,6 +11,7 @@ import {
 const HEARTBEAT_MS = 120_000;
 const IDLE_MS = 10 * 60_000;
 const MAX_SESSION_MS = 12 * 60 * 60_000;
+const LOCK_CHECK_TIMEOUT_MS = 2500;
 let context = null;
 let timerInterval = null;
 let navigationInProgress = false;
@@ -152,11 +153,29 @@ export async function startStudyTimer(details = {}) {
     status: "running",
     deviceId: deviceId(),
   };
-  const locked = await acquireStudyLock(state);
-  if (!locked) return { started: false, reason: "another-device" };
+  // タイマー表示は端末内の時刻を正として即座に開始する。Firestoreが
+  // 一時的に混雑・オフラインでも計測自体を失敗させず、接続復旧後に
+  // heartbeat/flushPendingで保存する。
+  let lockVerified = false;
+  try {
+    const lockResult = await Promise.race([
+      acquireStudyLock(state),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("lock-timeout")), LOCK_CHECK_TIMEOUT_MS)),
+    ]);
+    if (!lockResult) return { started: false, reason: "another-device" };
+    lockVerified = true;
+  } catch (error) {
+    console.warn("学習タイマーの同期確認を保留します:", error?.code || error?.message || "offline");
+    state.syncPending = true;
+  }
   writeState(state);
-  await saveSession(state, false);
-  return { started: true, state };
+  void saveSession(state, false).then(() => {
+    const current = readState();
+    if (current?.id !== state.id || !current.syncPending) return;
+    delete current.syncPending;
+    writeState(current);
+  }).catch((error) => console.warn("学習タイマーの開始記録を保留します:", error?.code || error?.name || "offline"));
+  return { started: true, state, localOnly: !lockVerified };
 }
 
 export async function pauseStudyTimer(reason = "paused") {

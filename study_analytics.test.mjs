@@ -100,6 +100,8 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
   assert.match(tracking, /state\.source === "manual" \? Math\.min\(elapsedMs, MAX_SESSION_MS\)/);
   assert.match(tracking, /active\.source !== "manual" && Date\.now\(\)/);
   assert.match(tracking, /active\?\.source === "manual"\) void saveSession\(active, false\)/);
+  assert.match(tracking, /LOCK_CHECK_TIMEOUT_MS/);
+  assert.match(tracking, /localOnly: !lockVerified/);
   assert.match(quiz, /recordQuestionAttempt/);
   assert.match(fill, /recordQuestionAttempt/);
   assert.match(daily, /recordQuestionAttempt/);
@@ -114,4 +116,6 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
   assert.match(styles, /\.study-analytics-body \{ padding-bottom: 104px; overflow-x: hidden; \}/);
   assert.match(styles, /\.study-subtabs \{ top: 61px; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.study-table-row\.is-heading \{ display: none; \}/);
+  assert.match(styles, /\.study-manual-form \{ grid-template-columns: 1fr; \}/);
+  assert.match(styles, /\.study-analytics-page \{ width: calc\(100% - 16px\); max-width: calc\(100vw - 16px\)/);
 });

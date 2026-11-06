@@ -7,7 +7,7 @@ import {
   setupAdminTab,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
-} from "./common.js?v=20261106-3";
+} from "./common.js?v=20261107-1";
 import {
   addDoc,
   collection,
@@ -26,7 +26,7 @@ import {
   getStudyTimerState,
   updateManualStudySession,
   deleteManualStudySession,
-} from "./study_tracking.js?v=20261106-1";
+} from "./study_tracking.js?v=20261107-1";
 import {
   formatDuration,
   localDateKey,
@@ -166,6 +166,10 @@ async function startManualTimer() {
     });
     if (!result.started && result.reason === "another-device") {
       els.studyTimerMessage.textContent = "別の端末で学習時間を計測中です。そちらを終了してから開始してください。";
+    } else if (result.started && result.localOnly) {
+      els.studyTimerMessage.textContent = "タイマーを開始しました。記録は通信復旧後に自動保存します。";
+    } else if (result.started) {
+      els.studyTimerMessage.textContent = "タイマーを開始しました。";
     }
     renderTimer();
   } catch (error) {

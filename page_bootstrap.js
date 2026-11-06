@@ -1,6 +1,6 @@
 import { auth, db, authPersistenceReady } from "./auth_core.js?v=20261107-1";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261106-3";
+import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261107-1";
 
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";
