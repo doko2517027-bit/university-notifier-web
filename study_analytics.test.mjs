@@ -93,9 +93,13 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
   assert.match(home, /id="currentDateTime"/);
   assert.match(home, /id="calendarGrid"/);
   assert.match(common, /href: "exam\.html", icon: "📖", label: "勉強"/);
+  assert.match(common, /href: "study_analytics\.html", icon: "⏱️", label: "自己学習"/);
   assert.match(common, /initializeGlobalStudyTracking/);
   assert.match(tracking, /\["running", "paused"\]\.includes\(state\.status\)/);
   assert.match(tracking, /state\?\.source === "exam" && state\.route !== currentPage/);
+  assert.match(tracking, /state\.source === "manual" \? Math\.min\(elapsedMs, MAX_SESSION_MS\)/);
+  assert.match(tracking, /active\.source !== "manual" && Date\.now\(\)/);
+  assert.match(tracking, /active\?\.source === "manual"\) void saveSession\(active, false\)/);
   assert.match(quiz, /recordQuestionAttempt/);
   assert.match(fill, /recordQuestionAttempt/);
   assert.match(daily, /recordQuestionAttempt/);
@@ -103,6 +107,8 @@ test("ホーム導線、共通タイマー、既存問題画面、本人限定�
   assert.match(rules, /allow read, create, update, delete: if owner\(studentNumber\)/);
   assert.match(page, /data-study-tab="questions"/);
   assert.match(page, /id="exportStudyCsv"/);
+  assert.match(page, /id="manualStudyForm"/);
+  assert.match(page, /id="studyChartType"/);
   assert.match(page, /class="study-secondary-summary"/);
   assert.match(page, /data-summary-tone="today"/);
   assert.match(styles, /\.study-analytics-body \{ padding-bottom: 104px; overflow-x: hidden; \}/);

@@ -1,7 +1,7 @@
 import { auth, db } from "./auth_core.js?v=20261030-1";
 import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261106-2";
+import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261106-3";
 
 const pageScript = document.querySelector("script[data-care-page]");
 const roleRequired = pageScript?.dataset.role || "";

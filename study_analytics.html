@@ -6,15 +6,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>自己学習・学習分析 | CareMate</title>
-    <link rel="stylesheet" href="style.css?v=20261020-3" />
+    <link rel="stylesheet" href="style.css?v=20261106-1" />
     <script defer src="loading_indicator.js?v=20261029-1"></script>
     <script>if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");</script>
-    <link rel="stylesheet" href="caremate_shell.css?v=20261106-2">
+    <link rel="stylesheet" href="caremate_shell.css?v=20261106-3">
   </head>
   <body class="page-loading study-analytics-body">
     <div class="top-buttons">
       <button id="backButton" class="circle-button" type="button" aria-label="ホームへ戻る">←</button>
-      <h2>📊 学習分析</h2>
+      <h2>⏱️ 自己学習</h2>
       <div class="top-right">
         <button id="themeButton" class="circle-button" type="button" aria-label="テーマを変更">🌙</button>
         <button id="profileButton" class="circle-button" type="button" aria-label="プロフィール"><img id="topProfileImage" src="images/default.png" class="header-profile-image" alt="" /></button>
@@ -58,7 +58,7 @@
             <div class="study-card-heading"><div><small>STUDY TIMER</small><h2>勉強時間を記録</h2></div><span id="timerStateBadge">停止中</span></div>
             <div id="studyTimerClock" class="study-timer-clock">00:00:00</div>
             <label>学習科目<select id="studySubjectSelect"><option value="">その他</option></select></label>
-            <label>学習内容（任意）<input id="studyContentInput" maxlength="300" placeholder="例：統合失調症の復習" /></label>
+            <label>何を学習するか<input id="studyContentInput" maxlength="300" required placeholder="例：統合失調症の復習" /></label>
             <p id="studyTimerMessage" class="study-form-message" role="status"></p>
             <div class="study-timer-actions">
               <button id="startStudyTimer" class="btn btn-primary" type="button">開始</button>
@@ -66,7 +66,7 @@
               <button id="resumeStudyTimer" class="btn" type="button" disabled>再開</button>
               <button id="finishStudyTimer" class="btn study-danger-button" type="button" disabled>終了・保存</button>
             </div>
-            <p class="study-help">画面移動中は継続し、バックグラウンド・アプリ終了・10分間操作なしで自動停止します。</p>
+            <p class="study-help">画面移動・バックグラウンド・アプリ終了中も時刻を基準に継続します。計測忘れ防止のため1回12時間が上限です。</p>
           </article>
 
           <article class="card setting-card">
@@ -85,14 +85,26 @@
 
       <section id="studyPanelTime" class="study-panel" data-study-panel="time" hidden>
         <article class="card setting-card">
-          <div class="study-card-heading"><div><small>TIME TREND</small><h2>学習時間の推移</h2></div><select id="studyRange"><option value="today">今日</option><option value="7d" selected>過去7日</option><option value="30d">過去30日</option><option value="month">今月</option><option value="3m">過去3か月</option><option value="1y">過去1年</option><option value="all">全期間</option></select></div>
+          <div class="study-card-heading"><div><small>TIME TREND</small><h2>学習時間の推移</h2></div><div class="study-chart-controls"><select id="studyRange" aria-label="表示期間"><option value="today">今日</option><option value="7d" selected>過去7日</option><option value="30d">過去30日</option><option value="month">今月</option><option value="3m">過去3か月</option><option value="1y">過去1年</option><option value="all">全期間</option></select><select id="studyChartType" aria-label="グラフ表示"><option value="bar">棒グラフ</option><option value="line">線グラフ</option></select></div></div>
+          <p id="studyChartScale" class="study-chart-scale">縦軸：8時間</p>
           <div id="studyTimeChart" class="study-bar-chart" aria-label="学習時間グラフ"></div>
-          <p id="studyDayDetail" class="study-chart-detail">棒をタップすると、その日の詳細を表示します。</p>
+          <p id="studyDayDetail" class="study-chart-detail">グラフの日付をタップすると、その日の詳細を表示します。</p>
         </article>
         <div class="study-two-column">
           <article class="card setting-card"><div class="study-card-heading"><div><small>CALENDAR</small><h2>学習カレンダー</h2></div></div><div id="studyHeatmap" class="study-heatmap"></div><p id="studyCalendarDetail" class="study-chart-detail"></p></article>
           <article class="card setting-card"><div class="study-card-heading"><div><small>BY SUBJECT</small><h2>科目別学習時間</h2></div></div><div id="subjectTimeList" class="study-subject-bars"></div></article>
         </div>
+        <article class="card setting-card">
+          <div class="study-card-heading"><div><small>MANUAL ENTRY</small><h2>あとから学習時間を入力</h2></div></div>
+          <form id="manualStudyForm" class="study-manual-form">
+            <label>学習日<input id="manualStudyDate" type="date" required /></label>
+            <label>科目<select id="manualStudySubjectSelect"><option value="">その他</option></select></label>
+            <label>学習時間（分）<input id="manualStudyMinutes" type="number" min="1" max="720" step="1" required placeholder="例：90" /></label>
+            <label class="study-manual-content">何を学習したか<input id="manualStudyContent" maxlength="300" required placeholder="例：地域看護の第3章を復習" /></label>
+            <button class="btn btn-primary" type="submit">学習記録を追加</button>
+          </form>
+          <p id="manualStudyMessage" class="study-form-message" role="status"></p>
+        </article>
         <article class="card setting-card">
           <div class="study-card-heading"><div><small>HISTORY</small><h2>学習記録</h2></div><button id="exportStudyCsv" class="btn" type="button">CSV出力</button></div>
           <div id="studyHistoryList" class="study-history-list"></div>
@@ -143,6 +155,6 @@
       <a id="settingsTab" href="settings.html"><span class="nav-icon-wrap"><span class="nav-icon">⚙️</span></span><span>設定</span></a>
       <a id="adminTab" href="admin.html" style="display:none"><span class="nav-icon-wrap"><span class="nav-icon">👑</span></span><span>管理</span></a>
     </nav>
-    <script type="module" src="page_bootstrap.js?v=20261106-2" data-care-page data-entry="./study_analytics.js?v=20261028-3"></script>
+    <script type="module" src="page_bootstrap.js?v=20261106-3" data-care-page data-entry="./study_analytics.js?v=20261106-1"></script>
   </body>
 </html>

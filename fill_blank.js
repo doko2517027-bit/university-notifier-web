@@ -26,7 +26,7 @@ import {
   stopExamStudyTimer,
   markQuestionShown,
   recordQuestionAttempt,
-} from "./study_tracking.js?v=20261009-2";
+} from "./study_tracking.js?v=20261106-1";
 import {
   questionExplanation,
   renderAnswerExplanation,

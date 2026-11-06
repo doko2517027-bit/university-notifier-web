@@ -7,8 +7,9 @@ import {
   setupAdminTab,
   updateAssignmentNavBadge,
   updateNewsNavBadge,
-} from "./common.js?v=20261029-1";
+} from "./common.js?v=20261106-3";
 import {
+  addDoc,
   collection,
   collectionGroup,
   doc,
@@ -25,7 +26,7 @@ import {
   getStudyTimerState,
   updateManualStudySession,
   deleteManualStudySession,
-} from "./study_tracking.js?v=20261009-2";
+} from "./study_tracking.js?v=20261106-1";
 import {
   formatDuration,
   localDateKey,
@@ -48,6 +49,8 @@ const els = Object.fromEntries([
   "studyTimerClock", "timerStateBadge", "studyTimerMessage", "startStudyTimer", "pauseStudyTimer", "resumeStudyTimer",
   "finishStudyTimer", "todayReviewCount", "todayReviewMessage", "startTodayReview", "homeGoalBar", "homeGoalText",
   "homeSubjectBalance", "studyRange", "studyTimeChart", "studyDayDetail", "studyHeatmap", "studyCalendarDetail",
+  "studyChartType", "studyChartScale", "manualStudyForm", "manualStudyDate", "manualStudySubjectSelect",
+  "manualStudyMinutes", "manualStudyContent", "manualStudyMessage",
   "subjectTimeList", "exportStudyCsv", "studyHistoryList", "questionMetricGrid", "accuracyPeriod", "accuracyTrendChart",
   "subjectScoreSort", "subjectScoreList", "weakAreaList", "startWeakReview", "unitScoreList", "problemFilter",
   "problemHistoryList", "weeklyReport", "monthlyReport", "studyGoalsForm", "goalDailyMinutes", "goalWeeklyMinutes",
@@ -130,6 +133,8 @@ function setupEvents() {
   els.resumeStudyTimer?.addEventListener("click", async () => { await resumeStudyTimer(); renderTimer(); });
   els.finishStudyTimer?.addEventListener("click", async () => { await stopStudyTimer("manual-finish"); await loadStudyData(); renderTimer(); });
   els.studyRange?.addEventListener("change", renderTimeAnalysis);
+  els.studyChartType?.addEventListener("change", renderTimeAnalysis);
+  els.manualStudyForm?.addEventListener("submit", addManualStudyEntry);
   els.accuracyPeriod?.addEventListener("change", renderAccuracyTrend);
   els.subjectScoreSort?.addEventListener("change", renderQuestionAnalysis);
   els.problemFilter?.addEventListener("change", renderProblemHistory);
@@ -145,13 +150,19 @@ function setupEvents() {
 async function startManualTimer() {
   const subjectId = els.studySubjectSelect.value;
   const subject = subjects.find((item) => item.id === subjectId);
+  const content = els.studyContentInput.value.trim();
   els.studyTimerMessage.textContent = "";
+  if (!content) {
+    els.studyTimerMessage.textContent = "何を学習するか入力してください。";
+    els.studyContentInput.focus();
+    return;
+  }
   try {
     const result = await startStudyTimer({
       source: "manual",
       subjectId,
       subjectName: subject?.name || "その他",
-      content: els.studyContentInput.value,
+      content,
     });
     if (!result.started && result.reason === "another-device") {
       els.studyTimerMessage.textContent = "別の端末で学習時間を計測中です。そちらを終了してから開始してください。";
@@ -179,12 +190,35 @@ function renderTimer() {
   els.finishStudyTimer.disabled = !state;
   els.studySubjectSelect.disabled = Boolean(state);
   els.studyContentInput.disabled = Boolean(state);
+  // Today's total follows the active timer without waiting for the next
+  // Firestore checkpoint. Saved time is replaced, not double-counted.
+  const summary = summarizeStudyData(sessions, attempts);
+  let liveToday = summary.todaySeconds;
+  if (state?.id) {
+    const stored = sessions.find((item) => item.id === state.id);
+    const storedSeconds = Math.max(0, Number(stored?.durationSeconds) || 0);
+    const today = localDateKey(Date.now());
+    const startedToday = localDateKey(Number(state.startedAt) || Date.now()) === today;
+    const activeToday = startedToday
+      ? total
+      : Math.min(total, Math.max(0, (Date.now() - new Date(`${today}T00:00:00+09:00`).getTime()) / 1000));
+    liveToday += Math.max(0, activeToday - (startedToday ? storedSeconds : 0));
+  }
+  els.heroTodayTime.textContent = formatDuration(liveToday);
+  els.summaryToday.textContent = formatDuration(liveToday);
 }
 
 function fillSubjectOptions() {
-  els.studySubjectSelect.innerHTML = '<option value="">その他</option>' + subjects
+  const options = '<option value="">その他</option>' + subjects
     .sort((a, b) => a.name.localeCompare(b.name, "ja"))
     .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+  els.studySubjectSelect.innerHTML = options;
+  if (els.manualStudySubjectSelect) els.manualStudySubjectSelect.innerHTML = options;
+  if (els.manualStudyDate && !els.manualStudyDate.value) {
+    const today = localDateKey(Date.now());
+    els.manualStudyDate.value = today;
+    els.manualStudyDate.max = today;
+  }
 }
 
 function fillGoalInputs() {
@@ -257,18 +291,92 @@ function groupSessionsByDay(range = "7d") {
 
 function renderTimeAnalysis() {
   const rows = groupSessionsByDay(els.studyRange.value);
-  const max = Math.max(60, ...rows.map((item) => item.seconds));
-  els.studyTimeChart.innerHTML = rows.length ? rows.slice(-90).map((item) => `
-    <button type="button" data-study-day="${item.key}" title="${item.key} ${formatDuration(item.seconds)}"><i style="height:${Math.max(3, item.seconds / max * 100)}%"></i><span>${item.key.slice(5).replace("-", "/")}</span></button>
-  `).join("") : '<p class="study-empty">この期間の記録はありません。</p>';
+  const visible = rows.slice(-90);
+  const peakSeconds = Math.max(0, ...visible.map((item) => item.seconds));
+  const scaleHours = Math.max(8, Math.ceil(peakSeconds / 3600));
+  const scaleSeconds = scaleHours * 3600;
+  if (els.studyChartScale) els.studyChartScale.textContent = `縦軸：0〜${scaleHours}時間（最大記録に合わせて1時間単位で自動拡張）`;
+  const line = els.studyChartType?.value === "line";
+  els.studyTimeChart.className = line ? "study-line-chart study-time-line-chart" : "study-bar-chart";
+  if (!visible.length) {
+    els.studyTimeChart.innerHTML = '<p class="study-empty">この期間の記録はありません。</p>';
+  } else if (line) {
+    renderStudyTimeLine(visible, scaleSeconds);
+  } else {
+    els.studyTimeChart.innerHTML = visible.map((item) => `
+      <button type="button" data-study-day="${item.key}" title="${item.key} ${formatDuration(item.seconds)}"><i style="height:${item.seconds ? Math.max(3, item.seconds / scaleSeconds * 100) : 0}%"></i><span>${item.key.slice(5).replace("-", "/")}</span></button>
+    `).join("");
+  }
   els.studyTimeChart.querySelectorAll("[data-study-day]").forEach((button) => button.onclick = () => {
-    const row = rows.find((item) => item.key === button.dataset.studyDay);
+    const row = visible.find((item) => item.key === button.dataset.studyDay);
     const names = [...new Set(row.sessions.map((item) => item.subjectName || "その他"))];
     els.studyDayDetail.textContent = `${row.key}：${formatDuration(row.seconds)}／${names.join("、") || "記録なし"}`;
   });
   renderHeatmap();
   renderSubjectBars(els.subjectTimeList, aggregateBySubject(sessions, attempts));
   renderHistory();
+}
+
+function renderStudyTimeLine(rows, scaleSeconds) {
+  const width = Math.max(520, rows.length * 48);
+  const height = 230;
+  const left = 42, right = 16, top = 16, bottom = 42;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const x = (index) => left + (rows.length === 1 ? plotWidth / 2 : index / (rows.length - 1) * plotWidth);
+  const y = (seconds) => top + plotHeight - Math.min(1, seconds / scaleSeconds) * plotHeight;
+  const points = rows.map((item, index) => `${x(index).toFixed(1)},${y(item.seconds).toFixed(1)}`).join(" ");
+  const labels = rows.map((item, index) => `<text x="${x(index)}" y="${height - 13}" text-anchor="middle">${item.key.slice(5).replace("-", "/")}</text>`).join("");
+  const circles = rows.map((item, index) => `<circle tabindex="0" role="button" aria-label="${item.key} ${formatDuration(item.seconds)}" data-study-day="${item.key}" cx="${x(index)}" cy="${y(item.seconds)}" r="6"></circle>`).join("");
+  els.studyTimeChart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" style="min-width:${width}px" aria-label="日別学習時間の線グラフ"><line x1="${left}" y1="${top}" x2="${left}" y2="${height-bottom}"></line><line x1="${left}" y1="${height-bottom}" x2="${width-right}" y2="${height-bottom}"></line><text x="4" y="${top+5}">${Math.round(scaleSeconds/3600)}h</text><text x="18" y="${height-bottom+5}">0</text><polyline points="${points}"></polyline>${circles}${labels}</svg>`;
+}
+
+async function addManualStudyEntry(event) {
+  event.preventDefault();
+  const date = els.manualStudyDate.value;
+  const minutes = Number(els.manualStudyMinutes.value);
+  const content = els.manualStudyContent.value.trim();
+  const subjectId = els.manualStudySubjectSelect.value;
+  const subject = subjects.find((item) => item.id === subjectId);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > localDateKey(Date.now())) {
+    els.manualStudyMessage.textContent = "今日以前の日付を選んでください。";
+    return;
+  }
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 720 || !content) {
+    els.manualStudyMessage.textContent = "学習内容と1〜720分の学習時間を入力してください。";
+    return;
+  }
+  const startedAt = new Date(`${date}T12:00:00+09:00`);
+  const submit = event.submitter;
+  submit.disabled = true;
+  els.manualStudyMessage.textContent = "保存しています…";
+  try {
+    await addDoc(collection(db, "users", studentNumber, "studySessions"), {
+      source: "manual",
+      subjectId,
+      subjectName: subject?.name || "その他",
+      unitId: "",
+      unitName: "",
+      content: content.slice(0, 300),
+      startedAt,
+      endedAt: new Date(startedAt.getTime() + minutes * 60_000),
+      durationSeconds: minutes * 60,
+      deviceId: localStorage.getItem("careMateDeviceId") || "manual-entry",
+      status: "completed",
+      stopReason: "manual-entry",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    els.manualStudyMinutes.value = "";
+    els.manualStudyContent.value = "";
+    els.manualStudyMessage.textContent = "学習記録を追加しました。";
+    await loadStudyData();
+  } catch (error) {
+    console.error("学習記録の追加に失敗:", error);
+    els.manualStudyMessage.textContent = "保存できませんでした。通信状態を確認してください。";
+  } finally {
+    submit.disabled = false;
+  }
 }
 
 function renderHeatmap() {

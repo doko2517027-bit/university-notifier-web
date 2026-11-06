@@ -45,7 +45,12 @@ function writeState(state) {
 function elapsedSeconds(state, now = Date.now()) {
   const base = Math.max(0, Number(state?.elapsedSeconds) || 0);
   if (!state || state.status !== "running") return base;
-  return base + Math.max(0, Math.min(now - Number(state.segmentStartedAt || now), IDLE_MS)) / 1000;
+  const elapsedMs = Math.max(0, now - Number(state.segmentStartedAt || now));
+  // A manually started self-study timer must keep accurate wall-clock time
+  // while the PWA is in the background or closed. Exam tracking still uses
+  // the inactivity cap so merely leaving a question open is not recorded.
+  const countedMs = state.source === "manual" ? Math.min(elapsedMs, MAX_SESSION_MS) : Math.min(elapsedMs, IDLE_MS);
+  return Math.min(MAX_SESSION_MS / 1000, base + countedMs / 1000);
 }
 
 function formatClock(seconds) {
@@ -304,7 +309,7 @@ export function initializeGlobalStudyTracking(options = {}) {
   timerInterval = setInterval(() => {
     const active = readState();
     if (!active || active.status !== "running") return renderFloatingTimer();
-    if (Date.now() - Number(active.lastActivityAt || active.segmentStartedAt) >= IDLE_MS) {
+    if (active.source !== "manual" && Date.now() - Number(active.lastActivityAt || active.segmentStartedAt) >= IDLE_MS) {
       void pauseStudyTimer("idle");
       return;
     }
@@ -333,21 +338,28 @@ export function initializeGlobalStudyTracking(options = {}) {
       return;
     }
     // CareMate内にはbuttonのクリック処理でlocation.hrefを変更する画面も多い。
-    // 直後のpagehideだけを内部遷移として扱い、通常のバックグラウンド化は停止する。
+    // テスト問題の自動計測だけは離脱時に止める。利用者が明示的に開始した
+    // 自己学習タイマーはバックグラウンドでも継続する。
     if (event.target.closest("button, [role='button'], .home-card")) {
       navigationInProgress = true;
       setTimeout(() => {
-        if (document.hidden) void stopStudyTimer("background");
+        const active = readState();
+        if (document.hidden && active?.source === "exam") void stopStudyTimer("background");
+        else if (document.hidden && active?.source === "manual") void saveSession(active, false);
         navigationInProgress = false;
       }, 1500);
     }
   }, true);
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && !navigationInProgress) void stopStudyTimer("background");
+    const active = readState();
+    if (document.hidden && !navigationInProgress && active?.source === "exam") void stopStudyTimer("background");
+    else if (document.hidden && active?.source === "manual") void saveSession(active, false);
     if (!document.hidden) navigationInProgress = false;
   });
   window.addEventListener("pagehide", () => {
-    if (!navigationInProgress) void stopStudyTimer("page-closed");
+    const active = readState();
+    if (!navigationInProgress && active?.source === "exam") void stopStudyTimer("page-closed");
+    else if (active?.source === "manual") void saveSession(active, false);
   });
   window.addEventListener("pageshow", () => { navigationInProgress = false; });
 }

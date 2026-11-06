@@ -221,3 +221,9 @@ body.caremate-renewed {
 .dark .cm-manaba-category { background: #252525; color: var(--cm-text); }
 .dark .cm-manaba-category[aria-pressed="true"] { background: #087e71; color: #fff; }
 @media (max-width: 600px) { .cm-manaba-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Self-study is a first-class tab; keep six-tab layouts readable on phones. */
+@media (max-width: 600px) {
+  .cm-nav[style*="repeat(6"] a { font-size: 10px; }
+  .cm-nav[style*="repeat(6"] a > span:first-child { font-size: 16px; }
+}

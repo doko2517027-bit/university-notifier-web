@@ -1,7 +1,7 @@
 // Shared client helpers for the three role-specific CareMate tabs.
 import { auth, db } from "./auth_core.js?v=20261028-2";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { initializeGlobalStudyTracking } from "./study_tracking.js";
+import { initializeGlobalStudyTracking } from "./study_tracking.js?v=20261106-1";
 
 export { auth, db };
 export let studentNumber = localStorage.getItem("studentNumber");
@@ -13,7 +13,8 @@ export function normalizeNavigation() {
   const current = location.pathname.split("/").pop();
   const assignmentAccess = document.documentElement.dataset.assignmentAccess !== "false";
   const entries = [
-    { href: "exam.html", icon: "📖", label: "勉強", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "question_list.html", "study_analytics.html", "must_remember.html"] },
+    { href: "exam.html", icon: "📖", label: "勉強", pages: ["app.html", "exam.html", "quiz.html", "fill_blank.html", "daily_question.html", "qa.html", "question_list.html", "must_remember.html"] },
+    { href: "study_analytics.html", icon: "⏱️", label: "自己学習", pages: ["study_analytics.html"] },
     ...(assignmentAccess ? [{ href: "assignments.html", icon: "📚", label: "課題", pages: ["assignments.html"] }] : []),
     ...(assignmentAccess ? [{ href: "manaba.html", icon: "🏫", label: "manaba", pages: ["manaba.html"] }] : []),
     { href: "home.html", icon: "🏠", label: "ホーム", pages: ["home.html"] },
