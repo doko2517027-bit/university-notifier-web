@@ -10,7 +10,7 @@
 import {
     db,
     signInCareMateAuth
-} from "./auth_core.js?v=20261030-1";
+} from "./auth_core.js?v=20261107-1";
 import { loginErrorMessage } from "./login_error.js?v=20261028-1";
 import { warmCareMateBackend } from "./backend_client.js?v=20261030-1";
 

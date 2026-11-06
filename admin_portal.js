@@ -1,5 +1,5 @@
-import { signOutCareMate } from "./auth_core.js?v=20261028-2";
-import { db } from "./auth_core.js?v=20261028-2";
+import { signOutCareMate } from "./auth_core.js?v=20261107-1";
+import { db } from "./auth_core.js?v=20261107-1";
 import { callCareMate } from "./backend_client.js?v=20261028-3";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 

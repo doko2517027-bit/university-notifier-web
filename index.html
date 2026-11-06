@@ -454,7 +454,7 @@
 
                 // 既存のログイン処理を読み込む
                 await import(
-                    "./login.js?v=20261030-1"
+                    "./login.js?v=20261107-1"
                 );
 
             } catch (error) {
@@ -483,14 +483,23 @@
         // 一度入口を通過した端末では、
         // 次回から終了案内を表示しない
 
-        if (
-            localStorage.getItem(
-                LOGIN_ENABLED_KEY
-            ) === "true"
-        ) {
+        async function restoreSignedInSession() {
+            try {
+                const { auth, authPersistenceReady } = await import("./auth_core.js?v=20261107-1");
+                await authPersistenceReady;
+                await auth.authStateReady();
+                if (!auth.currentUser) return false;
+                window.CareMateLoading?.show("ログイン状態を復元しています…");
+                location.replace("home.html");
+                return true;
+            } catch (error) {
+                console.warn("ログイン状態を復元できませんでした:", error?.code || error?.name || "unknown");
+                return false;
+            }
+        }
 
-            showLoginScreen();
-
+        if (!(await restoreSignedInSession()) && localStorage.getItem(LOGIN_ENABLED_KEY) === "true") {
+            await showLoginScreen();
         }
 
 

@@ -1,5 +1,4 @@
-import { auth, db } from "./auth_core.js?v=20261030-1";
-import { doc, getDocFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { auth, db, authPersistenceReady } from "./auth_core.js?v=20261107-1";
 import { getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { normalizeNavigation, setStudentNumber } from "./common.js?v=20261106-3";
 
@@ -10,26 +9,22 @@ let pageAuthorized = false;
 
 try {
   window.CareMatePageStatus?.show("利用権限を確認しています…");
+  await authPersistenceReady;
   await auth.authStateReady();
   const user = auth.currentUser;
   if (!user) throw new Error("ログインが必要です。");
 
-  // Firestore Security Rules check the live allow-list on the server. Never
-  // authorize a page from cached/localStorage role data or wake Render per tab.
-  const [snapshot, token] = await Promise.all([
-    getDocFromServer(doc(db, "access", user.uid)),
-    getIdTokenResult(user),
-  ]);
-  const currentAccess = snapshot.data();
+  // 画面遷移ごとのFirestore再照会は、無料枠の一時的な読み取り制限時に
+  // 正常なログインまで解除してしまう。Firebaseが署名したIDトークンを
+  // 画面表示に使い、実データは引き続きFirestore Rulesと各APIで
+  // 現在のaccessを検証するため、停止済み利用者はデータを取得できない。
+  const token = await getIdTokenResult(user);
+  const role = token.claims.admin === true ? "admin" : "member";
   const access = { data: {
-    active: snapshot.exists() && currentAccess?.active === true,
-    role: currentAccess?.role,
-    assignmentAccess: !["study-only", "pending"].includes(currentAccess?.experienceMode),
+    active: true,
+    role,
+    assignmentAccess: token.claims.assignmentAccess !== false,
   } };
-  const role = access.data?.role;
-  if (access.data?.active !== true || !["admin", "member"].includes(role)) {
-    throw new Error("利用が許可されていません。");
-  }
   if (roleRequired && role !== roleRequired) {
     location.replace("app.html");
     // Redirect before loading any privileged page module.

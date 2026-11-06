@@ -21,6 +21,8 @@ import {
 
 import {
     getAuth,
+    setPersistence,
+    browserLocalPersistence,
     signInWithCustomToken,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -62,6 +64,15 @@ export const app = getApps().length
 
 export const auth = getAuth(app);
 
+// Firebaseの署名済みログイン状態を端末に保持する。利用者が明示的に
+// ログアウトするまでは、再読み込みやPWA再起動でログイン画面へ戻さない。
+export const authPersistenceReady = setPersistence(
+    auth,
+    browserLocalPersistence
+).catch((error) => {
+    console.warn("ログイン状態の保存設定を適用できませんでした:", error?.code || error?.name || "unknown");
+});
+
 export const db = getFirestore(app);
 
 
@@ -75,6 +86,8 @@ export async function signInCareMateAuth(
     studentNumber,
     password
 ) {
+
+    await authPersistenceReady;
 
     const normalizedStudentNumber =
         String(studentNumber || "").trim();
