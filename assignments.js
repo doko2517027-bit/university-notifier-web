@@ -18,20 +18,30 @@ function safeUrl(raw) {
   } catch { return ""; }
 }
 function dueDate(item) {
-  if (item.deadlineAt?.toDate) return item.deadlineAt.toDate().getTime();
-  const raw = String(item.deadlineText || item.deadline || "");
-  const match = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
-  if (!match) return Number.MAX_SAFE_INTEGER;
-  const time = raw.match(/(\d{1,2}):(\d{2})/);
-  return new Date(`${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}T${time ? `${time[1].padStart(2, "0")}:${time[2]}` : "23:59"}:00+09:00`).getTime();
+  return dateValue(item.deadlineAt, false)
+    || dateValue(item.deadlineText || item.deadline, false)
+    || Number.MAX_SAFE_INTEGER;
 }
 function startDate(item) {
-  if (item.startAt?.toDate) return item.startAt.toDate().getTime();
-  const raw = String(item.startText || item.start || "");
-  const match = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
+  return dateValue(item.startAt, true)
+    || dateValue(item.startText || item.start, true)
+    || 0;
+}
+function dateValue(value, isStart) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  if (Number.isFinite(value?.seconds)) return value.seconds * 1000;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value < 10_000_000_000 ? value * 1000 : value;
+  const raw = String(value).trim();
+  const match = raw.match(/(20\d{2})\D+(\d{1,2})\D+(\d{1,2})/);
   if (!match) return 0;
-  const time = raw.match(/(\d{1,2}):(\d{2})/);
-  return new Date(`${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}T${time ? `${time[1].padStart(2, "0")}:${time[2]}` : "00:00"}:00+09:00`).getTime();
+  const tail = raw.slice((match.index || 0) + match[0].length);
+  const time = tail.match(/(\d{1,2})\s*[:：]\s*(\d{2})/);
+  const clock = time ? `${time[1].padStart(2, "0")}:${time[2]}` : (isStart ? "00:00" : "23:59");
+  const parsed = new Date(`${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}T${clock}:00+09:00`).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 function isSubmitted(item) {
   if (item.submissionConfirmed === true || item.submissionConfirmedAt) return true;
@@ -43,8 +53,9 @@ function isSubmitted(item) {
   );
 }
 function assignmentState(item) {
-  if (isSubmitted(item)) return "submitted";
+  if (item.published === false) return "upcoming";
   if (startDate(item) > Date.now()) return "upcoming";
+  if (isSubmitted(item)) return "submitted";
   return dueDate(item) < Date.now() ? "overdue" : "pending";
 }
 function statusLabel(state) {

@@ -151,6 +151,10 @@ body.caremate-renewed {
 .cm-calendar-task.is-overdue { border-left-color: #d92f4c; }
 .cm-calendar-task.is-pending { border-left-color: #d6dde3; }
 .cm-calendar-task.is-upcoming { border-left-color: #15966a; }
+.cm-calendar-task.is-submitted { background: #edf3ff; }
+.cm-calendar-task.is-overdue { background: #fff0f2; }
+.cm-calendar-task.is-pending { background: #fff; }
+.cm-calendar-task.is-upcoming { background: #e6f7f0; }
 .cm-calendar-task .cm-item-kicker { display: inline-flex; width: fit-content; padding: 3px 8px; border-radius: 999px; }
 .cm-calendar-task.is-submitted .cm-item-kicker { color: #fff; background: #2563eb; }
 .cm-calendar-task.is-overdue .cm-item-kicker { color: #fff; background: #d92f4c; }
@@ -201,6 +205,10 @@ body.caremate-renewed {
 .dark .cm-calendar-task.is-overdue { border-left-color: #e0445e; }
 .dark .cm-calendar-task.is-pending { border-left-color: #fff; }
 .dark .cm-calendar-task.is-upcoming { border-left-color: #22a97b; }
+.dark .cm-calendar-task.is-submitted { background: #182541; }
+.dark .cm-calendar-task.is-overdue { background: #3d1d25; }
+.dark .cm-calendar-task.is-pending { background: #1c1c1c; }
+.dark .cm-calendar-task.is-upcoming { background: #15382d; }
 .dark .cm-calendar-task.is-submitted .cm-item-kicker { color: #fff; background: #3b73e8; }
 .dark .cm-calendar-task.is-overdue .cm-item-kicker { color: #fff; background: #e0445e; }
 .dark .cm-calendar-task.is-pending .cm-item-kicker { color: #111; background: #fff; border-color: #fff; }

@@ -29,20 +29,32 @@ function el(tag, content, className = "") {
   return node;
 }
 function deadlineDate(item) {
-  if (item.deadlineAt?.toDate) return item.deadlineAt.toDate();
-  const raw = String(item.deadlineText || item.deadline || "");
-  const date = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
-  const timeMatches = [...raw.matchAll(/(\d{1,2}):(\d{2})/g)];
-  const time = timeMatches.at(-1) || null;
-  if (date) return new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${time ? time[1].padStart(2, "0") : "23"}:${time ? time[2] : "59"}:00+09:00`);
-  return null;
+  return dateFromValue(item.deadlineAt, false)
+    || dateFromValue(item.deadlineText || item.deadline, false);
 }
 function startDate(item) {
-  if (item.startAt?.toDate) return item.startAt.toDate();
-  const raw = String(item.startText || item.start || "");
-  const date = raw.match(/(20\d{2})\D(\d{1,2})\D(\d{1,2})/);
-  const time = raw.match(/(\d{1,2}):(\d{2})/);
-  return date ? new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${time ? time[1].padStart(2, "0") : "00"}:${time ? time[2] : "00"}:00+09:00`) : null;
+  return dateFromValue(item.startAt, true)
+    || dateFromValue(item.startText || item.start, true);
+}
+function dateFromValue(value, isStart) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (typeof value.toMillis === "function") return new Date(value.toMillis());
+  if (Number.isFinite(value?.seconds)) return new Date(value.seconds * 1000);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "number") {
+    const date = new Date(value < 10_000_000_000 ? value * 1000 : value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const raw = String(value).trim();
+  const date = raw.match(/(20\d{2})\D+(\d{1,2})\D+(\d{1,2})/);
+  if (!date) return null;
+  const tail = raw.slice((date.index || 0) + date[0].length);
+  const time = tail.match(/(\d{1,2})\s*[:：]\s*(\d{2})/);
+  const hour = time ? time[1].padStart(2, "0") : (isStart ? "00" : "23");
+  const minute = time ? time[2] : (isStart ? "00" : "59");
+  const parsed = new Date(`${date[1]}-${date[2].padStart(2, "0")}-${date[3].padStart(2, "0")}T${hour}:${minute}:00+09:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 function keyFor(item) {
   const date = deadlineDate(item);
@@ -86,9 +98,12 @@ function mergeCalendarAssignments(archivedItems, currentItems) {
   return [...unique.values()];
 }
 function assignmentState(item) {
-  if (hasSubmittedStatus(item)) return "submitted";
+  // Explicit upstream state wins even when a stale archive still contains a
+  // submission flag.  A not-yet-open task must always be shown in green.
+  if (item.published === false) return "upcoming";
   const start = startDate(item);
   if (start && start.getTime() > Date.now()) return "upcoming";
+  if (hasSubmittedStatus(item)) return "submitted";
   if (item._isCurrent === false) return "overdue";
   const deadline = deadlineDate(item);
   return deadline && deadline.getTime() < Date.now() ? "overdue" : "pending";

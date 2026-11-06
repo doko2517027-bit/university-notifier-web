@@ -35,10 +35,17 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function timeValue(item) {
-  return dateValue(item.start || item.startText)
+  return timestampValue(item.firstSeenAt)
+    || dateValue(item.start || item.startText)
     || dateValue(item.dateText)
-    || item.firstSeenAt?.toMillis?.()
     || 0;
+}
+function timestampValue(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  if (Number.isFinite(value?.seconds)) return value.seconds * 1000;
+  return 0;
 }
 function dateValue(value) {
   const raw = String(value || "").trim().replaceAll("/", "-");
@@ -51,9 +58,9 @@ function formatPostedDate(item) {
   return date ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date) : "日時情報なし";
 }
 function taskState(item) {
-  if (item.submitted === true) return "submitted";
   const start = dateValue(item.start || item.startText);
   if (item.published === false || (start && start > Date.now())) return "upcoming";
+  if (item.submitted === true) return "submitted";
   const deadline = dateValue(item.deadline || item.deadlineText);
   return deadline && deadline < Date.now() ? "overdue" : "pending";
 }
@@ -91,8 +98,8 @@ function card(item) {
   const article = node("article", "", "cm-item cm-manaba-card");
   article.append(node("span", item.categoryLabel || labels[item.category] || "manaba", "cm-item-kicker"));
   article.append(node("h3", item.title || "名称なし"));
-  article.append(node("p", item.course || "科目名なし", "cm-manaba-course"));
   if (taskCategories.has(item.category)) {
+    article.append(node("p", item.course || "科目名なし", "cm-manaba-course"));
     const state = taskState(item);
     article.classList.add(`is-${state}`);
     article.append(node("strong", taskStateLabel(state), `cm-manaba-status is-${state}`));

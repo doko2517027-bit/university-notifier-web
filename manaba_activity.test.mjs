@@ -20,6 +20,8 @@ test("課題通知ありの利用者にはmanaba履歴タブと分類ボタン�
   assert.match(script, /first \+ 2/);
   assert.match(script, /visible\.slice\(\(currentPage - 1\) \* PAGE_SIZE/);
   assert.match(script, /const rank = \{ pending: 0, upcoming: 1, overdue: 2, submitted: 3 \}/);
+  assert.match(script, /return timestampValue\(item\.firstSeenAt\)/);
+  assert.match(script, /item\.published === false \|\| \(start && start > Date\.now\(\)\)/);
   assert.match(script, /公開：/);
   assert.match(script, /締切：/);
   assert.doesNotMatch(script, /item\.summary && item\.summary !== item\.title/);
