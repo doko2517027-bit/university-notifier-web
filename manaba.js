@@ -35,9 +35,9 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function timeValue(item) {
-  return timestampValue(item.firstSeenAt)
-    || dateValue(item.start || item.startText)
+  return dateValue(item.start || item.startText)
     || dateValue(item.dateText)
+    || timestampValue(item.firstSeenAt)
     || 0;
 }
 function timestampValue(value) {
@@ -66,14 +66,6 @@ function taskState(item) {
 }
 function taskStateLabel(state) {
   return ({ pending: "未提出（締切前）", upcoming: "公開前", overdue: "未提出（締切済み）", submitted: "提出済み" })[state] || "";
-}
-function taskSort(a, b) {
-  const rank = { pending: 0, upcoming: 1, overdue: 2, submitted: 3 };
-  const stateDifference = rank[taskState(a)] - rank[taskState(b)];
-  if (stateDifference) return stateDifference;
-  return (dateValue(a.deadline || a.deadlineText) || Number.MAX_SAFE_INTEGER)
-    - (dateValue(b.deadline || b.deadlineText) || Number.MAX_SAFE_INTEGER)
-    || timeValue(b) - timeValue(a);
 }
 function renderNav() {
   const totals = new Map(categories.map(([key]) => [key, 0]));
@@ -153,9 +145,9 @@ function renderPagination(totalPages) {
 function renderList() {
   const visible = items
     .filter((item) => selected === "all" || item.category === selected)
-    .sort(taskCategories.has(selected)
-      ? taskSort
-      : (a, b) => timeValue(b) - timeValue(a) || String(b.dateText || "").localeCompare(String(a.dateText || "")));
+    .sort((a, b) => timeValue(b) - timeValue(a)
+      || dateValue(b.deadline || b.deadlineText) - dateValue(a.deadline || a.deadlineText)
+      || String(b.title || "").localeCompare(String(a.title || ""), "ja"));
   title.textContent = selected === "all" ? "すべての情報" : labels[selected];
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   currentPage = Math.min(currentPage, totalPages);
