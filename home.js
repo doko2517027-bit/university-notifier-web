@@ -69,7 +69,7 @@ function safeManabaUrl(raw) {
 function assignmentIdentity(item) {
   const url = item.url && safeManabaUrl(item.url);
   if (!url) return `${item.course || ""}|${item.title || ""}`;
-  const identity = new URL(url).pathname.match(/\/(course_\d+_(?:report|query|survey|project)_\d+)(?:_|$)/);
+  const identity = new URL(url).pathname.match(/\/(course_\d+_(?:report|query|survey)_\d+)(?:_|$)/);
   return identity ? identity[1] : url;
 }
 function hasSubmittedStatus(item) {

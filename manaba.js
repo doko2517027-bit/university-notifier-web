@@ -10,13 +10,13 @@ const sync = document.getElementById("manabaSyncStatus");
 const pagination = document.getElementById("manabaPagination");
 const PAGE_SIZE = 5;
 const categories = [
-  ["all", "すべて"], ["course_news", "コースニュース"], ["portfolio", "ポートフォリオ"],
-  ["thread", "掲示板"], ["content", "コンテンツ"], ["quiz", "小テスト"],
-  ["survey", "アンケート"], ["report", "レポート"], ["project", "プロジェクト"],
-  ["grade", "成績"], ["coaching", "個別指導"], ["peer_review", "ピアレビュー"],
+  ["all", "すべて"], ["course_news", "コースニュース"],
+  ["content", "コースコンテンツ"], ["survey", "アンケート"],
+  ["quiz", "小テスト"], ["report", "レポート"],
 ];
 const labels = Object.fromEntries(categories);
-const taskCategories = new Set(["quiz", "survey", "report", "project"]);
+const allowedCategories = new Set(categories.map(([key]) => key).filter((key) => key !== "all"));
+const taskCategories = new Set(["quiz", "survey", "report"]);
 const requested = new URL(location.href).searchParams.get("category") || "all";
 let selected = labels[requested] ? requested : "all";
 let currentPage = Math.max(1, Number.parseInt(new URL(location.href).searchParams.get("page") || "1", 10) || 1);
@@ -175,7 +175,9 @@ const unsubscribeMeta = onSnapshot(doc(db, "manabaActivity", studentNumber), (sn
 }, (error) => { console.warn("manaba取得時刻を読めませんでした:", error); sync.textContent = "更新時刻を確認できませんでした。"; });
 
 const unsubscribeItems = onSnapshot(collection(db, "manabaActivity", studentNumber, "items"), (snapshot) => {
-  items = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+  items = snapshot.docs
+    .map((entry) => ({ id: entry.id, ...entry.data() }))
+    .filter((item) => allowedCategories.has(item.category));
   renderNav(); renderList();
 }, (error) => {
   console.error("manaba情報を読み込めませんでした:", error);
