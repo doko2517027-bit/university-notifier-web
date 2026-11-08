@@ -35,7 +35,7 @@ function safeManabaUrl(raw) {
   } catch { return ""; }
 }
 function timeValue(item) {
-  return dateValue(item.start || item.startText)
+  return dateValue(item.sourceUpdatedAt) || dateValue(item.start || item.startText)
     || dateValue(item.dateText)
     || timestampValue(item.firstSeenAt)
     || 0;
@@ -53,6 +53,7 @@ function dateValue(value) {
   return match ? new Date(`${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}T${match[4] ? match[4].padStart(2, "0") : "00"}:${match[5] || "00"}:00+09:00`).getTime() : 0;
 }
 function formatPostedDate(item) {
+  if (item.sourceUpdatedAt) return String(item.sourceUpdatedAt);
   if (item.dateText) return String(item.dateText);
   const date = item.firstSeenAt?.toDate?.();
   return date ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date) : "日時情報なし";
@@ -100,7 +101,7 @@ function card(item) {
   } else {
     // Long page-body text is intentionally not shown.  News, grades and
     // coaching entries use the same compact title/date layout as threads.
-    article.append(node("p", `投稿日：${formatPostedDate(item)}`, "cm-manaba-date"));
+    article.append(node("p", `最終更新：${formatPostedDate(item)}`, "cm-manaba-date"));
   }
   const href = safeManabaUrl(item.url);
   if (href) {
