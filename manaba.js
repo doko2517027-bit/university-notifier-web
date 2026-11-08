@@ -162,7 +162,7 @@ function renderList() {
 const unsubscribeMeta = onSnapshot(doc(db, "manabaActivity", studentNumber), (snapshot) => {
   const updated = snapshot.data()?.updatedAt?.toDate?.();
   sync.textContent = updated
-    ? `最終確認：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updated)}（10分ごとに確認）`
+    ? `最終確認：${new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(updated)}（1時間ごとに確認）`
     : "初回のmanaba情報を取得しています。";
 }, (error) => { console.warn("manaba取得時刻を読めませんでした:", error); sync.textContent = "更新時刻を確認できませんでした。"; });
 
