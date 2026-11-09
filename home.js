@@ -63,6 +63,7 @@ function keyFor(item) {
 function safeManabaUrl(raw) {
   try {
     const url = new URL(String(raw || ""), "https://sums.manaba.jp/ct/");
+    if (/^\/(?:course_\d|page_\d|home(?:_|$))/.test(url.pathname)) url.pathname = "/ct" + url.pathname;
     return url.protocol === "https:" && url.hostname === "sums.manaba.jp" ? url.href : "";
   } catch { return ""; }
 }
