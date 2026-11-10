@@ -99,11 +99,9 @@ function mergeCalendarAssignments(archivedItems, currentItems) {
   return [...unique.values()];
 }
 function assignmentState(item) {
-  // Explicit upstream state wins even when a stale archive still contains a
-  // submission flag.  A not-yet-open task must always be shown in green.
-  if (item.published === false) return "upcoming";
   const start = startDate(item);
   if (start && start.getTime() > Date.now()) return "upcoming";
+  if (!start && item.published === false) return "upcoming";
   if (hasSubmittedStatus(item)) return "submitted";
   if (item._isCurrent === false) return "overdue";
   const deadline = deadlineDate(item);

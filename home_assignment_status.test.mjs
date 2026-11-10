@@ -15,6 +15,8 @@ test("削除や一覧からの消失を提出済みにせず、確認済みの�
   assert.equal(context.assignmentState({ _isCurrent: true, submitted: false, deadline: "2099-10-27 18:20" }), "pending");
   assert.equal(context.assignmentState({ _isCurrent: false, start: "2099-10-20 09:00", deadline: "2099-10-27 18:20" }), "upcoming");
   assert.equal(context.assignmentState({ published: false, submitted: true }), "upcoming");
+  assert.equal(context.assignmentState({ published: false, start: '2020-01-01 09:00', _isCurrent: true, deadline: '2099-12-31' }), 'pending');
+  assert.equal(context.assignmentState({ published: false, start: '2020-01-01 09:00', submitted: true }), 'submitted');
   assert.equal(context.assignmentState({ startText: "2099年10月20日 09：00" }), "upcoming");
   assert.equal(context.startDate({ startAt: { seconds: 4_100_000_000 } }).getTime(), 4_100_000_000_000);
   assert.equal(context.deadlineDate({ deadline: "2026-10-27 18:20" }).toISOString(), "2026-10-27T09:20:00.000Z");

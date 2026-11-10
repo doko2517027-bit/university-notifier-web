@@ -61,7 +61,7 @@ function formatPostedDate(item) {
 }
 function taskState(item) {
   const start = dateValue(item.start || item.startText);
-  if (item.published === false || (start && start > Date.now())) return "upcoming";
+  if ((start && start > Date.now()) || (!start && item.published === false)) return "upcoming";
   if (item.submitted === true) return "submitted";
   const deadline = dateValue(item.deadline || item.deadlineText);
   return deadline && deadline < Date.now() ? "overdue" : "pending";

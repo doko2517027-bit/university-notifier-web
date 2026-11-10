@@ -54,8 +54,8 @@ function isSubmitted(item) {
   );
 }
 function assignmentState(item) {
-  if (item.published === false) return "upcoming";
-  if (startDate(item) > Date.now()) return "upcoming";
+  const start = startDate(item);
+  if (start > Date.now() || (!start && item.published === false)) return "upcoming";
   if (isSubmitted(item)) return "submitted";
   return dueDate(item) < Date.now() ? "overdue" : "pending";
 }
