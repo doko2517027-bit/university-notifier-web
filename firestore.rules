@@ -309,6 +309,17 @@ service cloud.firestore {
         allow delete: if studyPrimaryAdmin();
       }
 
+      match /dictionary/{entryId} {
+        allow read, delete: if studyPrimaryAdmin() && request.auth.uid == uid;
+        allow create, update: if studyPrimaryAdmin() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['word', 'meaning', 'imageUrl', 'updatedAt'])
+          && request.resource.data.word is string && request.resource.data.word.size() > 0 && request.resource.data.word.size() <= 120
+          && request.resource.data.meaning is string && request.resource.data.meaning.size() > 0 && request.resource.data.meaning.size() <= 10000
+          && request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() <= 2000
+          && (request.resource.data.imageUrl == '' || request.resource.data.imageUrl.matches('https://res[.]cloudinary[.]com/.*'))
+          && request.resource.data.updatedAt is timestamp;
+      }
+
       match /announcementReads/{announcementId} {
         allow read: if studyUser() && request.auth.uid == uid;
         allow create, update: if studyUser()
