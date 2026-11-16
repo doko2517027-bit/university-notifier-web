@@ -826,10 +826,93 @@ exports.requestStudyAppPasswordReset = onCall(CALL_OPTIONS, async (request) => {
   return genericResult;
 });
 
+exports.manageStudyEmailRegistration = onCall(CALL_OPTIONS, async request => {
+  await requireStudyAppAdministrator(request);
+  const { action, password, passwordConfirm } = request.data || {};
+  const studentNumber = String(request.data?.studentNumber || "").trim();
+  if (!STUDENT_NUMBER_PATTERN.test(studentNumber) || studentNumber === "2510044") {
+    throw new HttpsError("invalid-argument", "学籍番号を確認してください。");
+  }
+  const email = `${studentNumber}@sums.ac.jp`;
+  const numberRef = db.collection("studyAppStudentNumbers").doc(studentNumber);
+  const pendingRef = db.collection("studyAppEmailRegistrations").doc(studentNumber);
+  const [number, pending] = await Promise.all([numberRef.get(), pendingRef.get()]);
+  if (number.exists) throw new HttpsError("already-exists", "この学籍番号はすでに本登録済みです。");
+  if (action === "send") {
+    const role = request.data?.role;
+    const name = String(request.data?.name || "").trim();
+    if (!["student", "author"].includes(role) || !name || name.length > 80) {
+      throw new HttpsError("invalid-argument", "氏名と役割を確認してください。");
+    }
+    await reserveLoginAttempt(request, `study-enroll-${studentNumber}`, { maxAttempts: 3, windowMs: 60 * 60 * 1000 });
+    let uid = pending.data()?.uid;
+    if (!uid) {
+      let user;
+      try { user = await adminAuth.createUser({ email, password: crypto.randomBytes(32).toString("hex") }); }
+      catch (error) {
+        if (error.code === "auth/email-already-exists") throw new HttpsError("already-exists", "この大学メールではすでに登録手続きが始まっています。");
+        throw error;
+      }
+      uid = user.uid;
+      await pendingRef.create({ uid, name, role, createdAt: FieldValue.serverTimestamp() });
+    }
+    const post = async (method, data) => {
+      const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:${method}?key=${STUDY_APP_WEB_API_KEY}`, {
+        method: "POST", headers: { "content-type": "application/json", "X-Firebase-Locale": "ja" },
+        body: JSON.stringify(data), signal: AbortSignal.timeout(12_000),
+      });
+      if (!response.ok) throw new HttpsError("unavailable", "確認メールを送信できませんでした。時間をおいて再試行してください。");
+      return response.json();
+    };
+    const session = await post("signInWithCustomToken", { token: await adminAuth.createCustomToken(uid), returnSecureToken: true });
+    await post("sendOobCode", { requestType: "VERIFY_EMAIL", idToken: session.idToken });
+    return { sent: true };
+  }
+  if (!pending.exists || !["status", "finish"].includes(action)) throw new HttpsError("not-found", "仮登録が見つかりません。");
+  const { uid, role, name } = pending.data();
+  const user = await adminAuth.getUser(uid);
+  const verified = user.email === email && user.emailVerified === true && !user.disabled;
+  if (action === "status") return { verified };
+  if (!verified) throw new HttpsError("failed-precondition", "大学メールの確認がまだ完了していません。");
+  if (typeof password !== "string" || password.length < 8 || password.length > 128 || password !== passwordConfirm) {
+    throw new HttpsError("invalid-argument", "同じパスワードを2回入力してください（8〜128文字）。");
+  }
+  const profileRef = db.collection("studyAppUsers").doc(uid);
+  const attempt = crypto.randomUUID();
+  await db.runTransaction(async transaction => {
+    const lock = await transaction.get(pendingRef);
+    if (lock.data()?.uid !== uid || (lock.data()?.finishUntil || 0) > Date.now()) {
+      throw new HttpsError("failed-precondition", "登録処理中です。少し待って確認してください。");
+    }
+    transaction.update(pendingRef, { finishAttempt: attempt, finishUntil: Date.now() + 60_000 });
+  });
+  try {
+  await adminAuth.updateUser(uid, { password });
+  await db.runTransaction(async transaction => {
+    const snapshots = await Promise.all([transaction.get(numberRef), transaction.get(profileRef), transaction.get(pendingRef)]);
+    if (snapshots[0].exists || snapshots[1].exists || snapshots[2].data()?.finishAttempt !== attempt) {
+      throw new HttpsError("already-exists", "登録状況が変更されました。");
+    }
+    transaction.create(profileRef, { studentNumber, name, email, emailVerified: true, active: true, role, createdAt: FieldValue.serverTimestamp() });
+    transaction.create(numberRef, { uid, studentNumber, deleted: false, createdAt: FieldValue.serverTimestamp() });
+    transaction.delete(pendingRef);
+  });
+  } catch (error) {
+    await db.runTransaction(async transaction => {
+      const lock = await transaction.get(pendingRef);
+      if (lock.data()?.finishAttempt === attempt) transaction.update(pendingRef, { finishUntil: 0 });
+    }).catch(() => {});
+    throw error;
+  }
+  return { completed: true };
+});
+
 async function ensureVerifiedStudentProfile({ uid, studentNumber, email }) {
   const profileRef = db.collection("studyAppUsers").doc(uid);
   const numberRef = db.collection("studyAppStudentNumbers").doc(studentNumber);
   await db.runTransaction(async (transaction) => {
+    const pending = await transaction.get(db.collection("studyAppEmailRegistrations").doc(studentNumber));
+    if (pending.exists) throw new HttpsError("failed-precondition", "管理画面で本登録を完了してください。");
     const [profileSnapshot, numberSnapshot] = await Promise.all([
       transaction.get(profileRef),
       transaction.get(numberRef),
