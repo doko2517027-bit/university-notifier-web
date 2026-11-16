@@ -409,7 +409,7 @@ service cloud.firestore {
         && request.resource.data.payload.name is string
         && request.resource.data.payload.quiz is list
         && request.resource.data.payload.fill_blank is list;
-      allow update: if studyAdmin() && resource.data.authorUid != request.auth.uid
+      allow update: if studyAdmin() && (studyPrimaryAdmin() || resource.data.authorUid != request.auth.uid)
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
