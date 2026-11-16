@@ -416,7 +416,8 @@ service cloud.firestore {
       allow read: if studyAdmin() || (studyUser() && resource.data.authorUid == request.auth.uid);
       allow create: if studyUser()
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff', 'author']
-        && request.resource.data.keys().hasOnly(['authorUid', 'subjectId', 'unitId', 'payload', 'status', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['authorUid', 'subjectId', 'unitId', 'payload', 'status', 'createdAt', 'before'])
+        && (request.resource.data.get('before', null) == null || request.resource.data.before is map)
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.status == 'pending'
         && request.resource.data.createdAt == request.time
@@ -450,7 +451,9 @@ service cloud.firestore {
     match /studyAppDirectPublications/{id} {
       allow read: if studyAdmin();
       allow create: if directPublisher()
-        && request.resource.data.keys().hasOnly(['subjectId', 'unitId', 'name', 'actorUid', 'actorName', 'actorRole', 'recordedAt'])
+        && request.resource.data.keys().hasOnly(['subjectId', 'unitId', 'name', 'actorUid', 'actorName', 'actorRole', 'recordedAt', 'before', 'after'])
+        && (request.resource.data.get('before', null) == null || request.resource.data.before is map)
+        && request.resource.data.get('after', {}) is map
         && request.resource.data.actorUid == request.auth.uid
         && validPublicationActor(request.resource.data.actorName, request.resource.data.actorRole)
         && request.resource.data.recordedAt == request.time
