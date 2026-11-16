@@ -12,7 +12,7 @@ service cloud.firestore {
 
     function admin() {
       return approved()
-        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.role == 'admin';
+        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.role in ['admin', 'staff'];
     }
 
     function owner(studentNumber) {
@@ -217,14 +217,14 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid))
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.active == true
         && (
-          (studyAdminEmail() && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'author'])
+          (studyAdminEmail() && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff', 'author'])
           || (studyStudentEmail() && request.auth.token.email_verified == true)
         );
     }
 
     function studyAdmin() {
       return studyUser()
-        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role == 'admin';
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
     }
 
     function studyPrimaryAdmin() {
@@ -286,7 +286,7 @@ service cloud.firestore {
         ])
         && request.resource.data.studentNumber is string
         && request.resource.data.studentNumber.matches('^[0-9]{7}$')
-        && request.resource.data.role in ['author', 'admin']
+        && request.resource.data.role in ['author', 'admin', 'staff']
         && request.resource.data.active == true
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.uid == request.auth.uid
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.deleted == false
@@ -298,7 +298,8 @@ service cloud.firestore {
       allow update: if studyAdmin()
         && resource.data.studentNumber != '2510044'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt', 'role'])
-        && request.resource.data.role in ['student', 'author', 'admin']
+        && request.resource.data.role in ['student', 'author', 'admin', 'staff']
+        && (request.resource.data.role != 'student' || resource.data.get('inviteCode', '') == '')
         && request.resource.data.studentNumber == resource.data.studentNumber;
       allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
 
@@ -370,7 +371,7 @@ service cloud.firestore {
         ])
         && request.resource.data.studentNumber is string
         && request.resource.data.studentNumber.matches('^[0-9]{7}$')
-        && request.resource.data.role in ['admin', 'author']
+        && request.resource.data.role in ['admin', 'staff', 'author']
         && request.resource.data.studentNumber != '2510044'
         && request.resource.data.active == true
         && request.resource.data.bootstrap == false;
@@ -389,7 +390,7 @@ service cloud.firestore {
     match /studyAppPublicationRequests/{id} {
       allow read: if studyAdmin() || (studyUser() && resource.data.authorUid == request.auth.uid);
       allow create: if studyUser()
-        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'author']
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff', 'author']
         && request.resource.data.keys().hasOnly(['authorUid', 'subjectId', 'unitId', 'payload', 'status', 'createdAt'])
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.status == 'pending'
@@ -424,13 +425,13 @@ service cloud.firestore {
             ]);
         }
         allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
-        allow create: if studyAdmin() && (request.resource.data.published == false || approvedPublication());
+        allow create: if studyAdmin() && (request.resource.data.published == false || studyPrimaryAdmin() || approvedPublication());
         allow update: if studyAdmin() && (
           request.resource.data.published == false
           || (resource.data.published == true && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'quiz', 'fill_blank', 'summary', 'important_points', 'name', 'range', 'order', 'today_question'
           ]))
-          || approvedPublication()
+          || studyPrimaryAdmin() || approvedPublication()
         );
         allow delete: if studyAdmin();
 

@@ -567,7 +567,7 @@ async function requireStudyAppAdministrator(request) {
   if (!uid) throw new HttpsError("unauthenticated", "ログインが必要です。");
   const snapshot = await db.collection("studyAppUsers").doc(uid).get();
   const profile = snapshot.data() || {};
-  if (!snapshot.exists || profile.active !== true || profile.role !== "admin") {
+  if (!snapshot.exists || profile.active !== true || !["admin", "staff"].includes(profile.role)) {
     throw new HttpsError("permission-denied", "管理者権限がありません。");
   }
   return { uid, profile };
@@ -635,7 +635,7 @@ exports.adminResetStudyAppPassword = onCall(CALL_OPTIONS, async (request) => {
   if (!targetSnapshot.exists || target.active !== true) throw new HttpsError("not-found", "利用中のアカウントが見つかりません。");
   const actorIsPrimary = actor.profile.studentNumber === "2510044";
   const changingSelf = actor.uid === targetUid;
-  if (!actorIsPrimary && (target.studentNumber === "2510044" || (target.role === "admin" && !changingSelf))) {
+  if (!actorIsPrimary && (target.studentNumber === "2510044" || (["admin", "staff"].includes(target.role) && !changingSelf))) {
     throw new HttpsError("permission-denied", "この管理者アカウントのパスワードは変更できません。");
   }
   await adminAuth.updateUser(targetUid, { password: nextPassword });
@@ -797,7 +797,7 @@ exports.requestStudyAppPasswordReset = onCall(CALL_OPTIONS, async (request) => {
   if (numberSnapshot.exists && numberSnapshot.data()?.deleted !== true && uid) {
     const profileSnapshot = await db.collection("studyAppUsers").doc(uid).get();
     const profile = profileSnapshot.data() || {};
-    if (profileSnapshot.exists && profile.active === true && profile.role !== "admin") {
+    if (profileSnapshot.exists && profile.active === true && !["admin", "staff"].includes(profile.role)) {
       try {
         const user = await adminAuth.getUser(uid);
         if (String(user.email || "").toLowerCase().endsWith("@sums.ac.jp")) resetEmail = user.email;
@@ -979,7 +979,7 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
     throw unauthorized();
   }
   uid ||= authUser.uid;
-  const invitedIdentity = profileExists && ["admin", "author"].includes(profile.role)
+  const invitedIdentity = profileExists && ["admin", "staff", "author"].includes(profile.role)
     && String(authUser.email || "").toLowerCase() === `${studentNumber}@admin.caremateuniv.app`;
   if (!authUser.email || authUser.disabled
     || (!invitedIdentity && authUser.emailVerified !== true)) {
@@ -996,7 +996,7 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
   const token = await adminAuth.createCustomToken(uid, {
     studyApp: true,
     studentNumber,
-    role: ["admin", "author"].includes(profile.role) ? profile.role : "student",
+    role: ["admin", "staff", "author"].includes(profile.role) ? profile.role : "student",
   });
   await attemptRef.delete();
   return { token, role: profile.role === "admin" ? "admin" : "student" };
@@ -1052,7 +1052,7 @@ exports.authenticateCareMate = onCall(
     } = approvedStudentFromSnapshot(studentNumber, accessSnapshot);
 
     const experienceMode = await resolveExperienceMode(studentNumber, request.data?.entranceGrant, access);
-    const isAdmin = role === "admin";
+    const isAdmin = ["admin", "staff"].includes(role);
 
     const passwordUpgrade = needsPasswordUpgrade(storedHash)
       ? db.runTransaction(async (transaction) => {
