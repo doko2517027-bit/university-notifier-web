@@ -299,8 +299,15 @@ service cloud.firestore {
         && resource.data.studentNumber != '2510044'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt', 'role'])
         && request.resource.data.role in ['student', 'author', 'admin', 'staff']
-        && (request.resource.data.role != 'student' || resource.data.get('inviteCode', '') == '')
+        && (request.resource.data.role != 'student' || resource.data.get('inviteCode', '') == ''
+          || resource.data.get('universityEmailConfirmed', false) == true)
         && request.resource.data.studentNumber == resource.data.studentNumber;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && resource.data.active == true && studyStudentEmail()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == resource.data.studentNumber + '@sums.ac.jp'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['universityEmailConfirmed'])
+        && request.resource.data.universityEmailConfirmed == true;
       allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
 
       match /progress/{progressId} {
