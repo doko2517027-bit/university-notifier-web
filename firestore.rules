@@ -439,7 +439,31 @@ service cloud.firestore {
       allow update: if studyAdmin() && (studyPrimaryAdmin() || resource.data.authorUid != request.auth.uid)
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedBy', 'reviewerName', 'reviewerRole', 'reviewedAt'])
+        && request.resource.data.reviewedBy == request.auth.uid
+        && validPublicationActor(request.resource.data.reviewerName, request.resource.data.reviewerRole)
+        && request.resource.data.reviewedAt == request.time;
+    }
+
+    function validPublicationActor(name, role) {
+      let actor = get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data;
+      return name == actor.get('name', '')
+        && role == (actor.studentNumber == '2510044' ? 'owner' : actor.role);
+    }
+
+    function directPublisher() {
+      return studyPrimaryAdmin() || (studyAdmin()
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role == 'staff');
+    }
+
+    match /studyAppDirectPublications/{id} {
+      allow read: if studyAdmin();
+      allow create: if directPublisher()
+        && request.resource.data.keys().hasOnly(['subjectId', 'unitId', 'name', 'actorUid', 'actorName', 'actorRole', 'recordedAt'])
+        && request.resource.data.actorUid == request.auth.uid
+        && validPublicationActor(request.resource.data.actorName, request.resource.data.actorRole)
+        && request.resource.data.recordedAt == request.time
+        && getAfter(/databases/$(database)/documents/studyAppSubjects/$(request.resource.data.subjectId)/units/$(request.resource.data.unitId)).data.directPublicationId == id;
     }
 
     match /studyAppSubjects/{subjectId} {
@@ -447,6 +471,14 @@ service cloud.firestore {
       allow create, update, delete: if studyAdmin();
 
       match /units/{unitId} {
+        function loggedDirectPublication() {
+          let data = request.resource.data;
+          let history = /databases/$(database)/documents/studyAppDirectPublications/$(data.directPublicationId);
+          let entry = getAfter(history).data;
+          return directPublisher() && !exists(history) && entry.subjectId == subjectId
+            && entry.unitId == unitId && entry.name == data.name
+            && data.publishedBy == request.auth.uid && data.publishedAt == request.time;
+        }
         function approvedPublication() {
           let data = request.resource.data;
           let path = /databases/$(database)/documents/studyAppPublicationRequests/$(data.publicationRequestId);
@@ -459,13 +491,13 @@ service cloud.firestore {
             ]);
         }
         allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
-        allow create: if studyAdmin() && (request.resource.data.published == false || studyPrimaryAdmin() || approvedPublication());
+        allow create: if studyAdmin() && (request.resource.data.published == false || loggedDirectPublication() || approvedPublication());
         allow update: if studyAdmin() && (
           request.resource.data.published == false
           || (resource.data.published == true && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'quiz', 'fill_blank', 'summary', 'important_points', 'name', 'range', 'order', 'today_question'
           ]))
-          || studyPrimaryAdmin() || approvedPublication()
+          || loggedDirectPublication() || approvedPublication()
         );
         allow delete: if studyAdmin();
 
