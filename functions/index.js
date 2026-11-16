@@ -573,6 +573,39 @@ async function requireStudyAppAdministrator(request) {
   return { uid, profile };
 }
 
+exports.listStudyAuthorReports = onCall(CALL_OPTIONS, async request => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "ログインが必要です。");
+  const profile = (await db.collection("studyAppUsers").doc(uid).get()).data();
+  if (profile?.active !== true || profile.role !== "author") {
+    throw new HttpsError("permission-denied", "問題作成者の権限が必要です。");
+  }
+  const reports = await db.collection("studyAppReports").orderBy("createdAt", "desc").limit(100).get();
+  const lookups = new Map();
+  const results = await Promise.all(reports.docs.map(async row => {
+    const report = row.data();
+    const { subjectId, unitId } = report;
+    if (!subjectId || !unitId || subjectId.includes("/") || unitId.includes("/")) return null;
+    const key = `${subjectId}/${unitId}`;
+    if (!lookups.has(key)) {
+      const subject = db.collection("studyAppSubjects").doc(subjectId);
+      lookups.set(key, Promise.all([subject.get(), subject.collection("units").doc(unitId).get()]));
+    }
+    const [subject, unit] = (await lookups.get(key)).map(snapshot => snapshot.data());
+    if (!subject?.published || !unit?.published) return null;
+    const items = ["quiz", "fill_blank"].includes(report.type) ? unit[report.type] : null;
+    if (!Array.isArray(items)) return null;
+    const question = report.questionId ? items.find(item => item.id === report.questionId) : items[report.index];
+    if (!question) return null;
+    return {
+      subject: subject.name, unit: unit.name, question: question.question,
+      reason: report.reason, status: report.status,
+      createdAt: report.createdAt?.toMillis?.() || 0,
+    };
+  }));
+  return { reports: results.filter(Boolean) };
+});
+
 // Cloudinary upload signatures are short-lived and only issued to active
 // CareMateUniv administrators. The API secret stays in Render and is never
 // returned to the browser or committed to Git.
