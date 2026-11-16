@@ -308,6 +308,12 @@ service cloud.firestore {
         && request.auth.token.email == resource.data.studentNumber + '@sums.ac.jp'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['universityEmailConfirmed'])
         && request.resource.data.universityEmailConfirmed == true;
+      allow update: if studyAdmin()
+        && (resource.data.studentNumber != '2510044' || (studyPrimaryAdmin() && request.auth.uid == uid))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.updatedAt == request.time;
       allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
 
       match /progress/{progressId} {
