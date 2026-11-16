@@ -979,7 +979,10 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
     throw unauthorized();
   }
   uid ||= authUser.uid;
-  const invitedIdentity = profileExists && ["admin", "staff", "author"].includes(profile.role)
+  const invitedIdentity = profileExists && (
+    ["admin", "staff", "author"].includes(profile.role)
+    || (profile.role === "student" && profile.invitedStudent === true)
+  )
     && String(authUser.email || "").toLowerCase() === `${studentNumber}@admin.caremateuniv.app`;
   if (!authUser.email || authUser.disabled
     || (!invitedIdentity && authUser.emailVerified !== true)) {

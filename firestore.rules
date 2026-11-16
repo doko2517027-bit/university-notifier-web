@@ -218,6 +218,7 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.active == true
         && (
           (studyAdminEmail() && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff', 'author'])
+          || invitedStudyStudent(get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data)
           || (studyStudentEmail() && request.auth.token.email_verified == true)
         );
     }
@@ -225,6 +226,12 @@ service cloud.firestore {
     function studyAdmin() {
       return studyUser()
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
+    }
+
+    function invitedStudyStudent(profile) {
+      return studyAdminEmail() && profile.role == 'student'
+        && profile.get('invitedStudent', false) == true
+        && request.auth.token.email == profile.studentNumber + '@admin.caremateuniv.app';
     }
 
     function studyPrimaryAdmin() {
@@ -297,10 +304,14 @@ service cloud.firestore {
             && validStudyAdminInvite(request.resource.data.inviteCode);
       allow update: if studyAdmin()
         && resource.data.studentNumber != '2510044'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt', 'role'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt', 'role', 'invitedStudent'])
         && request.resource.data.role in ['student', 'author', 'admin', 'staff']
+        && (!request.resource.data.get('invitedStudent', false) || (
+          request.resource.data.role == 'student' && resource.data.get('inviteCode', '') != ''
+        ))
         && (request.resource.data.role != 'student' || resource.data.get('inviteCode', '') == ''
-          || resource.data.get('universityEmailConfirmed', false) == true)
+          || resource.data.get('universityEmailConfirmed', false) == true
+          || request.resource.data.get('invitedStudent', false) == true)
         && request.resource.data.studentNumber == resource.data.studentNumber;
       allow update: if request.auth != null && request.auth.uid == uid
         && resource.data.active == true && studyStudentEmail()
