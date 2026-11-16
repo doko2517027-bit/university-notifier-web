@@ -217,7 +217,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid))
         && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.active == true
         && (
-          get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role == 'admin'
+          (studyAdminEmail() && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'author'])
           || (studyStudentEmail() && request.auth.token.email_verified == true)
         );
     }
@@ -272,7 +272,7 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/studyAppInvites/$(code))
         && invite.active == true
         && invite.studentNumber == request.resource.data.studentNumber
-        && invite.role == 'admin';
+        && invite.role == request.resource.data.role;
     }
 
     match /studyAppUsers/{uid} {
@@ -286,11 +286,10 @@ service cloud.firestore {
         ])
         && request.resource.data.studentNumber is string
         && request.resource.data.studentNumber.matches('^[0-9]{7}$')
-        && request.resource.data.role in ['student', 'admin']
+        && request.resource.data.role in ['author', 'admin']
         && request.resource.data.active == true
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.uid == request.auth.uid
         && getAfter(/databases/$(database)/documents/studyAppStudentNumbers/$(request.resource.data.studentNumber)).data.deleted == false
-        && request.resource.data.role == 'admin'
             && studyAdminEmail()
             && !('email' in request.resource.data)
             && !('emailVerified' in request.resource.data)
@@ -298,8 +297,8 @@ service cloud.firestore {
             && validStudyAdminInvite(request.resource.data.inviteCode);
       allow update: if studyAdmin()
         && resource.data.studentNumber != '2510044'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt'])
-        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt', 'role'])
+        && request.resource.data.role in ['student', 'author', 'admin']
         && request.resource.data.studentNumber == resource.data.studentNumber;
       allow delete: if studyPrimaryAdmin() && resource.data.studentNumber != '2510044';
 
@@ -371,7 +370,8 @@ service cloud.firestore {
         ])
         && request.resource.data.studentNumber is string
         && request.resource.data.studentNumber.matches('^[0-9]{7}$')
-        && request.resource.data.role == 'admin'
+        && request.resource.data.role in ['admin', 'author']
+        && request.resource.data.studentNumber != '2510044'
         && request.resource.data.active == true
         && request.resource.data.bootstrap == false;
       allow update: if false;
@@ -386,13 +386,53 @@ service cloud.firestore {
       allow create, update, delete: if studyAdmin();
     }
 
+    match /studyAppPublicationRequests/{id} {
+      allow read: if studyAdmin() || (studyUser() && resource.data.authorUid == request.auth.uid);
+      allow create: if studyUser()
+        && get(/databases/$(database)/documents/studyAppUsers/$(request.auth.uid)).data.role in ['admin', 'author']
+        && request.resource.data.keys().hasOnly(['authorUid', 'subjectId', 'unitId', 'payload', 'status', 'createdAt'])
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.subjectId is string && request.resource.data.unitId is string
+        && request.resource.data.payload.keys().hasOnly([
+          'name', 'range', 'order', 'summary', 'important_points', 'quiz', 'fill_blank', 'today_question'
+        ])
+        && request.resource.data.payload.name is string
+        && request.resource.data.payload.quiz is list
+        && request.resource.data.payload.fill_blank is list;
+      allow update: if studyAdmin() && resource.data.authorUid != request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
     match /studyAppSubjects/{subjectId} {
       allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
       allow create, update, delete: if studyAdmin();
 
       match /units/{unitId} {
+        function approvedPublication() {
+          let data = request.resource.data;
+          let path = /databases/$(database)/documents/studyAppPublicationRequests/$(data.publicationRequestId);
+          let approval = getAfter(path).data;
+          return get(path).data.status == 'pending' && approval.status == 'approved'
+            && approval.authorUid != request.auth.uid && approval.subjectId == subjectId
+            && (approval.unitId == unitId || (approval.unitId == '' && resource == null))
+            && data.diff(approval.payload).affectedKeys().hasOnly([
+              'published', 'publishedAt', 'publishedBy', 'updatedAt', 'publicationRequestId'
+            ]);
+        }
         allow read: if studyAdmin() || (studyUser() && resource.data.published == true);
-        allow create, update, delete: if studyAdmin();
+        allow create: if studyAdmin() && (request.resource.data.published == false || approvedPublication());
+        allow update: if studyAdmin() && (
+          request.resource.data.published == false
+          || (resource.data.published == true && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'quiz', 'fill_blank', 'summary', 'important_points', 'name', 'range', 'order', 'today_question'
+          ]))
+          || approvedPublication()
+        );
+        allow delete: if studyAdmin();
 
         // Editing drafts are never exposed to students. Publishing copies the
         // validated snapshot to the parent unit document.

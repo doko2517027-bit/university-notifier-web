@@ -979,8 +979,10 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
     throw unauthorized();
   }
   uid ||= authUser.uid;
+  const invitedIdentity = profileExists && ["admin", "author"].includes(profile.role)
+    && String(authUser.email || "").toLowerCase() === `${studentNumber}@admin.caremateuniv.app`;
   if (!authUser.email || authUser.disabled
-    || ((!profileExists || profile.role !== "admin") && authUser.emailVerified !== true)) {
+    || (!invitedIdentity && authUser.emailVerified !== true)) {
     throw unauthorized();
   }
   await verifyStudyAppPassword(authUser.email, password, uid);
@@ -994,7 +996,7 @@ exports.authenticateStudyApp = onCall(CALL_OPTIONS, async (request) => {
   const token = await adminAuth.createCustomToken(uid, {
     studyApp: true,
     studentNumber,
-    role: profile.role === "admin" ? "admin" : "student",
+    role: ["admin", "author"].includes(profile.role) ? profile.role : "student",
   });
   await attemptRef.delete();
   return { token, role: profile.role === "admin" ? "admin" : "student" };
