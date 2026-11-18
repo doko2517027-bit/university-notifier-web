@@ -28,10 +28,8 @@ document.getElementById("profileButton").onclick = () => {
     : "settings.html";
 };
 
-await initializePage([
-  loadProfileImage(document.getElementById("topProfileImage")),
-  loadQuestionList(),
-]);
+void loadProfileImage(document.getElementById("topProfileImage"));
+await initializePage([loadQuestionList().catch(error => { console.error(error); root.textContent = "問題を読み込めませんでした。画面を再読み込みしてください。"; })]);
 
 function normalizeQuestionItems(data) {
   const quiz = (Array.isArray(data.quiz) ? data.quiz : [])

@@ -14,7 +14,7 @@ import {
   scrubberHtml,
   setupScrubber,
   finishTest,
-} from "./test_session.js?v=20261021-2";
+} from "./test_session.js?v=20261119-1";
 import {
   studyPointHtml,
   studySearchHtml,
@@ -59,7 +59,8 @@ document.getElementById("profileButton").onclick = () => {
   location.href = document.documentElement.dataset.caremateRole === "admin" ? "admin.html" : "settings.html";
 };
 
-await initializePage([loadProfileImage(topProfileImage), loadQuestions()]);
+void loadProfileImage(topProfileImage);
+await initializePage([loadQuestions().catch(error => { console.error(error); questions.textContent = "問題を読み込めませんでした。画面を再読み込みしてください。"; })]);
 
 async function loadQuestions() {
   if (!subjectId || !unitId) {
@@ -95,9 +96,6 @@ async function loadQuestions() {
 
   const data = snap.data();
 
-  console.log("Firestoreから取得したAIデータ", data);
-  console.log("穴埋め問題", data.fill_blank);
-
   const fillBlank = (data.fill_blank || []).filter(
     (q) =>
       q &&
@@ -127,7 +125,8 @@ async function loadQuestions() {
   );
   applyFillSession();
   renderFillQuestion();
-  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
+  void startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName })
+    .catch(error => console.warn("学習タイマーを開始できませんでした:", error));
 
   sessionStorage.setItem("quizPlaying", "true");
 }

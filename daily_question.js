@@ -43,7 +43,8 @@ let forceLeavePage = false;
 
 setupTheme(themeButton);
 
-await initializePage([loadProfileImage(topProfileImage), loadDailyQuestion()]);
+void loadProfileImage(topProfileImage);
+await initializePage([loadDailyQuestion()]);
 
 document.getElementById("backButton").onclick = async () => {
   forceLeavePage = true;
@@ -211,7 +212,8 @@ async function loadDailyQuestion() {
 
   setupStudyTools(questionArea);
   markQuestionShown();
-  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
+  void startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName })
+    .catch(error => console.warn("学習タイマーを開始できませんでした:", error));
 
   sessionStorage.setItem("quizPlaying", "true");
 }

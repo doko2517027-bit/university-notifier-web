@@ -9,7 +9,7 @@ import {
   saveTestProgress,
   scrubberHtml,
   setupScrubber,
-} from "./test_session.js?v=20261021-2";
+} from "./test_session.js?v=20261119-1";
 import { studySearchHtml, setupStudyTools } from "./study_tools.js";
 import {
   startStudyTimer,
@@ -42,7 +42,8 @@ document.getElementById("backButton").onclick = async () => {
 };
 document.getElementById("profileButton").onclick = () =>
   (location.href = document.documentElement.dataset.caremateRole === "admin" ? "admin.html" : "settings.html");
-await initializePage([loadProfileImage(topProfileImage), loadQuestions()]);
+void loadProfileImage(topProfileImage);
+await initializePage([loadQuestions().catch(error => { console.error(error); qaArea.textContent = "問題を読み込めませんでした。画面を再読み込みしてください。"; })]);
 
 async function loadQuestions() {
   if (!subjectId || !unitId) {
@@ -98,7 +99,8 @@ async function loadQuestions() {
   questions = qaSession.questionOrder.map((id) => byId.get(id)).filter(Boolean);
   currentIndex = qaSession.currentIndex;
   renderQuestion();
-  await startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName });
+  void startStudyTimer({ source: "exam", subjectId, subjectName, unitId, unitName })
+    .catch(error => console.warn("学習タイマーを開始できませんでした:", error));
 }
 
 function escapeHtml(value) {

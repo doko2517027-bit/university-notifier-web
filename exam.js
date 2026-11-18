@@ -169,17 +169,8 @@ if (window.matchMedia("(max-width: 650px)").matches) {
 
 setupEvents();
 
-await initializePage([
-
-  setupRoleTabs(),
-
-  updateAssignmentNavBadge(),
-
-
-  updateNewsNavBadge(),
-
-  loadExamDashboard(),
-]);
+void Promise.allSettled([setupRoleTabs(), updateAssignmentNavBadge(), updateNewsNavBadge()]);
+await initializePage([loadExamDashboard()]);
 
 /* ========================================
    イベント登録

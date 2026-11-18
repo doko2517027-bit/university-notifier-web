@@ -15,7 +15,8 @@ const unitId = params.get("unitId");
 
 setupTheme(themeButton);
 
-await initializePage([loadProfileImage(topProfileImage), loadRemember()]);
+void loadProfileImage(topProfileImage);
+await initializePage([loadRemember()]);
 
 document.getElementById("backButton").onclick = () => {
   history.back();

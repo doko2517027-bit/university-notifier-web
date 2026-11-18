@@ -1,4 +1,4 @@
-import { db, studentNumber } from "./common.js?v=20261029-1";
+import { db, studentNumber, showPage } from "./common.js?v=20261029-1";
 import {
   doc,
   getDoc,
@@ -105,6 +105,8 @@ export async function loadTestSession(type, subjectId, subjectName, unitId, item
     ? validSession(snap.data(), items)
     : null;
   if (restored) {
+    showPage();
+    window.CareMatePageStatus?.ready();
     const continueFromHere = await confirmStudentDialog({
       title: "前回の続きから始めますか？",
       message: `前回は問題 ${restored.currentIndex + 1} まで進みました。`,
@@ -113,18 +115,7 @@ export async function loadTestSession(type, subjectId, subjectName, unitId, item
     });
     if (continueFromHere) return restored;
   }
-  const session = newSession(items);
-  await saveTestProgress(
-    type,
-    subjectId,
-    subjectName,
-    unitId,
-    session.currentIndex,
-    items.length,
-    false,
-    session,
-  );
-  return session;
+  return newSession(items);
 }
 
 export function createNewTestSession(items) {
